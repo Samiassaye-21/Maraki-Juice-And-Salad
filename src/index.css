@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+/* ========================================
+   Maraki — White & Light Blue Modern SaaS Theme
+   ======================================== */
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* Smooth Scrolling & Antialiasing */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: #F8FAFC; /* slate-50 background for subtle depth */
+  min-height: 100vh;
+  color: #0F172A; /* slate-900 */
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #64748B; }
+
+/* Hide number spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+
+/* Hide scrollbar on nav */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Selection */
+::selection { background: #3B82F6; color: #fff; }
+
+/* Focus ring - Modern blue focus */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  border-color: #60A5FA;
+  border-radius: 8px;
+}
+
+/* Gradients */
+.gradient-text-blue {
+  background: linear-gradient(135deg, #3B82F6, #0EA5E9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

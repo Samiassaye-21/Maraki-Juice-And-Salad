@@ -1,0 +1,6 @@
+{
+  "name": "Maraki",
+  "description": "Maraki Food & Juice Shift & Stock Reconciliation System - Counted takeaway and cup inventory tracking, Day/Night shift income calculation, direct digital transfer deductions, cooking expenses, customer pending credit ledger, and weekly delivery accounts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
