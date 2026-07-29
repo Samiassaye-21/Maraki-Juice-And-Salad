@@ -1,7 +1,3 @@
--- SQL Schema for Maraki Application
--- Copy and paste this script into your Supabase SQL Editor and run it.
-
--- 1. Create Shifts Table
 CREATE TABLE shifts (
   id TEXT PRIMARY KEY,
   date TEXT NOT NULL,
@@ -94,3 +90,42 @@ ALTER TABLE shifts DISABLE ROW LEVEL SECURITY;
 ALTER TABLE pending_payments DISABLE ROW LEVEL SECURITY;
 ALTER TABLE delivery_records DISABLE ROW LEVEL SECURITY;
 ALTER TABLE config DISABLE ROW LEVEL SECURITY;
+
+-- 5. Create Inventory Purchase Trips Table
+CREATE TABLE purchase_trips (
+  id TEXT PRIMARY KEY,
+  date TEXT NOT NULL,
+  notes TEXT,
+  grand_total NUMERIC NOT NULL DEFAULT 0,
+  created_at_ts BIGINT NOT NULL
+);
+
+-- 6. Create Purchase Trip Items Table
+CREATE TABLE purchase_trip_items (
+  id TEXT PRIMARY KEY,
+  trip_id TEXT NOT NULL REFERENCES purchase_trips(id) ON DELETE CASCADE,
+  material_id TEXT,
+  item_name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  unit TEXT NOT NULL,
+  quantity NUMERIC NOT NULL,
+  price_per_unit NUMERIC NOT NULL DEFAULT 0,
+  total_price NUMERIC NOT NULL DEFAULT 0
+);
+
+-- 7. Create Unified Financial Ledger Table
+CREATE TABLE ledger_entries (
+  id TEXT PRIMARY KEY,
+  date TEXT NOT NULL,
+  type TEXT NOT NULL,
+  description TEXT NOT NULL,
+  amount NUMERIC NOT NULL,
+  sign INTEGER NOT NULL CHECK (sign IN (1, -1)),
+  reference_id TEXT NOT NULL,
+  created_at_ts BIGINT NOT NULL
+);
+
+ALTER TABLE purchase_trips DISABLE ROW LEVEL SECURITY;
+ALTER TABLE purchase_trip_items DISABLE ROW LEVEL SECURITY;
+ALTER TABLE ledger_entries DISABLE ROW LEVEL SECURITY;
+

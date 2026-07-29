@@ -111,3 +111,59 @@ export interface SystemSummaryStats {
   currentJuiceStockLeft: number;
   currentTakeawayStockLeft: number;
 }
+
+// ─── NEW: Big Inventory Purchases ───────────────────────────────────────────
+
+export type MaterialUnit = 'kg' | 'liter' | 'piece' | 'pack' | 'cylinder' | 'box';
+export type MaterialCategory = 'fruits' | 'dairy' | 'kitchen' | 'packaging' | 'equipment' | 'other';
+
+export interface MaterialCatalogItem {
+  id: string;
+  name: string;
+  unit: MaterialUnit;
+  category: MaterialCategory;
+  emoji: string;
+  lastPricePer?: number;      // Last recorded price per unit
+  lastPurchaseDate?: string;  // YYYY-MM-DD
+}
+
+export interface PurchaseTripItem {
+  id: string;
+  tripId: string;
+  materialId?: string;        // References MaterialCatalogItem.id (null for free-text)
+  itemName: string;           // Actual name used (from catalog or free-text)
+  category: MaterialCategory;
+  unit: MaterialUnit;
+  quantity: number;
+  pricePerUnit: number;       // Calculated or entered directly
+  totalPrice: number;         // quantity * pricePerUnit
+}
+
+export interface PurchaseTrip {
+  id: string;
+  date: string;               // YYYY-MM-DD
+  notes?: string;
+  items: PurchaseTripItem[];
+  grandTotal: number;         // Sum of all item totalPrice
+  createdAt: number;          // timestamp
+}
+
+// ─── NEW: Unified Financial Ledger ──────────────────────────────────────────
+
+export type LedgerEntryType =
+  | 'shift_income'
+  | 'shift_daily_expense'
+  | 'pending_recovered'
+  | 'delivery_recovered'
+  | 'purchase_trip';
+
+export interface LedgerEntry {
+  id: string;
+  date: string;               // YYYY-MM-DD
+  type: LedgerEntryType;
+  description: string;        // Human-readable label
+  amount: number;             // Always positive
+  sign: 1 | -1;               // 1 = income, -1 = expense
+  referenceId: string;        // ID of the source record (shiftId, pendingId, tripId)
+  createdAt: number;          // timestamp for ordering
+}

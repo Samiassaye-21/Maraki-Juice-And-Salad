@@ -3,7 +3,8 @@ import {
   ShiftRecord, 
   PendingPaymentItem, 
   DeliveryAccountRecord,
-  FoodMenuItem 
+  FoodMenuItem,
+  MaterialCatalogItem
 } from '../types';
 
 export const DEFAULT_FOOD_MENU: FoodMenuItem[] = [
@@ -186,3 +187,34 @@ export const INITIAL_DELIVERY_RECORDS: DeliveryAccountRecord[] = [
     settledDate: today,
   },
 ];
+
+// ─── Materials Catalog for Inventory Purchases ───────────────────────────────
+export const DEFAULT_MATERIALS_CATALOG: MaterialCatalogItem[] = [
+  // Fruits (for juices)
+  { id: 'mat-1',  name: 'Mango',         unit: 'kg',     category: 'fruits',    emoji: '🥭' },
+  { id: 'mat-2',  name: 'Papaya',        unit: 'kg',     category: 'fruits',    emoji: '🍈' },
+  { id: 'mat-3',  name: 'Avocado',       unit: 'kg',     category: 'fruits',    emoji: '🥑' },
+  { id: 'mat-4',  name: 'Banana',        unit: 'kg',     category: 'fruits',    emoji: '🍌' },
+  { id: 'mat-5',  name: 'Orange',        unit: 'kg',     category: 'fruits',    emoji: '🍊' },
+  { id: 'mat-6',  name: 'Pineapple',     unit: 'kg',     category: 'fruits',    emoji: '🍍' },
+  { id: 'mat-7',  name: 'Guava',         unit: 'kg',     category: 'fruits',    emoji: '🍏' },
+  // Dairy & Base
+  { id: 'mat-8',  name: 'Milk',          unit: 'liter',  category: 'dairy',     emoji: '🥛' },
+  { id: 'mat-9',  name: 'Sugar',         unit: 'kg',     category: 'dairy',     emoji: '🍬' },
+  { id: 'mat-10', name: 'Ice',           unit: 'kg',     category: 'dairy',     emoji: '🧊' },
+  // Kitchen Supplies
+  { id: 'mat-11', name: 'Cooking Oil',   unit: 'liter',  category: 'kitchen',   emoji: '🫙' },
+  { id: 'mat-12', name: 'Tomatoes',      unit: 'kg',     category: 'kitchen',   emoji: '🍅' },
+  { id: 'mat-13', name: 'Onions',        unit: 'kg',     category: 'kitchen',   emoji: '🧅' },
+  { id: 'mat-14', name: 'Spices / Herbs',unit: 'pack',   category: 'kitchen',   emoji: '🌿' },
+  // Packaging
+  { id: 'mat-15', name: 'Juice Cups',    unit: 'piece',  category: 'packaging', emoji: '🥤' },
+  { id: 'mat-16', name: 'Takeaway Boxes',unit: 'piece',  category: 'packaging', emoji: '📦' },
+  { id: 'mat-17', name: 'Straws',        unit: 'pack',   category: 'packaging', emoji: '🥢' },
+  { id: 'mat-18', name: 'Napkins',       unit: 'pack',   category: 'packaging', emoji: '🧻' },
+  { id: 'mat-19', name: 'Lids / Covers', unit: 'pack',   category: 'packaging', emoji: '🔵' },
+  // Equipment & Utilities
+  { id: 'mat-20', name: 'Cooking Gas',   unit: 'cylinder', category: 'equipment', emoji: '🔥' },
+  { id: 'mat-21', name: 'Equipment / Repair', unit: 'piece', category: 'equipment', emoji: '⚙️' },
+];
+

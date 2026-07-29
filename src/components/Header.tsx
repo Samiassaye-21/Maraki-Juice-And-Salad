@@ -12,12 +12,14 @@ import {
   Settings,
   Receipt,
   Sparkles,
-  Store
+  Store,
+  ShoppingCart,
+  BarChart3
 } from 'lucide-react';
 import { ShiftType, RestaurantSystemConfig, SystemSummaryStats } from '../types';
 import { getEthiopianMonthYear } from '../utils/shiftUtils';
 
-export type MainTab = 'calculator' | 'pending' | 'delivery' | 'history' | 'settings';
+export type MainTab = 'calculator' | 'pending' | 'delivery' | 'purchases' | 'account' | 'history' | 'settings';
 
 interface HeaderProps {
   activeTab: MainTab;
@@ -65,6 +67,8 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'calculator', label: 'Shift Reconciliation', icon: Calculator },
     { id: 'pending', label: 'Pending Payments', icon: Clock, count: summary.totalPendingOutstanding },
     { id: 'delivery', label: 'Delivery Accounts', icon: Truck, count: summary.totalDeliveryUnsettled },
+    { id: 'purchases', label: 'Inventory Purchases', icon: ShoppingCart },
+    { id: 'account', label: 'Account & Balance', icon: BarChart3 },
     { id: 'history', label: 'Shift History', icon: Receipt },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
