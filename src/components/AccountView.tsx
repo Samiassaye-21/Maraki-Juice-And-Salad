@@ -170,7 +170,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
         )}
 
         {entriesWithRunning.map((entry) => {
-          const cfg = entryTypeConfig[entry.type];
+          const cfg = entryTypeConfig[entry.type as any] || { label: 'Legacy Entry', icon: '📌', color: 'text-slate-500' };
           const isIncome = entry.sign === 1;
           return (
             <motion.div
