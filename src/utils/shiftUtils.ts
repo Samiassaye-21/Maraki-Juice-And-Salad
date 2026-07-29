@@ -129,7 +129,7 @@ export function calculateSystemSummary(
   let dayShiftIncomeTotal = 0;
   let nightShiftIncomeTotal = 0;
 
-  shifts.forEach((shift) => {
+  shifts.filter(s => s.isClosed).forEach((shift) => {
     totalGrossIncome += shift.grossIncome;
     totalNetCashCollected += shift.netCashDueToOwner;
     totalDigitalTransfers += shift.digitalTransfers;
@@ -153,7 +153,7 @@ export function calculateSystemSummary(
     .reduce((sum, d) => sum + d.amount, 0);
 
   // Latest remaining stocks from most recent closed shift
-  const lastShift = shifts[0];
+  const lastShift = shifts.find(s => s.isClosed);
   const currentJuiceStockLeft = lastShift ? lastShift.juiceCups.remainingCount : 120;
   const currentTakeawayStockLeft = lastShift ? lastShift.foodTakeaways.remainingCount : 85;
 

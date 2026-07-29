@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Lock, Loader2 } from 'lucide-react';
+import { Lock, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface LoginProps {
@@ -7,7 +7,6 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,21 +54,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         onSubmit={handleSubmit}
         className="w-full max-w-[320px] flex flex-col gap-4"
       >
-        {/* Username Input */}
-        <div className="relative group">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-5">
-            <User className="h-[22px] w-[22px] text-[#db606e] transition-colors group-focus-within:text-[#e47683]" strokeWidth={1.5} />
-          </div>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Username"
-            required
-            className="block w-full rounded-full bg-[#394553] py-4 pl-14 pr-4 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#db606e] transition-all"
-          />
-        </div>
-
         {/* Password Input */}
         <div className="relative group">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-5">
@@ -94,13 +78,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             {error}
           </motion.p>
         )}
-
-        {/* Forgot Password */}
-        <div className="text-center mt-2 mb-8">
-          <a href="#" className="text-sm text-gray-300 hover:text-white transition-colors">
-            Forgot password?
-          </a>
-        </div>
 
         {/* Submit Button */}
         <button

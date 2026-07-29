@@ -70,7 +70,11 @@ function buildShiftLedgerEntries(shift: ShiftRecord): LedgerEntry[] {
 export function App() {
   const [activeTab, setActiveTab] = useState<MainTab>('calculator');
   const [activeShift, setActiveShift] = useState<ShiftType>('day');
-  const [selectedMonth, setSelectedMonth] = useState('July 2026');
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return `${months[now.getMonth()]} ${now.getFullYear()}`;
+  });
   const [selectedCurrency, setSelectedCurrency] = useState('Br ETB');
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [isDbLoading, setIsDbLoading] = useState(true);
@@ -508,11 +512,9 @@ export function App() {
   };
 
   // ─── Month navigation ──────────────────────────────────────────────────────
-  const monthsList = [
-    'January 2026', 'February 2026', 'March 2026', 'April 2026', 
-    'May 2026', 'June 2026', 'July 2026', 'August 2026', 
-    'September 2026', 'October 2026', 'November 2026', 'December 2026'
-  ];
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const currentYear = new Date().getFullYear();
+  const monthsList = monthNames.map(m => `${m} ${currentYear}`);
 
   const handlePrevMonth = () => {
     const idx = monthsList.indexOf(selectedMonth);

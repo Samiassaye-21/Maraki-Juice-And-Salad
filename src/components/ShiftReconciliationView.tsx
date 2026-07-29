@@ -119,6 +119,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
 
   const [shiftNotes, setShiftNotes] = useState<string>('');
   const [savedSuccessMsg, setSavedSuccessMsg] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (lastClosedShift) {
@@ -179,7 +180,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
   const unaccountedBoxes = Math.max(0, foodTakeawaysSold - totalMenuFoodSold);
   
   const foodRevenue = useMenuSalesCalc 
-    ? (menuFoodRevenue + (unaccountedBoxes * foodPrice))
+    ? (menuFoodRevenue + (includeUnaccountedInRevenue ? unaccountedBoxes * foodPrice : 0))
     : (foodTakeawaysSold * foodPrice);
 
   const grossIncome = juiceRevenue + foodRevenue;
@@ -187,6 +188,8 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
 
   const handleSaveShiftRecord = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     const recordDate = shiftDate || new Date().toISOString().split('T')[0];
 
@@ -298,10 +301,6 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
     setSavedSuccessMsg(
       `Shift Closed Successfully! Leftovers passed to next shift: ${juiceLeftover} Juice Cups & ${foodLeftover} Food Takeaways.`
     );
-
-    setTimeout(() => {
-      setSavedSuccessMsg(null);
-    }, 4500);
   };
 
   const inputClasses = "w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all shadow-sm";
@@ -321,12 +320,21 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
             className="bg-green-50 text-green-700 rounded-xl p-5 shadow-sm border border-green-200 flex items-center space-x-3.5"
           >
             <ShieldCheck className="w-6 h-6 text-green-500 shrink-0" />
-            <p className="text-sm font-semibold leading-snug">
+            <p className="text-sm font-semibold leading-snug flex-1">
               {savedSuccessMsg}
             </p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-sm transition-colors whitespace-nowrap"
+            >
+              Start New Shift
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {!savedSuccessMsg && (
+        <>
 
       {/* SHIFT & WORKER SELECTION BAR */}
       <div className="bg-white rounded-xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-slate-200">
@@ -1046,6 +1054,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
 
           <button
             type="submit"
+            disabled={isSubmitting}
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-4 px-6 rounded-xl shadow-md text-base flex items-center justify-center space-x-2.5 transition-all cursor-pointer"
           >
             <CheckCircle2 className="w-5 h-5" />
@@ -1053,6 +1062,8 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
           </button>
         </div>
       </form>
+      </>
+      )}
 
       {/* MODALS */}
       <CalculatorModal

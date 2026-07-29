@@ -59,17 +59,20 @@ export const AccountView: React.FC<AccountViewProps> = ({
   const periodExpenses = filteredByPeriod.filter(e => e.sign === -1).reduce((s, e) => s + e.amount, 0);
   const periodNet      = periodIncome - periodExpenses;
 
-  // Running balance per entry (newest first already)
+  // Running balance per entry
   const entriesWithRunning = useMemo(() => {
+    // When filters are active, running balance is misleading, so we hide it
+    const showRunning = filterType === 'all' && filterPeriod === 'all';
+    if (!showRunning) {
+      return filteredEntries.map(e => ({ ...e, runningAfter: null as number | null }));
+    }
     let running = balance;
     return filteredEntries.map(e => {
       const before = running;
-      // We can't truly compute running per entry without full ordered list.
-      // We show the running as it would appear at that point going backwards.
       running = running - (e.sign * e.amount);
       return { ...e, runningAfter: before };
     });
-  }, [filteredEntries, balance]);
+  }, [filteredEntries, balance, filterType, filterPeriod]);
 
   const periodLabel = filterPeriod === 'week' ? 'This Week' : filterPeriod === 'month' ? 'Last 30 Days' : 'All Time';
 
@@ -199,9 +202,11 @@ export const AccountView: React.FC<AccountViewProps> = ({
                 <p className={`text-base font-bold ${isIncome ? 'text-emerald-600' : 'text-red-500'}`}>
                   {isIncome ? '+' : '−'}{formatCurrency(entry.amount, currencySymbol)}
                 </p>
-                <p className="text-[10px] text-slate-400 mt-0.5">
-                  Bal: {formatCurrency(entry.runningAfter, currencySymbol)}
-                </p>
+                {entry.runningAfter !== null && (
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    Bal: {formatCurrency(entry.runningAfter, currencySymbol)}
+                  </p>
+                )}
               </div>
             </motion.div>
           );
