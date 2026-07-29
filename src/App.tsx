@@ -96,19 +96,22 @@ export function App() {
   const [purchaseTrips, setPurchaseTripsState] = useState<PurchaseTrip[]>([]);
   const [ledgerEntries, setLedgerEntriesState] = useState<LedgerEntry[]>([]);
 
-  // Load token from localStorage on mount
+  // Load token from sessionStorage on mount (resets on tab close)
   useEffect(() => {
-    const token = localStorage.getItem('maraki_auth_token');
+    // Clean up old localStorage token if it exists to force new security flow
+    localStorage.removeItem('maraki_auth_token');
+    
+    const token = sessionStorage.getItem('maraki_auth_token');
     if (token) setAuthToken(token);
   }, []);
 
   const handleLoginSuccess = (token: string) => {
-    localStorage.setItem('maraki_auth_token', token);
+    sessionStorage.setItem('maraki_auth_token', token);
     setAuthToken(token);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('maraki_auth_token');
+    sessionStorage.removeItem('maraki_auth_token');
     setAuthToken(null);
   };
 
@@ -544,6 +547,7 @@ export function App() {
         config={config}
         themeMode={themeMode}
         onToggleTheme={handleToggleTheme}
+        onLogout={handleLogout}
       />
 
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 relative">

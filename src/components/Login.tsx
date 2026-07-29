@@ -16,23 +16,16 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        onLoginSuccess(data.token);
+    
+    // Hardcoded simple authentication
+    setTimeout(() => {
+      if (password === 'maraki2026') {
+        onLoginSuccess('authenticated_' + Date.now());
       } else {
-        setError(data.message || 'Invalid credentials');
+        setError('Incorrect password. Please try again.');
       }
-    } catch (err) {
-      setError('Network error');
-    } finally {
       setLoading(false);
-    }
+    }, 600); // Fake network delay for UX
   };
 
   return (

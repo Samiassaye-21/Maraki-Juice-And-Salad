@@ -14,7 +14,8 @@ import {
   Sparkles,
   Store,
   ShoppingCart,
-  BarChart3
+  BarChart3,
+  LogOut
 } from 'lucide-react';
 import { ShiftType, RestaurantSystemConfig, SystemSummaryStats } from '../types';
 import { getEthiopianMonthYear } from '../utils/shiftUtils';
@@ -37,6 +38,7 @@ interface HeaderProps {
   config: RestaurantSystemConfig;
   themeMode?: 'light' | 'dark';
   onToggleTheme?: () => void;
+  onLogout: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -55,6 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
   config,
   themeMode = 'light',
   onToggleTheme,
+  onLogout
 }) => {
   interface TabItem {
     id: MainTab;
@@ -167,6 +170,15 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
+          <div className="flex items-center gap-1 border-l border-slate-200 pl-3 ml-1">
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Log Out</span>
+            </button>
+          </div>
         </div>
 
         {/* Bottom Row: Navigation Tabs */}
