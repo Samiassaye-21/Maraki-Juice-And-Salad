@@ -8,6 +8,7 @@ import { ShiftHistoryView } from './components/ShiftHistoryView';
 import { BudgetSettings } from './components/BudgetSettings';
 import { MarketPurchasesView } from './components/MarketPurchasesView';
 import { AccountView } from './components/AccountView';
+import { OtherExpensesView, OtherExpenseItem } from './components/OtherExpensesView';
 import Login from './components/Login';
 import { SupabaseMigration } from './components/SupabaseMigration';
 import { supabase } from './lib/supabaseClient';
@@ -113,6 +114,7 @@ export function App() {
   const [deliveryRecords, setDeliveryRecordsState] = useState<DeliveryAccountRecord[]>([]);
   const [purchaseTrips, setPurchaseTripsState] = useState<PurchaseTrip[]>([]);
   const [ledgerEntries, setLedgerEntriesState] = useState<LedgerEntry[]>([]);
+  const [otherExpenses, setOtherExpensesState] = useState<OtherExpenseItem[]>([]);
 
   // Load token from sessionStorage on mount (resets on tab close)
   useEffect(() => {
@@ -226,6 +228,15 @@ export function App() {
           id: e.id, date: e.date, type: e.type, description: e.description,
           amount: e.amount, sign: e.sign, referenceId: e.reference_id,
           createdAt: Number(e.created_at_ts),
+        })));
+      }
+
+      // Other Expenses
+      const { data: expData } = await supabase.from('other_expenses').select('*').order('created_at_ts', { ascending: false });
+      if (expData) {
+        setOtherExpensesState(expData.map(e => ({
+          id: e.id, category: e.category, description: e.description,
+          amount: e.amount, date: e.date, createdAt: Number(e.created_at_ts),
         })));
       }
 
@@ -525,6 +536,51 @@ export function App() {
     await supabase.from('ledger_entries').delete().eq('reference_id', id);
   };
 
+  // ─── Other Expenses Handlers ──────────────────────────────────────────────
+  const handleAddOtherExpense = async (data: Omit<OtherExpenseItem, 'id' | 'createdAt'>) => {
+    const id = 'oexp-' + Date.now();
+    const nowTs = Date.now();
+    const item: OtherExpenseItem = { ...data, id, createdAt: nowTs };
+    setOtherExpensesState(prev => [item, ...prev]);
+
+    const { error } = await supabase.from('other_expenses').insert({
+      id: item.id, category: item.category, description: item.description,
+      amount: item.amount, date: item.date, created_at_ts: nowTs,
+    });
+    if (error) {
+      console.error('Failed to save other expense:', error);
+      alert('Error saving expense: ' + error.message);
+    }
+
+    // Ledger: expense = money out
+    const categoryLabels: Record<string, string> = {
+      salary: 'Employee Salary', electric: 'Electric Bill', water: 'Water Bill',
+      rent: 'Rent', internet: 'Internet/Phone', maintenance: 'Maintenance/Repair', other: 'Other',
+    };
+    const entry: LedgerEntry = {
+      id: `led-oexp-${id}`, date: item.date, type: 'other_expense',
+      description: `${categoryLabels[item.category] || 'Expense'} — ${item.description}`,
+      amount: item.amount, sign: -1, referenceId: id, createdAt: nowTs,
+    };
+    setLedgerEntriesState(prev => [entry, ...prev]);
+    const { error: ledErr } = await supabase.from('ledger_entries').insert({
+      id: entry.id, date: entry.date, type: entry.type, description: entry.description,
+      amount: entry.amount, sign: entry.sign, reference_id: entry.referenceId, created_at_ts: entry.createdAt,
+    });
+    if (ledErr) console.error('Failed to save ledger entry for expense:', ledErr);
+  };
+
+  const handleDeleteOtherExpense = async (id: string) => {
+    setOtherExpensesState(prev => prev.filter(e => e.id !== id));
+    const { error: delErr } = await supabase.from('other_expenses').delete().eq('id', id);
+    if (delErr) {
+      console.error('Failed to delete other expense:', delErr);
+      alert('Error deleting expense: ' + delErr.message);
+    }
+    setLedgerEntriesState(prev => prev.filter(e => e.referenceId !== id));
+    await supabase.from('ledger_entries').delete().eq('reference_id', id);
+  };
+
   // ─── Month navigation ──────────────────────────────────────────────────────
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const currentYear = new Date().getFullYear();
@@ -622,6 +678,17 @@ export function App() {
                   purchaseTrips={purchaseTrips}
                   onAddTrip={handleAddTrip}
                   onDeleteTrip={handleDeleteTrip}
+                  currencySymbol={currencySymbol}
+                />
+              </motion.div>
+            )}
+
+            {activeTab === 'expenses' && (
+              <motion.div key="expenses" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25, ease: 'easeOut' }}>
+                <OtherExpensesView
+                  expenses={otherExpenses}
+                  onAddExpense={handleAddOtherExpense}
+                  onDeleteExpense={handleDeleteOtherExpense}
                   currencySymbol={currencySymbol}
                 />
               </motion.div>

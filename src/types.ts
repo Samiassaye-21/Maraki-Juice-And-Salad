@@ -155,7 +155,8 @@ export type LedgerEntryType =
   | 'shift_daily_expense'
   | 'pending_recovered'
   | 'delivery_recovered'
-  | 'purchase_trip';
+  | 'purchase_trip'
+  | 'other_expense';
 
 export interface LedgerEntry {
   id: string;

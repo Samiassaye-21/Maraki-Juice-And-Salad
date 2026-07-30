@@ -24,6 +24,7 @@ const entryTypeConfig: Record<LedgerEntry['type'], { label: string; icon: string
   pending_recovered:      { label: 'Debt Recovered',      icon: '✅', color: 'text-emerald-600' },
   delivery_recovered:     { label: 'Delivery Settled',    icon: '🛵', color: 'text-blue-600'    },
   purchase_trip:          { label: 'Inventory Purchase',  icon: '🛒', color: 'text-red-500'     },
+  other_expense:          { label: 'Business Expense',    icon: '🏢', color: 'text-orange-500'  },
 };
 
 export const AccountView: React.FC<AccountViewProps> = ({
