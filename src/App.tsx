@@ -64,6 +64,20 @@ function buildShiftLedgerEntries(shift: ShiftRecord): LedgerEntry[] {
     });
   }
 
+  // 3. Recovered Pending Payments (cash collected from old debts during this shift)
+  if (shift.recoveredPendingAmount > 0) {
+    entries.push({
+      id: `led-rec-${shift.id}`,
+      date: shift.date,
+      type: 'pending_recovered',
+      description: `Pending Debts Recovered — ${shift.workerName} (${shift.shiftType})`,
+      amount: shift.recoveredPendingAmount,
+      sign: 1,
+      referenceId: shift.id,
+      createdAt: shift.timestamp + 2,
+    });
+  }
+
   return entries;
 }
 
