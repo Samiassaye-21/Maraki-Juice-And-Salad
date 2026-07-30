@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import {
   TrendingUp, TrendingDown, Wallet, ArrowUpCircle, ArrowDownCircle,
-  ChevronDown, Filter, RefreshCw
+  ChevronDown, Filter, RefreshCw, Eye, EyeOff
 } from 'lucide-react';
 import { LedgerEntry, ShiftRecord, PendingPaymentItem, PurchaseTrip } from '../types';
 import { formatCurrency, formatEthiopianFullDate } from '../utils/shiftUtils';
@@ -33,6 +33,27 @@ export const AccountView: React.FC<AccountViewProps> = ({
 }) => {
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('month');
+  const [showBalance, setShowBalance] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('maraki_show_account_balance');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleShowBalance = () => {
+    setShowBalance(prev => {
+      const next = !prev;
+      try { localStorage.setItem('maraki_show_account_balance', String(next)); } catch {}
+      return next;
+    });
+  };
+
+  const renderAmount = (amount: number, prefix: string = '') => {
+    if (!showBalance) return '••••••';
+    return `${prefix}${formatCurrency(amount, currencySymbol)}`;
+  };
 
   const now = new Date();
   const filteredByPeriod = useMemo(() => {
@@ -79,10 +100,29 @@ export const AccountView: React.FC<AccountViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Title */}
-      <div>
-        <h2 className="text-xl font-bold text-slate-900">Account Balance</h2>
-        <p className="text-sm text-slate-500 mt-0.5">Running financial position — like a bank statement</p>
+      {/* Title with Hide/Show Toggle */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Account Balance</h2>
+          <p className="text-sm text-slate-500 mt-0.5">Running financial position — like a bank statement</p>
+        </div>
+        <button
+          onClick={toggleShowBalance}
+          className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold transition-colors"
+          title={showBalance ? "Hide Balance" : "Show Balance"}
+        >
+          {showBalance ? (
+            <>
+              <EyeOff className="w-4 h-4 text-slate-500" />
+              <span>Hide Balance</span>
+            </>
+          ) : (
+            <>
+              <Eye className="w-4 h-4 text-emerald-600" />
+              <span>Show Balance</span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* Main Balance Card */}
@@ -93,8 +133,17 @@ export const AccountView: React.FC<AccountViewProps> = ({
       >
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-medium text-white/70 uppercase tracking-wide">Current Balance</p>
-            <p className="text-4xl font-extrabold mt-1 tracking-tight">{formatCurrency(balance, currencySymbol)}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-white/70 uppercase tracking-wide">Current Balance</p>
+              <button 
+                onClick={toggleShowBalance} 
+                className="text-white/60 hover:text-white transition-colors"
+                title={showBalance ? "Hide Balance" : "Show Balance"}
+              >
+                {showBalance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-4xl font-extrabold mt-1 tracking-tight">{renderAmount(balance)}</p>
             <p className="text-sm text-white/60 mt-1">All time net position</p>
           </div>
           <Wallet className="w-10 h-10 text-white/40" />
@@ -104,13 +153,13 @@ export const AccountView: React.FC<AccountViewProps> = ({
             <div className="flex items-center gap-1.5 text-white/70 text-xs font-semibold">
               <TrendingUp className="w-3.5 h-3.5" /> Total Income
             </div>
-            <p className="text-lg font-bold mt-0.5">{formatCurrency(allIncome, currencySymbol)}</p>
+            <p className="text-lg font-bold mt-0.5">{renderAmount(allIncome)}</p>
           </div>
           <div className="bg-white/10 rounded-xl px-3 py-2.5">
             <div className="flex items-center gap-1.5 text-white/70 text-xs font-semibold">
               <TrendingDown className="w-3.5 h-3.5" /> Total Expenses
             </div>
-            <p className="text-lg font-bold mt-0.5">{formatCurrency(allExpenses, currencySymbol)}</p>
+            <p className="text-lg font-bold mt-0.5">{renderAmount(allExpenses)}</p>
           </div>
         </div>
       </motion.div>
@@ -119,15 +168,15 @@ export const AccountView: React.FC<AccountViewProps> = ({
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 text-center">
           <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">{periodLabel} Income</p>
-          <p className="text-base font-bold text-emerald-700 mt-1">{formatCurrency(periodIncome, currencySymbol)}</p>
+          <p className="text-base font-bold text-emerald-700 mt-1">{renderAmount(periodIncome)}</p>
         </div>
         <div className="bg-red-50 border border-red-100 rounded-2xl p-3 text-center">
           <p className="text-[10px] font-bold text-red-500 uppercase tracking-wide">{periodLabel} Expenses</p>
-          <p className="text-base font-bold text-red-600 mt-1">{formatCurrency(periodExpenses, currencySymbol)}</p>
+          <p className="text-base font-bold text-red-600 mt-1">{renderAmount(periodExpenses)}</p>
         </div>
         <div className={`border rounded-2xl p-3 text-center ${periodNet >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'}`}>
           <p className={`text-[10px] font-bold uppercase tracking-wide ${periodNet >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>Net Profit</p>
-          <p className={`text-base font-bold mt-1 ${periodNet >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>{formatCurrency(periodNet, currencySymbol)}</p>
+          <p className={`text-base font-bold mt-1 ${periodNet >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>{renderAmount(periodNet)}</p>
         </div>
       </div>
 
@@ -201,11 +250,11 @@ export const AccountView: React.FC<AccountViewProps> = ({
               {/* Amount */}
               <div className="text-right flex-shrink-0">
                 <p className={`text-base font-bold ${isIncome ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {isIncome ? '+' : '−'}{formatCurrency(entry.amount, currencySymbol)}
+                  {renderAmount(entry.amount, isIncome ? '+' : '−')}
                 </p>
                 {entry.runningAfter !== null && (
                   <p className="text-[10px] text-slate-400 mt-0.5">
-                    Bal: {formatCurrency(entry.runningAfter, currencySymbol)}
+                    Bal: {renderAmount(entry.runningAfter)}
                   </p>
                 )}
               </div>
