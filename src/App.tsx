@@ -377,7 +377,7 @@ export function App() {
     }
   };
 
-  const handleSettlePendingPayment = async (id: string) => {
+  const handleSettlePendingPayment = async (id: string, skipLedger: boolean = false) => {
     const todayStr = new Date().toISOString().split('T')[0];
     const payment = pendingPayments.find(p => p.id === id);
     setPendingPaymentsState((prev) =>
@@ -389,7 +389,7 @@ export function App() {
       alert('Error settling pending payment: ' + error.message);
     }
     // Ledger: recovered = money back in
-    if (payment) {
+    if (payment && !skipLedger) {
       const entry: LedgerEntry = {
         id: `led-pend-rec-${id}-${Date.now()}`, date: todayStr, type: 'pending_recovered',
         description: `Debt Recovered — ${payment.customerName || 'Customer'}: ${payment.description}`,

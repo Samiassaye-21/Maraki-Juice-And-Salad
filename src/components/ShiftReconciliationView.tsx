@@ -44,7 +44,7 @@ interface ShiftReconciliationViewProps {
   pendingPayments: PendingPaymentItem[];
   onSaveShift: (shift: ShiftRecord) => void;
   onAddPendingPayment: (pending: Omit<PendingPaymentItem, 'id' | 'isPaid'>) => void;
-  onSettlePendingPayment: (id: string) => void;
+  onSettlePendingPayment: (id: string, skipLedger?: boolean) => void;
   onAddDeliveryRecord: (del: Omit<DeliveryAccountRecord, 'id' | 'isSettledWeekly'>) => void;
   currencySymbol: string;
 }
@@ -116,6 +116,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
   const [recoveredJuiceCups, setRecoveredJuiceCups] = useState<number>(0);
   const [recoveredFoodSales, setRecoveredFoodSales] = useState<{ [id: string]: number }>({});
   const [recoveredNote, setRecoveredNote] = useState<string>('');
+  const [selectedSettlePendingIds, setSelectedSettlePendingIds] = useState<string[]>([]);
 
   const [shiftNotes, setShiftNotes] = useState<string>('');
   const [savedSuccessMsg, setSavedSuccessMsg] = useState<string | null>(null);
@@ -140,11 +141,17 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
   const deliveryCreditAmount = (deliveryCups * juicePrice) + (deliveryBoxes * foodPrice);
   const unpaidDebts = pendingPayments.filter(p => !p.isPaid);
 
+  const selectedPendingTotalAmount = useMemo(() => {
+    return pendingPayments
+      .filter(p => !p.isPaid && selectedSettlePendingIds.includes(p.id))
+      .reduce((sum, p) => sum + p.amount, 0);
+  }, [pendingPayments, selectedSettlePendingIds]);
+
   const recoveredFoodRevenue = Object.entries(recoveredFoodSales).reduce<number>((sum, [itemId, qty]) => {
     const item = config.foodMenu?.find(m => m.id === itemId);
     return sum + (item ? item.price * (Number(qty) || 0) : 0);
   }, 0);
-  const recoveredPendingAmount = (recoveredJuiceCups * juicePrice) + recoveredFoodRevenue;
+  const recoveredPendingAmount = (recoveredJuiceCups * juicePrice) + recoveredFoodRevenue + selectedPendingTotalAmount;
 
   const menuFoodRevenue = Object.entries(foodSales).reduce((sum: number, [itemId, qty]) => {
     const item = config.foodMenu?.find(m => m.id === itemId);
@@ -296,6 +303,13 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
         date: recordDate,
         shiftType: activeShift,
       });
+    }
+
+    // Auto-settle selected pending debt items
+    if (selectedSettlePendingIds.length > 0) {
+      for (const id of selectedSettlePendingIds) {
+        onSettlePendingPayment(id, true);
+      }
     }
 
     setSavedSuccessMsg(
@@ -867,16 +881,71 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                 </span>
               </div>
               <p className="text-xs text-slate-500">Past pending debts paid off in cash during this shift.</p>
+
+              {/* Unpaid Debts Selection Checklist */}
+              {unpaidDebts.length > 0 && (
+                <div className="space-y-2 bg-green-50/60 p-3 rounded-xl border border-green-200">
+                  <p className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                    <span>Select Unpaid Customer Debts Paid Today:</span>
+                    <span className="text-[10px] text-green-700 font-semibold">{unpaidDebts.length} Unpaid Total</span>
+                  </p>
+                  <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                    {unpaidDebts.map((item) => {
+                      const isSelected = selectedSettlePendingIds.includes(item.id);
+                      return (
+                        <label
+                          key={item.id}
+                          className={`flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'bg-white border-green-500 shadow-sm ring-1 ring-green-400' 
+                              : 'bg-white/80 border-slate-200 hover:border-green-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                setSelectedSettlePendingIds(prev => 
+                                  isSelected ? prev.filter(id => id !== item.id) : [...prev, item.id]
+                                );
+                              }}
+                              className="w-4 h-4 text-green-600 rounded focus:ring-green-400 cursor-pointer"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-slate-900 truncate">
+                                {item.customerName || 'Customer'}
+                              </p>
+                              <p className="text-[10px] text-slate-500 truncate">
+                                {item.description} ({item.shiftType.toUpperCase()} • {item.date})
+                              </p>
+                            </div>
+                          </div>
+                          <span className="font-extrabold text-green-700 ml-2 whitespace-nowrap">
+                            {formatCurrency(item.amount, currencySymbol)}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {selectedSettlePendingIds.length > 0 && (
+                    <p className="text-[11px] font-semibold text-green-700 text-right pt-1">
+                      Selected Debts Total: {formatCurrency(selectedPendingTotalAmount, currencySymbol)} (Auto-deducts on Shift Close)
+                    </p>
+                  )}
+                </div>
+              )}
               
               <div className="space-y-3">
                 <input
                   type="text"
-                  placeholder="Customer name or note..."
+                  placeholder="Additional note or custom customer name..."
                   value={recoveredNote}
                   onChange={(e) => setRecoveredNote(e.target.value)}
                   className="w-full text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-400 focus:bg-white transition-all placeholder:font-normal placeholder:text-slate-400"
                 />
                 <div className="space-y-1.5 bg-slate-50/50 p-2 rounded-xl border border-slate-100">
+                  <p className="text-[11px] font-semibold text-slate-500 px-1">Extra Unlisted Manual Debt Recoveries:</p>
                   <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
                     <div className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border transition-all ${recoveredJuiceCups > 0 ? 'bg-white border-green-300 shadow-sm' : 'bg-white/60 border-transparent'}`}>
                       <div className="flex-1 min-w-0 flex items-center space-x-2 mr-2">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Clock, 
   Plus, 
@@ -44,6 +44,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
 
   const [filterShift, setFilterShift] = useState<'all' | 'day' | 'night'>('all');
   const [filterStatus, setFilterStatus] = useState<'unpaid' | 'paid' | 'all'>('unpaid');
+  const [viewMode, setViewMode] = useState<'individual' | 'grouped'>('individual');
   const [searchTerm, setSearchTerm] = useState('');
 
   // New Pending Form State
@@ -122,6 +123,34 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
   const totalOutstanding = pendingPayments
     .filter((p) => !p.isPaid)
     .reduce((sum, p) => sum + p.amount, 0);
+
+  const customerGroups = useMemo(() => {
+    const groups: { [name: string]: { customerName: string; items: PendingPaymentItem[]; totalAmount: number; unpaidCount: number; paidCount: number; unpaidAmount: number } } = {};
+    
+    filteredItems.forEach(item => {
+      const nameKey = (item.customerName || 'Unnamed Customer').trim().toLowerCase();
+      if (!groups[nameKey]) {
+        groups[nameKey] = {
+          customerName: item.customerName || 'Unnamed Customer',
+          items: [],
+          totalAmount: 0,
+          unpaidCount: 0,
+          paidCount: 0,
+          unpaidAmount: 0,
+        };
+      }
+      groups[nameKey].items.push(item);
+      groups[nameKey].totalAmount += item.amount;
+      if (item.isPaid) {
+        groups[nameKey].paidCount += 1;
+      } else {
+        groups[nameKey].unpaidCount += 1;
+        groups[nameKey].unpaidAmount += item.amount;
+      }
+    });
+
+    return Object.values(groups).sort((a, b) => b.unpaidAmount - a.unpaidAmount || b.totalAmount - a.totalAmount);
+  }, [filteredItems]);
 
   const handleSubmitNewPending = (e: React.FormEvent) => {
     e.preventDefault();
@@ -420,6 +449,21 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
               Night
             </button>
           </div>
+
+          <div className="flex bg-slate-100 p-1 rounded-lg text-sm font-medium">
+            <button
+              onClick={() => setViewMode('individual')}
+              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${viewMode === 'individual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Single Items
+            </button>
+            <button
+              onClick={() => setViewMode('grouped')}
+              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${viewMode === 'grouped' ? 'bg-blue-600 text-white shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Group By Customer ({customerGroups.length})
+            </button>
+          </div>
         </div>
       </div>
 
@@ -431,6 +475,89 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
             <h3 className="text-base font-medium text-slate-900">No pending credit records</h3>
             <p className="text-sm text-slate-500 mt-1">Try adjusting search query or status filter</p>
           </div>
+        ) : viewMode === 'grouped' ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-4">
+            {customerGroups.map((group) => (
+              <div key={group.customerName} className="bg-white border border-blue-100 rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-3 bg-blue-100 text-blue-700 rounded-xl font-black text-lg">
+                      <User className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                        {group.customerName}
+                        {group.unpaidCount > 0 ? (
+                          <span className="bg-amber-100 text-amber-800 text-xs font-extrabold px-2.5 py-0.5 rounded-full">
+                            {group.unpaidCount} Unpaid Order{group.unpaidCount > 1 ? 's' : ''}
+                          </span>
+                        ) : (
+                          <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-2.5 py-0.5 rounded-full">
+                            All Settled
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Total Orders: {group.items.length} ({group.unpaidCount} Unpaid, {group.paidCount} Paid)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-end space-x-4">
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Unpaid Balance</span>
+                      <span className={`text-xl font-black ${group.unpaidAmount > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                        {formatCurrency(group.unpaidAmount, currencySymbol)}
+                      </span>
+                    </div>
+
+                    {group.unpaidCount > 0 && (
+                      <button
+                        onClick={() => {
+                          const unpaidItems = group.items.filter(i => !i.isPaid);
+                          unpaidItems.forEach(i => onSettlePendingPayment(i.id));
+                        }}
+                        className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-sm transition-colors cursor-pointer flex items-center space-x-1.5"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Settle All Debts</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Individual orders under this customer */}
+                <div className="space-y-2 pt-1">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Order History for {group.customerName}:</p>
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {group.items.map(item => (
+                      <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border text-xs ${item.isPaid ? 'bg-emerald-50/40 border-emerald-200 text-slate-600' : 'bg-amber-50/50 border-amber-200 text-slate-900'}`}>
+                        <div className="space-y-0.5">
+                          <p className="font-bold">{item.description}</p>
+                          <p className="text-[10px] text-slate-500">
+                            {item.shiftType.toUpperCase()} Shift • {item.date} {item.isPaid && `• Paid on ${item.paidDate || 'today'}`}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className="font-extrabold text-sm">{formatCurrency(item.amount, currencySymbol)}</span>
+                          {!item.isPaid ? (
+                            <button
+                              onClick={() => onSettlePendingPayment(item.id)}
+                              className="px-2.5 py-1 bg-emerald-600 text-white text-[11px] font-bold rounded-lg hover:bg-emerald-700 transition-colors cursor-pointer"
+                            >
+                              Settle
+                            </button>
+                          ) : (
+                            <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">PAID</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-3">
             {filteredItems.map((item, index) => {
