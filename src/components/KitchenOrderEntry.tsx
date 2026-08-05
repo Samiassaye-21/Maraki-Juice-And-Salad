@@ -25,6 +25,13 @@ const CATEGORY_EMOJI: Record<string, string> = {
   traditional: '🥘',
 };
 
+function getLocalDateString(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function formatTime(isoStr: string) {
   const d = new Date(isoStr);
   return d.toLocaleTimeString('am-ET', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -40,13 +47,14 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
   const [todayOrders, setTodayOrders] = useState<KitchenOrder[]>([]);
   const [loadedToday, setLoadedToday] = useState(false);
 
+  const todayStr = getLocalDateString();
+
   // Load today's orders on mount
   React.useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
     supabase
       .from('kitchen_orders')
       .select('*')
-      .eq('date', today)
+      .eq('date', todayStr)
       .order('created_at_ts', { ascending: false })
       .then(({ data }) => {
         if (data) {
@@ -65,7 +73,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
         }
         setLoadedToday(true);
       });
-  }, []);
+  }, [todayStr]);
 
   const reset = () => {
     setStep('food');
@@ -88,7 +96,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
       taker: selectedTaker,
       shiftType,
       orderTime: now.toISOString(),
-      date: now.toISOString().split('T')[0],
+      date: getLocalDateString(now),
       createdAt: Date.now(),
     };
 
@@ -342,7 +350,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
 
       {/* Top bar */}
       <div className="flex items-center gap-3 px-5 pt-5 pb-2">
-        {step !== 'food' && (
+        {step !== 'food' ? (
           <button
             onClick={() => {
               if (step === 'quantity') setStep('food');
@@ -353,6 +361,11 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
+        ) : (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 text-orange-300 text-xs font-semibold border border-white/15">
+            <span>📅</span>
+            <span>{todayStr}</span>
+          </div>
         )}
         {/* Step indicator dots */}
         <div className="flex gap-2 ml-auto">
