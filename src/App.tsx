@@ -11,6 +11,7 @@ import { AccountView } from './components/AccountView';
 import { OtherExpensesView, OtherExpenseItem } from './components/OtherExpensesView';
 import Login from './components/Login';
 import { SupabaseMigration } from './components/SupabaseMigration';
+import { KitchenCheckView } from './components/KitchenCheckView';
 import { supabase } from './lib/supabaseClient';
 import { 
   DEFAULT_RESTAURANT_CONFIG, 
@@ -27,6 +28,7 @@ import {
   RestaurantSystemConfig,
   PurchaseTrip,
   LedgerEntry,
+  KitchenOrder,
 } from './types';
 import { calculateSystemSummary } from './utils/shiftUtils';
 
@@ -115,6 +117,7 @@ export function App() {
   const [purchaseTrips, setPurchaseTripsState] = useState<PurchaseTrip[]>([]);
   const [ledgerEntries, setLedgerEntriesState] = useState<LedgerEntry[]>([]);
   const [otherExpenses, setOtherExpensesState] = useState<OtherExpenseItem[]>([]);
+  const [kitchenOrders, setKitchenOrdersState] = useState<KitchenOrder[]>([]);
 
   // Load token from sessionStorage on mount (resets on tab close)
   useEffect(() => {
@@ -237,6 +240,23 @@ export function App() {
         setOtherExpensesState(expData.map(e => ({
           id: e.id, category: e.category, description: e.description,
           amount: e.amount, date: e.date, createdAt: Number(e.created_at_ts),
+        })));
+      }
+
+      // Kitchen Orders
+      const { data: koData } = await supabase.from('kitchen_orders').select('*').order('created_at_ts', { ascending: false });
+      if (koData) {
+        setKitchenOrdersState(koData.map((r: any) => ({
+          id: r.id,
+          foodItemId: r.food_item_id,
+          foodItemName: r.food_item_name,
+          quantity: r.quantity,
+          taker: r.taker,
+          shiftType: r.shift_type,
+          orderTime: r.order_time,
+          date: r.date,
+          notes: r.notes,
+          createdAt: Number(r.created_at_ts),
         })));
       }
 
@@ -711,6 +731,16 @@ export function App() {
                 <ShiftHistoryView
                   shifts={shifts} onUpdateShift={handleUpdateShift}
                   onDeleteShift={handleDeleteShift} currencySymbol={currencySymbol}
+                />
+              </motion.div>
+            )}
+
+            {activeTab === 'kitchen' && (
+              <motion.div key="kitchen" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25, ease: 'easeOut' }}>
+                <KitchenCheckView
+                  kitchenOrders={kitchenOrders}
+                  shifts={shifts}
+                  currencySymbol={currencySymbol}
                 />
               </motion.div>
             )}

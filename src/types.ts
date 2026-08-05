@@ -168,3 +168,20 @@ export interface LedgerEntry {
   referenceId: string;        // ID of the source record (shiftId, pendingId, tripId)
   createdAt: number;          // timestamp for ordering
 }
+
+// ─── Kitchen Order Portal ────────────────────────────────────────────────────
+
+export type KitchenTaker = 'day_shift' | 'night_shift' | 'beu_delivery';
+
+export interface KitchenOrder {
+  id: string;
+  foodItemId: string;
+  foodItemName: string;
+  quantity: number;
+  taker: KitchenTaker;        // who picked up / served the order
+  shiftType: ShiftType;       // 'day' | 'night' (derived from taker)
+  orderTime: string;          // ISO timestamp string
+  date: string;               // YYYY-MM-DD (for daily grouping)
+  notes?: string;
+  createdAt: number;          // unix ms timestamp
+}

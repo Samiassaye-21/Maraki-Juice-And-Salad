@@ -129,3 +129,17 @@ ALTER TABLE purchase_trips DISABLE ROW LEVEL SECURITY;
 ALTER TABLE purchase_trip_items DISABLE ROW LEVEL SECURITY;
 ALTER TABLE ledger_entries DISABLE ROW LEVEL SECURITY;
 
+-- 8. Kitchen Orders Table (Chef Portal)
+CREATE TABLE kitchen_orders (
+  id TEXT PRIMARY KEY,
+  food_item_id TEXT NOT NULL,
+  food_item_name TEXT NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  taker TEXT NOT NULL,        -- 'day_shift' | 'night_shift' | 'beu_delivery'
+  shift_type TEXT NOT NULL,   -- 'day' | 'night'
+  order_time TEXT NOT NULL,   -- ISO timestamp string
+  date TEXT NOT NULL,         -- YYYY-MM-DD for daily grouping
+  notes TEXT,
+  created_at_ts BIGINT NOT NULL
+);
+ALTER TABLE kitchen_orders DISABLE ROW LEVEL SECURITY;
