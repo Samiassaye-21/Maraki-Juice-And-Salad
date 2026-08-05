@@ -13,6 +13,7 @@ import {
   Bike,
   AlertTriangle,
   Layers,
+  Trash2,
 } from 'lucide-react';
 import { KitchenOrder, ShiftRecord, KitchenTaker } from '../types';
 
@@ -20,6 +21,7 @@ interface KitchenCheckViewProps {
   kitchenOrders: KitchenOrder[];
   shifts: ShiftRecord[];
   currencySymbol: string;
+  onClearKitchenOrders?: (date?: string) => Promise<void>;
 }
 
 const TAKER_CONFIG: Record<
@@ -75,12 +77,29 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
   kitchenOrders,
   shifts,
   currencySymbol,
+  onClearKitchenOrders,
 }) => {
   const availableDates = useMemo(() => getAvailableDates(kitchenOrders), [kitchenOrders]);
   const [dateIdx, setDateIdx] = useState(0);
   const [takerFilter, setTakerFilter] = useState<'all' | KitchenTaker>('all');
+  const [isClearing, setIsClearing] = useState(false);
 
   const selectedDate = availableDates[dateIdx] ?? new Date().toISOString().split('T')[0];
+
+  const handleClear = async (dateOnly: boolean) => {
+    const msg = dateOnly
+      ? `Are you sure you want to clear kitchen orders for ${selectedDate}?`
+      : 'Are you sure you want to clear ALL kitchen orders from the database?';
+    if (!window.confirm(msg)) return;
+    setIsClearing(true);
+    try {
+      if (onClearKitchenOrders) {
+        await onClearKitchenOrders(dateOnly ? selectedDate : undefined);
+      }
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   // All Chef orders for selected date
   const dateOrders = useMemo(() => {
@@ -142,14 +161,27 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
       className="space-y-6"
     >
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
-          <ChefHat className="w-5 h-5 text-violet-600" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
+            <ChefHat className="w-5 h-5 text-violet-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Kitchen Orders Breakdown</h2>
+            <p className="text-sm text-slate-500">Classified view by Taker (Day Shift, Night Shift, BeU Delivery)</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">Kitchen Orders Breakdown</h2>
-          <p className="text-sm text-slate-500">Classified view by Taker (Day Shift, Night Shift, BeU Delivery)</p>
-        </div>
+
+        {onClearKitchenOrders && (
+          <button
+            onClick={() => handleClear(false)}
+            disabled={isClearing || kitchenOrders.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-40"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Clear Kitchen Data</span>
+          </button>
+        )}
       </div>
 
       {/* Date Navigator */}

@@ -620,6 +620,18 @@ export function App() {
 
   const lastClosedShift = shifts.length > 0 ? shifts[0] : undefined;
 
+  const handleClearKitchenOrders = async (date?: string) => {
+    if (date) {
+      setKitchenOrdersState(prev => prev.filter(o => o.date !== date));
+      const { error } = await supabase.from('kitchen_orders').delete().eq('date', date);
+      if (error) console.error('Failed to clear kitchen orders for date:', error);
+    } else {
+      setKitchenOrdersState([]);
+      const { error } = await supabase.from('kitchen_orders').delete().neq('id', '0');
+      if (error) console.error('Failed to clear all kitchen orders:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#FFFBF5] dark:bg-slate-950 text-stone-800 dark:text-slate-100 font-sans flex flex-col antialiased transition-colors duration-300">
       
@@ -741,6 +753,7 @@ export function App() {
                   kitchenOrders={kitchenOrders}
                   shifts={shifts}
                   currencySymbol={currencySymbol}
+                  onClearKitchenOrders={handleClearKitchenOrders}
                 />
               </motion.div>
             )}
