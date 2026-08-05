@@ -109,7 +109,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
 
   // Delivery Rider Credit Orders
   const [deliveryCups, setDeliveryCups] = useState<number>(0);
-  const [deliveryBoxes, setDeliveryBoxes] = useState<number>(3);
+  const [deliveryBoxes, setDeliveryBoxes] = useState<number>(0);
   const [deliveryRiderName, setDeliveryRiderName] = useState<string>('BeU Delivery');
 
   // Recovered / Collected Past Pending Debts
