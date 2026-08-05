@@ -143,3 +143,7 @@ CREATE TABLE kitchen_orders (
   created_at_ts BIGINT NOT NULL
 );
 ALTER TABLE kitchen_orders DISABLE ROW LEVEL SECURITY;
+
+-- Allow public access policy (in case RLS remains enabled in Supabase)
+DROP POLICY IF EXISTS "Allow public access to kitchen_orders" ON kitchen_orders;
+CREATE POLICY "Allow public access to kitchen_orders" ON kitchen_orders FOR ALL USING (true) WITH CHECK (true);
