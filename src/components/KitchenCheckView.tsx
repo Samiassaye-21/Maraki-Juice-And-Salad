@@ -12,6 +12,7 @@ import {
   Clock,
   Bike,
   AlertTriangle,
+  Layers,
 } from 'lucide-react';
 import { KitchenOrder, ShiftRecord, KitchenTaker } from '../types';
 
@@ -21,10 +22,34 @@ interface KitchenCheckViewProps {
   currencySymbol: string;
 }
 
-const TAKER_LABELS: Record<KitchenTaker, { emoji: string; label: string }> = {
-  day_shift:    { emoji: '☀️', label: 'Day Shift' },
-  night_shift:  { emoji: '🌙', label: 'Night Shift' },
-  beu_delivery: { emoji: '🚴', label: 'BeU Delivery' },
+const TAKER_CONFIG: Record<
+  KitchenTaker,
+  { emoji: string; label: string; bg: string; text: string; border: string; badgeBg: string }
+> = {
+  day_shift: {
+    emoji: '☀️',
+    label: 'Day Shift',
+    bg: 'bg-amber-50',
+    text: 'text-amber-800',
+    border: 'border-amber-200',
+    badgeBg: 'bg-amber-100 text-amber-800 border-amber-300',
+  },
+  night_shift: {
+    emoji: '🌙',
+    label: 'Night Shift',
+    bg: 'bg-indigo-50',
+    text: 'text-indigo-800',
+    border: 'border-indigo-200',
+    badgeBg: 'bg-indigo-100 text-indigo-800 border-indigo-300',
+  },
+  beu_delivery: {
+    emoji: '🚴',
+    label: 'BeU Delivery',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-800',
+    border: 'border-emerald-200',
+    badgeBg: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  },
 };
 
 function formatTime(isoStr: string) {
@@ -53,53 +78,68 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
 }) => {
   const availableDates = useMemo(() => getAvailableDates(kitchenOrders), [kitchenOrders]);
   const [dateIdx, setDateIdx] = useState(0);
-  const [shiftFilter, setShiftFilter] = useState<'all' | 'day' | 'night'>('all');
+  const [takerFilter, setTakerFilter] = useState<'all' | KitchenTaker>('all');
 
   const selectedDate = availableDates[dateIdx] ?? new Date().toISOString().split('T')[0];
 
-  // Chef's orders for selected date + shift
-  const chefOrders = useMemo(() => {
-    return kitchenOrders.filter((o) => {
-      if (o.date !== selectedDate) return false;
-      if (shiftFilter === 'all') return true;
-      return o.shiftType === shiftFilter;
+  // All Chef orders for selected date
+  const dateOrders = useMemo(() => {
+    return kitchenOrders.filter((o) => o.date === selectedDate);
+  }, [kitchenOrders, selectedDate]);
+
+  // Filtered Chef orders (for log and active view)
+  const filteredChefOrders = useMemo(() => {
+    if (takerFilter === 'all') return dateOrders;
+    return dateOrders.filter((o) => o.taker === takerFilter);
+  }, [dateOrders, takerFilter]);
+
+  // Aggregate chef orders classified by Taker
+  const classifiedByTaker = useMemo(() => {
+    const takers: KitchenTaker[] = ['day_shift', 'night_shift', 'beu_delivery'];
+    const result: Record<KitchenTaker, { items: { name: string; quantity: number }[]; totalCount: number }> = {
+      day_shift: { items: [], totalCount: 0 },
+      night_shift: { items: [], totalCount: 0 },
+      beu_delivery: { items: [], totalCount: 0 },
+    };
+
+    takers.forEach((tk) => {
+      const tkOrders = dateOrders.filter((o) => o.taker === tk);
+      const map: Record<string, number> = {};
+      let sum = 0;
+      tkOrders.forEach((o) => {
+        map[o.foodItemName] = (map[o.foodItemName] || 0) + o.quantity;
+        sum += o.quantity;
+      });
+      const itemList = Object.entries(map)
+        .map(([name, quantity]) => ({ name, quantity }))
+        .sort((a, b) => b.quantity - a.quantity);
+
+      result[tk] = { items: itemList, totalCount: sum };
     });
-  }, [kitchenOrders, selectedDate, shiftFilter]);
 
-  // Aggregate chef orders by food item name
-  const chefAggregated = useMemo(() => {
-    const map: Record<string, { name: string; quantity: number }> = {};
-    chefOrders.forEach((o) => {
-      if (!map[o.foodItemName]) map[o.foodItemName] = { name: o.foodItemName, quantity: 0 };
-      map[o.foodItemName].quantity += o.quantity;
-    });
-    return Object.values(map).sort((a, b) => b.quantity - a.quantity);
-  }, [chefOrders]);
+    return result;
+  }, [dateOrders]);
 
-  const chefTotalItems = chefOrders.reduce((s, o) => s + o.quantity, 0);
+  const grandChefTotalItems = dateOrders.reduce((s, o) => s + o.quantity, 0);
 
-  // Worker's shift records for same date + shift
+  // Worker's shift records for same date
   const workerShifts = useMemo(() => {
-    return shifts.filter((s) => {
-      if (s.date !== selectedDate) return false;
-      if (shiftFilter === 'all') return true;
-      return s.shiftType === shiftFilter;
-    });
-  }, [shifts, selectedDate, shiftFilter]);
+    return shifts.filter((s) => s.date === selectedDate);
+  }, [shifts, selectedDate]);
 
   const workerTotalItems = workerShifts.reduce((s, sh) => s + sh.foodTakeawaysSold, 0);
-  const workerTotalRevenue = workerShifts.reduce((s, sh) => s + sh.foodRevenue, 0);
 
   // Match status
-  const itemsMatch = chefOrders.length > 0 && workerShifts.length > 0 && chefTotalItems === workerTotalItems;
-  const itemsMismatch = chefOrders.length > 0 && workerShifts.length > 0 && chefTotalItems !== workerTotalItems;
-  const diff = chefTotalItems - workerTotalItems;
+  const hasData = dateOrders.length > 0 && workerShifts.length > 0;
+  const itemsMatch = hasData && grandChefTotalItems === workerTotalItems;
+  const itemsMismatch = hasData && grandChefTotalItems !== workerTotalItems;
+  const diff = grandChefTotalItems - workerTotalItems;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-5"
+      className="space-y-6"
     >
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -107,8 +147,8 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
           <ChefHat className="w-5 h-5 text-violet-600" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Kitchen Cross-Check</h2>
-          <p className="text-sm text-slate-500">Compare chef orders vs worker shift reports</p>
+          <h2 className="text-lg font-bold text-slate-900">Kitchen Orders Breakdown</h2>
+          <p className="text-sm text-slate-500">Classified view by Taker (Day Shift, Night Shift, BeU Delivery)</p>
         </div>
       </div>
 
@@ -136,32 +176,48 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
         </button>
       </div>
 
-      {/* Shift Filter */}
-      <div className="flex gap-2">
-        {(['all', 'day', 'night'] as const).map((f) => (
-          <button
-            key={f}
-            onClick={() => setShiftFilter(f)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all cursor-pointer ${
-              shiftFilter === f
-                ? f === 'night'
-                  ? 'bg-slate-800 text-white'
-                  : 'bg-blue-600 text-white'
-                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-            }`}
-          >
-            {f === 'all' ? '📋' : f === 'day' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            <span>{f === 'all' ? 'All Shifts' : f === 'day' ? 'Day' : 'Night'}</span>
-          </button>
-        ))}
+      {/* Taker Filter Tabs */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setTakerFilter('all')}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all cursor-pointer ${
+            takerFilter === 'all'
+              ? 'bg-slate-900 text-white'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>All Orders ({grandChefTotalItems})</span>
+        </button>
+
+        {(['day_shift', 'night_shift', 'beu_delivery'] as KitchenTaker[]).map((tk) => {
+          const cfg = TAKER_CONFIG[tk];
+          const count = classifiedByTaker[tk].totalCount;
+          const isActive = takerFilter === tk;
+          return (
+            <button
+              key={tk}
+              onClick={() => setTakerFilter(tk)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all cursor-pointer border ${
+                isActive
+                  ? `${cfg.badgeBg} shadow-sm`
+                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <span>{cfg.emoji}</span>
+              <span>{cfg.label}</span>
+              <span className="ml-1 bg-white/60 px-2 py-0.5 rounded-full text-xs font-bold">
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Cross-Check Result Banner */}
-      {chefOrders.length > 0 && workerShifts.length > 0 && (
+      {hasData && (
         <div className={`rounded-2xl p-4 border-2 flex items-start gap-4 ${
-          itemsMatch
-            ? 'bg-green-50 border-green-200'
-            : 'bg-red-50 border-red-200'
+          itemsMatch ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
         }`}>
           {itemsMatch ? (
             <CheckCircle2 className="w-8 h-8 text-green-500 flex-shrink-0 mt-0.5" />
@@ -170,141 +226,110 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
           )}
           <div>
             <p className={`font-bold text-lg ${itemsMatch ? 'text-green-700' : 'text-red-700'}`}>
-              {itemsMatch ? '✅ MATCH — Records agree' : '❌ MISMATCH — Discrepancy found!'}
+              {itemsMatch ? '✅ MATCH — Shift Reconciliation agrees with Chef Logs' : '❌ MISMATCH — Discrepancy Found!'}
             </p>
             {itemsMismatch && (
               <p className="text-red-600 text-sm mt-1 font-medium">
-                Chef logged {chefTotalItems} items · Worker reported {workerTotalItems} items ·{' '}
-                <span className="font-bold">{diff > 0 ? `+${diff} unaccounted` : `${Math.abs(diff)} missing from chef log`}</span>
+                Chef recorded total {grandChefTotalItems} items (Day: {classifiedByTaker.day_shift.totalCount}, Night: {classifiedByTaker.night_shift.totalCount}, BeU: {classifiedByTaker.beu_delivery.totalCount}) · Worker reported {workerTotalItems} items in shifts.{' '}
+                <span className="font-bold">{diff > 0 ? `+${diff} extra in kitchen log` : `${Math.abs(diff)} missing from kitchen log`}</span>
               </p>
             )}
             {itemsMatch && (
               <p className="text-green-600 text-sm mt-1">
-                Both chef and worker recorded {chefTotalItems} food items.
+                Both chef and worker recorded {grandChefTotalItems} total food items.
               </p>
             )}
           </div>
         </div>
       )}
 
-      {/* No data states */}
-      {chefOrders.length === 0 && workerShifts.length === 0 && (
-        <div className="rounded-2xl bg-slate-50 border border-slate-100 p-8 text-center">
-          <AlertTriangle className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500 font-medium">No data for this date/shift</p>
-          <p className="text-slate-400 text-sm mt-1">Neither chef orders nor worker shift found</p>
-        </div>
-      )}
-      {chefOrders.length === 0 && workerShifts.length > 0 && (
-        <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 flex gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-          <p className="text-amber-700 text-sm font-medium">
-            Worker submitted a shift but the chef recorded no orders for this date/shift.
-          </p>
-        </div>
-      )}
-      {chefOrders.length > 0 && workerShifts.length === 0 && (
-        <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 flex gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-          <p className="text-amber-700 text-sm font-medium">
-            Chef recorded orders but no shift report has been submitted yet.
-          </p>
-        </div>
-      )}
+      {/* Classified Cards per Taker */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {(['day_shift', 'night_shift', 'beu_delivery'] as KitchenTaker[]).map((tk) => {
+          const cfg = TAKER_CONFIG[tk];
+          const data = classifiedByTaker[tk];
+          if (takerFilter !== 'all' && takerFilter !== tk) return null;
 
-      {/* Two-column comparison */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Chef Side */}
-        <div className="rounded-2xl bg-violet-50 border border-violet-100 overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 bg-violet-100/60 border-b border-violet-100">
-            <ChefHat className="w-4 h-4 text-violet-600" />
-            <span className="font-bold text-violet-800 text-sm">👨‍🍳 Chef Recorded</span>
-          </div>
-          <div className="p-4 space-y-3">
-            {chefAggregated.length === 0 ? (
-              <p className="text-violet-400 text-sm text-center py-4">No orders recorded</p>
-            ) : (
-              chefAggregated.map((item) => (
-                <div key={item.name} className="flex items-center justify-between">
-                  <span className="text-slate-700 text-sm font-medium truncate max-w-[65%]">{item.name}</span>
-                  <span className="font-bold text-violet-700 bg-violet-100 px-2.5 py-0.5 rounded-full text-sm">
-                    ×{item.quantity}
-                  </span>
+          return (
+            <div
+              key={tk}
+              className={`rounded-2xl ${cfg.bg} border ${cfg.border} overflow-hidden flex flex-col shadow-sm`}
+            >
+              {/* Card Header */}
+              <div className={`flex items-center justify-between px-4 py-3 border-b ${cfg.border} bg-white/50`}>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{cfg.emoji}</span>
+                  <span className={`font-bold text-sm ${cfg.text}`}>{cfg.label}</span>
                 </div>
-              ))
-            )}
-            {chefAggregated.length > 0 && (
-              <div className="border-t border-violet-200 pt-3 flex justify-between">
-                <span className="text-violet-700 font-bold text-sm">Total Items</span>
-                <span className="font-black text-violet-800 text-lg">{chefTotalItems}</span>
+                <span className={`font-black text-base px-2.5 py-0.5 rounded-full ${cfg.badgeBg}`}>
+                  {data.totalCount} items
+                </span>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Worker Side */}
-        <div className="rounded-2xl bg-sky-50 border border-sky-100 overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 bg-sky-100/60 border-b border-sky-100">
-            <HardHat className="w-4 h-4 text-sky-600" />
-            <span className="font-bold text-sky-800 text-sm">👷 Worker Reported</span>
-          </div>
-          <div className="p-4 space-y-3">
-            {workerShifts.length === 0 ? (
-              <p className="text-sky-400 text-sm text-center py-4">No shift submitted</p>
-            ) : (
-              workerShifts.map((s) => (
-                <div key={s.id} className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs text-sky-600 font-semibold uppercase">
-                    {s.shiftType === 'day' ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
-                    <span>{s.shiftType} shift · {s.workerName}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">Food Items Sold</span>
-                    <span className="font-bold text-sky-700">{s.foodTakeawaysSold}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">Food Revenue</span>
-                    <span className="font-bold text-sky-700">{currencySymbol} {s.foodRevenue.toLocaleString()}</span>
-                  </div>
-                </div>
-              ))
-            )}
-            {workerShifts.length > 0 && (
-              <div className="border-t border-sky-200 pt-3 flex justify-between">
-                <span className="text-sky-700 font-bold text-sm">Total Items</span>
-                <span className="font-black text-sky-800 text-lg">{workerTotalItems}</span>
+              {/* Items List */}
+              <div className="p-4 flex-1 space-y-2">
+                {data.items.length === 0 ? (
+                  <p className="text-slate-400 text-xs text-center py-4 italic">No orders logged for {cfg.label}</p>
+                ) : (
+                  data.items.map((item) => (
+                    <div key={item.name} className="flex items-center justify-between text-sm">
+                      <span className="text-slate-800 font-medium truncate max-w-[70%]">{item.name}</span>
+                      <span className="font-bold text-slate-700 bg-white/80 border border-slate-200 px-2 py-0.5 rounded-md text-xs">
+                        ×{item.quantity}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Detailed Order Log */}
-      {chefOrders.length > 0 && (
-        <div className="rounded-2xl border border-slate-100 overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-100">
+      {/* Detailed Time-stamped Order Log */}
+      <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+        <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+          <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-slate-500" />
-            <span className="font-bold text-slate-700 text-sm">Chef Order Log — {chefOrders.length} entries</span>
+            <span className="font-bold text-slate-800 text-sm">
+              Detailed Kitchen Order Stream ({filteredChefOrders.length} orders)
+            </span>
           </div>
-          <div className="divide-y divide-slate-50 max-h-72 overflow-y-auto">
-            {chefOrders.map((order) => {
-              const taker = TAKER_LABELS[order.taker];
+          {takerFilter !== 'all' && (
+            <span className="text-xs text-slate-500 font-medium">Filtered by: {TAKER_CONFIG[takerFilter].label}</span>
+          )}
+        </div>
+
+        {filteredChefOrders.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 text-sm">
+            No orders logged for this selection.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+            {filteredChefOrders.map((order) => {
+              const cfg = TAKER_CONFIG[order.taker];
               return (
-                <div key={order.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className="text-xl w-8 text-center">{taker.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-slate-800 font-medium text-sm truncate">{order.foodItemName}</p>
-                    <p className="text-slate-400 text-xs">{taker.label} · {formatTime(order.orderTime)}</p>
+                <div key={order.id} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${cfg.badgeBg} flex items-center gap-1 shrink-0`}>
+                      <span>{cfg.emoji}</span>
+                      <span>{cfg.label}</span>
+                    </span>
+                    <span className="text-slate-900 font-semibold text-sm truncate">{order.foodItemName}</span>
                   </div>
-                  <span className="font-bold text-slate-600 text-sm bg-slate-100 px-2.5 py-1 rounded-full">
-                    ×{order.quantity}
-                  </span>
+
+                  <div className="flex items-center gap-4 shrink-0">
+                    <span className="font-extrabold text-slate-800 text-sm bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                      ×{order.quantity}
+                    </span>
+                    <span className="text-slate-400 text-xs font-mono">{formatTime(order.orderTime)}</span>
+                  </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </motion.div>
   );
 };
