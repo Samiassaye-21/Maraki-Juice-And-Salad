@@ -424,6 +424,61 @@ export function App() {
     }
   };
 
+  const handlePartialSettlePendingPayment = async (id: string, amountPaid: number, cupsPaid: number = 0, boxesPaid: number = 0, skipLedger: boolean = false) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const payment = pendingPayments.find(p => p.id === id);
+    if (!payment) return;
+
+    const newCups = Math.max(0, payment.juiceCupsCount - cupsPaid);
+    const newBoxes = Math.max(0, payment.foodTakeawaysCount - boxesPaid);
+    const newAmount = Math.max(0, payment.amount - amountPaid);
+    const isFullyPaid = newAmount <= 0 || (payment.juiceCupsCount > 0 && newCups === 0 && newBoxes === 0 && payment.foodTakeawaysCount > 0 ? newBoxes === 0 : true);
+
+    const updatedDescParts = [];
+    if (newCups > 0) updatedDescParts.push(`${newCups} Juice`);
+    if (newBoxes > 0) updatedDescParts.push(`${newBoxes} Food`);
+    updatedDescParts.push(`(Paid ${amountPaid} Br on ${todayStr})`);
+
+    const updated: PendingPaymentItem = {
+      ...payment,
+      juiceCupsCount: newCups,
+      foodTakeawaysCount: newBoxes,
+      amount: newAmount,
+      isPaid: isFullyPaid,
+      paidDate: isFullyPaid ? todayStr : payment.paidDate,
+      description: isFullyPaid ? payment.description : updatedDescParts.join(' '),
+    };
+
+    setPendingPaymentsState((prev) => prev.map((p) => (p.id === id ? updated : p)));
+
+    const { error } = await supabase.from('pending_payments').update({
+      juice_cups_count: updated.juiceCupsCount,
+      food_takeaways_count: updated.foodTakeawaysCount,
+      amount: updated.amount,
+      description: updated.description,
+      is_paid: updated.isPaid,
+      paid_date: updated.paidDate,
+    }).eq('id', id);
+
+    if (error) {
+      console.error('Failed to partially settle pending payment:', error);
+      alert('Error updating pending payment: ' + error.message);
+    }
+
+    if (!skipLedger && amountPaid > 0) {
+      const entry: LedgerEntry = {
+        id: `led-pend-rec-${id}-${Date.now()}`, date: todayStr, type: 'pending_recovered',
+        description: `Partial Debt Recovered (${amountPaid} Br) — ${payment.customerName || 'Customer'}`,
+        amount: amountPaid, sign: 1, referenceId: id, createdAt: Date.now(),
+      };
+      setLedgerEntriesState(prev => [entry, ...prev]);
+      await supabase.from('ledger_entries').insert({
+        id: entry.id, date: entry.date, type: entry.type, description: entry.description,
+        amount: entry.amount, sign: entry.sign, reference_id: entry.referenceId, created_at_ts: entry.createdAt,
+      });
+    }
+  };
+
   const handleDeletePendingPayment = async (id: string) => {
     setPendingPaymentsState((prev) => prev.filter((p) => p.id !== id));
     const { error: delErr } = await supabase.from('pending_payments').delete().eq('id', id);
@@ -671,6 +726,8 @@ export function App() {
                   config={config} lastClosedShift={lastClosedShift}
                   pendingPayments={pendingPayments} onSaveShift={handleSaveShift}
                   onAddPendingPayment={handleAddPendingPayment}
+                  onUpdatePendingPayment={handleUpdatePendingPayment}
+                  onPartialSettlePendingPayment={handlePartialSettlePendingPayment}
                   onAddDeliveryRecord={handleAddDeliveryRecord}
                   onSettlePendingPayment={handleSettlePendingPayment}
                   currencySymbol={currencySymbol}
@@ -684,6 +741,7 @@ export function App() {
                   pendingPayments={pendingPayments}
                   onAddPendingPayment={handleAddPendingPayment}
                   onUpdatePendingPayment={handleUpdatePendingPayment}
+                  onPartialSettlePendingPayment={handlePartialSettlePendingPayment}
                   onSettlePendingPayment={handleSettlePendingPayment}
                   onDeletePendingPayment={handleDeletePendingPayment}
                   currencySymbol={currencySymbol} config={config}

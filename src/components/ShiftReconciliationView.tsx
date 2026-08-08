@@ -44,6 +44,8 @@ interface ShiftReconciliationViewProps {
   pendingPayments: PendingPaymentItem[];
   onSaveShift: (shift: ShiftRecord) => void;
   onAddPendingPayment: (pending: Omit<PendingPaymentItem, 'id' | 'isPaid'>) => void;
+  onUpdatePendingPayment?: (updated: PendingPaymentItem) => void;
+  onPartialSettlePendingPayment?: (id: string, amountPaid: number, cupsPaid?: number, boxesPaid?: number, skipLedger?: boolean) => void;
   onSettlePendingPayment: (id: string, skipLedger?: boolean) => void;
   onAddDeliveryRecord: (del: Omit<DeliveryAccountRecord, 'id' | 'isSettledWeekly'>) => void;
   currencySymbol: string;
@@ -57,6 +59,8 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
   pendingPayments,
   onSaveShift,
   onAddPendingPayment,
+  onUpdatePendingPayment,
+  onPartialSettlePendingPayment,
   onSettlePendingPayment,
   onAddDeliveryRecord,
   currencySymbol,
@@ -117,6 +121,9 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
   const [recoveredFoodSales, setRecoveredFoodSales] = useState<{ [id: string]: number }>({});
   const [recoveredNote, setRecoveredNote] = useState<string>('');
   const [selectedSettlePendingIds, setSelectedSettlePendingIds] = useState<string[]>([]);
+  const [partialPendingCups, setPartialPendingCups] = useState<{ [id: string]: number }>({});
+  const [partialPendingBoxes, setPartialPendingBoxes] = useState<{ [id: string]: number }>({});
+  const [partialPendingBirr, setPartialPendingBirr] = useState<{ [id: string]: number }>({});
 
   const [shiftNotes, setShiftNotes] = useState<string>('');
   const [savedSuccessMsg, setSavedSuccessMsg] = useState<string | null>(null);
@@ -147,11 +154,22 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
       .reduce((sum, p) => sum + p.amount, 0);
   }, [pendingPayments, selectedSettlePendingIds]);
 
+  const partialDeductionsTotalAmount = useMemo(() => {
+    return unpaidDebts.reduce((sum, item) => {
+      if (selectedSettlePendingIds.includes(item.id)) return sum;
+      const cups = Math.min(item.juiceCupsCount, Math.max(0, partialPendingCups[item.id] || 0));
+      const boxes = Math.min(item.foodTakeawaysCount, Math.max(0, partialPendingBoxes[item.id] || 0));
+      const birr = Math.max(0, partialPendingBirr[item.id] || 0);
+      const itemTotal = (cups * juicePrice) + (boxes * foodPrice) + birr;
+      return sum + itemTotal;
+    }, 0);
+  }, [unpaidDebts, selectedSettlePendingIds, partialPendingCups, partialPendingBoxes, partialPendingBirr, juicePrice, foodPrice]);
+
   const recoveredFoodRevenue = Object.entries(recoveredFoodSales).reduce<number>((sum, [itemId, qty]) => {
     const item = config.foodMenu?.find(m => m.id === itemId);
     return sum + (item ? item.price * (Number(qty) || 0) : 0);
   }, 0);
-  const recoveredPendingAmount = (recoveredJuiceCups * juicePrice) + recoveredFoodRevenue + selectedPendingTotalAmount;
+  const recoveredPendingAmount = (recoveredJuiceCups * juicePrice) + recoveredFoodRevenue + selectedPendingTotalAmount + partialDeductionsTotalAmount;
 
   const menuFoodRevenue = Object.entries(foodSales).reduce((sum: number, [itemId, qty]) => {
     const item = config.foodMenu?.find(m => m.id === itemId);
@@ -310,6 +328,21 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
       for (const id of selectedSettlePendingIds) {
         onSettlePendingPayment(id, true);
       }
+    }
+
+    // Auto-process partial pending debt deductions
+    if (onPartialSettlePendingPayment) {
+      unpaidDebts.forEach((item) => {
+        if (selectedSettlePendingIds.includes(item.id)) return;
+        const cups = Math.min(item.juiceCupsCount, Math.max(0, partialPendingCups[item.id] || 0));
+        const boxes = Math.min(item.foodTakeawaysCount, Math.max(0, partialPendingBoxes[item.id] || 0));
+        const birr = Math.max(0, partialPendingBirr[item.id] || 0);
+        const totalPaid = (cups * juicePrice) + (boxes * foodPrice) + birr;
+
+        if (totalPaid > 0) {
+          onPartialSettlePendingPayment(item.id, totalPaid, cups, boxes, true);
+        }
+      });
     }
 
     setSavedSuccessMsg(
@@ -886,32 +919,30 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
               {unpaidDebts.length > 0 && (
                 <div className="space-y-2 bg-green-50/60 p-3 rounded-xl border border-green-200">
                   <p className="text-xs font-bold text-slate-800 flex items-center justify-between">
-                    <span>Select Unpaid Customer Debts Paid Today:</span>
+                    <span>Unpaid Customer Debts (Full or Partial Settlement):</span>
                     <span className="text-[10px] text-green-700 font-semibold">{unpaidDebts.length} Unpaid Total</span>
                   </p>
-                  <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                  <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
                     {unpaidDebts.map((item) => {
-                      const isSelected = selectedSettlePendingIds.includes(item.id);
+                      const isFullSelected = selectedSettlePendingIds.includes(item.id);
+                      const cupsPaid = partialPendingCups[item.id] || 0;
+                      const boxesPaid = partialPendingBoxes[item.id] || 0;
+                      const birrPaid = partialPendingBirr[item.id] || 0;
+                      const partialTotal = (cupsPaid * juicePrice) + (boxesPaid * foodPrice) + birrPaid;
+                      const hasPartial = !isFullSelected && partialTotal > 0;
+
                       return (
-                        <label
+                        <div
                           key={item.id}
-                          className={`flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
-                            isSelected 
-                              ? 'bg-white border-green-500 shadow-sm ring-1 ring-green-400' 
+                          className={`p-2.5 rounded-lg border text-xs space-y-2 transition-all ${
+                            isFullSelected
+                              ? 'bg-white border-green-500 shadow-sm ring-1 ring-green-400'
+                              : hasPartial
+                              ? 'bg-white border-green-400 shadow-sm'
                               : 'bg-white/80 border-slate-200 hover:border-green-300'
                           }`}
                         >
-                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => {
-                                setSelectedSettlePendingIds(prev => 
-                                  isSelected ? prev.filter(id => id !== item.id) : [...prev, item.id]
-                                );
-                              }}
-                              className="w-4 h-4 text-green-600 rounded focus:ring-green-400 cursor-pointer"
-                            />
+                          <div className="flex items-center justify-between gap-2">
                             <div className="min-w-0 flex-1">
                               <p className="font-bold text-slate-900 truncate">
                                 {item.customerName || 'Customer'}
@@ -920,17 +951,98 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                                 {item.description} ({item.shiftType.toUpperCase()} • {item.date})
                               </p>
                             </div>
+                            <span className="font-extrabold text-green-700 whitespace-nowrap">
+                              {formatCurrency(item.amount, currencySymbol)}
+                            </span>
                           </div>
-                          <span className="font-extrabold text-green-700 ml-2 whitespace-nowrap">
-                            {formatCurrency(item.amount, currencySymbol)}
-                          </span>
-                        </label>
+
+                          {/* Options Row */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                            <label className="flex items-center gap-1.5 font-semibold text-slate-700 cursor-pointer text-[11px]">
+                              <input
+                                type="checkbox"
+                                checked={isFullSelected}
+                                onChange={() => {
+                                  setSelectedSettlePendingIds(prev =>
+                                    isFullSelected ? prev.filter(id => id !== item.id) : [...prev, item.id]
+                                  );
+                                }}
+                                className="w-4 h-4 text-green-600 rounded focus:ring-green-400 cursor-pointer"
+                              />
+                              <span>Full Settlement ({formatCurrency(item.amount, currencySymbol)})</span>
+                            </label>
+
+                            {!isFullSelected && (
+                              <div className="flex items-center gap-2">
+                                {item.juiceCupsCount > 0 && (
+                                  <div className="flex items-center space-x-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                                    <span className="text-[10px] font-semibold text-slate-600">Paid Cups:</span>
+                                    <button type="button"
+                                      onClick={() => setPartialPendingCups(prev => ({ ...prev, [item.id]: Math.max(0, (prev[item.id] || 0) - 1) }))}
+                                      className="w-4 h-4 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-[10px]"
+                                    >−</button>
+                                    <input
+                                      type="number" min="0" max={item.juiceCupsCount}
+                                      value={cupsPaid || ''}
+                                      placeholder="0"
+                                      onFocus={handleInputFocus}
+                                      onChange={(e) => {
+                                        const val = Math.min(item.juiceCupsCount, cleanNumberInput(e));
+                                        setPartialPendingCups(prev => ({ ...prev, [item.id]: val }));
+                                      }}
+                                      className="w-7 h-4 text-center text-[10px] font-bold text-slate-900 bg-white border border-slate-200 rounded p-0"
+                                    />
+                                    <button type="button"
+                                      onClick={() => setPartialPendingCups(prev => ({ ...prev, [item.id]: Math.min(item.juiceCupsCount, (prev[item.id] || 0) + 1) }))}
+                                      className="w-4 h-4 rounded-full bg-green-500 text-white font-bold flex items-center justify-center text-[10px]"
+                                    >+</button>
+                                  </div>
+                                )}
+
+                                {item.foodTakeawaysCount > 0 && (
+                                  <div className="flex items-center space-x-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                                    <span className="text-[10px] font-semibold text-slate-600">Paid Boxes:</span>
+                                    <button type="button"
+                                      onClick={() => setPartialPendingBoxes(prev => ({ ...prev, [item.id]: Math.max(0, (prev[item.id] || 0) - 1) }))}
+                                      className="w-4 h-4 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-[10px]"
+                                    >−</button>
+                                    <input
+                                      type="number" min="0" max={item.foodTakeawaysCount}
+                                      value={boxesPaid || ''}
+                                      placeholder="0"
+                                      onFocus={handleInputFocus}
+                                      onChange={(e) => {
+                                        const val = Math.min(item.foodTakeawaysCount, cleanNumberInput(e));
+                                        setPartialPendingBoxes(prev => ({ ...prev, [item.id]: val }));
+                                      }}
+                                      className="w-7 h-4 text-center text-[10px] font-bold text-slate-900 bg-white border border-slate-200 rounded p-0"
+                                    />
+                                    <button type="button"
+                                      onClick={() => setPartialPendingBoxes(prev => ({ ...prev, [item.id]: Math.min(item.foodTakeawaysCount, (prev[item.id] || 0) + 1) }))}
+                                      className="w-4 h-4 rounded-full bg-green-500 text-white font-bold flex items-center justify-center text-[10px]"
+                                    >+</button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Live Partial Summary Tag */}
+                          {hasPartial && (
+                            <div className="bg-green-50 px-2 py-1 rounded text-[10px] font-semibold text-green-800 flex items-center justify-between border border-green-200">
+                              <span>Recovering {formatCurrency(partialTotal, currencySymbol)} today</span>
+                              <span>
+                                Remaining: {Math.max(0, item.juiceCupsCount - cupsPaid)} Cups / {formatCurrency(Math.max(0, item.amount - partialTotal), currencySymbol)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
-                  {selectedSettlePendingIds.length > 0 && (
+                  {(selectedPendingTotalAmount > 0 || partialDeductionsTotalAmount > 0) && (
                     <p className="text-[11px] font-semibold text-green-700 text-right pt-1">
-                      Selected Debts Total: {formatCurrency(selectedPendingTotalAmount, currencySymbol)} (Auto-deducts on Shift Close)
+                      Recovered Customer Debts Total: {formatCurrency(selectedPendingTotalAmount + partialDeductionsTotalAmount, currencySymbol)} (Adds to Shift Cash)
                     </p>
                   )}
                 </div>
