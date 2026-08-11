@@ -30,7 +30,7 @@ import {
   LedgerEntry,
   KitchenOrder,
 } from './types';
-import { calculateSystemSummary } from './utils/shiftUtils';
+import { calculateSystemSummary, getAutoShiftType } from './utils/shiftUtils';
 
 const STORAGE_KEY_THEME = 'maraki_theme_mode_v1';
 
@@ -86,7 +86,7 @@ function buildShiftLedgerEntries(shift: ShiftRecord): LedgerEntry[] {
 
 export function App() {
   const [activeTab, setActiveTab] = useState<MainTab>('calculator');
-  const [activeShift, setActiveShift] = useState<ShiftType>('day');
+  const [activeShift, setActiveShift] = useState<ShiftType>(() => getAutoShiftType().shiftType);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

@@ -4,6 +4,7 @@ import { ChevronLeft, Check, Minus, Plus, Trash2, Clock } from 'lucide-react';
 import { FoodMenuItem } from '../types';
 import { KitchenOrder, KitchenTaker } from '../types';
 import { supabase } from '../lib/supabaseClient';
+import { getOperationalDate, getAutoShiftType, formatEthiopianTime } from '../utils/shiftUtils';
 
 interface KitchenOrderEntryProps {
   foodMenu: FoodMenuItem[];
@@ -12,9 +13,9 @@ interface KitchenOrderEntryProps {
 type Step = 'food' | 'quantity' | 'taker' | 'confirm';
 
 const TAKERS: { id: KitchenTaker; emoji: string; label: string; subLabel: string; color: string }[] = [
-  { id: 'day_shift',    emoji: '☀️', label: 'ቀን ሸፍት',   subLabel: 'Day Shift',    color: 'bg-amber-400 hover:bg-amber-500 border-amber-300' },
-  { id: 'night_shift',  emoji: '🌙', label: 'ሌሊት ሸፍት', subLabel: 'Night Shift',  color: 'bg-indigo-500 hover:bg-indigo-600 border-indigo-400' },
-  { id: 'beu_delivery', emoji: '🚴', label: 'BeU Delivery', subLabel: 'Delivery',  color: 'bg-emerald-500 hover:bg-emerald-600 border-emerald-400' },
+  { id: 'day_shift',    emoji: '☀️', label: 'ቀን ሸፍት',   subLabel: 'Day Shift (2:00 morning - 2:00 evening)',    color: 'bg-amber-500 hover:bg-amber-600 border-amber-400' },
+  { id: 'night_shift',  emoji: '🌙', label: 'ሌሊት ሸፍት', subLabel: 'Night Shift (2:00 evening - 12:00 night)',  color: 'bg-indigo-600 hover:bg-indigo-700 border-indigo-500' },
+  { id: 'beu_delivery', emoji: '🚴', label: 'BeU Delivery', subLabel: 'Delivery',  color: 'bg-emerald-600 hover:bg-emerald-700 border-emerald-500' },
 ];
 
 // Emoji mapping for food categories
@@ -24,13 +25,6 @@ const CATEGORY_EMOJI: Record<string, string> = {
   breakfast: '🍳',
   traditional: '🥘',
 };
-
-function getLocalDateString(d: Date = new Date()): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 function formatTime(isoStr: string) {
   const d = new Date(isoStr);
@@ -47,9 +41,10 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
   const [todayOrders, setTodayOrders] = useState<KitchenOrder[]>([]);
   const [loadedToday, setLoadedToday] = useState(false);
 
-  const todayStr = getLocalDateString();
+  const todayStr = getOperationalDate();
+  const autoShiftInfo = getAutoShiftType();
 
-  // Load today's orders on mount
+  // Load today's operational orders on mount
   React.useEffect(() => {
     supabase
       .from('kitchen_orders')
@@ -87,7 +82,10 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
     setSaving(true);
 
     const now = new Date();
-    const shiftType = selectedTaker === 'night_shift' ? 'night' : 'day';
+    const currentShift = getAutoShiftType(now);
+    const shiftType = selectedTaker === 'beu_delivery' ? currentShift.shiftType : (selectedTaker === 'night_shift' ? 'night' : 'day');
+    const opDate = getOperationalDate(now);
+
     const order: KitchenOrder = {
       id: 'ko-' + Date.now(),
       foodItemId: selectedFood.id,
@@ -96,7 +94,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
       taker: selectedTaker,
       shiftType,
       orderTime: now.toISOString(),
-      date: getLocalDateString(now),
+      date: opDate,
       createdAt: Date.now(),
     };
 
@@ -199,31 +197,44 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
   );
 
   // ─── Step: Taker ──────────────────────────────────────────────────────────
-  const renderTakerStep = () => (
-    <div className="flex flex-col flex-1 px-5 gap-6">
-      <div className="pt-6">
-        {/* Amharic: "Who took it?" */}
-        <h2 className="text-3xl font-bold text-white mb-1">ማን ወሰደ?</h2>
-        <p className="text-white/50 text-base">Who took the order?</p>
-      </div>
+  const renderTakerStep = () => {
+    const autoInfo = getAutoShiftType();
+    return (
+      <div className="flex flex-col flex-1 px-5 gap-6">
+        <div className="pt-6">
+          {/* Amharic: "Who took it?" */}
+          <h2 className="text-3xl font-bold text-white mb-1">ማን ወሰደ?</h2>
+          <p className="text-white/50 text-base">Who took the order?</p>
+        </div>
 
-      <div className="flex flex-col gap-4 flex-1 justify-center">
-        {TAKERS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => { setSelectedTaker(t.id); setStep('confirm'); }}
-            className={`flex items-center gap-5 h-24 rounded-2xl border-2 px-6 text-white active:scale-95 transition-all duration-150 cursor-pointer shadow-md ${t.color}`}
-          >
-            <span className="text-5xl">{t.emoji}</span>
-            <div className="text-left">
-              <div className="text-2xl font-bold">{t.label}</div>
-              <div className="text-sm opacity-80">{t.subLabel}</div>
-            </div>
-          </button>
-        ))}
+        <div className="flex flex-col gap-4 flex-1 justify-center">
+          {TAKERS.map((t) => {
+            const isAutoActive = t.id === autoInfo.defaultTaker;
+            return (
+              <button
+                key={t.id}
+                onClick={() => { setSelectedTaker(t.id); setStep('confirm'); }}
+                className={`relative flex items-center gap-5 h-24 rounded-2xl border-2 px-6 text-white active:scale-95 transition-all duration-150 cursor-pointer shadow-md ${t.color}`}
+              >
+                <span className="text-5xl">{t.emoji}</span>
+                <div className="text-left">
+                  <div className="text-2xl font-bold flex items-center gap-2">
+                    <span>{t.label}</span>
+                    {isAutoActive && (
+                      <span className="text-xs bg-white/30 text-white px-2.5 py-0.5 rounded-full font-bold">
+                        አሁን ያለው (Active)
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm opacity-90">{t.subLabel}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // ─── Step: Confirm ─────────────────────────────────────────────────────────
   const renderConfirmStep = () => {
@@ -300,7 +311,9 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
       <div className="flex items-center gap-2 mb-3">
         <Clock className="w-4 h-4 text-white/40" />
         {/* Amharic: "Today's Orders" */}
-        <h3 className="text-white/60 text-sm font-semibold uppercase tracking-wider">የዛሬ ትዕዛዞች</h3>
+        <h3 className="text-white/60 text-sm font-semibold uppercase tracking-wider">
+          የዛሬ ትዕዛዞች ({todayStr})
+        </h3>
         <span className="ml-auto bg-white/10 text-white/60 text-xs px-2 py-0.5 rounded-full">
           {todayOrders.length}
         </span>
@@ -321,8 +334,8 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
                 <span className="text-2xl">{t.emoji}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-semibold text-sm truncate">{order.foodItemName}</p>
-                  <p className="text-white/40 text-xs">
-                    ×{order.quantity} · {formatTime(order.orderTime)}
+                  <p className="text-white/60 text-xs">
+                    ×{order.quantity} · {formatEthiopianTime(order.orderTime)} ({formatTime(order.orderTime)})
                   </p>
                 </div>
                 <button
@@ -364,7 +377,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
         ) : (
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 text-orange-300 text-xs font-semibold border border-white/15">
             <span>📅</span>
-            <span>{todayStr}</span>
+            <span>{todayStr} (Shift Date)</span>
           </div>
         )}
         {/* Step indicator dots */}

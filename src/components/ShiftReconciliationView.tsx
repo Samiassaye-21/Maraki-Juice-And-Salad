@@ -33,7 +33,8 @@ import {
   cleanStringNumberInput, 
   handleInputFocus, 
   calculateShiftTotals,
-  formatEthiopianFullDate
+  formatEthiopianFullDate,
+  getOperationalDate
 } from '../utils/shiftUtils';
 
 interface ShiftReconciliationViewProps {
@@ -66,7 +67,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
   currencySymbol,
 }) => {
   // Shift Date & Worker Name
-  const [shiftDate, setShiftDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [shiftDate, setShiftDate] = useState<string>(() => getOperationalDate());
   const [workerName, setWorkerName] = useState(
     activeShift === 'day' ? config.dayShiftWorkerName : config.nightShiftWorkerName
   );
