@@ -215,9 +215,9 @@ export function formatEthiopianFullDate(dateStr: string): string {
 /**
  * Calculates the operational/business date string (YYYY-MM-DD) based on Ethiopian Shift Clock:
  * - Day Shift: 2:00 morning (08:00 AM) to 2:00 evening (08:00 PM / 20:00).
- * - Night Shift: 2:00 evening (08:00 PM / 20:00) to 12:00 night/morning cutoff (08:00 AM next day).
+ * - Night Shift: 2:00 evening (08:00 PM / 20:00) through midnight up to morning 2:00 (08:00 AM) until day shift receives.
  * 
- * If current time is between 00:00 (12:00 Midnight = 6 o'clock Ethiopian night) and 07:59:59 AM (before 8:00 AM day shift),
+ * If current time is between 00:00 (12:00 Midnight = 6 o'clock Ethiopian night) and 07:59:59 AM (before morning 2:00 when day shift receives),
  * the order/shift belongs to the PREVIOUS calendar day's Night Shift.
  */
 export function getOperationalDate(d: Date = new Date()): string {
@@ -234,7 +234,7 @@ export function getOperationalDate(d: Date = new Date()): string {
 /**
  * Determines the current active shift type ('day' | 'night') and default taker based on Ethiopian Shift Clock:
  * - 08:00 AM - 19:59 PM (2:00 morning to 2:00 evening ET) -> Day Shift ('day', 'day_shift')
- * - 20:00 PM - 07:59 AM (2:00 evening to 2:00 morning ET) -> Night Shift ('night', 'night_shift')
+ * - 20:00 PM - 07:59 AM (2:00 evening to morning 2:00 ET until day shift receives) -> Night Shift ('night', 'night_shift')
  */
 export function getAutoShiftType(d: Date = new Date()): { shiftType: 'day' | 'night'; defaultTaker: 'day_shift' | 'night_shift' } {
   const hours = d.getHours();
@@ -250,8 +250,8 @@ export function getAutoShiftType(d: Date = new Date()): { shiftType: 'day' | 'ni
  * Ethiopian time adds 6 hours to standard 12-hour time (or gregorian hour + 6 % 12).
  * e.g., 00:00 (midnight) -> 6:00 (6 o'clock night)
  * e.g., 01:00 (1 AM) -> 7:00 (7 o'clock night)
- * e.g., 08:00 (8 AM) -> 2:00 (2 o'clock morning)
- * e.g., 20:00 (8 PM) -> 2:00 (2 o'clock evening/night)
+ * e.g., 08:00 (8 AM) -> 2:00 (2 o'clock morning - Day Shift receives)
+ * e.g., 20:00 (8 PM) -> 2:00 (2 o'clock evening - Night Shift starts)
  */
 export function formatEthiopianTime(isoOrDate: string | Date): string {
   const d = typeof isoOrDate === 'string' ? new Date(isoOrDate) : isoOrDate;
@@ -268,7 +268,7 @@ export function formatEthiopianTime(isoOrDate: string | Date): string {
   } else if (hours >= 18 && hours < 24) {
     period = 'ምሽት (Evening)';
   } else {
-    period = 'ሌሊት (Middle of Night)';
+    period = 'ሌሊት (Night)';
   }
 
   return `${ethHour}:${minutes} ${period}`;

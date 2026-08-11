@@ -57,7 +57,7 @@ const TAKER_CONFIG: Record<
     emoji: '🌙',
     label: 'Night Shift (ሌሊት ሸፍት)',
     shortLabel: 'Night Shift',
-    subLabel: '2:00 evening – 12:00 night ET',
+    subLabel: '2:00 evening – morning 2:00 ET',
     bg: 'bg-indigo-50/70 dark:bg-indigo-950/20',
     text: 'text-indigo-900 dark:text-indigo-300',
     border: 'border-indigo-200/80 dark:border-indigo-800/40',

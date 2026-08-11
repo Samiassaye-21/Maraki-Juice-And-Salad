@@ -13,8 +13,8 @@ interface KitchenOrderEntryProps {
 type Step = 'food' | 'quantity' | 'taker' | 'confirm';
 
 const TAKERS: { id: KitchenTaker; emoji: string; label: string; subLabel: string; color: string }[] = [
-  { id: 'day_shift',    emoji: '☀️', label: 'ቀን ሸፍት',   subLabel: 'Day Shift (2:00 morning - 2:00 evening)',    color: 'bg-amber-500 hover:bg-amber-600 border-amber-400' },
-  { id: 'night_shift',  emoji: '🌙', label: 'ሌሊት ሸፍት', subLabel: 'Night Shift (2:00 evening - 12:00 night)',  color: 'bg-indigo-600 hover:bg-indigo-700 border-indigo-500' },
+  { id: 'day_shift',    emoji: '☀️', label: 'ቀን ሸፍት',   subLabel: 'Day Shift (2:00 morning – 2:00 evening)',    color: 'bg-amber-500 hover:bg-amber-600 border-amber-400' },
+  { id: 'night_shift',  emoji: '🌙', label: 'ሌሊት ሸፍት', subLabel: 'Night Shift (2:00 evening – morning 2:00)', color: 'bg-indigo-600 hover:bg-indigo-700 border-indigo-500' },
   { id: 'beu_delivery', emoji: '🚴', label: 'BeU Delivery', subLabel: 'Delivery',  color: 'bg-emerald-600 hover:bg-emerald-700 border-emerald-500' },
 ];
 
