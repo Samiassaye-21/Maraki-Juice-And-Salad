@@ -143,20 +143,20 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           </button>
         </div>
 
-        {/* Display Screen (Deep Navy with Neon Mint Digits) */}
-        <div className="bg-[#0B1D28] rounded-2xl h-28 flex items-end justify-end p-5 shadow-inner border border-[#238868]/40">
-          <span className="text-[#13EE86] text-[54px] leading-none font-mono tracking-tighter font-extrabold overflow-hidden">
+        {/* Display Screen (Deep Olive with Lime Digits) */}
+        <div className="bg-[#2D4F1E] rounded-2xl h-28 flex items-end justify-end p-5 shadow-inner border border-[#84CC16]/40">
+          <span className="text-[#84CC16] text-[54px] leading-none font-mono tracking-tighter font-extrabold overflow-hidden">
             {display}
           </span>
         </div>
 
         {/* Button Grid */}
         <div className="grid grid-cols-4 gap-3">
-          {/* Row 1 (Operators - Teal Green) */}
+          {/* Row 1 (Operators - Medium Olive) */}
           {['*', '/', '-', '+'].map((op) => (
             <button 
               key={op} onClick={() => handleOperator(op)}
-              className="h-[60px] bg-[#238868] hover:bg-[#1f755a] rounded-full text-white text-3xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
+              className="h-[60px] bg-[#4A7C36] hover:bg-[#3D6829] rounded-full text-white text-3xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
             >
               {op}
             </button>
@@ -166,7 +166,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           {['9', '8', '7', '6'].map((num) => (
             <button 
               key={num} onClick={() => handleDigit(num)}
-              className="h-[60px] bg-white hover:bg-[#F4F8F5] rounded-full text-[#07250D] text-3xl font-extrabold flex items-center justify-center border-2 border-[#07250D] cursor-pointer transition-all active:scale-95 shadow-xs"
+              className="h-[60px] bg-white hover:bg-[#FAF6EE] rounded-full text-[#2D4F1E] text-3xl font-extrabold flex items-center justify-center border-2 border-[#2D4F1E] cursor-pointer transition-all active:scale-95 shadow-xs"
             >
               {num}
             </button>
@@ -176,7 +176,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           {['5', '4', '3', '2'].map((num) => (
             <button 
               key={num} onClick={() => handleDigit(num)}
-              className="h-[60px] bg-white hover:bg-[#F4F8F5] rounded-full text-[#07250D] text-3xl font-extrabold flex items-center justify-center border-2 border-[#07250D] cursor-pointer transition-all active:scale-95 shadow-xs"
+              className="h-[60px] bg-white hover:bg-[#FAF6EE] rounded-full text-[#2D4F1E] text-3xl font-extrabold flex items-center justify-center border-2 border-[#2D4F1E] cursor-pointer transition-all active:scale-95 shadow-xs"
             >
               {num}
             </button>
@@ -186,7 +186,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           {['1', '0', '.'].map((num) => (
             <button 
               key={num} onClick={num === '.' ? handleDot : () => handleDigit(num)}
-              className="h-[60px] bg-white hover:bg-[#F4F8F5] rounded-full text-[#07250D] text-3xl font-extrabold flex items-center justify-center border-2 border-[#07250D] cursor-pointer transition-all active:scale-95 shadow-xs"
+              className="h-[60px] bg-white hover:bg-[#FAF6EE] rounded-full text-[#2D4F1E] text-3xl font-extrabold flex items-center justify-center border-2 border-[#2D4F1E] cursor-pointer transition-all active:scale-95 shadow-xs"
             >
               {num}
             </button>
@@ -194,7 +194,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           
           <button 
             onClick={handleEqual}
-            className="h-[60px] bg-[#13EE86] hover:bg-[#10DF7D] rounded-full text-[#07250D] text-4xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-md"
+            className="h-[60px] bg-[#84CC16] hover:bg-[#78B813] rounded-full text-[#2D4F1E] text-4xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-md"
           >
             =
           </button>

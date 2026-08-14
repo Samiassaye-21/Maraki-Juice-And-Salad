@@ -264,23 +264,23 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
 
       {/* ─── Metric Stat Cards ──────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Stat Card 1 (Deep Navy Hero Style) */}
-        <div className="bg-[#0B1D28] border border-[#238868]/40 text-white p-5 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[130px]">
+        {/* Stat Card 1 (Deep Olive Hero Style) */}
+        <div className="bg-[#2D4F1E] border border-[#84CC16]/40 text-white p-5 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[130px]">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-wider text-neutral-400">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-stone-300">
                 Chef Logged Items
               </p>
-              <h3 className="text-3xl font-extrabold text-[#13EE86] mt-1">
-                {grandChefTotalItems} <span className="text-sm font-normal text-neutral-300">items</span>
+              <h3 className="text-3xl font-extrabold text-[#84CC16] mt-1">
+                {grandChefTotalItems} <span className="text-sm font-normal text-stone-200">items</span>
               </h3>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#122A3B] border border-[#238868]/40 flex items-center justify-center text-[#13EE86]">
+            <div className="w-10 h-10 rounded-full bg-[#395F27] border border-[#84CC16]/40 flex items-center justify-center text-[#84CC16]">
               <ShoppingBag className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-xs text-neutral-300 mt-2 font-medium flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-[#13EE86]" />
+          <p className="text-xs text-stone-200 mt-2 font-medium flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-[#84CC16]" />
             Recorded by kitchen staff for {selectedDate}
           </p>
         </div>

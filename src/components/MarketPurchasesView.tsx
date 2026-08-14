@@ -159,38 +159,38 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
   })();
 
   return (
-    <div className="space-y-6 text-[#07250D] font-sans">
+    <div className="space-y-6 text-[#2D4F1E] font-sans">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-extrabold text-[#07250D]">Inventory Purchases</h2>
-          <p className="text-sm font-medium text-neutral-600 mt-0.5">Bulk buying — fruits, packaging & supplies</p>
+          <h2 className="text-xl font-extrabold text-[#2D4F1E]">Inventory Purchases</h2>
+          <p className="text-sm font-medium text-stone-600 mt-0.5">Bulk buying — fruits, packaging & supplies</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#84CC16] hover:bg-[#78B813] text-[#2D4F1E] rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
         >
-          <Plus className="w-4 h-4 text-[#07250D]" />
+          <Plus className="w-4 h-4 text-[#2D4F1E]" />
           <span>New Trip</span>
         </button>
       </div>
 
-      {/* This-week summary (Deep Navy Hero Style) */}
+      {/* This-week summary (Deep Olive Hero Style) */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-[#0B1D28] border border-[#238868]/40 rounded-3xl p-5 shadow-2xl text-white">
-          <p className="text-xs font-extrabold text-neutral-400 uppercase tracking-wide">This Week</p>
-          <p className="text-2xl font-extrabold text-[#13EE86] mt-1">{formatCurrency(totalThisWeek, currencySymbol)}</p>
-          <p className="text-xs text-neutral-300 font-medium mt-0.5">{purchaseTrips.filter(t => {
+        <div className="bg-[#2D4F1E] border border-[#84CC16]/40 rounded-3xl p-5 shadow-2xl text-white">
+          <p className="text-xs font-extrabold text-stone-300 uppercase tracking-wide">This Week</p>
+          <p className="text-2xl font-extrabold text-[#84CC16] mt-1">{formatCurrency(totalThisWeek, currencySymbol)}</p>
+          <p className="text-xs text-stone-200 font-medium mt-0.5">{purchaseTrips.filter(t => {
             const ws = new Date(); ws.setDate(ws.getDate() - ws.getDay());
             return new Date(t.date) >= ws;
           }).length} trips</p>
         </div>
-        <div className="bg-white border border-[#238868]/20 rounded-3xl p-5 shadow-xs text-[#0B1D28]">
-          <p className="text-xs font-bold text-neutral-500 uppercase tracking-wide">All Time</p>
-          <p className="text-2xl font-extrabold text-[#0B1D28] mt-1">
+        <div className="bg-white border border-[#2D4F1E]/20 rounded-3xl p-5 shadow-xs text-[#2D4F1E]">
+          <p className="text-xs font-bold text-stone-500 uppercase tracking-wide">All Time</p>
+          <p className="text-2xl font-extrabold text-[#2D4F1E] mt-1">
             {formatCurrency(purchaseTrips.reduce((s, t) => s + t.grandTotal, 0), currencySymbol)}
           </p>
-          <p className="text-xs text-neutral-500 font-medium mt-0.5">{purchaseTrips.length} total trips</p>
+          <p className="text-xs text-stone-500 font-medium mt-0.5">{purchaseTrips.length} total trips</p>
         </div>
       </div>
 

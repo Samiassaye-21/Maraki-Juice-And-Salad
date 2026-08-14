@@ -357,10 +357,10 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
     );
   };
 
-  const inputClasses = "w-full px-4 py-2.5 bg-white border border-[#238868]/30 rounded-full text-[#07250D] text-sm font-bold focus:outline-none focus:border-[#238868] focus:ring-4 focus:ring-[#13EE86]/20 transition-all shadow-xs placeholder:text-neutral-400";
-  const leftoverInputClasses = "w-full px-4 py-2.5 bg-white border-2 border-[#238868] rounded-full text-[#238868] text-base font-extrabold text-center focus:outline-none transition-all shadow-xs";
-  const labelClasses = "block text-xs font-bold text-neutral-600 uppercase tracking-wider mb-1.5";
-  const subLabelClasses = "text-xs text-neutral-500 font-medium block text-center mt-1.5";
+  const inputClasses = "w-full px-4 py-2.5 bg-white border border-[#2D4F1E]/30 rounded-full text-[#2D4F1E] text-sm font-bold focus:outline-none focus:border-[#2D4F1E] focus:ring-4 focus:ring-[#84CC16]/20 transition-all shadow-xs placeholder:text-stone-400";
+  const leftoverInputClasses = "w-full px-4 py-2.5 bg-white border-2 border-[#2D4F1E] rounded-full text-[#2D4F1E] text-base font-extrabold text-center focus:outline-none transition-all shadow-xs";
+  const labelClasses = "block text-xs font-bold text-stone-600 uppercase tracking-wider mb-1.5";
+  const subLabelClasses = "text-xs text-stone-500 font-medium block text-center mt-1.5";
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 font-sans text-[#07250D]">
@@ -1300,33 +1300,33 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
           </div>
         </div>
 
-        {/* NET CASH RESULT CARD (Deep Navy Hero Card) */}
-        <div className="bg-[#0B1D28] rounded-3xl p-6 text-white shadow-2xl space-y-4 border border-[#238868]/40">
+        {/* NET CASH RESULT CARD (Deep Olive Hero Card) */}
+        <div className="bg-[#2D4F1E] rounded-3xl p-6 text-white shadow-2xl space-y-4 border border-[#84CC16]/40">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-[#0B1D28] bg-[#13EE86] px-3.5 py-1 rounded-full mb-2 shadow-xs">
-                <ShieldCheck className="w-4 h-4 text-[#0B1D28]" /> Physical Cash Handover
+              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-[#2D4F1E] bg-[#84CC16] px-3.5 py-1 rounded-full mb-2 shadow-xs">
+                <ShieldCheck className="w-4 h-4 text-[#2D4F1E]" /> Physical Cash Handover
               </span>
               <h3 className="text-2xl font-extrabold text-white tracking-tight">Net Cash Due to Owner</h3>
-              <p className="text-xs text-neutral-300 mt-0.5 font-medium">Exact cash worker must hand over at end of shift</p>
+              <p className="text-xs text-stone-200 mt-0.5 font-medium">Exact cash worker must hand over at end of shift</p>
             </div>
-            <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#13EE86]">
+            <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#84CC16]">
               {formatCurrency(netCashDueToOwner, currencySymbol)}
             </div>
           </div>
 
-          <div className="text-xs font-bold text-neutral-300 pt-4 border-t border-[#238868]/30 flex flex-wrap items-center gap-2">
-            <span className="bg-[#122A3B] px-3 py-1 rounded-full border border-[#238868]/30 text-white">Gross: {formatCurrency(grossIncome, currencySymbol)}</span>
+          <div className="text-xs font-bold text-stone-200 pt-4 border-t border-[#84CC16]/30 flex flex-wrap items-center gap-2">
+            <span className="bg-[#395F27] px-3 py-1 rounded-full border border-[#84CC16]/30 text-white">Gross: {formatCurrency(grossIncome, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#122A3B] px-3 py-1 rounded-full border border-[#238868]/30 text-white">Digital: {formatCurrency(digitalTransfers, currencySymbol)}</span>
+            <span className="bg-[#395F27] px-3 py-1 rounded-full border border-[#84CC16]/30 text-white">Digital: {formatCurrency(digitalTransfers, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#122A3B] px-3 py-1 rounded-full border border-[#238868]/30 text-white">Exp: {formatCurrency(dailyExpensesTotal, currencySymbol)}</span>
+            <span className="bg-[#395F27] px-3 py-1 rounded-full border border-[#84CC16]/30 text-white">Exp: {formatCurrency(dailyExpensesTotal, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#122A3B] px-3 py-1 rounded-full border border-[#238868]/30 text-white">Pend: {formatCurrency(newPendingAmount, currencySymbol)}</span>
+            <span className="bg-[#395F27] px-3 py-1 rounded-full border border-[#84CC16]/30 text-white">Pend: {formatCurrency(newPendingAmount, currencySymbol)}</span>
             <span>+</span>
-            <span className="bg-[#122A3B] px-3 py-1 rounded-full border border-[#238868]/30 text-white">Rec: {formatCurrency(recoveredPendingAmount, currencySymbol)}</span>
+            <span className="bg-[#395F27] px-3 py-1 rounded-full border border-[#84CC16]/30 text-white">Rec: {formatCurrency(recoveredPendingAmount, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#122A3B] px-3 py-1 rounded-full border border-[#238868]/30 text-white">Del: {formatCurrency(deliveryCreditAmount, currencySymbol)}</span>
+            <span className="bg-[#395F27] px-3 py-1 rounded-full border border-[#84CC16]/30 text-white">Del: {formatCurrency(deliveryCreditAmount, currencySymbol)}</span>
           </div>
         </div>
 
@@ -1346,9 +1346,9 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] font-extrabold py-4 px-6 rounded-full shadow-lg text-base flex items-center justify-center space-x-2.5 transition-all cursor-pointer active:scale-95"
+            className="w-full bg-[#84CC16] hover:bg-[#78B813] text-[#2D4F1E] font-extrabold py-4 px-6 rounded-full shadow-lg text-base flex items-center justify-center space-x-2.5 transition-all cursor-pointer active:scale-95"
           >
-            <CheckCircle2 className="w-5 h-5 text-[#07250D]" />
+            <CheckCircle2 className="w-5 h-5 text-[#2D4F1E]" />
             <span>Close Shift & Carry Leftovers to Next Worker</span>
           </button>
         </div>

@@ -1,17 +1,18 @@
 @import "tailwindcss";
 
 /* ========================================
-   Maraki — Brand Design System
-   Deep Navy: #0B1D28 (Primary Dark Navy Accent & Text)
-   Teal Green: #238868 (Secondary Surfaces, Cards, Icons, Panels)
-   Bright Mint Green: #13EE86 (CTAs, Active States, Highlights, Accents)
+   Maraki — Brand Design System (Olive & Cream)
+   Deep Olive Green: #2D4F1E (Primary Dark Accent & Text)
+   Medium Olive: #4A7C36 (Secondary Surfaces, Icons, Borders)
+   Lime Olive Accent: #84CC16 (CTAs, Active States, Highlights)
+   Warm Cream: #FAF6EE (Global Page Background & Sub-Containers)
    ======================================== */
 
 @theme {
   --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --color-forest: #0B1D28;
-  --color-teal: #238868;
-  --color-mint: #13EE86;
+  --color-forest: #2D4F1E;
+  --color-teal: #4A7C36;
+  --color-mint: #84CC16;
 }
 
 html {
@@ -22,16 +23,16 @@ html {
 }
 
 body {
-  background-color: #F4F8F5;
+  background-color: #FAF6EE;
   min-height: 100vh;
-  color: #0B1D28;
+  color: #2D4F1E;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #F4F8F5; }
-::-webkit-scrollbar-thumb { background: #238868; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #13EE86; }
+::-webkit-scrollbar-track { background: #FAF6EE; }
+::-webkit-scrollbar-thumb { background: #4A7C36; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #84CC16; }
 
 /* Hide number spinners */
 input[type="number"]::-webkit-outer-spin-button,
@@ -43,12 +44,12 @@ input[type="number"] { -moz-appearance: textfield; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* Selection */
-::selection { background: #13EE86; color: #07250D; }
+::selection { background: #84CC16; color: #2D4F1E; }
 
-/* Focus ring - Mint focus */
+/* Focus ring */
 *:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(19, 238, 134, 0.35);
-  border-color: #13EE86;
+  box-shadow: 0 0 0 3px rgba(132, 204, 22, 0.35);
+  border-color: #84CC16;
   border-radius: 9999px;
 }

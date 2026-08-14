@@ -124,23 +124,23 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
     setIsFormOpen(false);
   };
 
-  const inputClasses = "w-full px-4 py-2.5 rounded-full border border-[#238868]/30 bg-white text-[#07250D] text-sm font-bold focus:outline-none focus:border-[#238868] focus:ring-4 focus:ring-[#13EE86]/20 transition-all placeholder:text-neutral-400 shadow-xs";
-  const labelClasses = "block text-xs font-bold text-neutral-600 uppercase tracking-wider mb-2";
+  const inputClasses = "w-full px-4 py-2.5 rounded-full border border-[#2D4F1E]/30 bg-white text-[#2D4F1E] text-sm font-bold focus:outline-none focus:border-[#2D4F1E] focus:ring-4 focus:ring-[#84CC16]/20 transition-all placeholder:text-stone-400 shadow-xs";
+  const labelClasses = "block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2";
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 font-sans text-[#07250D]">
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 font-sans text-[#2D4F1E]">
       
-      {/* HEADER CARD (Deep Navy Hero Styling) */}
-      <div className="bg-[#0B1D28] rounded-3xl p-5 sm:p-6 border border-[#238868]/40 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 text-white">
+      {/* HEADER CARD (Deep Olive Hero Styling) */}
+      <div className="bg-[#2D4F1E] rounded-3xl p-5 sm:p-6 border border-[#84CC16]/40 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 text-white">
         <div className="flex items-center space-x-4">
-          <div className="p-3.5 rounded-full bg-[#122A3B] text-[#13EE86] border border-[#238868]/40">
+          <div className="p-3.5 rounded-full bg-[#395F27] text-[#84CC16] border border-[#84CC16]/40">
             <Truck className="w-6 h-6" />
           </div>
           <div>
             <h2 className="text-xl font-extrabold text-white">
               Weekly Delivery Accounts
             </h2>
-            <p className="text-sm font-medium text-neutral-300 mt-0.5">
+            <p className="text-sm font-medium text-stone-200 mt-0.5">
               BeU, Deliver Addis & Feres delivery partner ledgers
             </p>
           </div>
@@ -148,18 +148,18 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
 
         <div className="flex items-center space-x-4 w-full sm:w-auto">
           <div className="flex flex-col items-end">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-400">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-300">
               Unsettled Balance
             </span>
-            <span className="text-2xl font-extrabold text-[#13EE86]">
+            <span className="text-2xl font-extrabold text-[#84CC16]">
               {formatCurrency(totalUnsettled, currencySymbol)}
             </span>
           </div>
           <button
             onClick={() => setIsFormOpen(!isFormOpen)}
-            className="px-5 py-2.5 bg-[#13EE86] hover:bg-[#10DF7D] text-[#0B1D28] font-extrabold rounded-full shadow-md transition-all flex items-center space-x-2 shrink-0 cursor-pointer text-sm active:scale-95"
+            className="px-5 py-2.5 bg-[#84CC16] hover:bg-[#78B813] text-[#2D4F1E] font-extrabold rounded-full shadow-md transition-all flex items-center space-x-2 shrink-0 cursor-pointer text-sm active:scale-95"
           >
-            <Plus className="w-5 h-5 text-[#0B1D28]" />
+            <Plus className="w-5 h-5 text-[#2D4F1E]" />
             <span>Add Delivery</span>
           </button>
         </div>
