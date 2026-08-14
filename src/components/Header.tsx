@@ -174,7 +174,19 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-1 border-l border-slate-200 pl-3 ml-1">
+          <div className="flex items-center gap-2 border-l border-slate-200 pl-3 ml-1">
+            <a
+              href="/shift"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all border border-indigo-200"
+              title="Open Mobile Shift Income Portal"
+            >
+              <Moon className="w-3.5 h-3.5 text-amber-500" />
+              <span className="hidden sm:inline">Mobile Shift App</span>
+              <span className="sm:hidden">Shift App</span>
+            </a>
+
             <button
               onClick={onLogout}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"

@@ -88,6 +88,21 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           {loading ? <Loader2 className="animate-spin w-6 h-6" /> : 'Log in'}
         </button>
         
+        {/* Quick Portal Switchers */}
+        <div className="flex items-center justify-center gap-3 mt-6">
+          <a
+            href="/shift"
+            className="text-xs font-semibold px-4 py-2 rounded-full bg-white/10 text-indigo-200 hover:bg-white/20 transition-all border border-white/15 flex items-center gap-1.5"
+          >
+            <span>🌙 Mobile Shift App</span>
+          </a>
+          <a
+            href="/kitchen"
+            className="text-xs font-semibold px-4 py-2 rounded-full bg-white/10 text-orange-200 hover:bg-white/20 transition-all border border-white/15 flex items-center gap-1.5"
+          >
+            <span>🍳 Kitchen App</span>
+          </a>
+        </div>
       </motion.form>
     </div>
   );

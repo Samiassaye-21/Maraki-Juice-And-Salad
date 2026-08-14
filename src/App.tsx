@@ -30,59 +30,9 @@ import {
   LedgerEntry,
   KitchenOrder,
 } from './types';
-import { calculateSystemSummary, getAutoShiftType } from './utils/shiftUtils';
+import { calculateSystemSummary, getAutoShiftType, buildShiftLedgerEntries } from './utils/shiftUtils';
 
 const STORAGE_KEY_THEME = 'maraki_theme_mode_v1';
-
-// Helper to build ledger entries from a closed shift
-function buildShiftLedgerEntries(shift: ShiftRecord): LedgerEntry[] {
-  const entries: LedgerEntry[] = [];
-
-  // 1. Shift Income (Gross Sales - New Credit - Delivery Credit)
-  const shiftIncome = shift.grossIncome - shift.newPendingPaymentsAmount - shift.deliveryCreditAmount;
-  if (shiftIncome > 0) {
-    entries.push({
-      id: `led-inc-${shift.id}`,
-      date: shift.date,
-      type: 'shift_income',
-      description: `Shift Sales (Cash & Digital) — ${shift.workerName} (${shift.shiftType})`,
-      amount: shiftIncome,
-      sign: 1,
-      referenceId: shift.id,
-      createdAt: shift.timestamp,
-    });
-  }
-
-  // 2. Daily Expenses
-  if (shift.dailyExpenses > 0) {
-    entries.push({
-      id: `led-exp-${shift.id}`,
-      date: shift.date,
-      type: 'shift_daily_expense',
-      description: `Daily Shift Expenses — ${shift.shiftType} shift`,
-      amount: shift.dailyExpenses,
-      sign: -1,
-      referenceId: shift.id,
-      createdAt: shift.timestamp + 1,
-    });
-  }
-
-  // 3. Recovered Pending Payments (cash collected from old debts during this shift)
-  if (shift.recoveredPendingAmount > 0) {
-    entries.push({
-      id: `led-rec-${shift.id}`,
-      date: shift.date,
-      type: 'pending_recovered',
-      description: `Pending Debts Recovered — ${shift.workerName} (${shift.shiftType})`,
-      amount: shift.recoveredPendingAmount,
-      sign: 1,
-      referenceId: shift.id,
-      createdAt: shift.timestamp + 2,
-    });
-  }
-
-  return entries;
-}
 
 export function App() {
   const [activeTab, setActiveTab] = useState<MainTab>('calculator');

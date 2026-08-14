@@ -4,7 +4,8 @@ import {
   RestaurantSystemConfig, 
   SystemSummaryStats, 
   PendingPaymentItem, 
-  DeliveryAccountRecord 
+  DeliveryAccountRecord,
+  LedgerEntry
 } from '../types';
 
 export function formatCurrency(amount: number, symbol: string = 'Br'): string {
@@ -273,6 +274,56 @@ export function formatEthiopianTime(isoOrDate: string | Date): string {
 
   return `${ethHour}:${minutes} ${period}`;
 }
+
+export function buildShiftLedgerEntries(shift: ShiftRecord): LedgerEntry[] {
+  const entries: LedgerEntry[] = [];
+
+  // 1. Shift Income (Gross Sales - New Credit - Delivery Credit)
+  const shiftIncome = shift.grossIncome - shift.newPendingPaymentsAmount - shift.deliveryCreditAmount;
+  if (shiftIncome > 0) {
+    entries.push({
+      id: `led-inc-${shift.id}`,
+      date: shift.date,
+      type: 'shift_income',
+      description: `Shift Sales (Cash & Digital) — ${shift.workerName} (${shift.shiftType})`,
+      amount: shiftIncome,
+      sign: 1,
+      referenceId: shift.id,
+      createdAt: shift.timestamp,
+    });
+  }
+
+  // 2. Daily Expenses
+  if (shift.dailyExpenses > 0) {
+    entries.push({
+      id: `led-exp-${shift.id}`,
+      date: shift.date,
+      type: 'shift_daily_expense',
+      description: `Daily Shift Expenses — ${shift.shiftType} shift`,
+      amount: shift.dailyExpenses,
+      sign: -1,
+      referenceId: shift.id,
+      createdAt: shift.timestamp + 1,
+    });
+  }
+
+  // 3. Recovered Pending Payments (cash collected from old debts during this shift)
+  if (shift.recoveredPendingAmount > 0) {
+    entries.push({
+      id: `led-rec-${shift.id}`,
+      date: shift.date,
+      type: 'pending_recovered',
+      description: `Pending Debts Recovered — ${shift.workerName} (${shift.shiftType})`,
+      amount: shift.recoveredPendingAmount,
+      sign: 1,
+      referenceId: shift.id,
+      createdAt: shift.timestamp + 2,
+    });
+  }
+
+  return entries;
+}
+
 
 
 
