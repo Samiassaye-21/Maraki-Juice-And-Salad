@@ -94,18 +94,18 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#c9b197] hover:bg-[#bda387] text-[#403c21] rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-[#403c21] rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
         >
           <Plus className="w-4 h-4 text-[#403c21]" />
           <span>Add Expense</span>
         </button>
       </div>
 
-      {/* Summary Cards (#403c21 Hero Style with #c9b197 Accent) */}
+      {/* Summary Cards (#403c21 Hero Style with #403c21 Accent) */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-[#403c21] border border-[#c9b197]/40 rounded-3xl p-5 shadow-2xl text-white">
-          <p className="text-xs font-extrabold text-[#c9b197] uppercase tracking-wide">This Month</p>
-          <p className="text-2xl font-extrabold text-[#c9b197] mt-1">{formatCurrency(totalThisMonth, currencySymbol)}</p>
+        <div className="bg-[#403c21] border border-[#403c21]/40 rounded-3xl p-5 shadow-2xl text-white">
+          <p className="text-xs font-extrabold text-[#403c21] uppercase tracking-wide">This Month</p>
+          <p className="text-2xl font-extrabold text-[#403c21] mt-1">{formatCurrency(totalThisMonth, currencySymbol)}</p>
           <p className="text-xs text-white/80 font-medium mt-0.5">Overhead spent</p>
         </div>
         <div className="bg-white border border-[#403c21]/20 rounded-3xl p-5 shadow-xs text-[#403c21]">
@@ -129,12 +129,12 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
               transition={{ type: 'spring', damping: 22, stiffness: 300 }}
-              className="bg-white w-full max-w-2xl rounded-t-3xl sm:rounded-3xl border border-[#c9b197]/20 shadow-2xl flex flex-col max-h-[92vh] text-[#403c21]"
+              className="bg-white w-full max-w-2xl rounded-t-3xl sm:rounded-3xl border border-[#403c21]/20 shadow-2xl flex flex-col max-h-[92vh] text-[#403c21]"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-6 py-5 border-b border-[#c9b197]/15 flex-shrink-0">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-[#403c21]/15 flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#f7f5f0] border border-[#c9b197]/20 rounded-full flex items-center justify-center text-[#c9b197]">
+                  <div className="w-10 h-10 bg-[#f7f5f0] border border-[#403c21]/20 rounded-full flex items-center justify-center text-[#403c21]">
                     <Wallet className="w-5 h-5" />
                   </div>
                   <div>
@@ -160,8 +160,8 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                           onClick={() => setCategory(preset.id)}
                           className={`flex items-center gap-2 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                             isSelected 
-                              ? 'border-[#c9b197] bg-[#c9b197] text-[#403c21] font-extrabold shadow-xs' 
-                              : 'border-[#c9b197]/20 bg-[#f7f5f0] text-[#403c21] hover:bg-slate-100'
+                              ? 'border-[#403c21] bg-[#403c21] text-[#403c21] font-extrabold shadow-xs' 
+                              : 'border-[#403c21]/20 bg-[#f7f5f0] text-[#403c21] hover:bg-slate-100'
                           }`}
                         >
                           <span className="text-xl">{preset.emoji}</span>
@@ -183,7 +183,7 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                       value={description}
                       onChange={e => setDescription(e.target.value)}
                       placeholder="e.g. August Electric Bill, Cashier Salary"
-                      className="w-full px-4 py-2.5 border border-[#c9b197]/30 bg-white text-[#403c21] font-bold rounded-full text-sm focus:outline-none focus:border-[#c9b197] focus:ring-4 focus:ring-[#c9b197]/20 placeholder:text-neutral-400 shadow-xs"
+                      className="w-full px-4 py-2.5 border border-[#403c21]/30 bg-white text-[#403c21] font-bold rounded-full text-sm focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 placeholder:text-neutral-400 shadow-xs"
                     />
                   </div>
 
@@ -197,7 +197,7 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                         placeholder="0.00"
                         min="0"
                         step="0.01"
-                        className="w-full px-4 py-2.5 border border-[#c9b197]/30 bg-white text-[#403c21] font-bold rounded-full text-sm focus:outline-none focus:border-[#c9b197] focus:ring-4 focus:ring-[#c9b197]/20 placeholder:text-neutral-400 shadow-xs"
+                        className="w-full px-4 py-2.5 border border-[#403c21]/30 bg-white text-[#403c21] font-bold rounded-full text-sm focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 placeholder:text-neutral-400 shadow-xs"
                       />
                     </div>
                     <div>
@@ -208,7 +208,7 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                           type="date"
                           value={date}
                           onChange={e => setDate(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2.5 border border-[#c9b197]/30 bg-white text-[#403c21] font-bold rounded-full text-sm focus:outline-none focus:border-[#c9b197] focus:ring-4 focus:ring-[#c9b197]/20 shadow-xs"
+                          className="w-full pl-10 pr-4 py-2.5 border border-[#403c21]/30 bg-white text-[#403c21] font-bold rounded-full text-sm focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 shadow-xs"
                         />
                       </div>
                     </div>
@@ -224,7 +224,7 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
               </div>
 
               {/* Footer */}
-              <div className="border-t border-[#c9b197]/15 px-6 py-4 flex gap-3 flex-shrink-0">
+              <div className="border-t border-[#403c21]/15 px-6 py-4 flex gap-3 flex-shrink-0">
                 <button
                   onClick={() => setShowForm(false)}
                   className="flex-1 py-3 bg-white border-2 border-[#403c21] text-[#403c21] font-extrabold text-xs rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
@@ -234,7 +234,7 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                 <button
                   onClick={handleSave}
                   disabled={!isFormValid}
-                  className="flex-1 py-3 bg-[#c9b197] hover:bg-[#bda387] disabled:opacity-40 text-[#403c21] rounded-full font-extrabold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-95 shadow-md"
+                  className="flex-1 py-3 bg-[#403c21] hover:bg-[#33301a] disabled:opacity-40 text-[#403c21] rounded-full font-extrabold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-95 shadow-md"
                 >
                   <Save className="w-4 h-4 text-[#403c21]" />
                   Save Expense
@@ -248,8 +248,8 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
       {/* Expense List */}
       <div className="space-y-3">
         {sortedExpenses.length === 0 && (
-          <div className="text-center py-16 text-neutral-600 bg-white border border-[#c9b197]/20 rounded-3xl shadow-xs">
-            <Receipt className="w-12 h-12 mx-auto mb-3 text-[#c9b197] opacity-40" />
+          <div className="text-center py-16 text-neutral-600 bg-white border border-[#403c21]/20 rounded-3xl shadow-xs">
+            <Receipt className="w-12 h-12 mx-auto mb-3 text-[#403c21] opacity-40" />
             <p className="font-extrabold text-[#403c21]">No expenses logged yet</p>
             <p className="text-sm mt-1 text-neutral-500 font-medium">Tap "Add Expense" to record a bill or salary payment</p>
           </div>
@@ -263,14 +263,14 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
             <motion.div
               key={expense.id}
               layout
-              className="bg-white border border-[#c9b197]/20 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all text-[#403c21]"
+              className="bg-white border border-[#403c21]/20 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all text-[#403c21]"
             >
               <div
                 className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-[#f7f5f0] transition-colors"
                 onClick={() => setExpandedExpense(isExpanded ? null : expense.id)}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#f7f5f0] border border-[#c9b197]/20 rounded-full flex items-center justify-center flex-shrink-0 text-lg">
+                  <div className="w-10 h-10 bg-[#f7f5f0] border border-[#403c21]/20 rounded-full flex items-center justify-center flex-shrink-0 text-lg">
                     {preset?.emoji || '📦'}
                   </div>
                   <div>
@@ -284,7 +284,7 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <p className="font-extrabold text-[#c9b197]">{formatCurrency(expense.amount, currencySymbol)}</p>
+                    <p className="font-extrabold text-[#403c21]">{formatCurrency(expense.amount, currencySymbol)}</p>
                   </div>
                   {isExpanded ? <ChevronUp className="w-4 h-4 text-neutral-500" /> : <ChevronDown className="w-4 h-4 text-neutral-500" />}
                 </div>
@@ -297,7 +297,7 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="border-t border-[#c9b197]/15 overflow-hidden bg-[#f7f5f0]"
+                    className="border-t border-[#403c21]/15 overflow-hidden bg-[#f7f5f0]"
                   >
                     <div className="px-5 py-3 flex justify-between items-center">
                       <p className="text-xs text-neutral-600 font-medium">
@@ -305,7 +305,7 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                       </p>
                       <button
                         onClick={() => onDeleteExpense(expense.id)}
-                        className="text-xs text-neutral-600 hover:text-rose-600 hover:bg-rose-50 flex items-center gap-1 py-1.5 px-3 rounded-full border border-[#c9b197]/20 transition-colors cursor-pointer font-bold"
+                        className="text-xs text-neutral-600 hover:text-rose-600 hover:bg-rose-50 flex items-center gap-1 py-1.5 px-3 rounded-full border border-[#403c21]/20 transition-colors cursor-pointer font-bold"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         Delete expense

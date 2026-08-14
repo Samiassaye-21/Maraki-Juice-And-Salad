@@ -719,7 +719,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] dark:bg-slate-950 text-stone-800 dark:text-slate-100 font-sans flex flex-col antialiased transition-colors duration-300">
+    <div className="min-h-screen bg-[#f7f5f0] text-[#403c21] font-sans flex flex-col antialiased transition-colors duration-300">
       
       <Header
         activeTab={activeTab}

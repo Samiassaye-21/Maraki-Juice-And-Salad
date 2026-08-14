@@ -3,7 +3,7 @@
 /* ========================================
    Maraki — Strict Color Palette
    Primary Dark: #403c21 (Dark Earth Bronze)
-   Primary Warm Accent: #c9b197 (Warm Sand Gold)
+   Primary Warm Accent: #403c21 (Warm Sand Gold)
    Black: #000000 / #1a1813
    White / Off-White: #ffffff / #f7f5f0
    ======================================== */
@@ -11,8 +11,8 @@
 @theme {
   --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --color-forest: #403c21;
-  --color-teal: #c9b197;
-  --color-mint: #c9b197;
+  --color-teal: #403c21;
+  --color-mint: #403c21;
 }
 
 html {
@@ -31,7 +31,7 @@ body {
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #f7f5f0; }
-::-webkit-scrollbar-thumb { background: #c9b197; border-radius: 999px; }
+::-webkit-scrollbar-thumb { background: #403c21; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: #403c21; }
 
 /* Hide number spinners */
@@ -44,12 +44,12 @@ input[type="number"] { -moz-appearance: textfield; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* Selection */
-::selection { background: #c9b197; color: #403c21; }
+::selection { background: #403c21; color: #ffffff; }
 
 /* Focus ring */
 *:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(201, 177, 151, 0.4);
-  border-color: #c9b197;
+  box-shadow: 0 0 0 3px rgba(64, 60, 33, 0.3);
+  border-color: #403c21;
   border-radius: 9999px;
 }

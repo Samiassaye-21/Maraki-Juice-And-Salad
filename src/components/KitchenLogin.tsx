@@ -53,7 +53,7 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
         transition={{ duration: 0.5 }}
         className="flex flex-col items-center mb-10 text-center"
       >
-        <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center mb-4 shadow-md border-2 border-[#c9b197]/20 p-1">
+        <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center mb-4 shadow-md border-2 border-[#403c21]/20 p-1">
           <img
             src="/logo.jpg"
             alt="Maraki"
@@ -62,7 +62,7 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
           />
         </div>
         <h1 className="text-4xl font-extrabold text-[#403c21] tracking-wide mb-1">ማራኪ</h1>
-        <p className="text-xl text-[#c9b197] font-extrabold uppercase tracking-wider">ኩሽና መዝግቢያ</p>
+        <p className="text-xl text-[#403c21] font-extrabold uppercase tracking-wider">ኩሽና መዝግቢያ</p>
         <p className="text-sm font-semibold text-neutral-600 mt-1">Kitchen Order System</p>
       </motion.div>
 
@@ -79,8 +79,8 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
               i < pin.length
                 ? errorMsg
                   ? 'bg-rose-500 border-rose-400 scale-110'
-                  : 'bg-[#c9b197] border-[#403c21] scale-110 shadow-xs'
-                : 'bg-white border-[#c9b197]/40'
+                  : 'bg-[#403c21] border-[#403c21] scale-110 shadow-xs'
+                : 'bg-white border-[#403c21]/40'
             }`}
           />
         ))}

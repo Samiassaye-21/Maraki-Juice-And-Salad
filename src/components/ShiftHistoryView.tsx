@@ -99,7 +99,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
     setEditingShift(null);
   };
 
-  const inputClasses = "w-full px-4 py-2.5 rounded-full border border-[#c9b197]/30 bg-white text-[#403c21] text-sm font-bold focus:outline-none focus:border-[#c9b197] focus:ring-4 focus:ring-[#c9b197]/20 transition-all placeholder:text-neutral-400 shadow-xs";
+  const inputClasses = "w-full px-4 py-2.5 rounded-full border border-[#403c21]/30 bg-white text-[#403c21] text-sm font-bold focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 transition-all placeholder:text-neutral-400 shadow-xs";
 
   return (
     <motion.div 
@@ -110,9 +110,9 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
     >
       
       {/* HEADER CARD */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#c9b197]/20 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#403c21]/20 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-3.5">
-          <div className="p-3.5 rounded-full bg-[#f7f5f0] text-[#c9b197] border border-[#c9b197]/20">
+          <div className="p-3.5 rounded-full bg-[#f7f5f0] text-[#403c21] border border-[#403c21]/20">
             <Receipt className="w-6 h-6" />
           </div>
           <div>
@@ -125,7 +125,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-1 bg-[#f7f5f0] p-1 rounded-full border border-[#c9b197]/20 text-xs font-bold w-full sm:w-auto">
+        <div className="flex items-center space-x-1 bg-[#f7f5f0] p-1 rounded-full border border-[#403c21]/20 text-xs font-bold w-full sm:w-auto">
           <button
             onClick={() => setShiftTypeFilter('all')}
             className={`px-4 py-2 rounded-full transition-all cursor-pointer flex-1 sm:flex-none ${shiftTypeFilter === 'all' ? 'bg-[#403c21] text-white shadow-md' : 'text-neutral-600 hover:text-[#403c21]'}`}
@@ -154,7 +154,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
           placeholder="Search by worker name, date, or notes..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 bg-white border border-[#c9b197]/30 rounded-full text-sm text-[#403c21] font-bold focus:outline-none focus:border-[#c9b197] focus:ring-4 focus:ring-[#c9b197]/20 placeholder:text-neutral-400 shadow-xs"
+          className="w-full pl-11 pr-4 py-3 bg-white border border-[#403c21]/30 rounded-full text-sm text-[#403c21] font-bold focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 placeholder:text-neutral-400 shadow-xs"
         />
         <Search className="w-5 h-5 text-neutral-400 absolute left-4 top-3.5" />
       </div>
@@ -162,8 +162,8 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
       {/* SHIFTS LIST */}
       <div className="space-y-4">
         {filteredShifts.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 text-center border border-[#c9b197]/20 flex flex-col items-center shadow-xs">
-            <Receipt className="w-12 h-12 text-[#c9b197] mb-3 opacity-40" />
+          <div className="bg-white rounded-3xl p-12 text-center border border-[#403c21]/20 flex flex-col items-center shadow-xs">
+            <Receipt className="w-12 h-12 text-[#403c21] mb-3 opacity-40" />
             <h3 className="text-base font-extrabold text-[#403c21]">No closed shift history yet</h3>
             <p className="text-sm font-medium text-neutral-600 mt-1">Closed shifts will be archived here for audit</p>
           </div>
@@ -174,12 +174,12 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.04 }}
               key={shift.id}
-              className="bg-white rounded-3xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-all border border-[#c9b197]/20 text-[#403c21]"
+              className="bg-white rounded-3xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-all border border-[#403c21]/20 text-[#403c21]"
             >
               {/* Top Row: Date, Shift Type & Net Cash */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#c9b197]/30 pb-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#403c21]/30 pb-4">
                 <div className="flex items-center space-x-3.5">
-                  <div className="p-3 rounded-full bg-[#c9b197]/40 text-[#c9b197] border border-[#c9b197]/60">
+                  <div className="p-3 rounded-full bg-[#403c21]/40 text-[#403c21] border border-[#403c21]/60">
                     {shift.shiftType === 'day' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                   </div>
                   <div>
@@ -188,11 +188,11 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                         {shift.shiftType} Shift • {shift.date}
                       </h3>
                       {formatEthiopianFullDate(shift.date) && (
-                        <span className="bg-[#403c21] text-[#c9b197] border border-[#c9b197]/40 text-xs font-bold px-3 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="bg-[#403c21] text-[#403c21] border border-[#403c21]/40 text-xs font-bold px-3 py-0.5 rounded-full flex items-center gap-1">
                           <span>🇪🇹</span> {formatEthiopianFullDate(shift.date)}
                         </span>
                       )}
-                      <span className="bg-[#403c21] text-white border border-[#c9b197]/40 text-xs font-medium px-3 py-0.5 rounded-full">
+                      <span className="bg-[#403c21] text-white border border-[#403c21]/40 text-xs font-medium px-3 py-0.5 rounded-full">
                         {shift.workerName}
                       </span>
                     </div>
@@ -207,7 +207,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                     <span className="text-neutral-400 text-xs uppercase tracking-wide block mb-0.5">
                       Net Physical Cash
                     </span>
-                    <span className="text-2xl font-extrabold text-[#c9b197]">
+                    <span className="text-2xl font-extrabold text-[#403c21]">
                       {formatCurrency(shift.netCashDueToOwner, currencySymbol)}
                     </span>
                   </div>
@@ -215,10 +215,10 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handleOpenEdit(shift)}
-                      className="px-4 py-2 bg-[#403c21] text-white hover:bg-[#c9b197]/30 rounded-full transition-colors cursor-pointer flex items-center space-x-1.5 text-xs font-bold border border-[#c9b197]"
+                      className="px-4 py-2 bg-[#403c21] text-white hover:bg-[#403c21]/30 rounded-full transition-colors cursor-pointer flex items-center space-x-1.5 text-xs font-bold border border-[#403c21]"
                       title="Edit Shift"
                     >
-                      <Pencil className="w-4 h-4 text-[#c9b197]" />
+                      <Pencil className="w-4 h-4 text-[#403c21]" />
                       <span className="hidden sm:inline">Edit</span>
                     </button>
 
@@ -235,9 +235,9 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
 
               {/* Stats Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
-                <div className="bg-[#403c21] p-3.5 rounded-2xl border border-[#c9b197]/40">
+                <div className="bg-[#403c21] p-3.5 rounded-2xl border border-[#403c21]/40">
                   <span className="text-neutral-400 text-[10px] uppercase font-medium tracking-wide block">Gross Sales</span>
-                  <span className="text-sm font-extrabold text-[#c9b197] block mt-1">
+                  <span className="text-sm font-extrabold text-[#403c21] block mt-1">
                     {formatCurrency(shift.grossIncome, currencySymbol)}
                   </span>
                   <span className="text-xs text-neutral-300 block mt-0.5">
@@ -245,7 +245,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                   </span>
                 </div>
 
-                <div className="bg-[#403c21] p-3.5 rounded-2xl border border-[#c9b197]/40">
+                <div className="bg-[#403c21] p-3.5 rounded-2xl border border-[#403c21]/40">
                   <span className="text-neutral-400 text-[10px] uppercase font-medium tracking-wide block">Digital Transfers</span>
                   <span className="text-sm font-extrabold text-white block mt-1">
                     -{formatCurrency(shift.digitalTransfers, currencySymbol)}
@@ -255,7 +255,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                   </span>
                 </div>
 
-                <div className="bg-[#403c21] p-3.5 rounded-2xl border border-[#c9b197]/40">
+                <div className="bg-[#403c21] p-3.5 rounded-2xl border border-[#403c21]/40">
                   <span className="text-neutral-400 text-[10px] uppercase font-medium tracking-wide block">Cooking Expenses</span>
                   <span className="text-sm font-extrabold text-white block mt-1">
                     -{formatCurrency(shift.dailyExpenses, currencySymbol)}
@@ -265,7 +265,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                   </span>
                 </div>
 
-                <div className="bg-[#403c21] p-3.5 rounded-2xl border border-[#c9b197]/40">
+                <div className="bg-[#403c21] p-3.5 rounded-2xl border border-[#403c21]/40">
                   <span className="text-neutral-400 text-[10px] uppercase font-medium tracking-wide block">Pending / Delivery</span>
                   <span className="text-sm font-extrabold text-white block mt-1">
                     -{formatCurrency(shift.newPendingPaymentsAmount + shift.deliveryCreditAmount, currencySymbol)}
@@ -277,7 +277,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
               </div>
 
               {shift.notes && (
-                <div className="bg-[#403c21] p-3.5 rounded-2xl border border-[#c9b197]/40 mt-4">
+                <div className="bg-[#403c21] p-3.5 rounded-2xl border border-[#403c21]/40 mt-4">
                   <p className="text-sm text-neutral-300">
                     {shift.notes}
                   </p>
@@ -297,11 +297,11 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-[#403c21] rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl my-8 border border-[#c9b197]/50 text-white"
+              className="bg-[#403c21] rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl my-8 border border-[#403c21]/50 text-white"
             >
-              <div className="flex items-center justify-between border-b border-[#c9b197]/30 pb-4">
+              <div className="flex items-center justify-between border-b border-[#403c21]/30 pb-4">
                 <div className="flex items-center space-x-3">
-                  <div className="p-2.5 bg-[#c9b197]/40 text-[#c9b197] border border-[#c9b197]/60 rounded-full">
+                  <div className="p-2.5 bg-[#403c21]/40 text-[#403c21] border border-[#403c21]/60 rounded-full">
                     <Pencil className="w-5 h-5" />
                   </div>
                   <div>
@@ -312,7 +312,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                 </div>
                 <button
                   onClick={() => setEditingShift(null)}
-                  className="p-2 text-neutral-400 hover:text-white hover:bg-[#c9b197]/30 rounded-full transition-colors cursor-pointer"
+                  className="p-2 text-neutral-400 hover:text-white hover:bg-[#403c21]/30 rounded-full transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -355,9 +355,9 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                   </div>
                 </div>
 
-                <div className="bg-[#c9b197]/20 p-5 rounded-3xl border border-[#c9b197]/40 space-y-4">
+                <div className="bg-[#403c21]/20 p-5 rounded-3xl border border-[#403c21]/40 space-y-4">
                   <h4 className="text-sm font-bold text-white flex items-center space-x-2">
-                    <CupSoda className="w-4 h-4 text-[#c9b197]" />
+                    <CupSoda className="w-4 h-4 text-[#403c21]" />
                     <span>Juice Cups & Food Takeaways Inventory</span>
                   </h4>
 
@@ -420,7 +420,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm pt-4 border-t border-[#c9b197]/30">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm pt-4 border-t border-[#403c21]/30">
                     <div>
                       <span className="text-neutral-300 text-xs uppercase tracking-wide block mb-1">Food Opening</span>
                       <input
@@ -518,17 +518,17 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end space-x-3 pt-5 border-t border-[#c9b197]/30">
+                <div className="flex items-center justify-end space-x-3 pt-5 border-t border-[#403c21]/30">
                   <button
                     type="button"
                     onClick={() => setEditingShift(null)}
-                    className="px-5 py-2.5 bg-[#403c21] border border-[#c9b197] text-white font-bold text-xs rounded-full cursor-pointer transition-colors"
+                    className="px-5 py-2.5 bg-[#403c21] border border-[#403c21] text-white font-bold text-xs rounded-full cursor-pointer transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-[#c9b197] hover:bg-[#c9b197]/90 text-[#403c21] font-bold text-xs rounded-full shadow-md cursor-pointer transition-colors flex items-center space-x-2"
+                    className="px-6 py-2.5 bg-[#403c21] hover:bg-[#403c21]/90 text-[#403c21] font-bold text-xs rounded-full shadow-md cursor-pointer transition-colors flex items-center space-x-2"
                   >
                     <Save className="w-4 h-4 text-[#403c21]" />
                     <span>Save Changes</span>

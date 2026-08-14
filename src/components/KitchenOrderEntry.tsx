@@ -13,9 +13,9 @@ interface KitchenOrderEntryProps {
 type Step = 'food' | 'quantity' | 'taker' | 'confirm';
 
 const TAKERS: { id: KitchenTaker; emoji: string; label: string; subLabel: string; color: string }[] = [
-  { id: 'day_shift',    emoji: '☀️', label: 'ቀን ሸፍት',   subLabel: 'Day Shift (2:00 morning – 2:00 evening)',    color: 'bg-[#c9b197]/40 hover:bg-[#c9b197]/60 border-[#c9b197]' },
-  { id: 'night_shift',  emoji: '🌙', label: 'ሌሊት ሸፍት', subLabel: 'Night Shift (2:00 evening – morning 2:00)', color: 'bg-[#c9b197]/40 hover:bg-[#c9b197]/60 border-[#c9b197]' },
-  { id: 'beu_delivery', emoji: '🚴', label: 'BeU Delivery', subLabel: 'Delivery',  color: 'bg-[#c9b197]/40 hover:bg-[#c9b197]/60 border-[#c9b197]' },
+  { id: 'day_shift',    emoji: '☀️', label: 'ቀን ሸፍት',   subLabel: 'Day Shift (2:00 morning – 2:00 evening)',    color: 'bg-[#403c21]/40 hover:bg-[#403c21]/60 border-[#403c21]' },
+  { id: 'night_shift',  emoji: '🌙', label: 'ሌሊት ሸፍት', subLabel: 'Night Shift (2:00 evening – morning 2:00)', color: 'bg-[#403c21]/40 hover:bg-[#403c21]/60 border-[#403c21]' },
+  { id: 'beu_delivery', emoji: '🚴', label: 'BeU Delivery', subLabel: 'Delivery',  color: 'bg-[#403c21]/40 hover:bg-[#403c21]/60 border-[#403c21]' },
 ];
 
 // Emoji mapping for food categories
@@ -145,7 +145,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
             <button
               key={item.id}
               onClick={() => { setSelectedFood(item); setStep('quantity'); }}
-              className="flex flex-col items-center justify-center rounded-3xl border border-[#c9b197]/20 bg-white hover:bg-[#f7f5f0] active:scale-95 transition-all duration-150 cursor-pointer p-4 min-h-[100px] gap-2 shadow-xs"
+              className="flex flex-col items-center justify-center rounded-3xl border border-[#403c21]/20 bg-white hover:bg-[#f7f5f0] active:scale-95 transition-all duration-150 cursor-pointer p-4 min-h-[100px] gap-2 shadow-xs"
             >
               <span className="text-3xl">{CATEGORY_EMOJI[item.category || 'special'] ?? '🍽️'}</span>
               <span className="text-[#403c21] font-extrabold text-center leading-tight text-sm">{item.name}</span>
@@ -164,7 +164,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
         <h2 className="text-3xl font-extrabold text-[#403c21] mb-1">ስንት?</h2>
         <p className="text-neutral-600 font-medium text-base">How many portions?</p>
         {selectedFood && (
-          <p className="text-[#c9b197] font-extrabold text-lg mt-3">{selectedFood.name}</p>
+          <p className="text-[#403c21] font-extrabold text-lg mt-3">{selectedFood.name}</p>
         )}
       </div>
 
@@ -176,11 +176,11 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
           <Minus className="w-10 h-10 text-[#403c21]" strokeWidth={2.5} />
         </button>
 
-        <span className="text-8xl font-extrabold text-[#c9b197] w-28 text-center">{quantity}</span>
+        <span className="text-8xl font-extrabold text-[#403c21] w-28 text-center">{quantity}</span>
 
         <button
           onClick={() => setQuantity((q) => q + 1)}
-          className="w-20 h-20 rounded-full bg-[#c9b197] hover:bg-[#bda387] flex items-center justify-center active:scale-90 transition-all cursor-pointer shadow-md"
+          className="w-20 h-20 rounded-full bg-[#403c21] hover:bg-[#33301a] flex items-center justify-center active:scale-90 transition-all cursor-pointer shadow-md"
         >
           <Plus className="w-10 h-10 text-[#403c21]" strokeWidth={2.5} />
         </button>
@@ -188,7 +188,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
 
       <button
         onClick={() => setStep('taker')}
-        className="w-full max-w-xs h-16 rounded-full bg-[#c9b197] hover:bg-[#bda387] active:scale-95 text-[#403c21] text-2xl font-extrabold transition-all cursor-pointer shadow-lg"
+        className="w-full max-w-xs h-16 rounded-full bg-[#403c21] hover:bg-[#33301a] active:scale-95 text-[#403c21] text-2xl font-extrabold transition-all cursor-pointer shadow-lg"
       >
         {/* Amharic: "Next" */}
         ቀጣይ →
@@ -214,14 +214,14 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
               <button
                 key={t.id}
                 onClick={() => { setSelectedTaker(t.id); setStep('confirm'); }}
-                className="relative flex items-center gap-5 h-24 rounded-3xl border border-[#c9b197]/20 bg-white hover:bg-[#f7f5f0] px-6 text-[#403c21] active:scale-95 transition-all duration-150 cursor-pointer shadow-xs"
+                className="relative flex items-center gap-5 h-24 rounded-3xl border border-[#403c21]/20 bg-white hover:bg-[#f7f5f0] px-6 text-[#403c21] active:scale-95 transition-all duration-150 cursor-pointer shadow-xs"
               >
                 <span className="text-5xl">{t.emoji}</span>
                 <div className="text-left">
                   <div className="text-2xl font-extrabold flex items-center gap-2 text-[#403c21]">
                     <span>{t.label}</span>
                     {isAutoActive && (
-                      <span className="text-xs bg-[#c9b197] text-[#403c21] px-2.5 py-0.5 rounded-full font-bold">
+                      <span className="text-xs bg-[#403c21] text-[#403c21] px-2.5 py-0.5 rounded-full font-bold">
                         አሁን ያለው (Active)
                       </span>
                     )}
@@ -244,18 +244,18 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
         {/* Amharic: "Confirm?" */}
         <h2 className="text-3xl font-extrabold text-[#403c21] mb-2 text-center">እርግጠኛ ነህ?</h2>
 
-        <div className="w-full max-w-sm rounded-3xl bg-white border border-[#c9b197]/20 p-6 flex flex-col gap-4 shadow-md">
+        <div className="w-full max-w-sm rounded-3xl bg-white border border-[#403c21]/20 p-6 flex flex-col gap-4 shadow-md">
           <div className="flex items-center gap-4">
             <span className="text-4xl">{CATEGORY_EMOJI[selectedFood?.category || 'special'] ?? '🍽️'}</span>
             <div>
               <p className="text-[#403c21] text-xl font-extrabold">{selectedFood?.name}</p>
               <p className="text-neutral-600 text-base font-medium">
                 {/* Amharic: "Amount" */}
-                ብዛት: <span className="text-[#c9b197] font-extrabold text-xl">{quantity}</span>
+                ብዛት: <span className="text-[#403c21] font-extrabold text-xl">{quantity}</span>
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 border-t border-[#c9b197]/15 pt-4">
+          <div className="flex items-center gap-3 border-t border-[#403c21]/15 pt-4">
             <span className="text-3xl">{taker.emoji}</span>
             <div>
               <p className="text-[#403c21] font-extrabold text-lg">{taker.label}</p>
@@ -267,7 +267,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full max-w-sm h-20 rounded-full bg-[#c9b197] hover:bg-[#c9b197]/90 active:scale-95 text-[#403c21] text-2xl font-bold transition-all cursor-pointer shadow-lg flex items-center justify-center gap-3 disabled:opacity-60"
+          className="w-full max-w-sm h-20 rounded-full bg-[#403c21] hover:bg-[#403c21]/90 active:scale-95 text-[#403c21] text-2xl font-bold transition-all cursor-pointer shadow-lg flex items-center justify-center gap-3 disabled:opacity-60"
         >
           {saving ? (
             <div className="w-8 h-8 border-4 border-[#403c21]/40 border-t-[#403c21] rounded-full animate-spin" />
@@ -300,7 +300,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
         ✅
       </motion.div>
       {/* Amharic: "Saved!" */}
-      <p className="text-[#c9b197] text-4xl font-extrabold">ተቀምጧል!</p>
+      <p className="text-[#403c21] text-4xl font-extrabold">ተቀምጧል!</p>
       <p className="text-neutral-600 text-xl font-bold mt-2">Order Saved Successfully</p>
     </motion.div>
   );
@@ -309,12 +309,12 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
   const renderTodayOrders = () => (
     <div className="px-5 pb-6">
       <div className="flex items-center gap-2 mb-3">
-        <Clock className="w-4 h-4 text-[#c9b197]" />
+        <Clock className="w-4 h-4 text-[#403c21]" />
         {/* Amharic: "Today's Orders" */}
         <h3 className="text-neutral-600 text-xs font-extrabold uppercase tracking-wider">
           የዛሬ ትዕዛዞች ({todayStr})
         </h3>
-        <span className="ml-auto bg-[#c9b197] text-[#403c21] text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-xs">
+        <span className="ml-auto bg-[#403c21] text-[#403c21] text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-xs">
           {todayOrders.length}
         </span>
       </div>
@@ -329,7 +329,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
             return (
               <div
                 key={order.id}
-                className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 border border-[#c9b197]/20 shadow-xs text-[#403c21]"
+                className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 border border-[#403c21]/20 shadow-xs text-[#403c21]"
               >
                 <span className="text-2xl">{t.emoji}</span>
                 <div className="flex-1 min-w-0">
@@ -369,12 +369,12 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
               else if (step === 'taker') setStep('quantity');
               else if (step === 'confirm') setStep('taker');
             }}
-            className="p-2.5 rounded-full bg-white border border-[#c9b197]/30 text-[#403c21] transition-all cursor-pointer shadow-xs"
+            className="p-2.5 rounded-full bg-white border border-[#403c21]/30 text-[#403c21] transition-all cursor-pointer shadow-xs"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
         ) : (
-          <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-[#403c21] text-xs font-bold border border-[#c9b197]/20 shadow-xs">
+          <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-[#403c21] text-xs font-bold border border-[#403c21]/20 shadow-xs">
             <span>📅</span>
             <span>{todayStr} (Shift Date)</span>
           </div>
@@ -386,8 +386,8 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
               key={s}
               className={`rounded-full transition-all duration-300 ${
                 s === step
-                  ? 'w-6 h-2.5 bg-[#c9b197]'
-                  : 'w-2.5 h-2.5 bg-[#c9b197]/30'
+                  ? 'w-6 h-2.5 bg-[#403c21]'
+                  : 'w-2.5 h-2.5 bg-[#403c21]/30'
               }`}
             />
           ))}
@@ -413,7 +413,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
 
       {/* Today's orders (only show on food step) */}
       {step === 'food' && (
-        <div className="border-t border-[#c9b197]/15 mt-4">
+        <div className="border-t border-[#403c21]/15 mt-4">
           {renderTodayOrders()}
         </div>
       )}

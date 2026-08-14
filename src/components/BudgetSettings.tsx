@@ -209,20 +209,20 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
     }, 2500);
   };
 
-  const inputClasses = "w-full px-4 py-2.5 bg-white border border-[#c9b197]/30 rounded-full text-[#403c21] text-sm font-bold focus:outline-none focus:border-[#c9b197] focus:ring-4 focus:ring-[#c9b197]/20 transition-all placeholder:text-neutral-400 shadow-xs";
+  const inputClasses = "w-full px-4 py-2.5 bg-white border border-[#403c21]/30 rounded-full text-[#403c21] text-sm font-bold focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 transition-all placeholder:text-neutral-400 shadow-xs";
 
   const getCategoryBadge = (category?: string) => {
     switch (category) {
       case 'traditional':
-        return <span className="bg-[#c9b197] text-[#403c21] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Traditional</span>;
+        return <span className="bg-[#403c21] text-[#403c21] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Traditional</span>;
       case 'fast_food':
-        return <span className="bg-[#c9b197] text-[#403c21] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Fast Food</span>;
+        return <span className="bg-[#403c21] text-[#403c21] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Fast Food</span>;
       case 'breakfast':
-        return <span className="bg-[#c9b197] text-[#403c21] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Breakfast</span>;
+        return <span className="bg-[#403c21] text-[#403c21] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Breakfast</span>;
       case 'special':
-        return <span className="bg-[#c9b197] text-[#403c21] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Special</span>;
+        return <span className="bg-[#403c21] text-[#403c21] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Special</span>;
       default:
-        return <span className="bg-[#f7f5f0] text-[#403c21] border border-[#c9b197]/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Dish</span>;
+        return <span className="bg-[#f7f5f0] text-[#403c21] border border-[#403c21]/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Dish</span>;
     }
   };
 
@@ -235,9 +235,9 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
     >
       
       {/* HEADER CARD */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#c9b197]/20 shadow-xs flex items-center justify-between">
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#403c21]/20 shadow-xs flex items-center justify-between">
         <div className="flex items-center space-x-3.5">
-          <div className="p-3.5 rounded-full bg-[#f7f5f0] text-[#c9b197] border border-[#c9b197]/20">
+          <div className="p-3.5 rounded-full bg-[#f7f5f0] text-[#403c21] border border-[#403c21]/20">
             <Settings className="w-6 h-6" />
           </div>
           <div>
@@ -251,24 +251,24 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-[#c9b197]/20 shadow-xs p-5 sm:p-6 space-y-8 text-[#403c21]">
+      <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-[#403c21]/20 shadow-xs p-5 sm:p-6 space-y-8 text-[#403c21]">
         
         {/* JUICE PRICING SECTION */}
         <div className="space-y-4">
           <h3 className="text-lg font-extrabold text-[#403c21] flex items-center space-x-2.5">
-            <Sparkles className="w-5 h-5 text-[#c9b197]" />
+            <Sparkles className="w-5 h-5 text-[#403c21]" />
             <span>Juice & Base Unit Pricing</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* Juice Cup Price */}
-            <div className="space-y-2 bg-[#f7f5f0] p-4 rounded-3xl border border-[#c9b197]/20 text-[#403c21]">
+            <div className="space-y-2 bg-[#f7f5f0] p-4 rounded-3xl border border-[#403c21]/20 text-[#403c21]">
               <label className="text-sm font-extrabold text-[#403c21] flex items-center justify-between">
                 <span className="flex items-center space-x-2">
-                  <CupSoda className="w-5 h-5 text-[#c9b197]" />
+                  <CupSoda className="w-5 h-5 text-[#403c21]" />
                   <span>Juice Cup Unit Price (ETB)</span>
                 </span>
-                <span className="text-xs text-[#403c21] bg-[#c9b197] font-extrabold px-3 py-0.5 rounded-full shadow-xs">
+                <span className="text-xs text-[#403c21] bg-[#403c21] font-extrabold px-3 py-0.5 rounded-full shadow-xs">
                   Editable anytime
                 </span>
               </label>
@@ -280,17 +280,17 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 value={juicePrice}
                 onFocus={handleInputFocus}
                 onChange={(e) => setJuicePrice(cleanNumberInput(e))}
-                className={`${inputClasses} font-extrabold text-lg text-[#c9b197]`}
+                className={`${inputClasses} font-extrabold text-lg text-[#403c21]`}
               />
               <p className="text-xs text-neutral-600 font-medium">
-                Current rate: <strong className="text-[#c9b197]">{juicePrice} ETB</strong> per cup. Update this anytime as juice costs change to calculate revenues automatically.
+                Current rate: <strong className="text-[#403c21]">{juicePrice} ETB</strong> per cup. Update this anytime as juice costs change to calculate revenues automatically.
               </p>
             </div>
 
             {/* Default Takeaway Box Base Price */}
-            <div className="space-y-2 bg-[#f7f5f0] p-4 rounded-3xl border border-[#c9b197]/20 text-[#403c21]">
+            <div className="space-y-2 bg-[#f7f5f0] p-4 rounded-3xl border border-[#403c21]/20 text-[#403c21]">
               <label className="text-sm font-extrabold text-[#403c21] flex items-center space-x-2">
-                <UtensilsCrossed className="w-5 h-5 text-[#c9b197]" />
+                <UtensilsCrossed className="w-5 h-5 text-[#403c21]" />
                 <span>Takeaway Box Fallback Rate (ETB)</span>
               </label>
               <input
@@ -311,11 +311,11 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
         </div>
 
         {/* FOOD MENU MANAGER SECTION */}
-        <div className="border-t border-[#c9b197]/15 pt-6 space-y-5">
+        <div className="border-t border-[#403c21]/15 pt-6 space-y-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-lg font-extrabold text-[#403c21] flex items-center space-x-2.5">
-                <UtensilsCrossed className="w-5 h-5 text-[#c9b197]" />
+                <UtensilsCrossed className="w-5 h-5 text-[#403c21]" />
                 <span>Food Menu & Item Pricing</span>
               </h3>
               <p className="text-xs text-neutral-600 font-medium mt-1">
@@ -330,14 +330,14 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 className="px-4 py-2 bg-white border-2 border-[#403c21] hover:bg-slate-100 text-[#403c21] font-extrabold text-xs rounded-full transition-colors flex items-center space-x-1.5 cursor-pointer shadow-xs"
                 title="Reset menu to default Ethiopian dishes"
               >
-                <RotateCcw className="w-3.5 h-3.5 text-[#c9b197]" />
+                <RotateCcw className="w-3.5 h-3.5 text-[#403c21]" />
                 <span>Reset Defaults</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowAddForm(!showAddForm)}
-                className="px-4 py-2 bg-[#c9b197] hover:bg-[#bda387] text-[#403c21] font-extrabold text-xs rounded-full shadow-md transition-colors flex items-center space-x-1.5 cursor-pointer active:scale-95"
+                className="px-4 py-2 bg-[#403c21] hover:bg-[#33301a] text-[#403c21] font-extrabold text-xs rounded-full shadow-md transition-colors flex items-center space-x-1.5 cursor-pointer active:scale-95"
               >
                 <Plus className="w-4 h-4 text-[#403c21]" />
                 <span>Add Dish</span>
@@ -354,9 +354,9 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 exit={{ opacity: 0, height: 0, y: -10 }}
                 className="overflow-hidden"
               >
-                <div className="bg-[#f7f5f0] border border-[#c9b197]/20 rounded-3xl p-4 space-y-3 text-[#403c21]">
+                <div className="bg-[#f7f5f0] border border-[#403c21]/20 rounded-3xl p-4 space-y-3 text-[#403c21]">
                   <h4 className="text-sm font-extrabold text-[#403c21] flex items-center space-x-2">
-                    <Plus className="w-4 h-4 text-[#c9b197]" />
+                    <Plus className="w-4 h-4 text-[#403c21]" />
                     <span>Add New Food Menu Item</span>
                   </h4>
                   
@@ -411,7 +411,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                     <button
                       type="button"
                       onClick={handleAddFoodItem}
-                      className="px-5 py-2 bg-[#c9b197] hover:bg-[#bda387] text-[#403c21] text-xs font-extrabold rounded-full shadow-md cursor-pointer active:scale-95"
+                      className="px-5 py-2 bg-[#403c21] hover:bg-[#33301a] text-[#403c21] text-xs font-extrabold rounded-full shadow-md cursor-pointer active:scale-95"
                     >
                       Save Menu Item
                     </button>
@@ -426,14 +426,14 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
             {foodMenu.map((item) => (
               <div 
                 key={item.id}
-                className="bg-white border border-[#c9b197]/20 rounded-2xl p-3.5 flex items-center justify-between hover:shadow-md transition-all text-[#403c21]"
+                className="bg-white border border-[#403c21]/20 rounded-2xl p-3.5 flex items-center justify-between hover:shadow-md transition-all text-[#403c21]"
               >
                 <div className="space-y-1">
                   <div className="flex items-center space-x-2">
                     <span className="font-extrabold text-sm text-[#403c21]">{item.name}</span>
                     {getCategoryBadge(item.category)}
                   </div>
-                  <div className="text-xs text-[#c9b197] font-extrabold">
+                  <div className="text-xs text-[#403c21] font-extrabold">
                     {item.price} {currencySymbol}
                   </div>
                 </div>
@@ -445,7 +445,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                     className="p-2 text-neutral-500 hover:text-[#403c21] hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
                     title="Edit Item"
                   >
-                    <Pencil className="w-3.5 h-3.5 text-[#c9b197]" />
+                    <Pencil className="w-3.5 h-3.5 text-[#403c21]" />
                   </button>
                   <button
                     type="button"
@@ -462,9 +462,9 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
         </div>
 
         {/* WORKER & SHIFT NAMES */}
-        <div className="border-t border-[#c9b197]/15 pt-6 space-y-5">
+        <div className="border-t border-[#403c21]/15 pt-6 space-y-5">
           <h3 className="text-lg font-extrabold text-[#403c21] flex items-center space-x-2.5">
-            <User className="w-5 h-5 text-[#c9b197]" />
+            <User className="w-5 h-5 text-[#403c21]" />
             <span>Shift Workers & Registered Master Signatures</span>
           </h3>
 
@@ -494,10 +494,10 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 className={inputClasses}
               />
 
-              <div className="mt-3 bg-[#f7f5f0] border border-[#c9b197]/20 p-3 rounded-2xl space-y-2 text-[#403c21]">
+              <div className="mt-3 bg-[#f7f5f0] border border-[#403c21]/20 p-3 rounded-2xl space-y-2 text-[#403c21]">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-extrabold text-[#403c21] flex items-center gap-1.5">
-                    <PenTool className="w-3.5 h-3.5 text-[#c9b197]" />
+                    <PenTool className="w-3.5 h-3.5 text-[#403c21]" />
                     Day Worker Master Signature
                   </span>
                   {daySignatureUrl && (
@@ -512,9 +512,9 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 </div>
 
                 {daySignatureUrl ? (
-                  <div className="bg-white p-2 rounded-xl border border-[#c9b197]/20 text-center shadow-xs">
+                  <div className="bg-white p-2 rounded-xl border border-[#403c21]/20 text-center shadow-xs">
                     <img src={daySignatureUrl} alt="Day Worker Master Signature" className="h-14 mx-auto object-contain bg-white rounded-lg p-1" />
-                    <p className="text-[10px] text-[#c9b197] font-extrabold mt-1">✅ Master Signature Saved</p>
+                    <p className="text-[10px] text-[#403c21] font-extrabold mt-1">✅ Master Signature Saved</p>
                     <button type="button" onClick={() => clearMaster(setDaySignatureUrl)} className="mt-1 text-[10px] text-neutral-500 hover:text-rose-600 hover:underline cursor-pointer font-bold">Clear & Re-draw</button>
                   </div>
                 ) : (
@@ -522,14 +522,14 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                     <button
                       type="button"
                       onClick={() => openSigModal('day')}
-                      className="w-full flex items-center justify-center gap-2 py-3 px-3 bg-white hover:bg-slate-100 border-2 border-dashed border-[#c9b197] rounded-full text-[#403c21] text-sm font-extrabold cursor-pointer transition-colors shadow-xs"
+                      className="w-full flex items-center justify-center gap-2 py-3 px-3 bg-white hover:bg-slate-100 border-2 border-dashed border-[#403c21] rounded-full text-[#403c21] text-sm font-extrabold cursor-pointer transition-colors shadow-xs"
                     >
-                      <PenTool className="w-4 h-4 text-[#c9b197]" />
+                      <PenTool className="w-4 h-4 text-[#403c21]" />
                       ✍️ Tap Here to Draw Signature
                     </button>
 
-                    <label className="flex items-center justify-center gap-2 py-2 px-4 bg-white hover:bg-slate-100 text-neutral-600 text-xs font-bold rounded-full border border-[#c9b197]/20 cursor-pointer shadow-xs">
-                      <Upload className="w-3.5 h-3.5 text-[#c9b197]" />
+                    <label className="flex items-center justify-center gap-2 py-2 px-4 bg-white hover:bg-slate-100 text-neutral-600 text-xs font-bold rounded-full border border-[#403c21]/20 cursor-pointer shadow-xs">
+                      <Upload className="w-3.5 h-3.5 text-[#403c21]" />
                       <span>Upload Image File Instead</span>
                       <input
                         type="file"
@@ -555,10 +555,10 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 className={inputClasses}
               />
 
-              <div className="mt-3 bg-[#f7f5f0] border border-[#c9b197]/20 p-3 rounded-2xl space-y-2 text-[#403c21]">
+              <div className="mt-3 bg-[#f7f5f0] border border-[#403c21]/20 p-3 rounded-2xl space-y-2 text-[#403c21]">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-extrabold text-[#403c21] flex items-center gap-1.5">
-                    <PenTool className="w-3.5 h-3.5 text-[#c9b197]" />
+                    <PenTool className="w-3.5 h-3.5 text-[#403c21]" />
                     Night Worker Master Signature
                   </span>
                   {nightSignatureUrl && (
@@ -573,9 +573,9 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 </div>
 
                 {nightSignatureUrl ? (
-                  <div className="bg-white p-2 rounded-xl border border-[#c9b197]/20 text-center shadow-xs">
+                  <div className="bg-white p-2 rounded-xl border border-[#403c21]/20 text-center shadow-xs">
                     <img src={nightSignatureUrl} alt="Night Worker Master Signature" className="h-14 mx-auto object-contain bg-white rounded-lg p-1" />
-                    <p className="text-[10px] text-[#c9b197] font-extrabold mt-1">✅ Master Signature Saved</p>
+                    <p className="text-[10px] text-[#403c21] font-extrabold mt-1">✅ Master Signature Saved</p>
                     <button type="button" onClick={() => clearMaster(setNightSignatureUrl)} className="mt-1 text-[10px] text-neutral-500 hover:text-rose-600 hover:underline cursor-pointer font-bold">Clear & Re-draw</button>
                   </div>
                 ) : (
@@ -583,14 +583,14 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                     <button
                       type="button"
                       onClick={() => openSigModal('night')}
-                      className="w-full flex items-center justify-center gap-2 py-3 px-3 bg-white hover:bg-slate-100 border-2 border-dashed border-[#c9b197] rounded-full text-[#403c21] text-sm font-extrabold cursor-pointer transition-colors shadow-xs"
+                      className="w-full flex items-center justify-center gap-2 py-3 px-3 bg-white hover:bg-slate-100 border-2 border-dashed border-[#403c21] rounded-full text-[#403c21] text-sm font-extrabold cursor-pointer transition-colors shadow-xs"
                     >
-                      <PenTool className="w-4 h-4 text-[#c9b197]" />
+                      <PenTool className="w-4 h-4 text-[#403c21]" />
                       ✍️ Tap Here to Draw Signature
                     </button>
 
-                    <label className="flex items-center justify-center gap-2 py-2 px-4 bg-white hover:bg-slate-100 text-neutral-600 text-xs font-bold rounded-full border border-[#c9b197]/20 cursor-pointer shadow-xs">
-                      <Upload className="w-3.5 h-3.5 text-[#c9b197]" />
+                    <label className="flex items-center justify-center gap-2 py-2 px-4 bg-white hover:bg-slate-100 text-neutral-600 text-xs font-bold rounded-full border border-[#403c21]/20 cursor-pointer shadow-xs">
+                      <Upload className="w-3.5 h-3.5 text-[#403c21]" />
                       <span>Upload Image File Instead</span>
                       <input
                         type="file"
@@ -607,12 +607,12 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
         </div>
 
         {/* SAVE BUTTON */}
-        <div className="border-t border-[#c9b197]/15 pt-6 flex justify-end">
+        <div className="border-t border-[#403c21]/15 pt-6 flex justify-end">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="submit"
-            className="px-8 py-3 rounded-full text-[#403c21] font-extrabold bg-[#c9b197] hover:bg-[#bda387] shadow-md transition-all flex items-center justify-center space-x-2 min-w-[170px] cursor-pointer"
+            className="px-8 py-3 rounded-full text-[#403c21] font-extrabold bg-[#403c21] hover:bg-[#33301a] shadow-md transition-all flex items-center justify-center space-x-2 min-w-[170px] cursor-pointer"
           >
             <AnimatePresence mode="wait">
               {savedSuccess ? (
@@ -650,10 +650,10 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#403c21] rounded-3xl shadow-2xl max-w-md w-full p-6 border border-[#c9b197]/50 space-y-4 text-white"
+              className="bg-[#403c21] rounded-3xl shadow-2xl max-w-md w-full p-6 border border-[#403c21]/50 space-y-4 text-white"
             >
               <h3 className="text-base font-bold text-white flex items-center space-x-2">
-                <Pencil className="w-4 h-4 text-[#c9b197]" />
+                <Pencil className="w-4 h-4 text-[#403c21]" />
                 <span>Edit Food Dish</span>
               </h3>
 
@@ -695,18 +695,18 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-2 pt-3 border-t border-[#c9b197]/30">
+              <div className="flex justify-end space-x-2 pt-3 border-t border-[#403c21]/30">
                 <button
                   type="button"
                   onClick={() => setEditingItem(null)}
-                  className="px-4 py-2 bg-[#403c21] border border-[#c9b197] text-white text-xs font-bold rounded-full hover:bg-[#c9b197]/30 cursor-pointer"
+                  className="px-4 py-2 bg-[#403c21] border border-[#403c21] text-white text-xs font-bold rounded-full hover:bg-[#403c21]/30 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={() => handleUpdateFoodItem(editingItem)}
-                  className="px-5 py-2 bg-[#c9b197] hover:bg-[#c9b197]/90 text-[#403c21] text-xs font-bold rounded-full shadow-md cursor-pointer"
+                  className="px-5 py-2 bg-[#403c21] hover:bg-[#403c21]/90 text-[#403c21] text-xs font-bold rounded-full shadow-md cursor-pointer"
                 >
                   Update Dish
                 </button>
@@ -741,7 +741,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
             </div>
 
             {/* Canvas */}
-            <div className="bg-white rounded-3xl overflow-hidden shadow-2xl border-4 border-[#c9b197] relative">
+            <div className="bg-white rounded-3xl overflow-hidden shadow-2xl border-4 border-[#403c21] relative">
               <canvas
                 ref={modalCanvasRef}
                 width={560}
@@ -767,21 +767,21 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
               <button
                 type="button"
                 onClick={clearModalCanvas}
-                className="flex-1 py-3 rounded-full bg-[#403c21] border border-[#c9b197] hover:bg-[#c9b197]/30 text-white text-sm font-bold cursor-pointer transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-full bg-[#403c21] border border-[#403c21] hover:bg-[#403c21]/30 text-white text-sm font-bold cursor-pointer transition-colors flex items-center justify-center gap-2"
               >
-                <RotateCcw className="w-4 h-4 text-[#c9b197]" /> Clear
+                <RotateCcw className="w-4 h-4 text-[#403c21]" /> Clear
               </button>
               <button
                 type="button"
                 onClick={confirmModalSignature}
-                className="flex-2 flex-grow-[2] py-3 rounded-full bg-[#c9b197] hover:bg-[#c9b197]/90 text-[#403c21] text-sm font-bold cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-md"
+                className="flex-2 flex-grow-[2] py-3 rounded-full bg-[#403c21] hover:bg-[#403c21]/90 text-[#403c21] text-sm font-bold cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-md"
               >
                 <CheckCircle2 className="w-4 h-4 text-[#403c21]" /> Confirm & Save Signature
               </button>
             </div>
 
             <p className="text-center text-neutral-300 text-xs">
-              After saving, click the main <strong className="text-[#c9b197]">Save Configuration</strong> button to store it permanently.
+              After saving, click the main <strong className="text-[#403c21]">Save Configuration</strong> button to store it permanently.
             </p>
           </div>
         </div>

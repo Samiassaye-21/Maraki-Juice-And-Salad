@@ -88,14 +88,14 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
         transition={{ duration: 0.5 }}
         className="flex flex-col items-center mb-8 text-center"
       >
-        <div className="w-20 h-20 rounded-full bg-[#403c21] flex items-center justify-center mb-4 shadow-xl text-[#c9b197]">
-          <Moon className="w-10 h-10 text-[#c9b197]" />
+        <div className="w-20 h-20 rounded-full bg-[#403c21] flex items-center justify-center mb-4 shadow-xl text-[#403c21]">
+          <Moon className="w-10 h-10 text-[#403c21]" />
         </div>
         
         <h1 className="text-3xl font-extrabold text-[#403c21] tracking-tight mb-1">
           ማራኪ የሸፍት ገቢ መመዝገቢያ
         </h1>
-        <p className="text-sm font-bold text-[#c9b197] uppercase tracking-wider">
+        <p className="text-sm font-bold text-[#403c21] uppercase tracking-wider">
           Mobile Worker Shift Income Portal
         </p>
         <p className="text-xs text-neutral-600 font-medium mt-1 max-w-xs">
@@ -116,8 +116,8 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
               i < pin.length
                 ? errorMsg
                   ? 'bg-rose-500 border-rose-400 scale-110'
-                  : 'bg-[#c9b197] border-[#403c21] scale-110 shadow-xs'
-                : 'bg-white border-[#c9b197]/40'
+                  : 'bg-[#403c21] border-[#403c21] scale-110 shadow-xs'
+                : 'bg-white border-[#403c21]/40'
             }`}
           />
         ))}
@@ -166,7 +166,7 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
       {/* Quick Direct Pass Button */}
       <button
         onClick={onLoginSuccess}
-        className="mt-8 flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#c9b197] text-[#403c21] text-xs font-extrabold transition-all shadow-md cursor-pointer hover:bg-[#bda387] active:scale-95"
+        className="mt-8 flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#403c21] text-[#403c21] text-xs font-extrabold transition-all shadow-md cursor-pointer hover:bg-[#33301a] active:scale-95"
       >
         <ShieldCheck className="w-4 h-4 text-[#403c21]" />
         <span>በቀጥታ ግባ (Quick Login: 1234)</span>

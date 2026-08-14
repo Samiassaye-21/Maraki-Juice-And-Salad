@@ -133,7 +133,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
         animate={{ opacity: 1, scale: 1, y: 0 }} 
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="w-full max-w-[360px] bg-white rounded-3xl p-6 shadow-2xl flex flex-col gap-5 border border-[#c9b197]/20 text-[#403c21] font-sans"
+        className="w-full max-w-[360px] bg-white rounded-3xl p-6 shadow-2xl flex flex-col gap-5 border border-[#403c21]/20 text-[#403c21] font-sans"
       >
         {/* Header with Title and Close */}
         <div className="flex items-center justify-between px-1 text-[#403c21]">
@@ -143,20 +143,20 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           </button>
         </div>
 
-        {/* Display Screen (#403c21 with #c9b197 Digits) */}
-        <div className="bg-[#403c21] rounded-2xl h-28 flex items-end justify-end p-5 shadow-inner border border-[#c9b197]/40">
-          <span className="text-[#c9b197] text-[54px] leading-none font-mono tracking-tighter font-extrabold overflow-hidden">
+        {/* Display Screen (#403c21 with #403c21 Digits) */}
+        <div className="bg-[#403c21] rounded-2xl h-28 flex items-end justify-end p-5 shadow-inner border border-[#403c21]/40">
+          <span className="text-[#403c21] text-[54px] leading-none font-mono tracking-tighter font-extrabold overflow-hidden">
             {display}
           </span>
         </div>
 
         {/* Button Grid */}
         <div className="grid grid-cols-4 gap-3">
-          {/* Row 1 (Operators - #403c21 with #c9b197 text) */}
+          {/* Row 1 (Operators - #403c21 with #403c21 text) */}
           {['*', '/', '-', '+'].map((op) => (
             <button 
               key={op} onClick={() => handleOperator(op)}
-              className="h-[60px] bg-[#403c21] hover:bg-[#33301a] rounded-full text-[#c9b197] text-3xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
+              className="h-[60px] bg-[#403c21] hover:bg-[#33301a] rounded-full text-[#403c21] text-3xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
             >
               {op}
             </button>
@@ -194,7 +194,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           
           <button 
             onClick={handleEqual}
-            className="h-[60px] bg-[#c9b197] hover:bg-[#bda387] rounded-full text-[#403c21] text-4xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-md"
+            className="h-[60px] bg-[#403c21] hover:bg-[#33301a] rounded-full text-[#403c21] text-4xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-md"
           >
             =
           </button>
