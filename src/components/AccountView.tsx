@@ -123,7 +123,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
         </button>
       </div>
 
-      {/* Main Balance Hero Card (#403c21 Hero Card with #403c21 Accent) */}
+      {/* Main Balance Hero Card (#403c21 Hero Card with #f7f5f0 Accents) */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -132,34 +132,34 @@ export const AccountView: React.FC<AccountViewProps> = ({
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-xs font-extrabold text-[#403c21] uppercase tracking-wider">Current Balance</p>
+              <p className="text-xs font-extrabold text-[#f7f5f0] uppercase tracking-wider">Current Balance</p>
               <button 
                 onClick={toggleShowBalance} 
-                className="text-[#403c21] hover:text-white transition-colors cursor-pointer"
+                className="text-[#f7f5f0] hover:text-white transition-colors cursor-pointer"
                 title={showBalance ? "Hide Balance" : "Show Balance"}
               >
-                {showBalance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4 text-[#403c21]" />}
+                {showBalance ? <EyeOff className="w-4 h-4 text-[#f7f5f0]" /> : <Eye className="w-4 h-4 text-[#f7f5f0]" />}
               </button>
             </div>
             <p className="text-4xl font-extrabold mt-1 tracking-tight text-[#f7f5f0]">{renderAmount(balance)}</p>
-            <p className="text-sm text-white/80 mt-1 font-medium">All time net position</p>
+            <p className="text-sm text-[#f7f5f0]/90 mt-1 font-medium">All time net position</p>
           </div>
-          <div className="p-3.5 bg-[#403c21] border border-[#403c21]/40 text-[#403c21] rounded-full shadow-xs">
-            <Wallet className="w-8 h-8" />
+          <div className="p-3.5 bg-[#524d2c] border border-[#f7f5f0]/30 text-[#f7f5f0] rounded-full shadow-xs">
+            <Wallet className="w-8 h-8 text-[#f7f5f0]" />
           </div>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="bg-[#403c21] border border-[#403c21]/30 rounded-2xl px-4 py-3">
-            <div className="flex items-center gap-1.5 text-white/80 text-xs font-bold">
-              <TrendingUp className="w-3.5 h-3.5 text-[#403c21]" /> Total Income
+          <div className="bg-[#524d2c] border border-[#f7f5f0]/30 rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-1.5 text-[#f7f5f0] text-xs font-bold">
+              <TrendingUp className="w-3.5 h-3.5 text-[#f7f5f0]" /> Total Income
             </div>
             <p className="text-lg font-extrabold text-[#f7f5f0] mt-0.5">{renderAmount(allIncome)}</p>
           </div>
-          <div className="bg-[#403c21] border border-[#403c21]/30 rounded-2xl px-4 py-3">
-            <div className="flex items-center gap-1.5 text-white/80 text-xs font-bold">
-              <TrendingDown className="w-3.5 h-3.5 text-white" /> Total Expenses
+          <div className="bg-[#524d2c] border border-[#f7f5f0]/30 rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-1.5 text-[#f7f5f0] text-xs font-bold">
+              <TrendingDown className="w-3.5 h-3.5 text-[#f7f5f0]" /> Total Expenses
             </div>
-            <p className="text-lg font-extrabold text-white mt-0.5">{renderAmount(allExpenses)}</p>
+            <p className="text-lg font-extrabold text-[#f7f5f0] mt-0.5">{renderAmount(allExpenses)}</p>
           </div>
         </div>
       </motion.div>
