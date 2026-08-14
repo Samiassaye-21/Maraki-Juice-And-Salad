@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 /* ========================================
-   Maraki — Brand Design System (Olive & Cream)
-   Deep Olive Green: #2D4F1E (Primary Dark Accent & Text)
-   Medium Olive: #4A7C36 (Secondary Surfaces, Icons, Borders)
-   Lime Olive Accent: #84CC16 (CTAs, Active States, Highlights)
-   Warm Cream: #FAF6EE (Global Page Background & Sub-Containers)
+   Maraki — Strict Color Palette
+   Primary Dark: #403c21 (Dark Earth Bronze)
+   Primary Warm Accent: #c9b197 (Warm Sand Gold)
+   Black: #000000 / #1a1813
+   White / Off-White: #ffffff / #f7f5f0
    ======================================== */
 
 @theme {
   --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --color-forest: #2D4F1E;
-  --color-teal: #4A7C36;
-  --color-mint: #84CC16;
+  --color-forest: #403c21;
+  --color-teal: #c9b197;
+  --color-mint: #c9b197;
 }
 
 html {
@@ -23,16 +23,16 @@ html {
 }
 
 body {
-  background-color: #FAF6EE;
+  background-color: #f7f5f0;
   min-height: 100vh;
-  color: #2D4F1E;
+  color: #403c21;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #FAF6EE; }
-::-webkit-scrollbar-thumb { background: #4A7C36; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #84CC16; }
+::-webkit-scrollbar-track { background: #f7f5f0; }
+::-webkit-scrollbar-thumb { background: #c9b197; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #403c21; }
 
 /* Hide number spinners */
 input[type="number"]::-webkit-outer-spin-button,
@@ -44,12 +44,12 @@ input[type="number"] { -moz-appearance: textfield; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* Selection */
-::selection { background: #84CC16; color: #2D4F1E; }
+::selection { background: #c9b197; color: #403c21; }
 
 /* Focus ring */
 *:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(132, 204, 22, 0.35);
-  border-color: #84CC16;
+  box-shadow: 0 0 0 3px rgba(201, 177, 151, 0.4);
+  border-color: #c9b197;
   border-radius: 9999px;
 }

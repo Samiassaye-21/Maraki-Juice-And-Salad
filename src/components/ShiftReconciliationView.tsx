@@ -357,13 +357,13 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
     );
   };
 
-  const inputClasses = "w-full px-4 py-2.5 bg-white border border-[#2D4F1E]/30 rounded-full text-[#2D4F1E] text-sm font-bold focus:outline-none focus:border-[#2D4F1E] focus:ring-4 focus:ring-[#84CC16]/20 transition-all shadow-xs placeholder:text-stone-400";
-  const leftoverInputClasses = "w-full px-4 py-2.5 bg-white border-2 border-[#2D4F1E] rounded-full text-[#2D4F1E] text-base font-extrabold text-center focus:outline-none transition-all shadow-xs";
-  const labelClasses = "block text-xs font-bold text-stone-600 uppercase tracking-wider mb-1.5";
-  const subLabelClasses = "text-xs text-stone-500 font-medium block text-center mt-1.5";
+  const inputClasses = "w-full px-4 py-2.5 bg-white border border-[#403c21]/30 rounded-full text-[#403c21] text-sm font-bold focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#c9b197]/40 transition-all shadow-xs placeholder:text-[#403c21]/50";
+  const leftoverInputClasses = "w-full px-4 py-2.5 bg-white border-2 border-[#403c21] rounded-full text-[#403c21] text-base font-extrabold text-center focus:outline-none transition-all shadow-xs";
+  const labelClasses = "block text-xs font-bold text-[#403c21]/80 uppercase tracking-wider mb-1.5";
+  const subLabelClasses = "text-xs text-[#403c21]/70 font-medium block text-center mt-1.5";
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 font-sans text-[#07250D]">
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 font-sans text-[#403c21]">
       
       <AnimatePresence>
         {savedSuccessMsg && (
@@ -371,15 +371,15 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
             initial={{ opacity: 0, y: -20, scale: 0.95 }} 
             animate={{ opacity: 1, y: 0, scale: 1 }} 
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="bg-[#238868]/30 text-[#13EE86] rounded-3xl p-5 shadow-sm border border-[#238868] flex items-center space-x-3.5"
+            className="bg-[#403c21] text-white rounded-3xl p-5 shadow-xl border border-[#c9b197]/40 flex items-center space-x-3.5"
           >
-            <ShieldCheck className="w-6 h-6 text-[#13EE86] shrink-0" />
+            <ShieldCheck className="w-6 h-6 text-[#c9b197] shrink-0" />
             <p className="text-sm font-semibold leading-snug flex-1 text-white">
               {savedSuccessMsg}
             </p>
             <button 
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-[#13EE86] hover:bg-[#13EE86]/90 text-[#07250D] font-bold text-xs rounded-full shadow-md transition-colors whitespace-nowrap"
+              className="px-4 py-2 bg-[#c9b197] hover:bg-[#bda387] text-[#403c21] font-bold text-xs rounded-full shadow-md transition-colors whitespace-nowrap"
             >
               Start New Shift
             </button>
@@ -1300,33 +1300,33 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
           </div>
         </div>
 
-        {/* NET CASH RESULT CARD (Deep Olive Hero Card) */}
-        <div className="bg-[#2D4F1E] rounded-3xl p-6 text-white shadow-2xl space-y-4 border border-[#84CC16]/40">
+        {/* NET CASH RESULT CARD (#403c21 Hero Card with #c9b197 Accents) */}
+        <div className="bg-[#403c21] rounded-3xl p-6 text-white shadow-2xl space-y-4 border border-[#c9b197]/40">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-[#2D4F1E] bg-[#84CC16] px-3.5 py-1 rounded-full mb-2 shadow-xs">
-                <ShieldCheck className="w-4 h-4 text-[#2D4F1E]" /> Physical Cash Handover
+              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-[#403c21] bg-[#c9b197] px-3.5 py-1 rounded-full mb-2 shadow-xs">
+                <ShieldCheck className="w-4 h-4 text-[#403c21]" /> Physical Cash Handover
               </span>
               <h3 className="text-2xl font-extrabold text-white tracking-tight">Net Cash Due to Owner</h3>
-              <p className="text-xs text-stone-200 mt-0.5 font-medium">Exact cash worker must hand over at end of shift</p>
+              <p className="text-xs text-white/80 mt-0.5 font-medium">Exact cash worker must hand over at end of shift</p>
             </div>
-            <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#84CC16]">
+            <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#c9b197]">
               {formatCurrency(netCashDueToOwner, currencySymbol)}
             </div>
           </div>
 
-          <div className="text-xs font-bold text-stone-200 pt-4 border-t border-[#84CC16]/30 flex flex-wrap items-center gap-2">
-            <span className="bg-[#395F27] px-3 py-1 rounded-full border border-[#84CC16]/30 text-white">Gross: {formatCurrency(grossIncome, currencySymbol)}</span>
+          <div className="text-xs font-bold text-white/80 pt-4 border-t border-[#c9b197]/30 flex flex-wrap items-center gap-2">
+            <span className="bg-[#524d2c] px-3 py-1 rounded-full border border-[#c9b197]/30 text-white">Gross: {formatCurrency(grossIncome, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#395F27] px-3 py-1 rounded-full border border-[#84CC16]/30 text-white">Digital: {formatCurrency(digitalTransfers, currencySymbol)}</span>
+            <span className="bg-[#524d2c] px-3 py-1 rounded-full border border-[#c9b197]/30 text-white">Digital: {formatCurrency(digitalTransfers, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#395F27] px-3 py-1 rounded-full border border-[#84CC16]/30 text-white">Exp: {formatCurrency(dailyExpensesTotal, currencySymbol)}</span>
+            <span className="bg-[#524d2c] px-3 py-1 rounded-full border border-[#c9b197]/30 text-white">Exp: {formatCurrency(dailyExpensesTotal, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#395F27] px-3 py-1 rounded-full border border-[#84CC16]/30 text-white">Pend: {formatCurrency(newPendingAmount, currencySymbol)}</span>
+            <span className="bg-[#524d2c] px-3 py-1 rounded-full border border-[#c9b197]/30 text-white">Pend: {formatCurrency(newPendingAmount, currencySymbol)}</span>
             <span>+</span>
-            <span className="bg-[#395F27] px-3 py-1 rounded-full border border-[#84CC16]/30 text-white">Rec: {formatCurrency(recoveredPendingAmount, currencySymbol)}</span>
+            <span className="bg-[#524d2c] px-3 py-1 rounded-full border border-[#c9b197]/30 text-white">Rec: {formatCurrency(recoveredPendingAmount, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#395F27] px-3 py-1 rounded-full border border-[#84CC16]/30 text-white">Del: {formatCurrency(deliveryCreditAmount, currencySymbol)}</span>
+            <span className="bg-[#524d2c] px-3 py-1 rounded-full border border-[#c9b197]/30 text-white">Del: {formatCurrency(deliveryCreditAmount, currencySymbol)}</span>
           </div>
         </div>
 
@@ -1346,9 +1346,9 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#84CC16] hover:bg-[#78B813] text-[#2D4F1E] font-extrabold py-4 px-6 rounded-full shadow-lg text-base flex items-center justify-center space-x-2.5 transition-all cursor-pointer active:scale-95"
+            className="w-full bg-[#c9b197] hover:bg-[#bda387] text-[#403c21] font-extrabold py-4 px-6 rounded-full shadow-lg text-base flex items-center justify-center space-x-2.5 transition-all cursor-pointer active:scale-95"
           >
-            <CheckCircle2 className="w-5 h-5 text-[#2D4F1E]" />
+            <CheckCircle2 className="w-5 h-5 text-[#403c21]" />
             <span>Close Shift & Carry Leftovers to Next Worker</span>
           </button>
         </div>

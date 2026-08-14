@@ -94,24 +94,24 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#84CC16] hover:bg-[#78B813] text-[#2D4F1E] rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#c9b197] hover:bg-[#bda387] text-[#403c21] rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
         >
-          <Plus className="w-4 h-4 text-[#2D4F1E]" />
+          <Plus className="w-4 h-4 text-[#403c21]" />
           <span>Add Expense</span>
         </button>
       </div>
 
-      {/* Summary Cards (Deep Olive Hero Style) */}
+      {/* Summary Cards (#403c21 Hero Style with #c9b197 Accent) */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-[#2D4F1E] border border-[#84CC16]/40 rounded-3xl p-5 shadow-2xl text-white">
-          <p className="text-xs font-extrabold text-stone-300 uppercase tracking-wide">This Month</p>
-          <p className="text-2xl font-extrabold text-[#84CC16] mt-1">{formatCurrency(totalThisMonth, currencySymbol)}</p>
-          <p className="text-xs text-stone-200 font-medium mt-0.5">Overhead spent</p>
+        <div className="bg-[#403c21] border border-[#c9b197]/40 rounded-3xl p-5 shadow-2xl text-white">
+          <p className="text-xs font-extrabold text-[#c9b197] uppercase tracking-wide">This Month</p>
+          <p className="text-2xl font-extrabold text-[#c9b197] mt-1">{formatCurrency(totalThisMonth, currencySymbol)}</p>
+          <p className="text-xs text-white/80 font-medium mt-0.5">Overhead spent</p>
         </div>
-        <div className="bg-white border border-[#2D4F1E]/20 rounded-3xl p-5 shadow-xs text-[#2D4F1E]">
-          <p className="text-xs font-bold text-stone-500 uppercase tracking-wide">All Time</p>
-          <p className="text-2xl font-extrabold text-[#2D4F1E] mt-1">{formatCurrency(totalAllTime, currencySymbol)}</p>
-          <p className="text-xs text-stone-500 font-medium mt-0.5">{expenses.length} total records</p>
+        <div className="bg-white border border-[#403c21]/20 rounded-3xl p-5 shadow-xs text-[#403c21]">
+          <p className="text-xs font-bold text-[#403c21]/70 uppercase tracking-wide">All Time</p>
+          <p className="text-2xl font-extrabold text-[#403c21] mt-1">{formatCurrency(totalAllTime, currencySymbol)}</p>
+          <p className="text-xs text-[#403c21]/70 font-medium mt-0.5">{expenses.length} total records</p>
         </div>
       </div>
 

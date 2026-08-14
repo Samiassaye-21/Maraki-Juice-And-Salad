@@ -97,67 +97,67 @@ export const AccountView: React.FC<AccountViewProps> = ({
   const periodLabel = filterPeriod === 'week' ? 'This Week' : filterPeriod === 'month' ? 'Last 30 Days' : 'All Time';
 
   return (
-    <div className="space-y-6 text-[#2D4F1E] font-sans">
+    <div className="space-y-6 text-[#403c21] font-sans">
       {/* Title with Hide/Show Toggle */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-extrabold text-[#2D4F1E]">Account Balance</h2>
-          <p className="text-sm font-medium text-stone-600 mt-0.5">Running financial position — like a bank statement</p>
+          <h2 className="text-xl font-extrabold text-[#403c21]">Account Balance</h2>
+          <p className="text-sm font-medium text-[#403c21]/70 mt-0.5">Running financial position — like a bank statement</p>
         </div>
         <button
           onClick={toggleShowBalance}
-          className="flex items-center gap-2 px-4 py-2 bg-white text-[#2D4F1E] border-2 border-[#2D4F1E] hover:bg-[#FAF6EE] rounded-full text-xs font-extrabold transition-all cursor-pointer shadow-xs active:scale-95"
+          className="flex items-center gap-2 px-4 py-2 bg-white text-[#403c21] border-2 border-[#403c21] hover:bg-[#f7f5f0] rounded-full text-xs font-extrabold transition-all cursor-pointer shadow-xs active:scale-95"
           title={showBalance ? "Hide Balance" : "Show Balance"}
         >
           {showBalance ? (
             <>
-              <EyeOff className="w-4 h-4 text-stone-600" />
+              <EyeOff className="w-4 h-4 text-[#403c21]/70" />
               <span>Hide Balance</span>
             </>
           ) : (
             <>
-              <Eye className="w-4 h-4 text-[#4A7C36]" />
+              <Eye className="w-4 h-4 text-[#403c21]" />
               <span>Show Balance</span>
             </>
           )}
         </button>
       </div>
 
-      {/* Main Balance Hero Card (Deep Olive Styling) */}
+      {/* Main Balance Hero Card (#403c21 Hero Card with #c9b197 Accent) */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-3xl p-6 text-white border border-[#84CC16]/40 bg-[#2D4F1E] shadow-2xl"
+        className="rounded-3xl p-6 text-white border border-[#c9b197]/40 bg-[#403c21] shadow-2xl"
       >
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-xs font-extrabold text-stone-300 uppercase tracking-wider">Current Balance</p>
+              <p className="text-xs font-extrabold text-[#c9b197] uppercase tracking-wider">Current Balance</p>
               <button 
                 onClick={toggleShowBalance} 
-                className="text-stone-300 hover:text-white transition-colors cursor-pointer"
+                className="text-[#c9b197] hover:text-white transition-colors cursor-pointer"
                 title={showBalance ? "Hide Balance" : "Show Balance"}
               >
-                {showBalance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4 text-[#84CC16]" />}
+                {showBalance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4 text-[#c9b197]" />}
               </button>
             </div>
-            <p className="text-4xl font-extrabold mt-1 tracking-tight text-[#84CC16]">{renderAmount(balance)}</p>
-            <p className="text-sm text-stone-200 mt-1 font-medium">All time net position</p>
+            <p className="text-4xl font-extrabold mt-1 tracking-tight text-[#c9b197]">{renderAmount(balance)}</p>
+            <p className="text-sm text-white/80 mt-1 font-medium">All time net position</p>
           </div>
-          <div className="p-3.5 bg-[#395F27] border border-[#84CC16]/40 text-[#84CC16] rounded-full shadow-xs">
+          <div className="p-3.5 bg-[#524d2c] border border-[#c9b197]/40 text-[#c9b197] rounded-full shadow-xs">
             <Wallet className="w-8 h-8" />
           </div>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="bg-[#395F27] border border-[#84CC16]/30 rounded-2xl px-4 py-3">
-            <div className="flex items-center gap-1.5 text-stone-200 text-xs font-bold">
-              <TrendingUp className="w-3.5 h-3.5 text-[#84CC16]" /> Total Income
+          <div className="bg-[#524d2c] border border-[#c9b197]/30 rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-1.5 text-white/80 text-xs font-bold">
+              <TrendingUp className="w-3.5 h-3.5 text-[#c9b197]" /> Total Income
             </div>
-            <p className="text-lg font-extrabold text-[#84CC16] mt-0.5">{renderAmount(allIncome)}</p>
+            <p className="text-lg font-extrabold text-[#c9b197] mt-0.5">{renderAmount(allIncome)}</p>
           </div>
-          <div className="bg-[#395F27] border border-[#84CC16]/30 rounded-2xl px-4 py-3">
-            <div className="flex items-center gap-1.5 text-stone-200 text-xs font-bold">
-              <TrendingDown className="w-3.5 h-3.5 text-rose-300" /> Total Expenses
+          <div className="bg-[#524d2c] border border-[#c9b197]/30 rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-1.5 text-white/80 text-xs font-bold">
+              <TrendingDown className="w-3.5 h-3.5 text-white" /> Total Expenses
             </div>
             <p className="text-lg font-extrabold text-white mt-0.5">{renderAmount(allExpenses)}</p>
           </div>

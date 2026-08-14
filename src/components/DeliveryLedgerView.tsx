@@ -124,23 +124,23 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
     setIsFormOpen(false);
   };
 
-  const inputClasses = "w-full px-4 py-2.5 rounded-full border border-[#2D4F1E]/30 bg-white text-[#2D4F1E] text-sm font-bold focus:outline-none focus:border-[#2D4F1E] focus:ring-4 focus:ring-[#84CC16]/20 transition-all placeholder:text-stone-400 shadow-xs";
-  const labelClasses = "block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2";
+  const inputClasses = "w-full px-4 py-2.5 rounded-full border border-[#403c21]/30 bg-white text-[#403c21] text-sm font-bold focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#c9b197]/40 transition-all placeholder:text-[#403c21]/50 shadow-xs";
+  const labelClasses = "block text-xs font-bold text-[#403c21]/80 uppercase tracking-wider mb-2";
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 font-sans text-[#2D4F1E]">
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 font-sans text-[#403c21]">
       
-      {/* HEADER CARD (Deep Olive Hero Styling) */}
-      <div className="bg-[#2D4F1E] rounded-3xl p-5 sm:p-6 border border-[#84CC16]/40 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 text-white">
+      {/* HEADER CARD (#403c21 Hero Styling with #c9b197 Accent) */}
+      <div className="bg-[#403c21] rounded-3xl p-5 sm:p-6 border border-[#c9b197]/40 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 text-white">
         <div className="flex items-center space-x-4">
-          <div className="p-3.5 rounded-full bg-[#395F27] text-[#84CC16] border border-[#84CC16]/40">
+          <div className="p-3.5 rounded-full bg-[#524d2c] text-[#c9b197] border border-[#c9b197]/40">
             <Truck className="w-6 h-6" />
           </div>
           <div>
             <h2 className="text-xl font-extrabold text-white">
               Weekly Delivery Accounts
             </h2>
-            <p className="text-sm font-medium text-stone-200 mt-0.5">
+            <p className="text-sm font-medium text-white/80 mt-0.5">
               BeU, Deliver Addis & Feres delivery partner ledgers
             </p>
           </div>
@@ -148,18 +148,18 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
 
         <div className="flex items-center space-x-4 w-full sm:w-auto">
           <div className="flex flex-col items-end">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-300">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#c9b197]">
               Unsettled Balance
             </span>
-            <span className="text-2xl font-extrabold text-[#84CC16]">
+            <span className="text-2xl font-extrabold text-[#c9b197]">
               {formatCurrency(totalUnsettled, currencySymbol)}
             </span>
           </div>
           <button
             onClick={() => setIsFormOpen(!isFormOpen)}
-            className="px-5 py-2.5 bg-[#84CC16] hover:bg-[#78B813] text-[#2D4F1E] font-extrabold rounded-full shadow-md transition-all flex items-center space-x-2 shrink-0 cursor-pointer text-sm active:scale-95"
+            className="px-5 py-2.5 bg-[#c9b197] hover:bg-[#bda387] text-[#403c21] font-extrabold rounded-full shadow-md transition-all flex items-center space-x-2 shrink-0 cursor-pointer text-sm active:scale-95"
           >
-            <Plus className="w-5 h-5 text-[#2D4F1E]" />
+            <Plus className="w-5 h-5 text-[#403c21]" />
             <span>Add Delivery</span>
           </button>
         </div>

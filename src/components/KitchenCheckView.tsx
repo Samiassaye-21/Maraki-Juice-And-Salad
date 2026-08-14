@@ -264,23 +264,23 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
 
       {/* ─── Metric Stat Cards ──────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Stat Card 1 (Deep Olive Hero Style) */}
-        <div className="bg-[#2D4F1E] border border-[#84CC16]/40 text-white p-5 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[130px]">
+        {/* Stat Card 1 (#403c21 Hero Style with #c9b197 Accent) */}
+        <div className="bg-[#403c21] border border-[#c9b197]/40 text-white p-5 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[130px]">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-wider text-stone-300">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-[#c9b197]">
                 Chef Logged Items
               </p>
-              <h3 className="text-3xl font-extrabold text-[#84CC16] mt-1">
-                {grandChefTotalItems} <span className="text-sm font-normal text-stone-200">items</span>
+              <h3 className="text-3xl font-extrabold text-[#c9b197] mt-1">
+                {grandChefTotalItems} <span className="text-sm font-normal text-white/80">items</span>
               </h3>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#395F27] border border-[#84CC16]/40 flex items-center justify-center text-[#84CC16]">
+            <div className="w-10 h-10 rounded-full bg-[#524d2c] border border-[#c9b197]/40 flex items-center justify-center text-[#c9b197]">
               <ShoppingBag className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-xs text-stone-200 mt-2 font-medium flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-[#84CC16]" />
+          <p className="text-xs text-white/80 mt-2 font-medium flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-[#c9b197]" />
             Recorded by kitchen staff for {selectedDate}
           </p>
         </div>
