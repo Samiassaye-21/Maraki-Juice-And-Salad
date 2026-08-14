@@ -221,7 +221,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
                   <div className="text-2xl font-extrabold flex items-center gap-2 text-[#403c21]">
                     <span>{t.label}</span>
                     {isAutoActive && (
-                      <span className="text-xs bg-[#403c21] text-[#403c21] px-2.5 py-0.5 rounded-full font-bold">
+                      <span className="text-xs bg-[#403c21] text-[#f7f5f0] px-2.5 py-0.5 rounded-full font-bold">
                         አሁን ያለው (Active)
                       </span>
                     )}
@@ -314,7 +314,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
         <h3 className="text-neutral-600 text-xs font-extrabold uppercase tracking-wider">
           የዛሬ ትዕዛዞች ({todayStr})
         </h3>
-        <span className="ml-auto bg-[#403c21] text-[#403c21] text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-xs">
+        <span className="ml-auto bg-[#403c21] text-[#f7f5f0] text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-xs">
           {todayOrders.length}
         </span>
       </div>

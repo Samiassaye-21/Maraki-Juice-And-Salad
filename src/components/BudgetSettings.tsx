@@ -214,13 +214,13 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
   const getCategoryBadge = (category?: string) => {
     switch (category) {
       case 'traditional':
-        return <span className="bg-[#403c21] text-[#403c21] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Traditional</span>;
+        return <span className="bg-[#403c21] text-[#f7f5f0] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Traditional</span>;
       case 'fast_food':
-        return <span className="bg-[#403c21] text-[#403c21] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Fast Food</span>;
+        return <span className="bg-[#403c21] text-[#f7f5f0] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Fast Food</span>;
       case 'breakfast':
-        return <span className="bg-[#403c21] text-[#403c21] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Breakfast</span>;
+        return <span className="bg-[#403c21] text-[#f7f5f0] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Breakfast</span>;
       case 'special':
-        return <span className="bg-[#403c21] text-[#403c21] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Special</span>;
+        return <span className="bg-[#403c21] text-[#f7f5f0] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Special</span>;
       default:
         return <span className="bg-[#f7f5f0] text-[#403c21] border border-[#403c21]/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Dish</span>;
     }
@@ -268,7 +268,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                   <CupSoda className="w-5 h-5 text-[#403c21]" />
                   <span>Juice Cup Unit Price (ETB)</span>
                 </span>
-                <span className="text-xs text-[#403c21] bg-[#403c21] font-extrabold px-3 py-0.5 rounded-full shadow-xs">
+                <span className="text-xs text-[#f7f5f0] bg-[#403c21] font-extrabold px-3 py-0.5 rounded-full shadow-xs">
                   Editable anytime
                 </span>
               </label>
@@ -337,9 +337,9 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
               <button
                 type="button"
                 onClick={() => setShowAddForm(!showAddForm)}
-                className="px-4 py-2 bg-[#403c21] hover:bg-[#33301a] text-[#403c21] font-extrabold text-xs rounded-full shadow-md transition-colors flex items-center space-x-1.5 cursor-pointer active:scale-95"
+                className="px-4 py-2 bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] font-extrabold text-xs rounded-full shadow-md transition-colors flex items-center space-x-1.5 cursor-pointer active:scale-95"
               >
-                <Plus className="w-4 h-4 text-[#403c21]" />
+                <Plus className="w-4 h-4 text-[#f7f5f0]" />
                 <span>Add Dish</span>
               </button>
             </div>
@@ -356,7 +356,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
               >
                 <div className="bg-[#f7f5f0] border border-[#403c21]/20 rounded-3xl p-4 space-y-3 text-[#403c21]">
                   <h4 className="text-sm font-extrabold text-[#403c21] flex items-center space-x-2">
-                    <Plus className="w-4 h-4 text-[#403c21]" />
+                    <Plus className="w-4 h-4 text-[#f7f5f0]" />
                     <span>Add New Food Menu Item</span>
                   </h4>
                   
@@ -411,7 +411,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                     <button
                       type="button"
                       onClick={handleAddFoodItem}
-                      className="px-5 py-2 bg-[#403c21] hover:bg-[#33301a] text-[#403c21] text-xs font-extrabold rounded-full shadow-md cursor-pointer active:scale-95"
+                      className="px-5 py-2 bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] text-xs font-extrabold rounded-full shadow-md cursor-pointer active:scale-95"
                     >
                       Save Menu Item
                     </button>
@@ -623,7 +623,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                   exit={{ opacity: 0, y: -10 }}
                   className="flex items-center space-x-2"
                 >
-                  <CheckCircle2 className="w-5 h-5 text-[#403c21]" />
+                  <CheckCircle2 className="w-5 h-5 text-[#f7f5f0]" />
                   <span>Settings Saved!</span>
                 </motion.div>
               ) : (

@@ -188,7 +188,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
             <button
               key={p}
               onClick={() => setFilterPeriod(p)}
-              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${filterPeriod === p ? 'bg-[#403c21] text-[#403c21] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${filterPeriod === p ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
             >
               {p === 'week' ? 'This Week' : p === 'month' ? 'Last 30 Days' : 'All Time'}
             </button>
@@ -200,7 +200,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
             <button
               key={v}
               onClick={() => setFilterType(v)}
-              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${filterType === v ? 'bg-[#403c21] text-[#403c21] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${filterType === v ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
             >
               {l}
             </button>
@@ -240,7 +240,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-extrabold text-[#403c21] truncate">{entry.description}</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${isIncome ? 'bg-[#403c21] text-[#403c21]' : 'bg-[#f7f5f0] text-neutral-600 border border-[#403c21]/20'}`}>
+                  <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${isIncome ? 'bg-[#403c21] text-[#f7f5f0]' : 'bg-[#f7f5f0] text-neutral-600 border border-[#403c21]/20'}`}>
                     {cfg.label}
                   </span>
                   <span className="text-[10px] text-neutral-500 font-medium">{entry.date}</span>

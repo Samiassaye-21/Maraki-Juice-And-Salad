@@ -188,7 +188,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                         {shift.shiftType} Shift • {shift.date}
                       </h3>
                       {formatEthiopianFullDate(shift.date) && (
-                        <span className="bg-[#403c21] text-[#403c21] border border-[#403c21]/40 text-xs font-bold px-3 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="bg-[#403c21] text-[#f7f5f0] border border-[#403c21]/40 text-xs font-bold px-3 py-0.5 rounded-full flex items-center gap-1">
                           <span>🇪🇹</span> {formatEthiopianFullDate(shift.date)}
                         </span>
                       )}
@@ -305,7 +305,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                     <Pencil className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white">
+                    <h3 className="text-lg font-extrabold text-[#403c21]">
                       Edit Shift Record
                     </h3>
                   </div>

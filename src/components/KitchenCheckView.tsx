@@ -50,7 +50,7 @@ const TAKER_CONFIG: Record<
     bg: 'bg-white',
     text: 'text-[#403c21]',
     border: 'border-[#403c21]/20',
-    badgeBg: 'bg-[#403c21] text-[#403c21] font-extrabold border-[#403c21]',
+    badgeBg: 'bg-[#403c21] text-[#f7f5f0] font-extrabold border-[#403c21]',
     accentGradient: 'from-[#f7f5f0] to-white',
   },
   night_shift: {
@@ -61,7 +61,7 @@ const TAKER_CONFIG: Record<
     bg: 'bg-white',
     text: 'text-[#403c21]',
     border: 'border-[#403c21]/20',
-    badgeBg: 'bg-[#403c21] text-[#403c21] font-extrabold border-[#403c21]',
+    badgeBg: 'bg-[#403c21] text-[#f7f5f0] font-extrabold border-[#403c21]',
     accentGradient: 'from-[#f7f5f0] to-white',
   },
   beu_delivery: {
@@ -72,7 +72,7 @@ const TAKER_CONFIG: Record<
     bg: 'bg-white',
     text: 'text-[#403c21]',
     border: 'border-[#403c21]/20',
-    badgeBg: 'bg-[#403c21] text-[#403c21] font-extrabold border-[#403c21]',
+    badgeBg: 'bg-[#403c21] text-[#f7f5f0] font-extrabold border-[#403c21]',
     accentGradient: 'from-[#f7f5f0] to-white',
   },
 };
@@ -203,7 +203,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
               <h2 className="text-xl font-extrabold text-[#403c21] tracking-tight">
                 Kitchen Check & Reconciliation
               </h2>
-              <span className="bg-[#403c21] text-[#403c21] text-xs px-3 py-0.5 rounded-full font-extrabold">
+              <span className="bg-[#403c21] text-[#f7f5f0] text-xs px-3 py-0.5 rounded-full font-extrabold">
                 Audit Dashboard
               </span>
             </div>
@@ -317,7 +317,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                   'Pending Shift'
                 ) : itemsMatch ? (
                   <>
-                    <CheckCircle2 className="w-5 h-5 text-[#403c21]" />
+                    <CheckCircle2 className="w-5 h-5 text-[#f7f5f0]" />
                     <span className="text-[#403c21]">Balanced</span>
                   </>
                 ) : (
@@ -383,7 +383,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                       <p className="text-[10px] text-neutral-500 font-medium">{cfg.subLabel}</p>
                     </div>
                   </div>
-                  <span className="font-extrabold text-xs px-3 py-1 rounded-full bg-[#403c21] text-[#403c21] shadow-xs">
+                  <span className="font-extrabold text-xs px-3 py-1 rounded-full bg-[#403c21] text-[#f7f5f0] shadow-xs">
                     {data.totalCount} items
                   </span>
                 </div>
@@ -403,7 +403,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                         <span className="text-[#403c21] font-bold truncate max-w-[70%]">
                           {item.name}
                         </span>
-                        <span className="font-extrabold text-[#403c21] bg-[#403c21] px-2.5 py-0.5 rounded-full text-xs shadow-xs">
+                        <span className="font-extrabold text-[#f7f5f0] bg-[#403c21] px-2.5 py-0.5 rounded-full text-xs shadow-xs">
                           ×{item.quantity}
                         </span>
                       </div>
@@ -454,7 +454,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                 onClick={() => setTakerFilter('all')}
                 className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
                   takerFilter === 'all'
-                    ? 'bg-[#403c21] text-[#403c21] shadow-xs'
+                    ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs'
                     : 'text-neutral-600 hover:text-[#403c21]'
                 }`}
               >
@@ -470,7 +470,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                     onClick={() => setTakerFilter(tk)}
                     className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1 ${
                       isActive
-                        ? 'bg-[#403c21] text-[#403c21] shadow-xs'
+                        ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs'
                         : 'text-neutral-600 hover:text-[#403c21]'
                     }`}
                   >
@@ -501,7 +501,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                   className="flex items-center justify-between px-5 py-3 hover:bg-[#f7f5f0] transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-[#403c21] text-[#403c21] flex items-center gap-1 shrink-0 shadow-xs">
+                    <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-[#403c21] text-[#f7f5f0] flex items-center gap-1 shrink-0 shadow-xs">
                       <span>{cfg.emoji}</span>
                       <span>{cfg.shortLabel}</span>
                     </span>

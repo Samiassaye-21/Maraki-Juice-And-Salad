@@ -166,9 +166,9 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
       {/* Quick Direct Pass Button */}
       <button
         onClick={onLoginSuccess}
-        className="mt-8 flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#403c21] text-[#403c21] text-xs font-extrabold transition-all shadow-md cursor-pointer hover:bg-[#33301a] active:scale-95"
+        className="mt-8 flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#403c21] text-[#f7f5f0] text-xs font-extrabold transition-all shadow-md cursor-pointer hover:bg-[#33301a] active:scale-95"
       >
-        <ShieldCheck className="w-4 h-4 text-[#403c21]" />
+        <ShieldCheck className="w-4 h-4 text-[#f7f5f0]" />
         <span>በቀጥታ ግባ (Quick Login: 1234)</span>
         <ArrowRight className="w-3.5 h-3.5 text-[#403c21]" />
       </button>
