@@ -155,9 +155,9 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
             <button
               key={idx}
               onClick={() => handleKey(key)}
-              className="h-14 rounded-full bg-white hover:bg-[#EBF5F0] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#403c21] shadow-xs"
+              className="h-14 rounded-full bg-white hover:bg-[#f7f5f0] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#403c21] shadow-sm"
             >
-              <span className="text-2xl font-extrabold text-white font-bold">{key}</span>
+              <span className="text-2xl font-black text-[#403c21]">{key}</span>
             </button>
           );
         })}
@@ -166,11 +166,11 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
       {/* Quick Direct Pass Button */}
       <button
         onClick={onLoginSuccess}
-        className="mt-8 flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#403c21] text-white font-bold text-xs font-extrabold transition-all shadow-md cursor-pointer hover:bg-[#33301a] active:scale-95"
+        className="mt-8 flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#403c21] text-white font-black text-xs transition-all shadow-md cursor-pointer hover:bg-[#33301a] active:scale-95"
       >
-        <ShieldCheck className="w-4 h-4 text-white font-bold" />
+        <ShieldCheck className="w-4 h-4 text-white" />
         <span>በቀጥታ ግባ (Quick Login: 1234)</span>
-        <ArrowRight className="w-3.5 h-3.5 text-[#403c21]" />
+        <ArrowRight className="w-3.5 h-3.5 text-white" />
       </button>
     </div>
   );

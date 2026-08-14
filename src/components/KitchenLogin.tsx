@@ -120,9 +120,9 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
             <button
               key={idx}
               onClick={() => handleKey(key)}
-              className="h-16 rounded-full bg-white hover:bg-[#EBF5F0] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#403c21] shadow-xs"
+              className="h-16 rounded-full bg-white hover:bg-[#f7f5f0] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#403c21] shadow-sm"
             >
-              <span className="text-2xl font-extrabold text-white font-bold">{key}</span>
+              <span className="text-2xl font-black text-[#403c21]">{key}</span>
             </button>
           );
         })}
