@@ -188,7 +188,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
             <button
               key={p}
               onClick={() => setFilterPeriod(p)}
-              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${filterPeriod === p ? 'bg-[#07250D] text-white shadow-md' : 'text-neutral-600 hover:text-[#07250D]'}`}
+              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${filterPeriod === p ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
             >
               {p === 'week' ? 'This Week' : p === 'month' ? 'Last 30 Days' : 'All Time'}
             </button>
@@ -200,7 +200,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
             <button
               key={v}
               onClick={() => setFilterType(v)}
-              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${filterType === v ? 'bg-[#07250D] text-white shadow-md' : 'text-neutral-600 hover:text-[#07250D]'}`}
+              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${filterType === v ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
             >
               {l}
             </button>

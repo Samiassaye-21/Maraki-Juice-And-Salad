@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -11,12 +11,14 @@ import {
   Truck,
   Settings,
   Receipt,
-  Sparkles,
   ShoppingCart,
   BarChart3,
   FileText,
   LogOut,
-  ChefHat
+  ChefHat,
+  User,
+  ChevronDown,
+  Smartphone
 } from 'lucide-react';
 import { ShiftType, RestaurantSystemConfig, SystemSummaryStats } from '../types';
 import { getEthiopianMonthYear } from '../utils/shiftUtils';
@@ -56,6 +58,20 @@ export const Header: React.FC<HeaderProps> = ({
   pendingShiftsCount,
   onLogout
 }) => {
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   interface TabItem {
     id: MainTab;
     label: string;
@@ -75,6 +91,8 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
+  const currentWorker = activeShift === 'day' ? config.dayShiftWorkerName : config.nightShiftWorkerName;
+
   return (
     <motion.header 
       initial={{ opacity: 0, y: -20 }} 
@@ -84,8 +102,8 @@ export const Header: React.FC<HeaderProps> = ({
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         
-        {/* Top Row: Brand, Month & Controls */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* Top Row: Brand, Month & Menu Controls */}
+        <div className="flex items-center justify-between gap-4">
           
           {/* Brand Identity with Logo */}
           <div 
@@ -105,19 +123,18 @@ export const Header: React.FC<HeaderProps> = ({
               />
             </div>
             <div className="flex flex-col hidden sm:flex">
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-extrabold tracking-tight text-[#07250D]">
-                  Maraki Juice and Salad
-                </h1>
-              </div>
+              <h1 className="text-xl font-extrabold tracking-tight text-[#07250D]">
+                Maraki Juice and Salad
+              </h1>
             </div>
           </div>
 
-          {/* Center: Month & Worker Name */}
-          <div className="flex items-center gap-3 bg-[#F4F8F5] rounded-full px-3 py-1.5 border border-[#238868]/20 hidden lg:flex">
+          {/* Center: Month Selector */}
+          <div className="flex items-center gap-3 bg-[#F4F8F5] rounded-full px-3 py-1.5 border border-[#238868]/20 hidden md:flex">
             <button
               onClick={onPrevMonth}
               className="p-1 rounded-full hover:bg-slate-200 text-[#07250D] transition-colors cursor-pointer"
+              title="Previous Month"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -127,67 +144,174 @@ export const Header: React.FC<HeaderProps> = ({
                 <CalendarIcon className="w-3.5 h-3.5 text-[#238868]" />
                 <span className="font-extrabold text-sm">{selectedMonth} <span className="text-neutral-500 font-normal text-xs ml-1">({getEthiopianMonthYear(selectedMonth)})</span></span>
               </div>
-              <div className="flex items-center gap-1 text-[11px] text-neutral-600 font-medium">
-                <Sparkles className="w-3 h-3 text-[#238868]" />
-                <span>{activeShift === 'day' ? config.dayShiftWorkerName : config.nightShiftWorkerName}</span>
-              </div>
             </div>
 
             <button
               onClick={onNextMonth}
               className="p-1 rounded-full hover:bg-slate-200 text-[#07250D] transition-colors cursor-pointer"
+              title="Next Month"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Controls: Shift Toggle */}
-          <div className="flex items-center gap-1 bg-[#F4F8F5] p-1 rounded-full border border-[#238868]/20">
-            <button
-              onClick={() => setActiveShift('day')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase transition-all duration-150 cursor-pointer ${
-                activeShift === 'day'
-                  ? 'bg-[#13EE86] text-[#07250D] shadow-md'
-                  : 'text-neutral-600 hover:text-[#07250D] hover:bg-slate-200'
-              }`}
-            >
-              <Sun className="w-3.5 h-3.5" />
-              <span>Day</span>
-            </button>
+          {/* Right Controls: Quick Shift Toggle & Profile Menu Dropdown */}
+          <div className="flex items-center gap-3">
+            
+            {/* Quick Shift Toggle Pill */}
+            <div className="flex items-center gap-1 bg-[#F4F8F5] p-1 rounded-full border border-[#238868]/20">
+              <button
+                onClick={() => setActiveShift('day')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase transition-all duration-150 cursor-pointer ${
+                  activeShift === 'day'
+                    ? 'bg-[#13EE86] text-[#07250D] shadow-xs'
+                    : 'text-neutral-600 hover:text-[#07250D] hover:bg-slate-200'
+                }`}
+              >
+                <Sun className="w-3.5 h-3.5 text-[#07250D]" />
+                <span>Day</span>
+              </button>
 
-            <button
-              onClick={() => setActiveShift('night')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase transition-all duration-150 cursor-pointer ${
-                activeShift === 'night'
-                  ? 'bg-[#13EE86] text-[#07250D] shadow-md'
-                  : 'text-neutral-600 hover:text-[#07250D] hover:bg-slate-200'
-              }`}
-            >
-              <Moon className="w-3.5 h-3.5" />
-              <span>Night</span>
-            </button>
-          </div>
+              <button
+                onClick={() => setActiveShift('night')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase transition-all duration-150 cursor-pointer ${
+                  activeShift === 'night'
+                    ? 'bg-[#13EE86] text-[#07250D] shadow-xs'
+                    : 'text-neutral-600 hover:text-[#07250D] hover:bg-slate-200'
+                }`}
+              >
+                <Moon className="w-3.5 h-3.5 text-[#07250D]" />
+                <span>Night</span>
+              </button>
+            </div>
 
-          <div className="flex items-center gap-2 border-l border-[#238868]/20 pl-3 ml-1">
-            <a
-              href="/shift"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-extrabold text-[#07250D] bg-[#13EE86] hover:bg-[#10DF7D] transition-all shadow-md active:scale-95"
-              title="Open Mobile Shift Income Portal"
-            >
-              <Moon className="w-3.5 h-3.5 text-[#07250D]" />
-              <span className="hidden sm:inline">Mobile Shift App</span>
-              <span className="sm:hidden">Shift App</span>
-            </a>
+            {/* Profile Dropdown Trigger Button */}
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className="flex items-center gap-2 bg-[#F4F8F5] hover:bg-slate-200 border border-[#238868]/20 px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-xs active:scale-95 text-[#07250D]"
+              >
+                <div className="w-7 h-7 rounded-full bg-[#13EE86] text-[#07250D] flex items-center justify-center font-extrabold text-xs shadow-xs">
+                  <User className="w-4 h-4" />
+                </div>
+                <div className="hidden sm:flex flex-col text-left">
+                  <span className="text-xs font-extrabold leading-tight text-[#07250D]">{currentWorker}</span>
+                  <span className="text-[10px] text-[#238868] font-bold uppercase tracking-wider">{activeShift} Shift</span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-neutral-500 transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-[#07250D] border-2 border-[#07250D] hover:bg-[#07250D] hover:text-white transition-all cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5 text-rose-500" />
-              <span>Log Out</span>
-            </button>
+              {/* Profile Dropdown Menu */}
+              <AnimatePresence>
+                {isProfileMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="absolute right-0 mt-2 w-72 bg-white rounded-3xl shadow-xl border border-[#238868]/20 p-4 z-50 text-[#07250D] space-y-4"
+                  >
+                    {/* User Info Header */}
+                    <div className="flex items-center gap-3 p-3 bg-[#F4F8F5] rounded-2xl border border-[#238868]/15">
+                      <div className="w-10 h-10 rounded-full bg-[#13EE86] text-[#07250D] flex items-center justify-center font-extrabold shadow-xs">
+                        <User className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-sm text-[#07250D]">{currentWorker}</h4>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#13EE86] text-[#07250D] uppercase">
+                            {activeShift} Shift Active
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Shift Switcher inside Dropdown Menu */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-neutral-500 px-1">
+                        Switch Duty Shift
+                      </label>
+                      <div className="grid grid-cols-2 gap-2 bg-[#F4F8F5] p-1.5 rounded-2xl border border-[#238868]/20">
+                        <button
+                          onClick={() => {
+                            setActiveShift('day');
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                            activeShift === 'day'
+                              ? 'bg-[#13EE86] text-[#07250D] shadow-xs'
+                              : 'text-neutral-600 hover:text-[#07250D] hover:bg-slate-200'
+                          }`}
+                        >
+                          <Sun className="w-4 h-4 text-[#07250D]" />
+                          <span>Day Shift</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setActiveShift('night');
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                            activeShift === 'night'
+                              ? 'bg-[#13EE86] text-[#07250D] shadow-xs'
+                              : 'text-neutral-600 hover:text-[#07250D] hover:bg-slate-200'
+                          }`}
+                        >
+                          <Moon className="w-4 h-4 text-[#07250D]" />
+                          <span>Night Shift</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Quick Links inside Menu */}
+                    <div className="space-y-1 border-t border-[#238868]/15 pt-3">
+                      <a
+                        href="/shift"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#F4F8F5] text-xs font-bold text-[#07250D] transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="w-4 h-4 text-[#238868]" />
+                          <span>Mobile Shift App</span>
+                        </div>
+                        <span className="text-[10px] bg-[#13EE86] text-[#07250D] font-extrabold px-2 py-0.5 rounded-full">Open</span>
+                      </a>
+
+                      <button
+                        onClick={() => {
+                          setActiveTab('settings');
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#F4F8F5] text-xs font-bold text-[#07250D] transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Settings className="w-4 h-4 text-[#238868]" />
+                          <span>System Settings</span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-neutral-400" />
+                      </button>
+                    </div>
+
+                    {/* Logout Option inside Menu */}
+                    <div className="border-t border-[#238868]/15 pt-3">
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onLogout();
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-extrabold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer active:scale-95"
+                      >
+                        <LogOut className="w-4 h-4 text-rose-600" />
+                        <span>Log Out</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
           </div>
         </div>
 
@@ -198,7 +322,7 @@ export const Header: React.FC<HeaderProps> = ({
             const isActive = activeTab === tab.id;
             
             const activeClasses = isActive 
-              ? 'bg-[#13EE86] text-[#07250D] font-extrabold shadow-md' 
+              ? 'bg-[#13EE86] text-[#07250D] font-extrabold shadow-xs' 
               : 'bg-[#F4F8F5] text-neutral-600 hover:text-[#07250D] hover:bg-slate-200 font-bold border border-[#238868]/15';
 
             return (
@@ -212,7 +336,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {tab.count !== undefined && tab.count > 0 && (
                   <span className={`flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-extrabold ml-1 ${
-                    isActive ? 'bg-[#07250D] text-white' : 'bg-[#13EE86] text-[#07250D]'
+                    isActive ? 'bg-[#238868] text-white' : 'bg-[#13EE86] text-[#07250D]'
                   }`}>
                     {tab.count}
                   </span>

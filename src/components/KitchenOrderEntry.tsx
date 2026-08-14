@@ -289,7 +289,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
       initial={{ opacity: 0, scale: 0.7 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.7 }}
-      className="absolute inset-0 flex flex-col items-center justify-center bg-[#07250D]/95 rounded-none z-50"
+      className="absolute inset-0 flex flex-col items-center justify-center bg-white/95 backdrop-blur-md rounded-none z-50 text-[#07250D]"
     >
       <motion.div
         initial={{ scale: 0 }}
@@ -300,8 +300,8 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
         ✅
       </motion.div>
       {/* Amharic: "Saved!" */}
-      <p className="text-[#13EE86] text-4xl font-extrabold">ተቀምጧል!</p>
-      <p className="text-neutral-300 text-xl mt-2">Order Saved</p>
+      <p className="text-[#238868] text-4xl font-extrabold">ተቀምጧል!</p>
+      <p className="text-neutral-600 text-xl font-bold mt-2">Order Saved Successfully</p>
     </motion.div>
   );
 
@@ -309,18 +309,18 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
   const renderTodayOrders = () => (
     <div className="px-5 pb-6">
       <div className="flex items-center gap-2 mb-3">
-        <Clock className="w-4 h-4 text-neutral-400" />
+        <Clock className="w-4 h-4 text-[#238868]" />
         {/* Amharic: "Today's Orders" */}
-        <h3 className="text-neutral-300 text-xs font-bold uppercase tracking-wider">
+        <h3 className="text-neutral-600 text-xs font-extrabold uppercase tracking-wider">
           የዛሬ ትዕዛዞች ({todayStr})
         </h3>
-        <span className="ml-auto bg-[#13EE86] text-[#07250D] text-xs px-2.5 py-0.5 rounded-full font-bold">
+        <span className="ml-auto bg-[#13EE86] text-[#07250D] text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-xs">
           {todayOrders.length}
         </span>
       </div>
       {todayOrders.length === 0 ? (
-        <p className="text-neutral-400 text-center py-4 text-sm">
-          {loadedToday ? 'ዛሬ ምንም ትዕዛዝ የለም' : '...'}
+        <p className="text-neutral-500 text-center py-4 text-sm font-medium">
+          {loadedToday ? 'ዛሬ ምንም ትዕዛዝ የለም (No orders today)' : '...'}
         </p>
       ) : (
         <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
@@ -329,18 +329,18 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
             return (
               <div
                 key={order.id}
-                className="flex items-center gap-3 bg-[#238868]/20 rounded-2xl px-4 py-3 border border-[#238868]/40"
+                className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 border border-[#238868]/20 shadow-xs text-[#07250D]"
               >
                 <span className="text-2xl">{t.emoji}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-bold text-sm truncate">{order.foodItemName}</p>
-                  <p className="text-neutral-300 text-xs">
+                  <p className="text-[#07250D] font-extrabold text-sm truncate">{order.foodItemName}</p>
+                  <p className="text-neutral-600 text-xs font-medium">
                     ×{order.quantity} · {formatEthiopianTime(order.orderTime)} ({formatTime(order.orderTime)})
                   </p>
                 </div>
                 <button
                   onClick={() => handleDeleteOrder(order.id)}
-                  className="p-2 rounded-full hover:bg-red-950/50 text-neutral-300 hover:text-white transition-all cursor-pointer"
+                  className="p-2 rounded-full hover:bg-rose-50 text-neutral-400 hover:text-rose-600 transition-all cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
