@@ -209,7 +209,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
     }, 2500);
   };
 
-  const inputClasses = "w-full px-4 py-2.5 bg-[#07250D] border border-[#238868]/50 rounded-full text-white text-sm focus:outline-none focus:border-[#13EE86] transition-all placeholder:text-neutral-500";
+  const inputClasses = "w-full px-4 py-2.5 bg-white border border-[#238868]/30 rounded-full text-[#07250D] text-sm font-bold focus:outline-none focus:border-[#238868] focus:ring-4 focus:ring-[#13EE86]/20 transition-all placeholder:text-neutral-400 shadow-xs";
 
   const getCategoryBadge = (category?: string) => {
     switch (category) {
@@ -222,7 +222,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       case 'special':
         return <span className="bg-[#13EE86] text-[#07250D] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Special</span>;
       default:
-        return <span className="bg-[#238868]/40 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Dish</span>;
+        return <span className="bg-[#F4F8F5] text-[#07250D] border border-[#238868]/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Dish</span>;
     }
   };
 
@@ -231,27 +231,27 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       initial={{ opacity: 0, y: 16 }} 
       animate={{ opacity: 1, y: 0 }} 
       transition={{ duration: 0.4 }}
-      className="space-y-6 text-white"
+      className="space-y-6 font-sans text-[#07250D]"
     >
       
       {/* HEADER CARD */}
-      <div className="bg-[#238868]/20 rounded-3xl p-5 sm:p-6 border border-[#238868]/40 shadow-sm flex items-center justify-between">
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#238868]/20 shadow-xs flex items-center justify-between">
         <div className="flex items-center space-x-3.5">
-          <div className="p-3.5 rounded-full bg-[#238868]/40 text-[#13EE86] border border-[#238868]/60">
+          <div className="p-3.5 rounded-full bg-[#F4F8F5] text-[#238868] border border-[#238868]/20">
             <Settings className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-xl font-extrabold text-[#07250D]">
               System Configuration & Food Menu
             </h2>
-            <p className="text-sm font-medium text-neutral-300 mt-0.5">
+            <p className="text-sm font-medium text-neutral-600 mt-0.5">
               Set juice prices over time, manage your custom food menu & worker settings
             </p>
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-[#238868]/20 rounded-3xl border border-[#238868]/40 shadow-sm p-5 sm:p-6 space-y-8">
+      <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-[#238868]/20 shadow-xs p-5 sm:p-6 space-y-8 text-[#07250D]">
         
         {/* JUICE PRICING SECTION */}
         <div className="space-y-4">

@@ -183,22 +183,22 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
     setIsFormOpen(false);
   };
 
-  const inputClasses = "w-full px-4 py-2.5 rounded-full border border-[#238868]/50 bg-[#07250D] text-white text-sm focus:outline-none focus:border-[#13EE86] transition-all placeholder:text-neutral-500";
+  const inputClasses = "w-full px-4 py-2.5 rounded-full border border-[#238868]/30 bg-white text-[#07250D] text-sm font-bold focus:outline-none focus:border-[#238868] focus:ring-4 focus:ring-[#13EE86]/20 transition-all placeholder:text-neutral-400 shadow-xs";
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 text-white">
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 font-sans text-[#07250D]">
       
       {/* HEADER CARD */}
-      <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl shadow-sm p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+      <div className="bg-white border border-[#238868]/20 rounded-3xl shadow-xs p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
         <div className="flex items-center space-x-3.5">
-          <div className="p-3.5 rounded-full bg-[#238868]/40 text-[#13EE86] border border-[#238868]/60">
+          <div className="p-3.5 rounded-full bg-[#F4F8F5] text-[#238868] border border-[#238868]/20">
             <Clock className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-xl font-extrabold text-[#07250D]">
               Customer Pending Payments
             </h2>
-            <p className="text-sm text-neutral-300 mt-0.5">
+            <p className="text-sm font-medium text-neutral-600 mt-0.5">
               Track customer unpaid credit ledgers by shift worker
             </p>
           </div>
@@ -206,16 +206,16 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
 
         <div className="flex items-center space-x-4 w-full sm:w-auto">
           <div className="flex flex-col items-end">
-            <span className="text-xs font-medium uppercase tracking-wider text-neutral-300">
+            <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
               Outstanding Unpaid
             </span>
-            <span className="text-2xl font-extrabold text-[#13EE86]">
+            <span className="text-2xl font-extrabold text-[#238868]">
               {formatCurrency(totalOutstanding, currencySymbol)}
             </span>
           </div>
           <button
             onClick={() => setIsFormOpen(!isFormOpen)}
-            className="px-5 py-2.5 bg-[#13EE86] hover:bg-[#13EE86]/90 text-[#07250D] font-bold rounded-full shadow-md transition-colors flex items-center space-x-2 shrink-0 cursor-pointer text-sm"
+            className="px-5 py-2.5 bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] font-extrabold rounded-full shadow-md transition-all flex items-center space-x-2 shrink-0 cursor-pointer text-sm active:scale-95"
           >
             <Plus className="w-5 h-5 text-[#07250D]" />
             <span>Add Record</span>
@@ -226,17 +226,17 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
       {/* SHIFT SUMMARY CARDS (DAY VS NIGHT) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* DAY SHIFT CARD */}
-        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-5 shadow-sm flex items-center justify-between">
+        <div className="bg-white border border-[#238868]/20 rounded-3xl p-5 shadow-xs flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="p-3 bg-[#238868]/40 text-[#13EE86] rounded-full border border-[#238868]/60">
-              <Sun className="w-5 h-5" />
+            <div className="p-3 bg-[#F4F8F5] text-[#07250D] rounded-full border border-[#238868]/20">
+              <Sun className="w-5 h-5 text-[#238868]" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-white">Day Shift Pending</span>
-                <span className="bg-[#13EE86] text-[#07250D] text-[10px] font-bold px-2.5 py-0.5 rounded-full">{dayShiftUnpaid.length} Unpaid</span>
+                <span className="text-xs font-extrabold uppercase tracking-wider text-[#07250D]">Day Shift Pending</span>
+                <span className="bg-[#13EE86] text-[#07250D] text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">{dayShiftUnpaid.length} Unpaid</span>
               </div>
-              <div className="text-xs font-semibold text-neutral-300 mt-1 flex items-center space-x-2">
+              <div className="text-xs font-bold text-neutral-600 mt-1 flex items-center space-x-2">
                 <span>🥤 {dayShiftCups} Cups</span>
                 <span>•</span>
                 <span>📦 {dayShiftBoxes} Food Boxes</span>
@@ -244,23 +244,23 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
             </div>
           </div>
           <div className="text-right">
-            <span className="text-[10px] uppercase font-medium text-neutral-400 block">Pending Total</span>
-            <span className="text-lg font-extrabold text-[#13EE86]">{formatCurrency(dayShiftTotalAmount, currencySymbol)}</span>
+            <span className="text-[10px] uppercase font-bold text-neutral-500 block">Pending Total</span>
+            <span className="text-lg font-extrabold text-[#238868]">{formatCurrency(dayShiftTotalAmount, currencySymbol)}</span>
           </div>
         </div>
 
         {/* NIGHT SHIFT CARD */}
-        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-5 shadow-sm flex items-center justify-between">
+        <div className="bg-white border border-[#238868]/20 rounded-3xl p-5 shadow-xs flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="p-3 bg-[#238868]/40 text-[#13EE86] rounded-full border border-[#238868]/60">
-              <Moon className="w-5 h-5" />
+            <div className="p-3 bg-[#07250D] text-white rounded-full">
+              <Moon className="w-5 h-5 text-[#13EE86]" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-white">Night Shift Pending</span>
-                <span className="bg-[#13EE86] text-[#07250D] text-[10px] font-bold px-2.5 py-0.5 rounded-full">{nightShiftUnpaid.length} Unpaid</span>
+                <span className="text-xs font-extrabold uppercase tracking-wider text-[#07250D]">Night Shift Pending</span>
+                <span className="bg-[#13EE86] text-[#07250D] text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">{nightShiftUnpaid.length} Unpaid</span>
               </div>
-              <div className="text-xs font-semibold text-neutral-300 mt-1 flex items-center space-x-2">
+              <div className="text-xs font-bold text-neutral-600 mt-1 flex items-center space-x-2">
                 <span>🥤 {nightShiftCups} Cups</span>
                 <span>•</span>
                 <span>📦 {nightShiftBoxes} Food Boxes</span>
@@ -268,8 +268,8 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
             </div>
           </div>
           <div className="text-right">
-            <span className="text-[10px] uppercase font-medium text-neutral-400 block">Pending Total</span>
-            <span className="text-lg font-extrabold text-[#13EE86]">{formatCurrency(nightShiftTotalAmount, currencySymbol)}</span>
+            <span className="text-[10px] uppercase font-bold text-neutral-500 block">Pending Total</span>
+            <span className="text-lg font-extrabold text-[#238868]">{formatCurrency(nightShiftTotalAmount, currencySymbol)}</span>
           </div>
         </div>
       </div>

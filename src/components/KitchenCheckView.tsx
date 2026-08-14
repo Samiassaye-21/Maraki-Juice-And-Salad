@@ -190,24 +190,24 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="space-y-6 max-w-7xl mx-auto text-white"
+      className="space-y-6 max-w-7xl mx-auto text-[#07250D] font-sans"
     >
       {/* ─── Top Header & Controls ─────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#238868]/20 border border-[#238868]/40 p-5 rounded-3xl shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-[#238868]/20 p-5 rounded-3xl shadow-xs">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-[#238868]/40 text-[#13EE86] border border-[#238868]/60 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-[#F4F8F5] text-[#238868] border border-[#238868]/20 flex items-center justify-center">
             <ChefHat className="w-6.5 h-6.5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-white tracking-tight">
+              <h2 className="text-xl font-extrabold text-[#07250D] tracking-tight">
                 Kitchen Check & Reconciliation
               </h2>
-              <span className="bg-[#13EE86] text-[#07250D] text-xs px-3 py-0.5 rounded-full font-bold">
+              <span className="bg-[#13EE86] text-[#07250D] text-xs px-3 py-0.5 rounded-full font-extrabold">
                 Audit Dashboard
               </span>
             </div>
-            <p className="text-xs text-neutral-300 mt-0.5">
+            <p className="text-xs text-neutral-600 font-medium mt-0.5">
               Classified orders breakdown by Taker & Ethiopian Shift Clock
             </p>
           </div>
@@ -216,24 +216,24 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
         {/* Action Controls & Date Navigator */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Date Selector Pill */}
-          <div className="flex items-center gap-1.5 bg-[#07250D] p-1.5 rounded-full border border-[#238868]/40">
+          <div className="flex items-center gap-1.5 bg-[#F4F8F5] p-1.5 rounded-full border border-[#238868]/20">
             <button
               onClick={() => setDateIdx((i) => Math.min(i + 1, availableDates.length - 1))}
               disabled={dateIdx >= availableDates.length - 1}
-              className="p-1.5 rounded-full hover:bg-[#238868]/30 text-white transition-all cursor-pointer disabled:opacity-30"
+              className="p-1.5 rounded-full hover:bg-slate-200 text-[#07250D] transition-all cursor-pointer disabled:opacity-30"
               title="Previous Date"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <div className="px-3 text-center min-w-[140px]">
               <div className="flex items-center justify-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-[#13EE86]" />
-                <p className="font-bold text-white text-xs">
+                <Calendar className="w-3.5 h-3.5 text-[#238868]" />
+                <p className="font-extrabold text-[#07250D] text-xs">
                   {formatDate(selectedDate)}
                 </p>
               </div>
               {selectedDate === getOperationalDate() && (
-                <span className="inline-block text-[10px] font-bold text-[#13EE86] uppercase tracking-wider">
+                <span className="inline-block text-[10px] font-extrabold text-[#238868] uppercase tracking-wider">
                   Active Shift Date
                 </span>
               )}
@@ -241,7 +241,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
             <button
               onClick={() => setDateIdx((i) => Math.max(i - 1, 0))}
               disabled={dateIdx <= 0}
-              className="p-1.5 rounded-full hover:bg-[#238868]/30 text-white transition-all cursor-pointer disabled:opacity-30"
+              className="p-1.5 rounded-full hover:bg-slate-200 text-[#07250D] transition-all cursor-pointer disabled:opacity-30"
               title="Next Date"
             >
               <ChevronRight className="w-4 h-4" />
@@ -253,7 +253,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
             <button
               onClick={() => handleClear(false)}
               disabled={isClearing || kitchenOrders.length === 0}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-neutral-300 hover:text-white bg-[#07250D] hover:bg-red-950/50 border border-[#238868]/40 transition-all cursor-pointer disabled:opacity-40"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer disabled:opacity-40"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Clear Orders</span>

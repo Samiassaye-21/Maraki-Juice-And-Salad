@@ -44,7 +44,7 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center px-6 font-sans bg-[#07250D] text-white"
+      className="min-h-screen flex flex-col items-center justify-center px-6 font-sans bg-[#F4F8F5] text-[#07250D]"
     >
       {/* Logo & Title */}
       <motion.div
@@ -53,7 +53,7 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
         transition={{ duration: 0.5 }}
         className="flex flex-col items-center mb-10 text-center"
       >
-        <div className="w-24 h-24 rounded-full bg-[#238868]/30 flex items-center justify-center mb-4 shadow-lg border border-[#13EE86]/30">
+        <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center mb-4 shadow-md border-2 border-[#238868]/20 p-1">
           <img
             src="/logo.jpg"
             alt="Maraki"
@@ -61,9 +61,9 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
         </div>
-        <h1 className="text-4xl font-bold text-white tracking-wide mb-1">ማራኪ</h1>
-        <p className="text-xl text-[#13EE86] font-semibold">ኩሽና መዝግቢያ</p>
-        <p className="text-sm text-neutral-300 mt-1">Kitchen Order System</p>
+        <h1 className="text-4xl font-extrabold text-[#07250D] tracking-wide mb-1">ማራኪ</h1>
+        <p className="text-xl text-[#238868] font-extrabold uppercase tracking-wider">ኩሽና መዝግቢያ</p>
+        <p className="text-sm font-semibold text-neutral-600 mt-1">Kitchen Order System</p>
       </motion.div>
 
       {/* PIN Dots */}
@@ -79,8 +79,8 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
               i < pin.length
                 ? errorMsg
                   ? 'bg-rose-500 border-rose-400 scale-110'
-                  : 'bg-[#13EE86] border-[#13EE86] scale-110'
-                : 'bg-transparent border-[#238868]'
+                  : 'bg-[#13EE86] border-[#07250D] scale-110 shadow-xs'
+                : 'bg-white border-[#238868]/40'
             }`}
           />
         ))}
@@ -92,7 +92,7 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="text-rose-400 text-sm font-semibold mb-4 -mt-2"
+            className="text-rose-600 text-sm font-bold mb-4 -mt-2"
           >
             ስህተት ቁጥር! እንደገና ሞክር
           </motion.p>
@@ -110,9 +110,9 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
               <button
                 key={idx}
                 onClick={handleDelete}
-                className="h-16 rounded-full bg-[#238868]/30 hover:bg-[#238868]/50 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border border-[#238868]/50"
+                className="h-16 rounded-full bg-white hover:bg-rose-50 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#07250D] shadow-xs text-[#07250D]"
               >
-                <Delete className="w-6 h-6 text-white" />
+                <Delete className="w-6 h-6 text-[#07250D]" />
               </button>
             );
           }
@@ -120,15 +120,15 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
             <button
               key={idx}
               onClick={() => handleKey(key)}
-              className="h-16 rounded-full bg-[#238868]/30 hover:bg-[#238868] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border border-[#238868]/50"
+              className="h-16 rounded-full bg-white hover:bg-[#EBF5F0] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#07250D] shadow-xs"
             >
-              <span className="text-2xl font-bold text-white">{key}</span>
+              <span className="text-2xl font-extrabold text-[#07250D]">{key}</span>
             </button>
           );
         })}
       </div>
 
-      <p className="mt-8 text-neutral-400 text-xs text-center">
+      <p className="mt-8 text-neutral-600 text-xs font-semibold text-center">
         የምስጢር ቁጥርዎን ያስገቡ
       </p>
     </div>

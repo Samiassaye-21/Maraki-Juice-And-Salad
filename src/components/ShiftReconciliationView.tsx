@@ -357,13 +357,13 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
     );
   };
 
-  const inputClasses = "w-full px-4 py-2.5 bg-[#07250D] border border-[#238868]/50 rounded-full text-white text-sm focus:outline-none focus:border-[#13EE86] transition-all shadow-sm placeholder:text-neutral-500";
-  const leftoverInputClasses = "w-full px-4 py-2.5 bg-[#07250D] border-2 border-[#13EE86] rounded-full text-[#13EE86] text-base font-bold text-center focus:outline-none focus:border-[#13EE86] transition-all shadow-sm";
-  const labelClasses = "block text-xs font-medium text-neutral-300 uppercase tracking-wider mb-1.5";
-  const subLabelClasses = "text-xs text-neutral-400 block text-center mt-1.5";
+  const inputClasses = "w-full px-4 py-2.5 bg-white border border-[#238868]/30 rounded-full text-[#07250D] text-sm font-bold focus:outline-none focus:border-[#238868] focus:ring-4 focus:ring-[#13EE86]/20 transition-all shadow-xs placeholder:text-neutral-400";
+  const leftoverInputClasses = "w-full px-4 py-2.5 bg-white border-2 border-[#238868] rounded-full text-[#238868] text-base font-extrabold text-center focus:outline-none transition-all shadow-xs";
+  const labelClasses = "block text-xs font-bold text-neutral-600 uppercase tracking-wider mb-1.5";
+  const subLabelClasses = "text-xs text-neutral-500 font-medium block text-center mt-1.5";
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 font-sans text-white">
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 font-sans text-[#07250D]">
       
       <AnimatePresence>
         {savedSuccessMsg && (

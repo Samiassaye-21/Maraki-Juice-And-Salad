@@ -159,38 +159,38 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
   })();
 
   return (
-    <div className="space-y-6 text-white">
+    <div className="space-y-6 text-[#07250D] font-sans">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white">Inventory Purchases</h2>
-          <p className="text-sm text-neutral-300 mt-0.5">Bulk buying — fruits, packaging & supplies</p>
+          <h2 className="text-xl font-extrabold text-[#07250D]">Inventory Purchases</h2>
+          <p className="text-sm font-medium text-neutral-600 mt-0.5">Bulk buying — fruits, packaging & supplies</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#13EE86] hover:bg-[#13EE86]/90 text-[#07250D] rounded-full font-bold text-sm shadow-md transition-all cursor-pointer"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
         >
           <Plus className="w-4 h-4 text-[#07250D]" />
-          New Trip
+          <span>New Trip</span>
         </button>
       </div>
 
       {/* This-week summary */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-5">
-          <p className="text-xs font-medium text-neutral-300 uppercase tracking-wide">This Week</p>
-          <p className="text-2xl font-extrabold text-[#13EE86] mt-1">{formatCurrency(totalThisWeek, currencySymbol)}</p>
-          <p className="text-xs text-neutral-400 mt-0.5">{purchaseTrips.filter(t => {
+        <div className="bg-white border border-[#238868]/20 rounded-3xl p-5 shadow-xs">
+          <p className="text-xs font-bold text-neutral-500 uppercase tracking-wide">This Week</p>
+          <p className="text-2xl font-extrabold text-[#238868] mt-1">{formatCurrency(totalThisWeek, currencySymbol)}</p>
+          <p className="text-xs text-neutral-500 font-medium mt-0.5">{purchaseTrips.filter(t => {
             const ws = new Date(); ws.setDate(ws.getDate() - ws.getDay());
             return new Date(t.date) >= ws;
           }).length} trips</p>
         </div>
-        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-5">
-          <p className="text-xs font-medium text-neutral-300 uppercase tracking-wide">All Time</p>
-          <p className="text-2xl font-extrabold text-white mt-1">
+        <div className="bg-white border border-[#238868]/20 rounded-3xl p-5 shadow-xs">
+          <p className="text-xs font-bold text-neutral-500 uppercase tracking-wide">All Time</p>
+          <p className="text-2xl font-extrabold text-[#07250D] mt-1">
             {formatCurrency(purchaseTrips.reduce((s, t) => s + t.grandTotal, 0), currencySymbol)}
           </p>
-          <p className="text-xs text-neutral-400 mt-0.5">{purchaseTrips.length} total trips</p>
+          <p className="text-xs text-neutral-500 font-medium mt-0.5">{purchaseTrips.length} total trips</p>
         </div>
       </div>
 
@@ -201,14 +201,14 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-[#07250D]/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+            className="fixed inset-0 z-50 bg-[#07250D]/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
           >
             <motion.div
               initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
               transition={{ type: 'spring', damping: 22, stiffness: 300 }}
-              className="bg-[#07250D] w-full max-w-2xl rounded-t-3xl sm:rounded-3xl border border-[#238868]/50 shadow-2xl flex flex-col max-h-[92vh] text-white"
+              className="bg-white w-full max-w-2xl rounded-t-3xl sm:rounded-3xl border border-[#238868]/20 shadow-2xl flex flex-col max-h-[92vh] text-[#07250D]"
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between px-6 py-5 border-b border-[#238868]/30 flex-shrink-0">

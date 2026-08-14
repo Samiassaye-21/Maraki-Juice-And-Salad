@@ -99,48 +99,48 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
     setEditingShift(null);
   };
 
-  const inputClasses = "w-full px-4 py-2.5 rounded-full border border-[#238868]/50 bg-[#07250D] text-white text-sm focus:outline-none focus:border-[#13EE86] transition-all placeholder:text-neutral-500";
+  const inputClasses = "w-full px-4 py-2.5 rounded-full border border-[#238868]/30 bg-white text-[#07250D] text-sm font-bold focus:outline-none focus:border-[#238868] focus:ring-4 focus:ring-[#13EE86]/20 transition-all placeholder:text-neutral-400 shadow-xs";
 
   return (
     <motion.div 
       initial={{ opacity: 0, y: 16 }} 
       animate={{ opacity: 1, y: 0 }} 
       transition={{ duration: 0.4 }}
-      className="space-y-6 text-white"
+      className="space-y-6 font-sans text-[#07250D]"
     >
       
       {/* HEADER CARD */}
-      <div className="bg-[#238868]/20 rounded-3xl p-5 sm:p-6 border border-[#238868]/40 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#238868]/20 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-3.5">
-          <div className="p-3.5 rounded-full bg-[#238868]/40 text-[#13EE86] border border-[#238868]/60">
+          <div className="p-3.5 rounded-full bg-[#F4F8F5] text-[#238868] border border-[#238868]/20">
             <Receipt className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-xl font-extrabold text-[#07250D]">
               Shift History & Reconciliation Audit
             </h2>
-            <p className="text-sm font-medium text-neutral-300 mt-0.5">
+            <p className="text-sm font-medium text-neutral-600 mt-0.5">
               Complete historical record of shift handovers, stock counts & net cash
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-1 bg-[#07250D] p-1 rounded-full border border-[#238868]/40 text-xs font-bold w-full sm:w-auto">
+        <div className="flex items-center space-x-1 bg-[#F4F8F5] p-1 rounded-full border border-[#238868]/20 text-xs font-bold w-full sm:w-auto">
           <button
             onClick={() => setShiftTypeFilter('all')}
-            className={`px-4 py-2 rounded-full transition-all cursor-pointer flex-1 sm:flex-none ${shiftTypeFilter === 'all' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+            className={`px-4 py-2 rounded-full transition-all cursor-pointer flex-1 sm:flex-none ${shiftTypeFilter === 'all' ? 'bg-[#07250D] text-white shadow-md' : 'text-neutral-600 hover:text-[#07250D]'}`}
           >
             All Shifts
           </button>
           <button
             onClick={() => setShiftTypeFilter('day')}
-            className={`px-4 py-2 rounded-full transition-all cursor-pointer flex-1 sm:flex-none ${shiftTypeFilter === 'day' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+            className={`px-4 py-2 rounded-full transition-all cursor-pointer flex-1 sm:flex-none ${shiftTypeFilter === 'day' ? 'bg-[#07250D] text-white shadow-md' : 'text-neutral-600 hover:text-[#07250D]'}`}
           >
             Day Shift
           </button>
           <button
             onClick={() => setShiftTypeFilter('night')}
-            className={`px-4 py-2 rounded-full transition-all cursor-pointer flex-1 sm:flex-none ${shiftTypeFilter === 'night' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+            className={`px-4 py-2 rounded-full transition-all cursor-pointer flex-1 sm:flex-none ${shiftTypeFilter === 'night' ? 'bg-[#07250D] text-white shadow-md' : 'text-neutral-600 hover:text-[#07250D]'}`}
           >
             Night Shift
           </button>
@@ -154,7 +154,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
           placeholder="Search by worker name, date, or notes..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 bg-[#07250D] border border-[#238868]/50 rounded-full text-sm text-white focus:outline-none focus:border-[#13EE86] placeholder:text-neutral-500"
+          className="w-full pl-11 pr-4 py-3 bg-white border border-[#238868]/30 rounded-full text-sm text-[#07250D] font-bold focus:outline-none focus:border-[#238868] focus:ring-4 focus:ring-[#13EE86]/20 placeholder:text-neutral-400 shadow-xs"
         />
         <Search className="w-5 h-5 text-neutral-400 absolute left-4 top-3.5" />
       </div>
@@ -162,10 +162,10 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
       {/* SHIFTS LIST */}
       <div className="space-y-4">
         {filteredShifts.length === 0 ? (
-          <div className="bg-[#238868]/20 rounded-3xl p-12 text-center border border-[#238868]/40 flex flex-col items-center">
-            <Receipt className="w-12 h-12 text-neutral-400 mb-3" />
-            <h3 className="text-base font-bold text-white">No closed shift history yet</h3>
-            <p className="text-sm text-neutral-300 mt-1">Closed shifts will be archived here for audit</p>
+          <div className="bg-white rounded-3xl p-12 text-center border border-[#238868]/20 flex flex-col items-center shadow-xs">
+            <Receipt className="w-12 h-12 text-[#238868] mb-3 opacity-40" />
+            <h3 className="text-base font-extrabold text-[#07250D]">No closed shift history yet</h3>
+            <p className="text-sm font-medium text-neutral-600 mt-1">Closed shifts will be archived here for audit</p>
           </div>
         ) : (
           filteredShifts.map((shift, index) => (
@@ -174,7 +174,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.04 }}
               key={shift.id}
-              className="bg-[#238868]/20 rounded-3xl p-5 sm:p-6 shadow-sm transition-all hover:border-[#13EE86]/50 border border-[#238868]/40"
+              className="bg-white rounded-3xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-all border border-[#238868]/20 text-[#07250D]"
             >
               {/* Top Row: Date, Shift Type & Net Cash */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#238868]/30 pb-4">

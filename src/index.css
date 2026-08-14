@@ -22,14 +22,14 @@ html {
 }
 
 body {
-  background-color: #07250D;
+  background-color: #F8FAFC;
   min-height: 100vh;
-  color: #FFFFFF;
+  color: #07250D;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #07250D; }
+::-webkit-scrollbar-track { background: #F4F8F5; }
 ::-webkit-scrollbar-thumb { background: #238868; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: #13EE86; }
 
