@@ -27,6 +27,8 @@ const entryTypeConfig: Record<LedgerEntry['type'], { label: string; icon: string
   other_expense:          { label: 'Business Expense',    icon: '🏢', color: 'text-orange-500'  },
 };
 
+import { safeLocalStorage } from '../utils/safeStorage';
+
 export const AccountView: React.FC<AccountViewProps> = ({
   ledgerEntries,
   currencySymbol,
@@ -34,18 +36,14 @@ export const AccountView: React.FC<AccountViewProps> = ({
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('month');
   const [showBalance, setShowBalance] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('maraki_show_account_balance');
-      return saved !== null ? saved === 'true' : true;
-    } catch {
-      return true;
-    }
+    const saved = safeLocalStorage.getItem('maraki_show_account_balance');
+    return saved !== null ? saved === 'true' : true;
   });
 
   const toggleShowBalance = () => {
     setShowBalance(prev => {
       const next = !prev;
-      try { localStorage.setItem('maraki_show_account_balance', String(next)); } catch {}
+      safeLocalStorage.setItem('maraki_show_account_balance', String(next));
       return next;
     });
   };

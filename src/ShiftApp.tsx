@@ -4,12 +4,13 @@ import ShiftEntryView from './components/ShiftEntryView';
 import { supabase } from './lib/supabaseClient';
 import { RestaurantSystemConfig } from './types';
 import { DEFAULT_RESTAURANT_CONFIG } from './data/initialData';
+import { safeSessionStorage } from './utils/safeStorage';
 
 const SHIFT_SESSION_KEY = 'maraki_shift_auth';
 
 function ShiftApp() {
   const [authed, setAuthed] = useState(() => {
-    return sessionStorage.getItem(SHIFT_SESSION_KEY) === 'true';
+    return safeSessionStorage.getItem(SHIFT_SESSION_KEY) === 'true';
   });
   const [config, setConfig] = useState<RestaurantSystemConfig>(DEFAULT_RESTAURANT_CONFIG);
 
@@ -35,7 +36,7 @@ function ShiftApp() {
   }, []);
 
   const handleLoginSuccess = () => {
-    sessionStorage.setItem(SHIFT_SESSION_KEY, 'true');
+    safeSessionStorage.setItem(SHIFT_SESSION_KEY, 'true');
     setAuthed(true);
   };
 

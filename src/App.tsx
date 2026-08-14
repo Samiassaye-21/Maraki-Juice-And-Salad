@@ -32,6 +32,8 @@ import {
 } from './types';
 import { calculateSystemSummary, getAutoShiftType, buildShiftLedgerEntries } from './utils/shiftUtils';
 
+import { safeLocalStorage, safeSessionStorage } from './utils/safeStorage';
+
 const STORAGE_KEY_THEME = 'maraki_theme_mode_v1';
 
 export function App() {
@@ -48,13 +50,9 @@ export function App() {
 
   // Theme Mode State ('light' | 'dark')
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_THEME);
-      if (saved === 'dark' || saved === 'light') return saved;
-      return 'light';
-    } catch {
-      return 'light';
-    }
+    const saved = safeLocalStorage.getItem(STORAGE_KEY_THEME);
+    if (saved === 'dark' || saved === 'light') return saved;
+    return 'light';
   });
 
   const [authToken, setAuthToken] = useState<string | null>(null);
@@ -70,28 +68,28 @@ export function App() {
   const [otherExpenses, setOtherExpensesState] = useState<OtherExpenseItem[]>([]);
   const [kitchenOrders, setKitchenOrdersState] = useState<KitchenOrder[]>([]);
 
-  // Load token from sessionStorage on mount (resets on tab close)
+  // Load token from safeSessionStorage on mount (resets on tab close)
   useEffect(() => {
     // Clean up old localStorage token if it exists to force new security flow
-    localStorage.removeItem('maraki_auth_token');
+    safeLocalStorage.removeItem('maraki_auth_token');
     
-    const token = sessionStorage.getItem('maraki_auth_token');
+    const token = safeSessionStorage.getItem('maraki_auth_token');
     if (token) setAuthToken(token);
   }, []);
 
   const handleLoginSuccess = (token: string) => {
-    sessionStorage.setItem('maraki_auth_token', token);
+    safeSessionStorage.setItem('maraki_auth_token', token);
     setAuthToken(token);
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem('maraki_auth_token');
+    safeSessionStorage.removeItem('maraki_auth_token');
     setAuthToken(null);
   };
 
   // Sync dark class on document element & persist preference
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY_THEME, themeMode); } catch { }
+    safeLocalStorage.setItem(STORAGE_KEY_THEME, themeMode);
     if (themeMode === 'dark') {
       document.documentElement.classList.add('dark');
     } else {

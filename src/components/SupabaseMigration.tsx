@@ -6,12 +6,13 @@ import {
   PendingPaymentItem, 
   DeliveryAccountRecord 
 } from '../types';
+import { safeLocalStorage } from '../utils/safeStorage';
 
-interface MigrationProps {
+interface SupabaseMigrationProps {
   onMigrationComplete: () => void;
 }
 
-export function SupabaseMigration({ onMigrationComplete }: MigrationProps) {
+export const SupabaseMigration: React.FC<SupabaseMigrationProps> = ({ onMigrationComplete }) => {
   const [isMigrating, setIsMigrating] = useState(false);
   const [status, setStatus] = useState<string>('');
 
@@ -20,10 +21,10 @@ export function SupabaseMigration({ onMigrationComplete }: MigrationProps) {
     setStatus('Reading local storage...');
 
     try {
-      const configStr = localStorage.getItem('maraki_config_v1');
-      const shiftsStr = localStorage.getItem('maraki_shifts_v1');
-      const pendingStr = localStorage.getItem('maraki_pending_v1');
-      const deliveryStr = localStorage.getItem('maraki_delivery_v1');
+      const configStr = safeLocalStorage.getItem('maraki_config_v1');
+      const shiftsStr = safeLocalStorage.getItem('maraki_shifts_v1');
+      const pendingStr = safeLocalStorage.getItem('maraki_pending_v1');
+      const deliveryStr = safeLocalStorage.getItem('maraki_delivery_v1');
 
       if (configStr) {
         setStatus('Migrating config...');
@@ -112,10 +113,10 @@ export function SupabaseMigration({ onMigrationComplete }: MigrationProps) {
       setStatus('Migration complete! Removing local storage data...');
       
       // Clear local storage so we don't migrate again
-      localStorage.removeItem('maraki_config_v1');
-      localStorage.removeItem('maraki_shifts_v1');
-      localStorage.removeItem('maraki_pending_v1');
-      localStorage.removeItem('maraki_delivery_v1');
+      safeLocalStorage.removeItem('maraki_config_v1');
+      safeLocalStorage.removeItem('maraki_shifts_v1');
+      safeLocalStorage.removeItem('maraki_pending_v1');
+      safeLocalStorage.removeItem('maraki_delivery_v1');
 
       setTimeout(() => {
         onMigrationComplete();
@@ -128,7 +129,7 @@ export function SupabaseMigration({ onMigrationComplete }: MigrationProps) {
     }
   };
 
-  const hasLocalData = !!localStorage.getItem('maraki_shifts_v1');
+  const hasLocalData = !!safeLocalStorage.getItem('maraki_shifts_v1');
 
   if (!hasLocalData) return null;
 

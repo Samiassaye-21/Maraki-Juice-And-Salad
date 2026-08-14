@@ -4,12 +4,13 @@ import KitchenOrderEntry from './components/KitchenOrderEntry';
 import { supabase } from './lib/supabaseClient';
 import { FoodMenuItem, RestaurantSystemConfig } from './types';
 import { DEFAULT_FOOD_MENU, DEFAULT_RESTAURANT_CONFIG } from './data/initialData';
+import { safeSessionStorage } from './utils/safeStorage';
 
 const KITCHEN_SESSION_KEY = 'maraki_kitchen_auth';
 
 function KitchenApp() {
   const [authed, setAuthed] = useState(() => {
-    return sessionStorage.getItem(KITCHEN_SESSION_KEY) === 'true';
+    return safeSessionStorage.getItem(KITCHEN_SESSION_KEY) === 'true';
   });
   const [foodMenu, setFoodMenu] = useState<FoodMenuItem[]>(DEFAULT_FOOD_MENU);
 
@@ -27,7 +28,7 @@ function KitchenApp() {
   }, []);
 
   const handleLoginSuccess = () => {
-    sessionStorage.setItem(KITCHEN_SESSION_KEY, 'true');
+    safeSessionStorage.setItem(KITCHEN_SESSION_KEY, 'true');
     setAuthed(true);
   };
 
