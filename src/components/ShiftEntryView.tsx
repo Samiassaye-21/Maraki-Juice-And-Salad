@@ -19,17 +19,20 @@ import {
   Sparkles,
   CheckCircle2,
   AlertCircle,
-  Package
+  Package,
+  Bike,
+  Trash2,
+  Hourglass,
+  Info
 } from 'lucide-react';
-import { ShiftRecord, ShiftType, RestaurantSystemConfig } from '../types';
+import { ShiftRecord, ShiftType, RestaurantSystemConfig, DailyExpenseItem } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { 
   getOperationalDate, 
   getAutoShiftType, 
   formatEthiopianTime, 
   formatCurrency, 
-  calculateShiftTotals,
-  buildShiftLedgerEntries
+  calculateShiftTotals
 } from '../utils/shiftUtils';
 
 interface ShiftEntryViewProps {
@@ -62,19 +65,26 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
 
   // Financial Deductions & Additions
   const [digitalTransfers, setDigitalTransfers] = useState<number>(0);
-  const [dailyExpenses, setDailyExpenses] = useState<number>(0);
   
-  // Pending Debts in CUPS & FOOD BOXES (NOT birr amount directly)
+  // Itemized Expenses
+  const [expenseTitleInput, setExpenseTitleInput] = useState<string>('');
+  const [expenseAmountInput, setExpenseAmountInput] = useState<string>('');
+  const [expenseItemsList, setExpenseItemsList] = useState<DailyExpenseItem[]>([]);
+
+  // Pending Debts in CUPS & FOOD BOXES
   const [newPendingJuiceCups, setNewPendingJuiceCups] = useState<number>(0);
   const [newPendingFoodBoxes, setNewPendingFoodBoxes] = useState<number>(0);
 
   const [recoveredJuiceCups, setRecoveredJuiceCups] = useState<number>(0);
   const [recoveredFoodBoxes, setRecoveredFoodBoxes] = useState<number>(0);
 
-  const [deliveryCreditAmount, setDeliveryCreditAmount] = useState<number>(0);
+  // BeU Delivery Credit in CUPS & FOOD BOXES
+  const [deliveryJuiceCups, setDeliveryJuiceCups] = useState<number>(0);
+  const [deliveryFoodBoxes, setDeliveryFoodBoxes] = useState<number>(0);
+
   const [notes, setNotes] = useState<string>('');
 
-  // Unpaid Pending Debt Summary stats from database
+  // Summary stats from database
   const [totalUnpaidPendingAmount, setTotalUnpaidPendingAmount] = useState<number>(0);
   const [totalUnpaidJuiceCups, setTotalUnpaidJuiceCups] = useState<number>(0);
   const [totalUnpaidFoodBoxes, setTotalUnpaidFoodBoxes] = useState<number>(0);
@@ -83,10 +93,15 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
   // UI state
   const [saving, setSaving] = useState<boolean>(false);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
+  const [pendingSubmissions, setPendingSubmissions] = useState<ShiftRecord[]>([]);
+
+  // Calculate total daily expenses from itemized list
+  const dailyExpenses = expenseItemsList.reduce((sum, item) => sum + item.amount, 0);
 
   // Auto calculate ETB amounts from cups & boxes
   const newPendingAmount = (newPendingJuiceCups * juicePrice) + (newPendingFoodBoxes * foodPrice);
   const recoveredPendingAmount = (recoveredJuiceCups * juicePrice) + (recoveredFoodBoxes * foodPrice);
+  const deliveryCreditAmount = (deliveryJuiceCups * juicePrice) + (deliveryFoodBoxes * foodPrice);
 
   // Fetch unpaid pending debt totals from Supabase
   const fetchUnpaidPendingTotals = async () => {
@@ -111,9 +126,53 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
     }
   };
 
+  // Fetch worker's pending approval submissions
+  const fetchPendingSubmissions = async () => {
+    const { data } = await supabase
+      .from('shifts')
+      .select('*')
+      .eq('is_closed', false)
+      .order('timestamp', { ascending: false });
+
+    if (data) {
+      const formatted: ShiftRecord[] = data.map((r: any) => ({
+        id: r.id,
+        date: r.date,
+        shiftType: r.shift_type as ShiftType,
+        workerName: r.worker_name,
+        juiceCups: r.juice_cups,
+        foodTakeaways: r.food_takeaways,
+        juiceCupsSold: r.juice_cups_sold,
+        juiceRevenue: r.juice_revenue,
+        foodTakeawaysSold: r.food_takeaways_sold,
+        foodRevenue: r.food_revenue,
+        grossIncome: r.gross_income,
+        digitalTransfers: r.digital_transfers,
+        dailyExpenses: r.daily_expenses,
+        expenseItems: r.expense_items || [],
+        newPendingPaymentsAmount: r.new_pending_payments_amount,
+        recoveredPendingAmount: r.recovered_pending_amount,
+        deliveryCreditAmount: r.delivery_credit_amount,
+        deliveryCupsCount: r.delivery_cups_count || 0,
+        deliveryBoxesCount: r.delivery_boxes_count || 0,
+        newPendingCupsCount: r.new_pending_cups_count || 0,
+        newPendingBoxesCount: r.new_pending_boxes_count || 0,
+        recoveredCupsCount: r.recovered_cups_count || 0,
+        recoveredBoxesCount: r.recovered_boxes_count || 0,
+        netCashDueToOwner: r.net_cash_due_to_owner,
+        notes: r.notes,
+        isClosed: r.is_closed,
+        approvalStatus: r.approval_status || 'pending_approval',
+        timestamp: Number(r.timestamp),
+      }));
+      setPendingSubmissions(formatted);
+    }
+  };
+
   // Load last closed shift stock & unpaid debts on mount
   useEffect(() => {
     fetchUnpaidPendingTotals();
+    fetchPendingSubmissions();
 
     supabase
       .from('shifts')
@@ -132,6 +191,34 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
         }
       });
   }, []);
+
+  // Handlers for adding/removing itemized daily expenses
+  const handleAddExpenseItem = () => {
+    if (!expenseTitleInput.trim()) {
+      alert('እባክዎን የወጪውን ምክንያት ያስገቡ (Please enter expense reason)');
+      return;
+    }
+    const amt = parseFloat(expenseAmountInput);
+    if (isNaN(amt) || amt <= 0) {
+      alert('እባክዎን ትክክለኛ የብር መጠን ያስገቡ (Please enter valid amount)');
+      return;
+    }
+
+    const newItem: DailyExpenseItem = {
+      id: `exp-${Date.now()}`,
+      title: expenseTitleInput.trim(),
+      category: 'other_expense',
+      amount: amt,
+    };
+
+    setExpenseItemsList((prev) => [...prev, newItem]);
+    setExpenseTitleInput('');
+    setExpenseAmountInput('');
+  };
+
+  const handleRemoveExpenseItem = (id: string) => {
+    setExpenseItemsList((prev) => prev.filter((it) => it.id !== id));
+  };
 
   // Calculate live shift totals using shiftUtils
   const totals = calculateShiftTotals(
@@ -182,22 +269,24 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
       grossIncome: totals.grossIncome,
       digitalTransfers,
       dailyExpenses,
-      expenseItems: dailyExpenses > 0 ? [{
-        id: `exp-${Date.now()}`,
-        title: 'Daily Shift Expenses',
-        category: 'other_expense',
-        amount: dailyExpenses,
-      }] : [],
+      expenseItems: expenseItemsList,
       newPendingPaymentsAmount: newPendingAmount,
       recoveredPendingAmount,
       deliveryCreditAmount,
+      deliveryCupsCount: deliveryJuiceCups,
+      deliveryBoxesCount: deliveryFoodBoxes,
+      newPendingCupsCount: newPendingJuiceCups,
+      newPendingBoxesCount: newPendingFoodBoxes,
+      recoveredCupsCount: recoveredJuiceCups,
+      recoveredBoxesCount: recoveredFoodBoxes,
       netCashDueToOwner: totals.netCashDueToOwner,
       notes: notes.trim(),
-      isClosed: true,
+      isClosed: false, // NOT closed automatically until Admin approves!
+      approvalStatus: 'pending_approval',
       timestamp: now.getTime(),
     };
 
-    // Save to Supabase shifts table
+    // Save to Supabase shifts table as pending approval
     const { error: shiftErr } = await supabase.from('shifts').insert({
       id: newShiftRecord.id,
       date: newShiftRecord.date,
@@ -216,62 +305,34 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
       new_pending_payments_amount: newShiftRecord.newPendingPaymentsAmount,
       recovered_pending_amount: newShiftRecord.recoveredPendingAmount,
       delivery_credit_amount: newShiftRecord.deliveryCreditAmount,
+      delivery_cups_count: newShiftRecord.deliveryCupsCount,
+      delivery_boxes_count: newShiftRecord.deliveryBoxesCount,
+      new_pending_cups_count: newShiftRecord.newPendingCupsCount,
+      new_pending_boxes_count: newShiftRecord.newPendingBoxesCount,
+      recovered_cups_count: newShiftRecord.recoveredCupsCount,
+      recovered_boxes_count: newShiftRecord.recoveredBoxesCount,
       net_cash_due_to_owner: newShiftRecord.netCashDueToOwner,
       notes: newShiftRecord.notes,
-      is_closed: newShiftRecord.isClosed,
+      is_closed: false,
+      approval_status: 'pending_approval',
       timestamp: newShiftRecord.timestamp,
     });
 
     if (shiftErr) {
       setSaving(false);
-      alert('Error saving shift: ' + shiftErr.message);
+      alert('Error submitting shift: ' + shiftErr.message);
       return;
     }
 
-    // Save new pending credit item into pending_payments table if cups/boxes entered
-    if (newPendingJuiceCups > 0 || newPendingFoodBoxes > 0) {
-      const desc = [
-        newPendingJuiceCups > 0 ? `${newPendingJuiceCups} Juices` : '',
-        newPendingFoodBoxes > 0 ? `${newPendingFoodBoxes} Food Boxes` : ''
-      ].filter(Boolean).join(' & ');
-
-      await supabase.from('pending_payments').insert({
-        id: `pp-m-${Date.now()}`,
-        shift_type: shiftType,
-        customer_name: `${workerName.trim()} Shift Credit`,
-        description: desc,
-        juice_cups_count: newPendingJuiceCups,
-        food_takeaways_count: newPendingFoodBoxes,
-        amount: newPendingAmount,
-        date: shiftDate,
-        is_paid: false,
-      });
-    }
-
-    // Generate and write ledger entries
-    const ledgerEntries = buildShiftLedgerEntries(newShiftRecord);
-    for (const entry of ledgerEntries) {
-      await supabase.from('ledger_entries').insert({
-        id: entry.id,
-        date: entry.date,
-        type: entry.type,
-        description: entry.description,
-        amount: entry.amount,
-        sign: entry.sign,
-        reference_id: entry.referenceId,
-        created_at_ts: entry.createdAt,
-      });
-    }
-
-    // Refresh unpaid pending totals
-    await fetchUnpaidPendingTotals();
+    // Refresh pending submissions
+    await fetchPendingSubmissions();
 
     setSaving(false);
     setShowSuccess(true);
 
     setTimeout(() => {
       setShowSuccess(false);
-    }, 2200);
+    }, 2500);
   };
 
   return (
@@ -283,18 +344,23 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-emerald-600/95 p-6 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-indigo-900/95 p-6 backdrop-blur-md text-center"
           >
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: [0, 1.2, 1] }}
               transition={{ duration: 0.4 }}
-              className="w-24 h-24 rounded-full bg-white flex items-center justify-center text-emerald-600 mb-4 shadow-2xl"
+              className="w-24 h-24 rounded-full bg-white flex items-center justify-center text-indigo-600 mb-4 shadow-2xl"
             >
-              <CheckCircle2 className="w-16 h-16" strokeWidth={3} />
+              <Hourglass className="w-14 h-14 text-amber-500 animate-spin" />
             </motion.div>
-            <h2 className="text-3xl font-black text-white text-center">የሸፍት ገቢ ተቀምጧል!</h2>
-            <p className="text-emerald-100 text-lg font-medium mt-1">Shift Income Saved Successfully</p>
+            <h2 className="text-3xl font-black text-white">የሸፍት መረጃው ተልኳል!</h2>
+            <p className="text-indigo-200 text-base font-semibold mt-2 max-w-xs">
+              አስተዳዳሪው አይቶ ሲያጸድቀው በሲስተሙ ውስጥ ይገባል።
+            </p>
+            <p className="text-xs text-indigo-300/80 mt-1">
+              Sent to Admin for Approval
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -310,7 +376,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
               <h1 className="font-black text-white text-base tracking-tight leading-tight">
                 የሸፍት ገቢ መዝገብ
               </h1>
-              <p className="text-[11px] text-slate-400">Mobile Shift Income Entry</p>
+              <p className="text-[11px] text-slate-400">Mobile Shift Income Portal</p>
             </div>
           </div>
 
@@ -518,10 +584,123 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
           </div>
         </div>
 
-        {/* ─── Card 4: Financial Deductions & Additions ─────────────────────── */}
+        {/* ─── Card 4: BeU Delivery Orders (BeU ዴሊቨሪ ሂሳብ) ────────────────── */}
+        <div className="bg-slate-800/80 border border-teal-500/30 rounded-3xl p-4 space-y-3 shadow-md">
+          <div className="flex items-center justify-between border-b border-slate-700/80 pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center">
+                <Bike className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="font-extrabold text-white text-sm">BeU ዴሊቨሪ ሂሳብ (BeU Delivery)</h2>
+                <p className="text-[10px] text-slate-400">Night & Day Shift Delivery Orders</p>
+              </div>
+            </div>
+            <span className="text-xs font-black text-teal-300 bg-teal-500/10 border border-teal-500/30 px-2.5 py-0.5 rounded-full">
+              -{formatCurrency(deliveryCreditAmount, config.currencySymbol)}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400">BeU Juice Cups (የጁስ ብዛት)</label>
+              <input
+                type="number"
+                value={deliveryJuiceCups || ''}
+                onChange={(e) => setDeliveryJuiceCups(Number(e.target.value))}
+                placeholder="0 cups"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-teal-300 text-center"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400">BeU Food Boxes (የምግብ ብዛት)</label>
+              <input
+                type="number"
+                value={deliveryFoodBoxes || ''}
+                onChange={(e) => setDeliveryFoodBoxes(Number(e.target.value))}
+                placeholder="0 boxes"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-teal-300 text-center"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ─── Card 5: Itemized Daily Expenses with Reasons (የዕለት ወጪዎች በዝርዝር) ── */}
+        <div className="bg-slate-800/80 border border-rose-500/30 rounded-3xl p-4 space-y-3 shadow-md">
+          <div className="flex items-center justify-between border-b border-slate-700/80 pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                <Receipt className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="font-extrabold text-white text-sm">የዕለት ወጪዎች በዝርዝር (Daily Expenses)</h2>
+                <p className="text-[10px] text-slate-400">Write reason & amount for every expense</p>
+              </div>
+            </div>
+            <span className="text-xs font-black text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2.5 py-0.5 rounded-full">
+              Total: {dailyExpenses} ETB
+            </span>
+          </div>
+
+          {/* Expense Input Builder */}
+          <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-700/80 space-y-2">
+            <div className="grid grid-cols-5 gap-2">
+              <div className="col-span-3">
+                <label className="text-[10px] font-semibold text-slate-400">የወጪ ምክንያት (Reason)</label>
+                <input
+                  type="text"
+                  value={expenseTitleInput}
+                  onChange={(e) => setExpenseTitleInput(e.target.value)}
+                  placeholder="e.g. አትክልት፣ ጋዝ፣ ወተት"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-white focus:outline-none focus:border-rose-500"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="text-[10px] font-semibold text-slate-400">መጠን (Amount ETB)</label>
+                <input
+                  type="number"
+                  value={expenseAmountInput}
+                  onChange={(e) => setExpenseAmountInput(e.target.value)}
+                  placeholder="0 ETB"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-rose-300 focus:outline-none focus:border-rose-500"
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleAddExpenseItem}
+              className="w-full py-2 bg-rose-600/80 hover:bg-rose-600 active:scale-95 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ የወጪ ዘርዝር ጨምር (Add Expense)</span>
+            </button>
+          </div>
+
+          {/* List of Added Expense Items */}
+          {expenseItemsList.length > 0 && (
+            <div className="divide-y divide-slate-700/60 bg-slate-900/50 rounded-2xl overflow-hidden border border-slate-700/50">
+              {expenseItemsList.map((it) => (
+                <div key={it.id} className="flex items-center justify-between p-2.5 text-xs">
+                  <span className="font-semibold text-slate-200">{it.title}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-extrabold text-rose-400">{it.amount} ETB</span>
+                    <button
+                      onClick={() => handleRemoveExpenseItem(it.id)}
+                      className="p-1 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-all cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ─── Card 6: Transfers, Debts & Deductions ──────────────────────── */}
         <div className="bg-slate-800/80 border border-slate-700/80 rounded-3xl p-4 space-y-3.5 shadow-md">
           <h2 className="font-extrabold text-white text-sm border-b border-slate-700/80 pb-2">
-            ዲጂታል ክፍያ፣ ወጪዎችና እዳዎች (Transfers, Expenses & Debts)
+            ዲጂታል ክፍያና እዳዎች (Transfers & Customer Debts)
           </h2>
 
           <div className="space-y-3">
@@ -540,25 +719,10 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
               />
             </div>
 
-            {/* 2. Daily Expenses */}
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="text-slate-300 font-semibold">2. የዕለት ወጪዎች (Vegetables, Expenses)</span>
-                <span className="text-slate-400 font-mono text-[11px]">Deduction (-)</span>
-              </div>
-              <input
-                type="number"
-                value={dailyExpenses || ''}
-                onChange={(e) => setDailyExpenses(Number(e.target.value))}
-                placeholder="0 ETB"
-                className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-3 py-2 text-xs font-bold text-rose-300 focus:outline-none focus:border-rose-500"
-              />
-            </div>
-
-            {/* 3. New Pending Debts (Entered in Cups & Boxes) */}
+            {/* 2. New Pending Debts (Entered in Cups & Boxes) */}
             <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-700/80 space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-amber-300 font-extrabold">3. አዲስ ያልተከፈለ እዳ (New Credit Given)</span>
+                <span className="text-amber-300 font-extrabold">2. አዲስ ያልተከፈለ እዳ (New Credit Given)</span>
                 <span className="text-amber-400 font-black text-xs">
                   = -{formatCurrency(newPendingAmount, config.currencySymbol)}
                 </span>
@@ -587,10 +751,10 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
               </div>
             </div>
 
-            {/* 4. Recovered Debts (Entered in Cups & Boxes) */}
+            {/* 3. Recovered Debts (Entered in Cups & Boxes) */}
             <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-700/80 space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-emerald-300 font-extrabold">4. የተመለሰ አሮጌ እዳ (Old Debts Collected)</span>
+                <span className="text-emerald-300 font-extrabold">3. የተመለሰ አሮጌ እዳ (Old Debts Collected)</span>
                 <span className="text-emerald-400 font-black text-xs">
                   = +{formatCurrency(recoveredPendingAmount, config.currencySymbol)}
                 </span>
@@ -621,7 +785,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
           </div>
         </div>
 
-        {/* ─── Card 5: Final Shift Income Summary & Cash Handover ───────────── */}
+        {/* ─── Card 7: Final Shift Income Summary & Cash Handover ───────────── */}
         <div className="bg-gradient-to-br from-indigo-900 via-purple-950 to-slate-950 border border-indigo-500/40 rounded-3xl p-5 shadow-xl space-y-3">
           <div className="flex justify-between items-center text-xs text-indigo-200">
             <span>Gross Sales (ጠቅላላ ሽያጭ):</span>
@@ -653,11 +817,48 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
             ) : (
               <>
                 <Send className="w-5 h-5" />
-                <span>የሸፍት ገቢ አስቀምጥ (Submit Shift)</span>
+                <span>የሸፍት ገቢ ላክ (Submit Shift for Approval)</span>
               </>
             )}
           </button>
         </div>
+
+        {/* ─── Card 8: Pending Submissions Awaiting Approval ────────────────── */}
+        {pendingSubmissions.length > 0 && (
+          <div className="bg-slate-800/60 border border-amber-500/30 rounded-3xl p-4 space-y-3">
+            <div className="flex items-center justify-between text-xs font-bold text-amber-300 border-b border-slate-700/60 pb-2">
+              <span className="flex items-center gap-1.5">
+                <Hourglass className="w-4 h-4 text-amber-400" />
+                <span>በአስተዳዳሪው ጸደቃ በመጠበቅ ላይ ያሉ (Pending Approval)</span>
+              </span>
+              <span className="bg-amber-500/20 px-2 py-0.5 rounded-full text-amber-300">
+                {pendingSubmissions.length}
+              </span>
+            </div>
+
+            <div className="divide-y divide-slate-700/40">
+              {pendingSubmissions.map((s) => (
+                <div key={s.id} className="py-2.5 flex items-center justify-between text-xs">
+                  <div>
+                    <p className="font-bold text-white flex items-center gap-1.5">
+                      <span>{s.shiftType === 'night' ? '🌙 Night' : '☀️ Day'} Shift — {s.date}</span>
+                      <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">
+                        ⏳ Pending
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-slate-400">{s.workerName}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-extrabold text-emerald-400">
+                      {formatCurrency(s.netCashDueToOwner, config.currencySymbol)}
+                    </p>
+                    <p className="text-[10px] text-slate-400">Gross: {s.grossIncome} ETB</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

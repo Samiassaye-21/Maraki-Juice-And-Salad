@@ -258,8 +258,14 @@ export function App() {
       new_pending_payments_amount: newShift.newPendingPaymentsAmount,
       recovered_pending_amount: newShift.recoveredPendingAmount,
       delivery_credit_amount: newShift.deliveryCreditAmount,
+      delivery_cups_count: newShift.deliveryCupsCount || 0,
+      delivery_boxes_count: newShift.deliveryBoxesCount || 0,
+      new_pending_cups_count: newShift.newPendingCupsCount || 0,
+      new_pending_boxes_count: newShift.newPendingBoxesCount || 0,
+      recovered_cups_count: newShift.recoveredCupsCount || 0,
+      recovered_boxes_count: newShift.recoveredBoxesCount || 0,
       net_cash_due_to_owner: newShift.netCashDueToOwner,
-      notes: newShift.notes, is_closed: newShift.isClosed, timestamp: newShift.timestamp,
+      notes: newShift.notes, is_closed: newShift.isClosed, approval_status: newShift.approvalStatus || 'approved', timestamp: newShift.timestamp,
     });
 
     if (shiftErr) {
@@ -279,6 +285,136 @@ export function App() {
         });
         if (ledErr) console.error('Failed to save ledger entry:', ledErr);
       }
+    }
+  };
+
+  const handleApprovePendingShift = async (shift: ShiftRecord) => {
+    const approvedShift: ShiftRecord = {
+      ...shift,
+      isClosed: true,
+      approvalStatus: 'approved',
+    };
+
+    setShiftsState((prev) => [approvedShift, ...prev.filter((s) => s.id !== approvedShift.id)]);
+
+    const { error: shiftErr } = await supabase.from('shifts').upsert({
+      id: approvedShift.id,
+      date: approvedShift.date,
+      shift_type: approvedShift.shiftType,
+      worker_name: approvedShift.workerName,
+      juice_cups: approvedShift.juiceCups,
+      food_takeaways: approvedShift.foodTakeaways,
+      juice_cups_sold: approvedShift.juiceCupsSold,
+      juice_revenue: approvedShift.juiceRevenue,
+      food_takeaways_sold: approvedShift.foodTakeawaysSold,
+      food_revenue: approvedShift.foodRevenue,
+      gross_income: approvedShift.grossIncome,
+      digital_transfers: approvedShift.digitalTransfers,
+      daily_expenses: approvedShift.dailyExpenses,
+      expense_items: approvedShift.expenseItems,
+      new_pending_payments_amount: approvedShift.newPendingPaymentsAmount,
+      recovered_pending_amount: approvedShift.recoveredPendingAmount,
+      delivery_credit_amount: approvedShift.deliveryCreditAmount,
+      delivery_cups_count: approvedShift.deliveryCupsCount || 0,
+      delivery_boxes_count: approvedShift.deliveryBoxesCount || 0,
+      new_pending_cups_count: approvedShift.newPendingCupsCount || 0,
+      new_pending_boxes_count: approvedShift.newPendingBoxesCount || 0,
+      recovered_cups_count: approvedShift.recoveredCupsCount || 0,
+      recovered_boxes_count: approvedShift.recoveredBoxesCount || 0,
+      net_cash_due_to_owner: approvedShift.netCashDueToOwner,
+      notes: approvedShift.notes,
+      is_closed: true,
+      approval_status: 'approved',
+      timestamp: approvedShift.timestamp,
+    });
+
+    if (shiftErr) {
+      alert('Error approving shift: ' + shiftErr.message);
+      return;
+    }
+
+    // 1. Build and save ledger entries
+    const entries = buildShiftLedgerEntries(approvedShift);
+    for (const entry of entries) {
+      setLedgerEntriesState((prev) => [entry, ...prev]);
+      await supabase.from('ledger_entries').insert({
+        id: entry.id,
+        date: entry.date,
+        type: entry.type,
+        description: entry.description,
+        amount: entry.amount,
+        sign: entry.sign,
+        reference_id: entry.referenceId,
+        created_at_ts: entry.createdAt,
+      });
+    }
+
+    // 2. Save new pending payment record if credit given
+    if ((approvedShift.newPendingCupsCount && approvedShift.newPendingCupsCount > 0) || (approvedShift.newPendingBoxesCount && approvedShift.newPendingBoxesCount > 0) || approvedShift.newPendingPaymentsAmount > 0) {
+      const desc = [
+        approvedShift.newPendingCupsCount && approvedShift.newPendingCupsCount > 0 ? `${approvedShift.newPendingCupsCount} Juices` : '',
+        approvedShift.newPendingBoxesCount && approvedShift.newPendingBoxesCount > 0 ? `${approvedShift.newPendingBoxesCount} Food Boxes` : ''
+      ].filter(Boolean).join(' & ') || 'Shift Customer Credit';
+
+      const newPendingItem: PendingPaymentItem = {
+        id: `pp-${Date.now()}`,
+        shiftType: approvedShift.shiftType,
+        customerName: `${approvedShift.workerName} Shift Credit`,
+        description: desc,
+        juiceCupsCount: approvedShift.newPendingCupsCount || 0,
+        foodTakeawaysCount: approvedShift.newPendingBoxesCount || 0,
+        amount: approvedShift.newPendingPaymentsAmount,
+        date: approvedShift.date,
+        isPaid: false,
+      };
+
+      await supabase.from('pending_payments').insert({
+        id: newPendingItem.id,
+        shift_type: newPendingItem.shiftType,
+        customer_name: newPendingItem.customerName,
+        description: newPendingItem.description,
+        juice_cups_count: newPendingItem.juiceCupsCount,
+        food_takeaways_count: newPendingItem.foodTakeawaysCount,
+        amount: newPendingItem.amount,
+        date: newPendingItem.date,
+        is_paid: false,
+      });
+
+      setPendingPaymentsState((prev) => [newPendingItem, ...prev]);
+    }
+
+    // 3. Save delivery record if BeU delivery credit given
+    if (approvedShift.deliveryCreditAmount > 0 || (approvedShift.deliveryCupsCount && approvedShift.deliveryCupsCount > 0) || (approvedShift.deliveryBoxesCount && approvedShift.deliveryBoxesCount > 0)) {
+      const desc = [
+        approvedShift.deliveryCupsCount && approvedShift.deliveryCupsCount > 0 ? `${approvedShift.deliveryCupsCount} Juices` : '',
+        approvedShift.deliveryBoxesCount && approvedShift.deliveryBoxesCount > 0 ? `${approvedShift.deliveryBoxesCount} Food Boxes` : ''
+      ].filter(Boolean).join(' & ') || 'BeU Delivery Orders';
+
+      const newDelRecord: DeliveryAccountRecord = {
+        id: `del-${Date.now()}`,
+        deliveryRiderName: 'BeU Delivery Rider',
+        description: desc,
+        juiceCupsCount: approvedShift.deliveryCupsCount || 0,
+        foodTakeawaysCount: approvedShift.deliveryBoxesCount || 0,
+        amount: approvedShift.deliveryCreditAmount,
+        date: approvedShift.date,
+        shiftType: approvedShift.shiftType,
+        isSettledWeekly: false,
+      };
+
+      await supabase.from('delivery_records').insert({
+        id: newDelRecord.id,
+        delivery_rider_name: newDelRecord.deliveryRiderName,
+        description: newDelRecord.description,
+        juice_cups_count: newDelRecord.juiceCupsCount,
+        food_takeaways_count: newDelRecord.foodTakeawaysCount,
+        amount: newDelRecord.amount,
+        date: newDelRecord.date,
+        shift_type: newDelRecord.shiftType,
+        is_settled_weekly: false,
+      });
+
+      setDeliveryRecordsState((prev) => [newDelRecord, ...prev]);
     }
   };
 

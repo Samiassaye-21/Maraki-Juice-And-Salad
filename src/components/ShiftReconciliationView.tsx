@@ -17,7 +17,8 @@ import {
   Minus,
   Check,
   Trash2,
-  Calculator
+  Calculator,
+  Hourglass
 } from 'lucide-react';
 import { CalculatorModal } from './CalculatorModal';
 import { 
@@ -43,6 +44,9 @@ interface ShiftReconciliationViewProps {
   config: RestaurantSystemConfig;
   lastClosedShift?: ShiftRecord;
   pendingPayments: PendingPaymentItem[];
+  pendingApprovalShifts?: ShiftRecord[];
+  onApprovePendingShift?: (shift: ShiftRecord) => void;
+  onRejectPendingShift?: (shiftId: string) => void;
   onSaveShift: (shift: ShiftRecord) => void;
   onAddPendingPayment: (pending: Omit<PendingPaymentItem, 'id' | 'isPaid'>) => void;
   onUpdatePendingPayment?: (updated: PendingPaymentItem) => void;
@@ -58,6 +62,9 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
   config,
   lastClosedShift,
   pendingPayments,
+  pendingApprovalShifts = [],
+  onApprovePendingShift,
+  onRejectPendingShift,
   onSaveShift,
   onAddPendingPayment,
   onUpdatePendingPayment,
@@ -383,6 +390,135 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
 
       {!savedSuccessMsg && (
         <>
+      {/* PENDING MOBILE SHIFT APPROVAL BANNER */}
+      {pendingApprovalShifts && pendingApprovalShifts.length > 0 && (
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-950 border-2 border-amber-500/80 rounded-2xl p-5 shadow-xl space-y-4 text-white">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-indigo-500/30 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                <Hourglass className="w-5 h-5 animate-spin" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                  <span>🔔 ከሞባይል የተላከ የሸፍት መረጃ (Pending Shift Approval)</span>
+                </h3>
+                <p className="text-xs text-indigo-200">
+                  {pendingApprovalShifts[0].workerName} — {pendingApprovalShifts[0].shiftType === 'night' ? '🌙 Night Shift' : '☀️ Day Shift'} ({pendingApprovalShifts[0].date})
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="bg-amber-500 text-slate-950 font-black text-xs px-3 py-1 rounded-full shadow-md">
+                Awaiting Approval
+              </span>
+            </div>
+          </div>
+
+          {/* Breakdown Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
+              <p className="text-slate-400 font-medium">Juice Sold (የተሸጠ ጁስ)</p>
+              <p className="text-sm font-extrabold text-amber-400">
+                {pendingApprovalShifts[0].juiceCupsSold} Cups ({pendingApprovalShifts[0].juiceRevenue} ETB)
+              </p>
+            </div>
+
+            <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
+              <p className="text-slate-400 font-medium">Food Sold (የተሸጠ ምግብ)</p>
+              <p className="text-sm font-extrabold text-emerald-400">
+                {pendingApprovalShifts[0].foodTakeawaysSold} Takeaways ({pendingApprovalShifts[0].foodRevenue} ETB)
+              </p>
+            </div>
+
+            <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
+              <p className="text-slate-400 font-medium">Digital Transfers (ዲጂታል)</p>
+              <p className="text-sm font-extrabold text-indigo-300">
+                {pendingApprovalShifts[0].digitalTransfers} ETB
+              </p>
+            </div>
+
+            <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
+              <p className="text-slate-400 font-medium">Daily Expenses (ወጪዎች)</p>
+              <p className="text-sm font-extrabold text-rose-300">
+                {pendingApprovalShifts[0].dailyExpenses} ETB
+              </p>
+            </div>
+          </div>
+
+          {/* Itemized Daily Expenses with Reasons */}
+          {pendingApprovalShifts[0].expenseItems && pendingApprovalShifts[0].expenseItems.length > 0 && (
+            <div className="bg-slate-800/80 p-3.5 rounded-xl border border-rose-500/30 space-y-2">
+              <p className="text-xs font-bold text-rose-300">የወጡ ወጪዎች በዝርዝር (Itemized Expense Reasons):</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                {pendingApprovalShifts[0].expenseItems.map((ex, idx) => (
+                  <div key={idx} className="flex justify-between bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-700">
+                    <span className="text-slate-200 font-semibold">{ex.title}</span>
+                    <span className="text-rose-400 font-extrabold">{ex.amount} ETB</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* BeU Delivery & Debts Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            {pendingApprovalShifts[0].deliveryCreditAmount > 0 && (
+              <div className="bg-slate-800/80 p-3 rounded-xl border border-teal-500/30">
+                <p className="text-slate-400">BeU Delivery Orders:</p>
+                <p className="font-extrabold text-teal-300 text-xs">
+                  {pendingApprovalShifts[0].deliveryCupsCount || 0} Cups, {pendingApprovalShifts[0].deliveryBoxesCount || 0} Boxes (-{pendingApprovalShifts[0].deliveryCreditAmount} ETB)
+                </p>
+              </div>
+            )}
+
+            {pendingApprovalShifts[0].newPendingPaymentsAmount > 0 && (
+              <div className="bg-slate-800/80 p-3 rounded-xl border border-amber-500/30">
+                <p className="text-slate-400">New Credit Given:</p>
+                <p className="font-extrabold text-amber-300 text-xs">
+                  {pendingApprovalShifts[0].newPendingCupsCount || 0} Cups, {pendingApprovalShifts[0].newPendingBoxesCount || 0} Boxes (-{pendingApprovalShifts[0].newPendingPaymentsAmount} ETB)
+                </p>
+              </div>
+            )}
+
+            {pendingApprovalShifts[0].recoveredPendingAmount > 0 && (
+              <div className="bg-slate-800/80 p-3 rounded-xl border border-emerald-500/30">
+                <p className="text-slate-400">Old Debts Recovered:</p>
+                <p className="font-extrabold text-emerald-300 text-xs">
+                  {pendingApprovalShifts[0].recoveredCupsCount || 0} Cups, {pendingApprovalShifts[0].recoveredBoxesCount || 0} Boxes (+{pendingApprovalShifts[0].recoveredPendingAmount} ETB)
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Net Cash Handover Highlight & Approve Action */}
+          <div className="flex flex-col sm:flex-row items-center justify-between bg-slate-950 p-4 rounded-xl border border-indigo-500/50 gap-4">
+            <div>
+              <p className="text-xs text-indigo-300 font-bold uppercase">ለባለቤቱ የሚገባ ጥሬ ገንዘብ (Net Cash Handover)</p>
+              <p className="text-2xl font-black text-white">
+                {formatCurrency(pendingApprovalShifts[0].netCashDueToOwner, currencySymbol)}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+              <button
+                onClick={() => onRejectPendingShift && onRejectPendingShift(pendingApprovalShifts[0].id)}
+                className="px-4 py-2.5 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-300 font-bold text-xs hover:bg-rose-600 hover:text-white transition-all cursor-pointer"
+              >
+                አስተካክል / Reject
+              </button>
+
+              <button
+                onClick={() => onApprovePendingShift && onApprovePendingShift(pendingApprovalShifts[0])}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm shadow-lg shadow-emerald-500/30 hover:scale-102 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-5 h-5" />
+                <span>አጽድቅ (Approve Shift)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SHIFT & WORKER SELECTION BAR */}
       <div className="bg-white rounded-xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-slate-200">
