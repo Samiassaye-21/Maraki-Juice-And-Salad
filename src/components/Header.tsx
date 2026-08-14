@@ -123,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
               />
             </div>
             <div className="flex flex-col hidden sm:flex">
-              <h1 className="text-xl font-extrabold tracking-tight text-white font-extrabold">
+              <h1 className="text-xl font-extrabold tracking-tight text-white font-bold">
                 Maraki Juice and Salad
               </h1>
             </div>
@@ -164,11 +164,11 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setActiveShift('day')}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase transition-all duration-150 cursor-pointer ${
                   activeShift === 'day'
-                    ? 'bg-[#403c21] text-white font-extrabold shadow-xs'
+                    ? 'bg-[#403c21] text-white font-bold shadow-xs'
                     : 'text-[#403c21]/80 hover:text-[#403c21] hover:bg-[#403c21]/30'
                 }`}
               >
-                <Sun className={`w-3.5 h-3.5 ${activeShift === 'day' ? 'text-white font-extrabold' : 'text-[#403c21]'}`} />
+                <Sun className={`w-3.5 h-3.5 ${activeShift === 'day' ? 'text-white font-bold' : 'text-[#403c21]'}`} />
                 <span>Day</span>
               </button>
 
@@ -176,11 +176,11 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setActiveShift('night')}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase transition-all duration-150 cursor-pointer ${
                   activeShift === 'night'
-                    ? 'bg-[#403c21] text-white font-extrabold shadow-xs'
+                    ? 'bg-[#403c21] text-white font-bold shadow-xs'
                     : 'text-[#403c21]/80 hover:text-[#403c21] hover:bg-[#403c21]/30'
                 }`}
               >
-                <Moon className={`w-3.5 h-3.5 ${activeShift === 'night' ? 'text-white font-extrabold' : 'text-[#403c21]'}`} />
+                <Moon className={`w-3.5 h-3.5 ${activeShift === 'night' ? 'text-white font-bold' : 'text-[#403c21]'}`} />
                 <span>Night</span>
               </button>
             </div>
@@ -191,8 +191,8 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                 className="flex items-center gap-2 bg-[#f7f5f0] hover:bg-[#403c21]/30 border border-[#403c21]/20 px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-xs active:scale-95 text-[#403c21]"
               >
-                <div className="w-7 h-7 rounded-full bg-[#403c21] text-white font-extrabold flex items-center justify-center font-extrabold text-xs shadow-xs">
-                  <User className="w-4 h-4 text-white font-extrabold" />
+                <div className="w-7 h-7 rounded-full bg-[#403c21] text-white font-bold flex items-center justify-center font-extrabold text-xs shadow-xs">
+                  <User className="w-4 h-4 text-white font-bold" />
                 </div>
                 <div className="hidden sm:flex flex-col text-left">
                   <span className="text-xs font-extrabold leading-tight text-[#403c21]">{currentWorker}</span>
@@ -209,15 +209,15 @@ export const Header: React.FC<HeaderProps> = ({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="absolute right-0 mt-2 w-72 bg-[#403c21] rounded-3xl shadow-2xl border border-[#403c21]/40 p-4 z-50 text-white font-extrabold space-y-4"
+                    className="absolute right-0 mt-2 w-72 bg-[#403c21] rounded-3xl shadow-2xl border border-[#403c21]/40 p-4 z-50 text-white font-bold space-y-4"
                   >
                     {/* User Info Header */}
                     <div className="flex items-center gap-3 p-3 bg-[#33301a] rounded-2xl border border-[#403c21]/30">
-                      <div className="w-10 h-10 rounded-full bg-[#403c21] text-white font-extrabold flex items-center justify-center font-extrabold shadow-xs">
-                        <User className="w-5 h-5 text-white font-extrabold" />
+                      <div className="w-10 h-10 rounded-full bg-[#403c21] text-white font-bold flex items-center justify-center font-extrabold shadow-xs">
+                        <User className="w-5 h-5 text-white font-bold" />
                       </div>
                       <div>
-                        <h4 className="font-extrabold text-sm text-white font-extrabold">{currentWorker}</h4>
+                        <h4 className="font-extrabold text-sm text-white font-bold">{currentWorker}</h4>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#f7f5f0] text-[#403c21] uppercase">
                             {activeShift} Shift Active
@@ -228,7 +228,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                     {/* Shift Switcher inside Dropdown Menu */}
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-white font-extrabold/80 px-1">
+                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-white font-bold/80 px-1">
                         Switch Duty Shift
                       </label>
                       <div className="grid grid-cols-2 gap-2 bg-[#33301a] p-1.5 rounded-2xl border border-[#403c21]/30">
@@ -240,10 +240,10 @@ export const Header: React.FC<HeaderProps> = ({
                           className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                             activeShift === 'day'
                               ? 'bg-[#f7f5f0] text-[#403c21] shadow-xs'
-                              : 'text-white font-extrabold/80 hover:text-white font-extrabold hover:bg-[#403c21]'
+                              : 'text-white font-bold/80 hover:text-white font-bold hover:bg-[#403c21]'
                           }`}
                         >
-                          <Sun className={`w-4 h-4 ${activeShift === 'day' ? 'text-[#403c21]' : 'text-white font-extrabold'}`} />
+                          <Sun className={`w-4 h-4 ${activeShift === 'day' ? 'text-[#403c21]' : 'text-white font-bold'}`} />
                           <span>Day Shift</span>
                         </button>
 
@@ -255,10 +255,10 @@ export const Header: React.FC<HeaderProps> = ({
                           className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                             activeShift === 'night'
                               ? 'bg-[#f7f5f0] text-[#403c21] shadow-xs'
-                              : 'text-white font-extrabold/80 hover:text-white font-extrabold hover:bg-[#403c21]'
+                              : 'text-white font-bold/80 hover:text-white font-bold hover:bg-[#403c21]'
                           }`}
                         >
-                          <Moon className={`w-4 h-4 ${activeShift === 'night' ? 'text-[#403c21]' : 'text-white font-extrabold'}`} />
+                          <Moon className={`w-4 h-4 ${activeShift === 'night' ? 'text-[#403c21]' : 'text-white font-bold'}`} />
                           <span>Night Shift</span>
                         </button>
                       </div>
@@ -270,10 +270,10 @@ export const Header: React.FC<HeaderProps> = ({
                         href="/shift"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#33301a] text-xs font-bold text-white font-extrabold transition-colors"
+                        className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#33301a] text-xs font-bold text-white font-bold transition-colors"
                       >
                         <div className="flex items-center gap-2">
-                          <Smartphone className="w-4 h-4 text-white font-extrabold" />
+                          <Smartphone className="w-4 h-4 text-white font-bold" />
                           <span>Mobile Shift App</span>
                         </div>
                         <span className="text-[10px] bg-[#f7f5f0] text-[#403c21] font-extrabold px-2 py-0.5 rounded-full">Open</span>
@@ -284,13 +284,13 @@ export const Header: React.FC<HeaderProps> = ({
                           setActiveTab('settings');
                           setIsProfileMenuOpen(false);
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#33301a] text-xs font-bold text-white font-extrabold transition-colors cursor-pointer"
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#33301a] text-xs font-bold text-white font-bold transition-colors cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
-                          <Settings className="w-4 h-4 text-white font-extrabold" />
+                          <Settings className="w-4 h-4 text-white font-bold" />
                           <span>System Settings</span>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-white font-extrabold/80" />
+                        <ChevronRight className="w-4 h-4 text-white font-bold/80" />
                       </button>
                     </div>
 
@@ -301,9 +301,9 @@ export const Header: React.FC<HeaderProps> = ({
                           setIsProfileMenuOpen(false);
                           onLogout();
                         }}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-extrabold text-white font-extrabold bg-[#000000]/60 hover:bg-[#000000] border border-[#f7f5f0]/30 transition-all cursor-pointer active:scale-95"
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-extrabold text-white font-bold bg-[#000000]/60 hover:bg-[#000000] border border-[#f7f5f0]/30 transition-all cursor-pointer active:scale-95"
                       >
-                        <LogOut className="w-4 h-4 text-white font-extrabold" />
+                        <LogOut className="w-4 h-4 text-white font-bold" />
                         <span>Log Out</span>
                       </button>
                     </div>
@@ -322,7 +322,7 @@ export const Header: React.FC<HeaderProps> = ({
             const isActive = activeTab === tab.id;
             
             const activeClasses = isActive 
-              ? 'bg-[#403c21] text-white font-extrabold font-extrabold shadow-xs' 
+              ? 'bg-[#403c21] text-white font-black shadow-xs' 
               : 'bg-[#f7f5f0] text-[#403c21] hover:text-[#403c21] hover:bg-[#403c21]/20 font-bold border border-[#403c21]/15';
 
             return (
@@ -331,12 +331,12 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setActiveTab(tab.id as MainTab)}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-full whitespace-nowrap transition-all duration-150 cursor-pointer text-xs ${activeClasses}`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white font-extrabold' : 'text-[#403c21]'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white font-bold' : 'text-[#403c21]'}`} />
                 <span>{tab.label}</span>
 
                 {tab.count !== undefined && tab.count > 0 && (
                   <span className={`flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-extrabold ml-1 ${
-                    isActive ? 'bg-[#f7f5f0] text-[#403c21]' : 'bg-[#403c21] text-white font-extrabold'
+                    isActive ? 'bg-[#f7f5f0] text-[#403c21]' : 'bg-[#403c21] text-white font-bold'
                   }`}>
                     {tab.count}
                   </span>

@@ -168,9 +168,9 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-white font-bold rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
         >
-          <Plus className="w-4 h-4 text-white font-extrabold" />
+          <Plus className="w-4 h-4 text-white font-bold" />
           <span>New Trip</span>
         </button>
       </div>
@@ -377,7 +377,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                     onClick={addItemRow}
                     className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#403c21] rounded-full text-neutral-300 text-sm hover:border-[#403c21] hover:text-[#403c21] transition-colors cursor-pointer"
                   >
-                    <Plus className="w-4 h-4 text-white font-extrabold" />
+                    <Plus className="w-4 h-4 text-white font-bold" />
                     Add Another Item
                   </button>
                 </div>
@@ -391,7 +391,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                 )}
 
                 {!isFormValid && items.some(it => it.itemName) && (
-                  <div className="flex items-center gap-2 text-white font-extrabold bg-[#403c21]/30 rounded-2xl px-3 py-2.5 text-sm border border-[#403c21]">
+                  <div className="flex items-center gap-2 text-white font-bold bg-[#403c21]/30 rounded-2xl px-3 py-2.5 text-sm border border-[#403c21]">
                     <AlertCircle className="w-4 h-4 flex-shrink-0 text-[#403c21]" />
                     Please fill in quantity and total price for each item.
                   </div>

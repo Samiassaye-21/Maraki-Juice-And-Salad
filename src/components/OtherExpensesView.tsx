@@ -94,9 +94,9 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-white font-bold rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
         >
-          <Plus className="w-4 h-4 text-white font-extrabold" />
+          <Plus className="w-4 h-4 text-white font-bold" />
           <span>Add Expense</span>
         </button>
       </div>
@@ -160,7 +160,7 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                           onClick={() => setCategory(preset.id)}
                           className={`flex items-center gap-2 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                             isSelected 
-                              ? 'border-[#403c21] bg-[#403c21] text-white font-extrabold font-extrabold shadow-xs' 
+                              ? 'border-[#403c21] bg-[#403c21] text-white font-black shadow-xs' 
                               : 'border-[#403c21]/20 bg-[#f7f5f0] text-[#403c21] hover:bg-slate-100'
                           }`}
                         >

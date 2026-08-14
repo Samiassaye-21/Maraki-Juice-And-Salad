@@ -50,7 +50,7 @@ const TAKER_CONFIG: Record<
     bg: 'bg-white',
     text: 'text-[#403c21]',
     border: 'border-[#403c21]/20',
-    badgeBg: 'bg-[#403c21] text-white font-extrabold font-extrabold border-[#403c21]',
+    badgeBg: 'bg-[#403c21] text-white font-black border-[#403c21]',
     accentGradient: 'from-[#f7f5f0] to-white',
   },
   night_shift: {
@@ -61,7 +61,7 @@ const TAKER_CONFIG: Record<
     bg: 'bg-white',
     text: 'text-[#403c21]',
     border: 'border-[#403c21]/20',
-    badgeBg: 'bg-[#403c21] text-white font-extrabold font-extrabold border-[#403c21]',
+    badgeBg: 'bg-[#403c21] text-white font-black border-[#403c21]',
     accentGradient: 'from-[#f7f5f0] to-white',
   },
   beu_delivery: {
@@ -72,7 +72,7 @@ const TAKER_CONFIG: Record<
     bg: 'bg-white',
     text: 'text-[#403c21]',
     border: 'border-[#403c21]/20',
-    badgeBg: 'bg-[#403c21] text-white font-extrabold font-extrabold border-[#403c21]',
+    badgeBg: 'bg-[#403c21] text-white font-black border-[#403c21]',
     accentGradient: 'from-[#f7f5f0] to-white',
   },
 };
@@ -203,7 +203,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
               <h2 className="text-xl font-extrabold text-[#403c21] tracking-tight">
                 Kitchen Check & Reconciliation
               </h2>
-              <span className="bg-[#403c21] text-white font-extrabold text-xs px-3 py-0.5 rounded-full font-extrabold">
+              <span className="bg-[#403c21] text-white font-bold text-xs px-3 py-0.5 rounded-full font-extrabold">
                 Audit Dashboard
               </span>
             </div>
@@ -268,10 +268,10 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
         <div className="bg-[#403c21] border border-[#403c21]/40 text-white p-5 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[130px]">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-wider text-white font-extrabold">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-white font-bold">
                 Chef Logged Items
               </p>
-              <h3 className="text-3xl font-extrabold text-white font-extrabold mt-1">
+              <h3 className="text-3xl sm:text-4xl font-black text-white font-bold mt-1">
                 {grandChefTotalItems} <span className="text-sm font-normal text-white font-bold">items</span>
               </h3>
             </div>
@@ -292,7 +292,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
               <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
                 Worker Shift Sales
               </p>
-              <h3 className="text-3xl font-extrabold text-white font-extrabold mt-1">
+              <h3 className="text-3xl sm:text-4xl font-black text-white font-bold mt-1">
                 {workerTotalItems} <span className="text-sm font-normal text-neutral-500">items</span>
               </h3>
             </div>
@@ -317,7 +317,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                   'Pending Shift'
                 ) : itemsMatch ? (
                   <>
-                    <CheckCircle2 className="w-5 h-5 text-white font-extrabold" />
+                    <CheckCircle2 className="w-5 h-5 text-white font-bold" />
                     <span className="text-[#403c21]">Balanced</span>
                   </>
                 ) : (
@@ -383,7 +383,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                       <p className="text-[10px] text-neutral-500 font-medium">{cfg.subLabel}</p>
                     </div>
                   </div>
-                  <span className="font-extrabold text-xs px-3 py-1 rounded-full bg-[#403c21] text-white font-extrabold shadow-xs">
+                  <span className="font-extrabold text-xs px-3 py-1 rounded-full bg-[#403c21] text-white font-bold shadow-xs">
                     {data.totalCount} items
                   </span>
                 </div>
@@ -403,7 +403,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                         <span className="text-[#403c21] font-bold truncate max-w-[70%]">
                           {item.name}
                         </span>
-                        <span className="font-extrabold text-white font-extrabold bg-[#403c21] px-2.5 py-0.5 rounded-full text-xs shadow-xs">
+                        <span className="font-extrabold text-white font-bold bg-[#403c21] px-2.5 py-0.5 rounded-full text-xs shadow-xs">
                           ×{item.quantity}
                         </span>
                       </div>
@@ -454,7 +454,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                 onClick={() => setTakerFilter('all')}
                 className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
                   takerFilter === 'all'
-                    ? 'bg-[#403c21] text-white font-extrabold shadow-xs'
+                    ? 'bg-[#403c21] text-white font-bold shadow-xs'
                     : 'text-neutral-600 hover:text-[#403c21]'
                 }`}
               >
@@ -470,7 +470,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                     onClick={() => setTakerFilter(tk)}
                     className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1 ${
                       isActive
-                        ? 'bg-[#403c21] text-white font-extrabold shadow-xs'
+                        ? 'bg-[#403c21] text-white font-bold shadow-xs'
                         : 'text-neutral-600 hover:text-[#403c21]'
                     }`}
                   >
@@ -501,7 +501,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                   className="flex items-center justify-between px-5 py-3 hover:bg-[#f7f5f0] transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-[#403c21] text-white font-extrabold flex items-center gap-1 shrink-0 shadow-xs">
+                    <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-[#403c21] text-white font-bold flex items-center gap-1 shrink-0 shadow-xs">
                       <span>{cfg.emoji}</span>
                       <span>{cfg.shortLabel}</span>
                     </span>

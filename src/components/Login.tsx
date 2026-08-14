@@ -43,7 +43,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
              e.currentTarget.style.display = 'none';
           }}
         />
-        <h1 className="text-4xl font-extrabold leading-none tracking-tight text-white font-extrabold">Maraki</h1>
+        <h1 className="text-4xl font-extrabold leading-none tracking-tight text-white font-bold">Maraki</h1>
         <p className="text-sm font-bold text-[#403c21] mt-2 uppercase tracking-wider">Admin Dashboard System</p>
       </motion.div>
 
@@ -84,9 +84,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         <button
           type="submit"
           disabled={loading}
-          className="flex w-full items-center justify-center rounded-full bg-[#403c21] hover:bg-[#33301a] py-3.5 text-base font-extrabold text-white font-extrabold shadow-md hover:shadow-lg disabled:opacity-70 transition-all cursor-pointer mt-2 active:scale-95"
+          className="flex w-full items-center justify-center rounded-full bg-[#403c21] hover:bg-[#33301a] py-3.5 text-base font-extrabold text-white font-bold shadow-md hover:shadow-lg disabled:opacity-70 transition-all cursor-pointer mt-2 active:scale-95"
         >
-          {loading ? <Loader2 className="animate-spin w-5 h-5 text-white font-extrabold" /> : 'Log in'}
+          {loading ? <Loader2 className="animate-spin w-5 h-5 text-white font-bold" /> : 'Log in'}
         </button>
         
         {/* Quick Portal Switchers */}

@@ -188,7 +188,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                         {shift.shiftType} Shift • {shift.date}
                       </h3>
                       {formatEthiopianFullDate(shift.date) && (
-                        <span className="bg-[#403c21] text-white font-extrabold border border-[#403c21]/40 text-xs font-bold px-3 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="bg-[#403c21] text-white font-bold border border-[#403c21]/40 text-xs font-bold px-3 py-0.5 rounded-full flex items-center gap-1">
                           <span>🇪🇹</span> {formatEthiopianFullDate(shift.date)}
                         </span>
                       )}
@@ -207,7 +207,7 @@ export const ShiftHistoryView: React.FC<ShiftHistoryViewProps> = ({
                     <span className="text-[#403c21]/70 text-xs uppercase tracking-wide block mb-0.5">
                       Net Physical Cash
                     </span>
-                    <span className="text-2xl font-extrabold text-white font-extrabold">
+                    <span className="text-2xl sm:text-3xl font-black text-white font-bold">
                       {formatCurrency(shift.netCashDueToOwner, currencySymbol)}
                     </span>
                   </div>

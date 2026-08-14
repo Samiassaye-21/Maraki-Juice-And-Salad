@@ -88,8 +88,8 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
         transition={{ duration: 0.5 }}
         className="flex flex-col items-center mb-8 text-center"
       >
-        <div className="w-20 h-20 rounded-full bg-[#403c21] flex items-center justify-center mb-4 shadow-xl text-white font-extrabold">
-          <Moon className="w-10 h-10 text-white font-extrabold" />
+        <div className="w-20 h-20 rounded-full bg-[#403c21] flex items-center justify-center mb-4 shadow-xl text-white font-bold">
+          <Moon className="w-10 h-10 text-white font-bold" />
         </div>
         
         <h1 className="text-3xl font-extrabold text-[#403c21] tracking-tight mb-1">
@@ -157,7 +157,7 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
               onClick={() => handleKey(key)}
               className="h-14 rounded-full bg-white hover:bg-[#EBF5F0] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#403c21] shadow-xs"
             >
-              <span className="text-2xl font-extrabold text-white font-extrabold">{key}</span>
+              <span className="text-2xl font-extrabold text-white font-bold">{key}</span>
             </button>
           );
         })}
@@ -166,9 +166,9 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
       {/* Quick Direct Pass Button */}
       <button
         onClick={onLoginSuccess}
-        className="mt-8 flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#403c21] text-white font-extrabold text-xs font-extrabold transition-all shadow-md cursor-pointer hover:bg-[#33301a] active:scale-95"
+        className="mt-8 flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#403c21] text-white font-bold text-xs font-extrabold transition-all shadow-md cursor-pointer hover:bg-[#33301a] active:scale-95"
       >
-        <ShieldCheck className="w-4 h-4 text-white font-extrabold" />
+        <ShieldCheck className="w-4 h-4 text-white font-bold" />
         <span>በቀጥታ ግባ (Quick Login: 1234)</span>
         <ArrowRight className="w-3.5 h-3.5 text-[#403c21]" />
       </button>
