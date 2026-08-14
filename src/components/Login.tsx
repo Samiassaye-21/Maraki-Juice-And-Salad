@@ -84,9 +84,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         <button
           type="submit"
           disabled={loading}
-          className="flex w-full items-center justify-center rounded-full bg-[#403c21] hover:bg-[#33301a] py-3.5 text-base font-extrabold text-[#403c21] shadow-md hover:shadow-lg disabled:opacity-70 transition-all cursor-pointer mt-2 active:scale-95"
+          className="flex w-full items-center justify-center rounded-full bg-[#403c21] hover:bg-[#33301a] py-3.5 text-base font-extrabold text-[#f7f5f0] shadow-md hover:shadow-lg disabled:opacity-70 transition-all cursor-pointer mt-2 active:scale-95"
         >
-          {loading ? <Loader2 className="animate-spin w-5 h-5 text-[#403c21]" /> : 'Log in'}
+          {loading ? <Loader2 className="animate-spin w-5 h-5 text-[#f7f5f0]" /> : 'Log in'}
         </button>
         
         {/* Quick Portal Switchers */}

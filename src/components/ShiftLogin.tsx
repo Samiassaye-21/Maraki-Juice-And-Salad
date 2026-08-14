@@ -88,8 +88,8 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
         transition={{ duration: 0.5 }}
         className="flex flex-col items-center mb-8 text-center"
       >
-        <div className="w-20 h-20 rounded-full bg-[#403c21] flex items-center justify-center mb-4 shadow-xl text-[#403c21]">
-          <Moon className="w-10 h-10 text-[#403c21]" />
+        <div className="w-20 h-20 rounded-full bg-[#403c21] flex items-center justify-center mb-4 shadow-xl text-[#f7f5f0]">
+          <Moon className="w-10 h-10 text-[#f7f5f0]" />
         </div>
         
         <h1 className="text-3xl font-extrabold text-[#403c21] tracking-tight mb-1">
