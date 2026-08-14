@@ -38,6 +38,7 @@ interface HeaderProps {
   onChangeLanguage: (lang: string) => void;
   summary: SystemSummaryStats;
   config: RestaurantSystemConfig;
+  pendingShiftsCount?: number;
   themeMode?: 'light' | 'dark';
   onToggleTheme?: () => void;
   onLogout: () => void;
@@ -57,6 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
   onChangeLanguage, // unused in UI
   summary,
   config,
+  pendingShiftsCount,
   themeMode = 'light',
   onToggleTheme,
   onLogout
@@ -69,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
   }
 
   const tabs: TabItem[] = [
-    { id: 'calculator', label: 'Shift Reconciliation', icon: Calculator },
+    { id: 'calculator', label: 'Shift Reconciliation', icon: Calculator, count: pendingShiftsCount },
     { id: 'pending', label: 'Pending Payments', icon: Clock, count: summary.totalPendingOutstanding },
     { id: 'delivery', label: 'Delivery Accounts', icon: Truck, count: summary.totalDeliveryUnsettled },
     { id: 'purchases', label: 'Inventory Purchases', icon: ShoppingCart },

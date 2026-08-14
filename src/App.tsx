@@ -62,6 +62,7 @@ export function App() {
   // Data States
   const [config, setConfigState] = useState<RestaurantSystemConfig>(DEFAULT_RESTAURANT_CONFIG);
   const [shifts, setShiftsState] = useState<ShiftRecord[]>([]);
+  const [pendingApprovalShifts, setPendingApprovalShifts] = useState<ShiftRecord[]>([]);
   const [pendingPayments, setPendingPaymentsState] = useState<PendingPaymentItem[]>([]);
   const [deliveryRecords, setDeliveryRecordsState] = useState<DeliveryAccountRecord[]>([]);
   const [purchaseTrips, setPurchaseTripsState] = useState<PurchaseTrip[]>([]);
@@ -123,7 +124,7 @@ export function App() {
       // Shifts
       const { data: shiftsData } = await supabase.from('shifts').select('*').order('timestamp', { ascending: false });
       if (shiftsData) {
-        setShiftsState(shiftsData.map(s => ({
+        const allShifts: ShiftRecord[] = shiftsData.map(s => ({
           id: s.id, date: s.date, shiftType: s.shift_type, workerName: s.worker_name,
           juiceCups: s.juice_cups, foodTakeaways: s.food_takeaways,
           juiceCupsSold: s.juice_cups_sold, juiceRevenue: s.juice_revenue,
@@ -135,7 +136,10 @@ export function App() {
           deliveryCreditAmount: s.delivery_credit_amount,
           netCashDueToOwner: s.net_cash_due_to_owner,
           notes: s.notes, isClosed: s.is_closed, timestamp: Number(s.timestamp),
-        })));
+        }));
+
+        setPendingApprovalShifts(allShifts.filter(s => s.isClosed === false));
+        setShiftsState(allShifts.filter(s => s.isClosed !== false));
       }
 
       // Pending
@@ -258,14 +262,8 @@ export function App() {
       new_pending_payments_amount: newShift.newPendingPaymentsAmount,
       recovered_pending_amount: newShift.recoveredPendingAmount,
       delivery_credit_amount: newShift.deliveryCreditAmount,
-      delivery_cups_count: newShift.deliveryCupsCount || 0,
-      delivery_boxes_count: newShift.deliveryBoxesCount || 0,
-      new_pending_cups_count: newShift.newPendingCupsCount || 0,
-      new_pending_boxes_count: newShift.newPendingBoxesCount || 0,
-      recovered_cups_count: newShift.recoveredCupsCount || 0,
-      recovered_boxes_count: newShift.recoveredBoxesCount || 0,
       net_cash_due_to_owner: newShift.netCashDueToOwner,
-      notes: newShift.notes, is_closed: newShift.isClosed, approval_status: newShift.approvalStatus || 'approved', timestamp: newShift.timestamp,
+      notes: newShift.notes, is_closed: newShift.isClosed, timestamp: newShift.timestamp,
     });
 
     if (shiftErr) {
@@ -288,133 +286,71 @@ export function App() {
     }
   };
 
-  const handleApprovePendingShift = async (shift: ShiftRecord) => {
-    const approvedShift: ShiftRecord = {
-      ...shift,
-      isClosed: true,
-      approvalStatus: 'approved',
-    };
+  const handleApproveShift = async (shiftToApprove: ShiftRecord) => {
+    try {
+      const { error: updateErr } = await supabase
+        .from('shifts')
+        .update({ is_closed: true })
+        .eq('id', shiftToApprove.id);
 
-    setShiftsState((prev) => [approvedShift, ...prev.filter((s) => s.id !== approvedShift.id)]);
+      if (updateErr) {
+        alert('Error approving shift: ' + updateErr.message);
+        return;
+      }
 
-    const { error: shiftErr } = await supabase.from('shifts').upsert({
-      id: approvedShift.id,
-      date: approvedShift.date,
-      shift_type: approvedShift.shiftType,
-      worker_name: approvedShift.workerName,
-      juice_cups: approvedShift.juiceCups,
-      food_takeaways: approvedShift.foodTakeaways,
-      juice_cups_sold: approvedShift.juiceCupsSold,
-      juice_revenue: approvedShift.juiceRevenue,
-      food_takeaways_sold: approvedShift.foodTakeawaysSold,
-      food_revenue: approvedShift.foodRevenue,
-      gross_income: approvedShift.grossIncome,
-      digital_transfers: approvedShift.digitalTransfers,
-      daily_expenses: approvedShift.dailyExpenses,
-      expense_items: approvedShift.expenseItems,
-      new_pending_payments_amount: approvedShift.newPendingPaymentsAmount,
-      recovered_pending_amount: approvedShift.recoveredPendingAmount,
-      delivery_credit_amount: approvedShift.deliveryCreditAmount,
-      delivery_cups_count: approvedShift.deliveryCupsCount || 0,
-      delivery_boxes_count: approvedShift.deliveryBoxesCount || 0,
-      new_pending_cups_count: approvedShift.newPendingCupsCount || 0,
-      new_pending_boxes_count: approvedShift.newPendingBoxesCount || 0,
-      recovered_cups_count: approvedShift.recoveredCupsCount || 0,
-      recovered_boxes_count: approvedShift.recoveredBoxesCount || 0,
-      net_cash_due_to_owner: approvedShift.netCashDueToOwner,
-      notes: approvedShift.notes,
-      is_closed: true,
-      approval_status: 'approved',
-      timestamp: approvedShift.timestamp,
-    });
+      const approvedShift: ShiftRecord = { ...shiftToApprove, isClosed: true };
 
-    if (shiftErr) {
-      alert('Error approving shift: ' + shiftErr.message);
-      return;
+      // Write ledger entries
+      const entries = buildShiftLedgerEntries(approvedShift);
+      for (const entry of entries) {
+        await supabase.from('ledger_entries').insert({
+          id: entry.id, date: entry.date, type: entry.type,
+          description: entry.description, amount: entry.amount,
+          sign: entry.sign, reference_id: entry.referenceId, created_at_ts: entry.createdAt,
+        });
+      }
+
+      // Add pending payment record if credit given
+      if (approvedShift.newPendingPaymentsAmount > 0) {
+        await supabase.from('pending_payments').insert({
+          id: `pp-appr-${Date.now()}`,
+          shift_type: approvedShift.shiftType,
+          customer_name: `${approvedShift.workerName} Credit`,
+          description: `Shift Customer Credit (${approvedShift.shiftType})`,
+          juice_cups_count: 0,
+          food_takeaways_count: 0,
+          amount: approvedShift.newPendingPaymentsAmount,
+          date: approvedShift.date,
+          is_paid: false,
+        });
+      }
+
+      // Add delivery record if delivery credit
+      if (approvedShift.deliveryCreditAmount > 0) {
+        await supabase.from('delivery_records').insert({
+          id: `del-appr-${Date.now()}`,
+          delivery_rider_name: 'BeU Delivery',
+          description: `BeU Delivery (${approvedShift.shiftType} shift by ${approvedShift.workerName})`,
+          juice_cups_count: 0,
+          food_takeaways_count: 0,
+          amount: approvedShift.deliveryCreditAmount,
+          date: approvedShift.date,
+          shift_type: approvedShift.shiftType,
+          is_settled_weekly: false,
+        });
+      }
+
+      await fetchData();
+    } catch (err: any) {
+      alert('Error approving shift: ' + err.message);
     }
+  };
 
-    // 1. Build and save ledger entries
-    const entries = buildShiftLedgerEntries(approvedShift);
-    for (const entry of entries) {
-      setLedgerEntriesState((prev) => [entry, ...prev]);
-      await supabase.from('ledger_entries').insert({
-        id: entry.id,
-        date: entry.date,
-        type: entry.type,
-        description: entry.description,
-        amount: entry.amount,
-        sign: entry.sign,
-        reference_id: entry.referenceId,
-        created_at_ts: entry.createdAt,
-      });
-    }
-
-    // 2. Save new pending payment record if credit given
-    if ((approvedShift.newPendingCupsCount && approvedShift.newPendingCupsCount > 0) || (approvedShift.newPendingBoxesCount && approvedShift.newPendingBoxesCount > 0) || approvedShift.newPendingPaymentsAmount > 0) {
-      const desc = [
-        approvedShift.newPendingCupsCount && approvedShift.newPendingCupsCount > 0 ? `${approvedShift.newPendingCupsCount} Juices` : '',
-        approvedShift.newPendingBoxesCount && approvedShift.newPendingBoxesCount > 0 ? `${approvedShift.newPendingBoxesCount} Food Boxes` : ''
-      ].filter(Boolean).join(' & ') || 'Shift Customer Credit';
-
-      const newPendingItem: PendingPaymentItem = {
-        id: `pp-${Date.now()}`,
-        shiftType: approvedShift.shiftType,
-        customerName: `${approvedShift.workerName} Shift Credit`,
-        description: desc,
-        juiceCupsCount: approvedShift.newPendingCupsCount || 0,
-        foodTakeawaysCount: approvedShift.newPendingBoxesCount || 0,
-        amount: approvedShift.newPendingPaymentsAmount,
-        date: approvedShift.date,
-        isPaid: false,
-      };
-
-      await supabase.from('pending_payments').insert({
-        id: newPendingItem.id,
-        shift_type: newPendingItem.shiftType,
-        customer_name: newPendingItem.customerName,
-        description: newPendingItem.description,
-        juice_cups_count: newPendingItem.juiceCupsCount,
-        food_takeaways_count: newPendingItem.foodTakeawaysCount,
-        amount: newPendingItem.amount,
-        date: newPendingItem.date,
-        is_paid: false,
-      });
-
-      setPendingPaymentsState((prev) => [newPendingItem, ...prev]);
-    }
-
-    // 3. Save delivery record if BeU delivery credit given
-    if (approvedShift.deliveryCreditAmount > 0 || (approvedShift.deliveryCupsCount && approvedShift.deliveryCupsCount > 0) || (approvedShift.deliveryBoxesCount && approvedShift.deliveryBoxesCount > 0)) {
-      const desc = [
-        approvedShift.deliveryCupsCount && approvedShift.deliveryCupsCount > 0 ? `${approvedShift.deliveryCupsCount} Juices` : '',
-        approvedShift.deliveryBoxesCount && approvedShift.deliveryBoxesCount > 0 ? `${approvedShift.deliveryBoxesCount} Food Boxes` : ''
-      ].filter(Boolean).join(' & ') || 'BeU Delivery Orders';
-
-      const newDelRecord: DeliveryAccountRecord = {
-        id: `del-${Date.now()}`,
-        deliveryRiderName: 'BeU Delivery Rider',
-        description: desc,
-        juiceCupsCount: approvedShift.deliveryCupsCount || 0,
-        foodTakeawaysCount: approvedShift.deliveryBoxesCount || 0,
-        amount: approvedShift.deliveryCreditAmount,
-        date: approvedShift.date,
-        shiftType: approvedShift.shiftType,
-        isSettledWeekly: false,
-      };
-
-      await supabase.from('delivery_records').insert({
-        id: newDelRecord.id,
-        delivery_rider_name: newDelRecord.deliveryRiderName,
-        description: newDelRecord.description,
-        juice_cups_count: newDelRecord.juiceCupsCount,
-        food_takeaways_count: newDelRecord.foodTakeawaysCount,
-        amount: newDelRecord.amount,
-        date: newDelRecord.date,
-        shift_type: newDelRecord.shiftType,
-        is_settled_weekly: false,
-      });
-
-      setDeliveryRecordsState((prev) => [newDelRecord, ...prev]);
+  const handleRejectShift = async (id: string) => {
+    if (!confirm('ይህንን የሸፍት መዝገብ እርግጠኛ ሆነው መሰረዝ ይፈልጋሉ? (Reject and delete pending shift?)')) return;
+    const { error } = await supabase.from('shifts').delete().eq('id', id);
+    if (!error) {
+      await fetchData();
     }
   };
 
@@ -790,6 +726,7 @@ export function App() {
         onChangeLanguage={setSelectedLanguage}
         summary={summary}
         config={config}
+        pendingShiftsCount={pendingApprovalShifts.length}
         themeMode={themeMode}
         onToggleTheme={handleToggleTheme}
         onLogout={handleLogout}
@@ -810,7 +747,11 @@ export function App() {
                 <ShiftReconciliationView
                   activeShift={activeShift} setActiveShift={setActiveShift}
                   config={config} lastClosedShift={lastClosedShift}
-                  pendingPayments={pendingPayments} onSaveShift={handleSaveShift}
+                  pendingPayments={pendingPayments}
+                  pendingApprovalShifts={pendingApprovalShifts}
+                  onApproveShift={handleApproveShift}
+                  onRejectShift={handleRejectShift}
+                  onSaveShift={handleSaveShift}
                   onAddPendingPayment={handleAddPendingPayment}
                   onUpdatePendingPayment={handleUpdatePendingPayment}
                   onPartialSettlePendingPayment={handlePartialSettlePendingPayment}

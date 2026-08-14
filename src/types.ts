@@ -71,12 +71,6 @@ export interface ShiftRecord {
   recoveredPendingAmount: number;     // Past pending debts paid off in cash during this shift
   
   deliveryCreditAmount: number;       // Orders taken by delivery riders to be paid weekly
-  deliveryCupsCount?: number;
-  deliveryBoxesCount?: number;
-  newPendingCupsCount?: number;
-  newPendingBoxesCount?: number;
-  recoveredCupsCount?: number;
-  recoveredBoxesCount?: number;
   
   // Final Net Cash Due to Owner (Birr worker physically hands over)
   netCashDueToOwner: number;
@@ -84,7 +78,6 @@ export interface ShiftRecord {
   // Status & Notes
   notes?: string;
   isClosed: boolean;
-  approvalStatus?: 'pending_approval' | 'approved' | 'rejected';
   timestamp: number;
 }
 
