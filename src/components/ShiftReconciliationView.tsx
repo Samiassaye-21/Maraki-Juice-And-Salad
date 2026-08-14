@@ -466,7 +466,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                         <span className="text-xs text-[#403c21] font-extrabold block">ለባለቤቱ የሚገባ ጥሬ ገንዘብ (Net Cash Handover)</span>
                         <span className="text-xs text-neutral-500 font-medium">Actual cash to receive</span>
                       </div>
-                      <span className="text-2xl font-extrabold text-[#403c21]">
+                      <span className="text-2xl font-extrabold text-[#f7f5f0]">
                         {formatCurrency(pShift.netCashDueToOwner, currencySymbol)}
                       </span>
                     </div>
@@ -664,7 +664,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
               <div className="bg-[#f7f5f0] rounded-2xl p-4 border border-[#403c21]/20">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="w-5 h-5 rounded-full bg-[#403c21] text-[#f7f5f0] text-[10px] font-extrabold flex items-center justify-center">1</span>
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#403c21]">Physical Box Count</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#f7f5f0]">Physical Box Count</span>
                   <span className="ml-auto text-xs text-neutral-500 font-medium">Opening + Added − Leftover = Sold</span>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -712,7 +712,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
               <div className="bg-[#f7f5f0] rounded-2xl p-4 border border-[#403c21]/20">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="w-5 h-5 rounded-full bg-[#403c21] text-[#f7f5f0] text-[10px] font-extrabold flex items-center justify-center">2</span>
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#403c21]">Itemize Which Dishes Were Sold</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#f7f5f0]">Itemize Which Dishes Were Sold</span>
                   <span className="ml-auto text-[10px] text-neutral-500 font-medium">Price auto-applied per item</span>
                 </div>
 
@@ -842,7 +842,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                 Calculated Gross Shift Income
               </span>
             </div>
-            <span className="text-2xl font-extrabold text-[#403c21]">
+            <span className="text-2xl font-extrabold text-[#f7f5f0]">
               {formatCurrency(grossIncome, currencySymbol)}
             </span>
           </div>
@@ -1057,7 +1057,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                               <p className="font-bold text-white truncate">
                                 {item.customerName || 'Customer'}
                               </p>
-                              <p className="text-[10px] text-neutral-400 truncate">
+                              <p className="text-[10px] text-[#403c21]/70 truncate">
                                 {item.description} ({item.shiftType.toUpperCase()} • {item.date})
                               </p>
                             </div>
@@ -1089,7 +1089,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                                     <span className="text-[10px] font-semibold text-neutral-300">Paid Cups:</span>
                                     <button type="button"
                                       onClick={() => setPartialPendingCups(prev => ({ ...prev, [item.id]: Math.max(0, (prev[item.id] || 0) - 1) }))}
-                                      className="w-4 h-4 rounded-full bg-[#403c21] text-white font-bold flex items-center justify-center text-[10px]"
+                                      className="w-4 h-4 rounded-full bg-[#403c21] text-[#f7f5f0] font-bold flex items-center justify-center text-[10px]"
                                     >−</button>
                                     <input
                                       type="number" min="0" max={item.juiceCupsCount}
@@ -1114,7 +1114,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                                     <span className="text-[10px] font-semibold text-neutral-300">Paid Boxes:</span>
                                     <button type="button"
                                       onClick={() => setPartialPendingBoxes(prev => ({ ...prev, [item.id]: Math.max(0, (prev[item.id] || 0) - 1) }))}
-                                      className="w-4 h-4 rounded-full bg-[#403c21] text-white font-bold flex items-center justify-center text-[10px]"
+                                      className="w-4 h-4 rounded-full bg-[#403c21] text-[#f7f5f0] font-bold flex items-center justify-center text-[10px]"
                                     >−</button>
                                     <input
                                       type="number" min="0" max={item.foodTakeawaysCount}
@@ -1182,7 +1182,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                       <div className="flex items-center space-x-1 flex-shrink-0">
                         <button type="button"
                           onClick={() => setRecoveredJuiceCups(Math.max(0, recoveredJuiceCups - 1))}
-                          className="w-6 h-6 rounded-full bg-[#403c21] border border-[#403c21] text-white font-bold flex items-center justify-center hover:bg-[#403c21]/40 cursor-pointer text-xs"
+                          className="w-6 h-6 rounded-full bg-[#403c21] border border-[#403c21] text-[#403c21] font-bold flex items-center justify-center hover:bg-[#403c21]/40 cursor-pointer text-xs"
                         >−</button>
                         <input
                           type="number" min="0"
@@ -1215,7 +1215,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                           <div className="flex items-center space-x-1 flex-shrink-0">
                             <button type="button"
                               onClick={() => setRecoveredFoodSales(prev => ({ ...prev, [menuItem.id]: Math.max(0, (prev[menuItem.id] || 0) - 1) }))}
-                              className="w-6 h-6 rounded-full bg-[#403c21] border border-[#403c21] text-white font-bold flex items-center justify-center hover:bg-[#403c21]/40 cursor-pointer text-xs"
+                              className="w-6 h-6 rounded-full bg-[#403c21] border border-[#403c21] text-[#403c21] font-bold flex items-center justify-center hover:bg-[#403c21]/40 cursor-pointer text-xs"
                             >−</button>
                             <input
                               type="number" min="0"
@@ -1310,7 +1310,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
               <h3 className="text-2xl font-extrabold text-white tracking-tight">Net Cash Due to Owner</h3>
               <p className="text-xs text-white/80 mt-0.5 font-medium">Exact cash worker must hand over at end of shift</p>
             </div>
-            <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#403c21]">
+            <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#f7f5f0]">
               {formatCurrency(netCashDueToOwner, currencySymbol)}
             </div>
           </div>

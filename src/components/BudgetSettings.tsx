@@ -209,7 +209,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
     }, 2500);
   };
 
-  const inputClasses = "w-full px-4 py-2.5 bg-white border border-[#403c21]/30 rounded-full text-[#403c21] text-sm font-bold focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 transition-all placeholder:text-neutral-400 shadow-xs";
+  const inputClasses = "w-full px-4 py-2.5 bg-white border border-[#403c21]/30 rounded-full text-[#403c21] text-sm font-bold focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 transition-all placeholder:text-[#403c21]/70 shadow-xs";
 
   const getCategoryBadge = (category?: string) => {
     switch (category) {
@@ -726,7 +726,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-white font-bold text-lg">
+                <p className="text-[#403c21] font-bold text-lg">
                   {sigModalTarget === 'day' ? '☀️ Day Worker' : '🌙 Night Worker'} Master Signature
                 </p>
                 <p className="text-neutral-300 text-xs mt-0.5">Sign clearly inside the white box below</p>
@@ -734,7 +734,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
               <button
                 type="button"
                 onClick={() => setSigModalOpen(false)}
-                className="text-neutral-400 hover:text-white text-2xl font-bold leading-none cursor-pointer px-2"
+                className="text-[#403c21]/70 hover:text-white text-2xl font-bold leading-none cursor-pointer px-2"
               >
                 ✕
               </button>
@@ -757,7 +757,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 className="w-full bg-white cursor-crosshair block"
                 style={{ touchAction: 'none' }}
               />
-              <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-neutral-400 text-sm font-medium select-none">
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[#403c21]/70 text-sm font-medium select-none">
                 ✍️ Sign here with your finger
               </span>
             </div>

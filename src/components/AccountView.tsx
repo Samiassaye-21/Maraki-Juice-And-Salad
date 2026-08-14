@@ -141,7 +141,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
                 {showBalance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4 text-[#403c21]" />}
               </button>
             </div>
-            <p className="text-4xl font-extrabold mt-1 tracking-tight text-[#403c21]">{renderAmount(balance)}</p>
+            <p className="text-4xl font-extrabold mt-1 tracking-tight text-[#f7f5f0]">{renderAmount(balance)}</p>
             <p className="text-sm text-white/80 mt-1 font-medium">All time net position</p>
           </div>
           <div className="p-3.5 bg-[#403c21] border border-[#403c21]/40 text-[#403c21] rounded-full shadow-xs">
@@ -153,7 +153,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
             <div className="flex items-center gap-1.5 text-white/80 text-xs font-bold">
               <TrendingUp className="w-3.5 h-3.5 text-[#403c21]" /> Total Income
             </div>
-            <p className="text-lg font-extrabold text-[#403c21] mt-0.5">{renderAmount(allIncome)}</p>
+            <p className="text-lg font-extrabold text-[#f7f5f0] mt-0.5">{renderAmount(allIncome)}</p>
           </div>
           <div className="bg-[#403c21] border border-[#403c21]/30 rounded-2xl px-4 py-3">
             <div className="flex items-center gap-1.5 text-white/80 text-xs font-bold">
@@ -223,7 +223,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
         )}
 
         {entriesWithRunning.map((entry) => {
-          const cfg = entryTypeConfig[entry.type as any] || { label: 'Legacy Entry', icon: '📌', color: 'text-neutral-400' };
+          const cfg = entryTypeConfig[entry.type as any] || { label: 'Legacy Entry', icon: '📌', color: 'text-[#403c21]/70' };
           const isIncome = entry.sign === 1;
           return (
             <motion.div

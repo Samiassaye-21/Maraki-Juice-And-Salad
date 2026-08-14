@@ -142,7 +142,7 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                     <p className="text-xs text-neutral-500 font-medium">Record an overhead or bill payment</p>
                   </div>
                 </div>
-                <button onClick={() => setShowForm(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors cursor-pointer text-neutral-400 hover:text-[#403c21]">
+                <button onClick={() => setShowForm(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors cursor-pointer text-[#403c21]/70 hover:text-[#403c21]">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -183,7 +183,7 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                       value={description}
                       onChange={e => setDescription(e.target.value)}
                       placeholder="e.g. August Electric Bill, Cashier Salary"
-                      className="w-full px-4 py-2.5 border border-[#403c21]/30 bg-white text-[#403c21] font-bold rounded-full text-sm focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 placeholder:text-neutral-400 shadow-xs"
+                      className="w-full px-4 py-2.5 border border-[#403c21]/30 bg-white text-[#403c21] font-bold rounded-full text-sm focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 placeholder:text-[#403c21]/70 shadow-xs"
                     />
                   </div>
 
@@ -197,13 +197,13 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                         placeholder="0.00"
                         min="0"
                         step="0.01"
-                        className="w-full px-4 py-2.5 border border-[#403c21]/30 bg-white text-[#403c21] font-bold rounded-full text-sm focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 placeholder:text-neutral-400 shadow-xs"
+                        className="w-full px-4 py-2.5 border border-[#403c21]/30 bg-white text-[#403c21] font-bold rounded-full text-sm focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 placeholder:text-[#403c21]/70 shadow-xs"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-neutral-500 mb-1.5 uppercase tracking-wide">Date</label>
                       <div className="relative">
-                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#403c21]/70" />
                         <input
                           type="date"
                           value={date}

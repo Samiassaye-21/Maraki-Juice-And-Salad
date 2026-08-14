@@ -157,7 +157,7 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
               onClick={() => handleKey(key)}
               className="h-14 rounded-full bg-white hover:bg-[#EBF5F0] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#403c21] shadow-xs"
             >
-              <span className="text-2xl font-extrabold text-[#403c21]">{key}</span>
+              <span className="text-2xl font-extrabold text-[#f7f5f0]">{key}</span>
             </button>
           );
         })}

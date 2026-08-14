@@ -151,7 +151,7 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#403c21]">
               Unsettled Balance
             </span>
-            <span className="text-2xl font-extrabold text-[#403c21]">
+            <span className="text-2xl font-extrabold text-[#f7f5f0]">
               {formatCurrency(totalUnsettled, currencySymbol)}
             </span>
           </div>
@@ -312,9 +312,9 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search delivery riders/companies..."
-            className="w-full pl-10 pr-4 py-2 bg-white border border-[#403c21]/30 rounded-full text-sm text-[#403c21] font-bold focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 placeholder:text-neutral-400 shadow-xs"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-[#403c21]/30 rounded-full text-sm text-[#403c21] font-bold focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 placeholder:text-[#403c21]/70 shadow-xs"
           />
-          <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-[#403c21]/70 absolute left-3.5 top-3" />
         </div>
 
         <div className="flex bg-[#f7f5f0] p-1 rounded-full border border-[#403c21]/20 text-xs font-medium w-full sm:w-auto">
@@ -463,7 +463,7 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                 </h3>
                 <button
                   onClick={() => setEditingRecord(null)}
-                  className="p-2 text-neutral-400 hover:text-white hover:bg-[#403c21]/30 rounded-full transition cursor-pointer"
+                  className="p-2 text-[#403c21]/70 hover:text-white hover:bg-[#403c21]/30 rounded-full transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>

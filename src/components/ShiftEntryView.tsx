@@ -438,7 +438,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                 🍱 {totalUnpaidFoodBoxes} Boxes
               </span>
             </div>
-            <div className="text-2xl font-extrabold text-[#403c21]">
+            <div className="text-2xl font-extrabold text-[#f7f5f0]">
               {formatCurrency(totalUnpaidPendingAmount, config.currencySymbol)}
             </div>
           </div>
@@ -647,7 +647,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                         <span className="font-bold text-[#403c21]">{item.amount} ETB</span>
                         <button
                           onClick={() => handleRemoveExpenseItem(item.id)}
-                          className="text-neutral-400 hover:text-rose-600 cursor-pointer"
+                          className="text-[#403c21]/70 hover:text-rose-600 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -822,7 +822,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
               className="w-full h-28 touch-none bg-white cursor-crosshair rounded-xl border border-neutral-200 shadow-inner"
             />
             {!hasSigned && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-neutral-400 text-xs font-bold">
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[#403c21]/70 text-xs font-bold">
                 ✍️ እዚህ ጋር በጣትዎ ይፈረሙ (Draw Signature Here)
               </div>
             )}

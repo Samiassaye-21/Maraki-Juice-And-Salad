@@ -43,7 +43,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
              e.currentTarget.style.display = 'none';
           }}
         />
-        <h1 className="text-4xl font-extrabold leading-none tracking-tight text-[#403c21]">Maraki</h1>
+        <h1 className="text-4xl font-extrabold leading-none tracking-tight text-[#f7f5f0]">Maraki</h1>
         <p className="text-sm font-bold text-[#403c21] mt-2 uppercase tracking-wider">Admin Dashboard System</p>
       </motion.div>
 

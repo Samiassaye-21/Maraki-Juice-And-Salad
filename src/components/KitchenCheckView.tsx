@@ -268,10 +268,10 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
         <div className="bg-[#403c21] border border-[#403c21]/40 text-white p-5 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[130px]">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-wider text-[#403c21]">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-[#f7f5f0]">
                 Chef Logged Items
               </p>
-              <h3 className="text-3xl font-extrabold text-[#403c21] mt-1">
+              <h3 className="text-3xl font-extrabold text-[#f7f5f0] mt-1">
                 {grandChefTotalItems} <span className="text-sm font-normal text-white/80">items</span>
               </h3>
             </div>
@@ -292,7 +292,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
               <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
                 Worker Shift Sales
               </p>
-              <h3 className="text-3xl font-extrabold text-[#403c21] mt-1">
+              <h3 className="text-3xl font-extrabold text-[#f7f5f0] mt-1">
                 {workerTotalItems} <span className="text-sm font-normal text-neutral-500">items</span>
               </h3>
             </div>
@@ -391,7 +391,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                 {/* Items List */}
                 <div className="p-4 flex-1 space-y-2">
                   {data.items.length === 0 ? (
-                    <div className="py-6 text-center text-neutral-400 text-xs italic">
+                    <div className="py-6 text-center text-[#403c21]/70 text-xs italic">
                       No orders logged for {cfg.shortLabel}
                     </div>
                   ) : (
@@ -438,13 +438,13 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             {/* Search Input */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-neutral-400" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#403c21]/70" />
               <input
                 type="text"
                 placeholder="Search food item..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-xs rounded-full bg-white border border-[#403c21]/30 text-[#403c21] font-bold focus:outline-none focus:border-[#403c21] w-36 sm:w-44 placeholder:text-neutral-400 shadow-xs"
+                className="pl-8 pr-3 py-1.5 text-xs rounded-full bg-white border border-[#403c21]/30 text-[#403c21] font-bold focus:outline-none focus:border-[#403c21] w-36 sm:w-44 placeholder:text-[#403c21]/70 shadow-xs"
               />
             </div>
 

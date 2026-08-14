@@ -123,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
               />
             </div>
             <div className="flex flex-col hidden sm:flex">
-              <h1 className="text-xl font-extrabold tracking-tight text-[#403c21]">
+              <h1 className="text-xl font-extrabold tracking-tight text-[#f7f5f0]">
                 Maraki Juice and Salad
               </h1>
             </div>

@@ -340,7 +340,7 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
                 </div>
                 <button
                   onClick={() => handleDeleteOrder(order.id)}
-                  className="p-2 rounded-full hover:bg-rose-50 text-neutral-400 hover:text-rose-600 transition-all cursor-pointer"
+                  className="p-2 rounded-full hover:bg-rose-50 text-[#403c21]/70 hover:text-rose-600 transition-all cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

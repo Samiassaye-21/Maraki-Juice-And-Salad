@@ -222,7 +222,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                   </div>
                 </div>
                 <button onClick={() => setShowForm(false)} className="p-2 hover:bg-[#403c21]/30 rounded-full transition-colors cursor-pointer">
-                  <X className="w-5 h-5 text-neutral-400" />
+                  <X className="w-5 h-5 text-[#403c21]/70" />
                 </button>
               </div>
 
@@ -232,7 +232,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                   <div className="flex-1">
                     <label className="block text-xs font-medium text-neutral-300 mb-1.5 uppercase tracking-wide">Trip Date</label>
                     <div className="relative">
-                      <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                      <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#403c21]/70" />
                       <input
                         type="date"
                         value={tripDate}
@@ -288,7 +288,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                                     >
                                       <span>{mat.emoji}</span>
                                       <span className="font-bold">{mat.name}</span>
-                                      <span className="text-neutral-400 text-xs ml-auto">{mat.unit}</span>
+                                      <span className="text-[#403c21]/70 text-xs ml-auto">{mat.unit}</span>
                                       {mat.lastPricePer && (
                                         <span className="text-xs text-[#403c21]">Last: {mat.lastPricePer} Br/{mat.unit}</span>
                                       )}
@@ -320,7 +320,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                             )}
                           </div>
                           {items.length > 1 && (
-                            <button onClick={() => removeItem(idx)} className="p-2 text-neutral-400 hover:text-white hover:bg-red-950/50 rounded-full mt-0.5 cursor-pointer">
+                            <button onClick={() => removeItem(idx)} className="p-2 text-[#403c21]/70 hover:text-white hover:bg-red-950/50 rounded-full mt-0.5 cursor-pointer">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           )}
@@ -402,7 +402,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
               <div className="border-t border-[#403c21]/30 px-6 py-4 flex gap-3 flex-shrink-0">
                 <button
                   onClick={() => setShowForm(false)}
-                  className="flex-1 py-3 bg-[#403c21] border border-[#403c21] text-white font-bold text-xs rounded-full hover:bg-[#403c21]/30 transition-colors cursor-pointer"
+                  className="flex-1 py-3 bg-[#403c21] border border-[#403c21] text-[#403c21] font-bold text-xs rounded-full hover:bg-[#403c21]/30 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
