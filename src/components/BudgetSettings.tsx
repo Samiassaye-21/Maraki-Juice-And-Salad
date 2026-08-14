@@ -70,7 +70,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
-    ctx.strokeStyle = '#3b82f6';
+    ctx.strokeStyle = '#111111';
     ctx.lineTo(clientX - rect.left, clientY - rect.top);
     ctx.stroke();
   };
@@ -482,7 +482,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <div className="bg-slate-950 rounded-xl p-1 border border-slate-800 relative">
+                    <div className="bg-white rounded-xl p-1 border border-slate-300 relative">
                       <canvas
                         ref={dayCanvasRef}
                         width={260}
@@ -494,7 +494,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                         onTouchStart={(e) => startDrawingMaster(dayCanvasRef, setIsDrawingDay, e)}
                         onTouchMove={(e) => drawMaster(dayCanvasRef, isDrawingDay, e)}
                         onTouchEnd={() => stopDrawingMaster(dayCanvasRef, setIsDrawingDay, setDaySignatureUrl)}
-                        className="w-full h-20 touch-none bg-slate-950 rounded-lg cursor-crosshair"
+                        className="w-full h-20 touch-none bg-white rounded-lg cursor-crosshair"
                       />
                       <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-slate-600 text-[11px]">
                         ✍️ Draw Day Worker Signature Here
@@ -552,7 +552,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <div className="bg-slate-950 rounded-xl p-1 border border-slate-800 relative">
+                    <div className="bg-white rounded-xl p-1 border border-slate-300 relative">
                       <canvas
                         ref={nightCanvasRef}
                         width={260}
@@ -564,7 +564,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                         onTouchStart={(e) => startDrawingMaster(nightCanvasRef, setIsDrawingNight, e)}
                         onTouchMove={(e) => drawMaster(nightCanvasRef, isDrawingNight, e)}
                         onTouchEnd={() => stopDrawingMaster(nightCanvasRef, setIsDrawingNight, setNightSignatureUrl)}
-                        className="w-full h-20 touch-none bg-slate-950 rounded-lg cursor-crosshair"
+                        className="w-full h-20 touch-none bg-white rounded-lg cursor-crosshair"
                       />
                       <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-slate-600 text-[11px]">
                         ✍️ Draw Night Worker Signature Here

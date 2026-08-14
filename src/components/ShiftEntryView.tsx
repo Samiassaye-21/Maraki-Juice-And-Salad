@@ -84,7 +84,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
 
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
-    ctx.strokeStyle = '#818cf8';
+    ctx.strokeStyle = '#111111';
 
     ctx.lineTo(clientX - rect.left, clientY - rect.top);
     ctx.stroke();
@@ -800,7 +800,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
             )}
           </div>
 
-          <div className="bg-slate-950 rounded-2xl p-1 border border-slate-700 overflow-hidden relative">
+          <div className="bg-white rounded-2xl p-1 border border-slate-300 overflow-hidden relative">
             <canvas
               ref={canvasRef}
               width={340}
@@ -812,7 +812,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
               onTouchStart={startDrawing}
               onTouchMove={draw}
               onTouchEnd={stopDrawing}
-              className="w-full h-28 touch-none bg-slate-950 cursor-crosshair rounded-xl"
+              className="w-full h-28 touch-none bg-white cursor-crosshair rounded-xl"
             />
             {!hasSigned && (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-slate-600 text-xs font-semibold">

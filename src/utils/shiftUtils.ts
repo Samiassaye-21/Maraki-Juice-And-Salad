@@ -388,21 +388,41 @@ export function compareSignaturePattern(
       if (loadedCount < 2) return;
 
       try {
-        // Renders an image to a binary pixel map at given resolution
+        /**
+         * Renders image onto a WHITE background canvas, then marks a pixel as "ink"
+         * if it is sufficiently DARK (not white/light). This handles both:
+         * - Canvas drawings (dark strokes on transparent bg → composited onto white = dark on white)
+         * - Uploaded image files (dark strokes on white bg → already dark on white)
+         */
         const renderBinary = (img: HTMLImageElement, size: number): { map: number[]; inkCount: number } => {
           const c = document.createElement('canvas');
           c.width = size;
           c.height = size;
           const ctx = c.getContext('2d')!;
+
+          // First fill with white — this flattens transparent canvas signatures correctly
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, size, size);
+
+          // Draw the signature image on top
           ctx.drawImage(img, 0, 0, size, size);
+
           const pixels = ctx.getImageData(0, 0, size, size).data;
           const map: number[] = [];
           let inkCount = 0;
+
           for (let i = 0; i < size * size; i++) {
-            const inked = pixels[i * 4 + 3] > 30 ? 1 : 0;
+            const r = pixels[i * 4];
+            const g = pixels[i * 4 + 1];
+            const b = pixels[i * 4 + 2];
+            // A pixel is "ink" if it is dark enough (not white/light background)
+            // Threshold: brightness < 180 out of 255
+            const brightness = (r + g + b) / 3;
+            const inked = brightness < 180 ? 1 : 0;
             map.push(inked);
             inkCount += inked;
           }
+
           return { map, inkCount };
         };
 
@@ -424,10 +444,10 @@ export function compareSignaturePattern(
             if (a && b) intersection++;
           }
 
-          // Intersection over Union — measures spatial shape overlap
+          // IoU — measures spatial shape overlap
           const iou = union > 0 ? intersection / union : 0;
 
-          // Ink density ratio — punishes huge stroke size differences
+          // Ink density ratio — heavily punishes large vs small stroke differences
           const densityRatio = ink1 > 0 && ink2 > 0
             ? Math.min(ink1, ink2) / Math.max(ink1, ink2)
             : 0;
@@ -438,11 +458,11 @@ export function compareSignaturePattern(
         const averageScore = totalScore / SCALES.length;
         const matchScore = Math.round(averageScore * 100);
 
-        // Strict threshold: 60% required to accept
+        // Strict threshold: 60% required
         const isValid = matchScore >= 60;
         resolve({ matchScore, isValid });
       } catch {
-        resolve({ matchScore: 80, isValid: true });
+        resolve({ matchScore: 0, isValid: false });
       }
     };
 
