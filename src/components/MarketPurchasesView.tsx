@@ -423,10 +423,10 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
       {/* Trip List */}
       <div className="space-y-3">
         {purchaseTrips.length === 0 && (
-          <div className="text-center py-16 text-neutral-400 bg-[#238868]/20 border border-[#238868]/40 rounded-3xl">
-            <Package className="w-12 h-12 mx-auto mb-3 opacity-30 text-neutral-300" />
-            <p className="font-bold text-white">No purchase trips yet</p>
-            <p className="text-sm mt-1 text-neutral-300">Tap "New Trip" to log your first inventory purchase</p>
+          <div className="text-center py-16 text-neutral-600 bg-white border border-[#238868]/20 rounded-3xl shadow-xs">
+            <Package className="w-12 h-12 mx-auto mb-3 text-[#238868] opacity-40" />
+            <p className="font-extrabold text-[#07250D]">No purchase trips yet</p>
+            <p className="text-sm mt-1 text-neutral-500 font-medium">Tap "New Trip" to log your first inventory purchase</p>
           </div>
         )}
         {purchaseTrips.map(trip => {
@@ -435,32 +435,32 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
             <motion.div
               key={trip.id}
               layout
-              className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl overflow-hidden shadow-sm hover:border-[#13EE86]/50 transition-all"
+              className="bg-white border border-[#238868]/20 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all text-[#07250D]"
             >
               <div
-                className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-[#238868]/30 transition-colors"
+                className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-[#F4F8F5] transition-colors"
                 onClick={() => setExpandedTrip(isExpanded ? null : trip.id)}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#238868]/40 border border-[#238868]/60 rounded-full flex items-center justify-center flex-shrink-0">
-                    <ShoppingCart className="w-5 h-5 text-[#13EE86]" />
+                  <div className="w-10 h-10 bg-[#F4F8F5] border border-[#238868]/20 rounded-full flex items-center justify-center flex-shrink-0 text-[#238868]">
+                    <ShoppingCart className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="font-bold text-white text-sm">
+                    <p className="font-extrabold text-[#07250D] text-sm">
                       {trip.items.length} item{trip.items.length !== 1 ? 's' : ''} purchased
                     </p>
-                    <p className="text-xs text-neutral-300 mt-0.5">
+                    <p className="text-xs text-neutral-600 font-medium mt-0.5">
                       {formatEthiopianFullDate(trip.date)} — {trip.date}
                     </p>
-                    {trip.notes && <p className="text-xs text-neutral-400 italic mt-0.5">{trip.notes}</p>}
+                    {trip.notes && <p className="text-xs text-neutral-500 italic mt-0.5">{trip.notes}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <p className="font-extrabold text-[#13EE86]">{formatCurrency(trip.grandTotal, currencySymbol)}</p>
-                    <p className="text-[10px] text-neutral-400">total spent</p>
+                    <p className="font-extrabold text-[#238868]">{formatCurrency(trip.grandTotal, currencySymbol)}</p>
+                    <p className="text-[10px] text-neutral-500 font-medium">total spent</p>
                   </div>
-                  {isExpanded ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
+                  {isExpanded ? <ChevronUp className="w-4 h-4 text-neutral-500" /> : <ChevronDown className="w-4 h-4 text-neutral-500" />}
                 </div>
               </div>
 
@@ -471,33 +471,33 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="border-t border-[#238868]/30 overflow-hidden"
+                    className="border-t border-[#238868]/15 overflow-hidden"
                   >
-                    <div className="px-5 py-4 space-y-2 bg-[#07250D]">
+                    <div className="px-5 py-4 space-y-2 bg-[#F4F8F5]">
                       {trip.items.map(item => (
-                        <div key={item.id} className="flex items-center justify-between py-2 border-b border-[#238868]/20 last:border-0">
+                        <div key={item.id} className="flex items-center justify-between py-2 border-b border-[#238868]/15 last:border-0">
                           <div className="flex items-center gap-2">
                             <span className="text-sm">{DEFAULT_MATERIALS_CATALOG.find(m => m.id === item.materialId)?.emoji || '📌'}</span>
                             <div>
-                              <p className="text-sm font-bold text-white">{item.itemName}</p>
-                              <p className="text-xs text-neutral-300">
+                              <p className="text-sm font-extrabold text-[#07250D]">{item.itemName}</p>
+                              <p className="text-xs text-neutral-600 font-medium">
                                 {item.quantity} {unitLabels[item.unit]} × {item.pricePerUnit.toFixed(2)} Br/{unitLabels[item.unit]}
                               </p>
                             </div>
                           </div>
-                          <p className="text-sm font-extrabold text-[#13EE86]">{formatCurrency(item.totalPrice, currencySymbol)}</p>
+                          <p className="text-sm font-extrabold text-[#238868]">{formatCurrency(item.totalPrice, currencySymbol)}</p>
                         </div>
                       ))}
-                      <div className="flex justify-between items-center pt-3 border-t border-[#238868]/30">
+                      <div className="flex justify-between items-center pt-3 border-t border-[#238868]/15">
                         <button
                           onClick={() => onDeleteTrip(trip.id)}
-                          className="text-xs text-neutral-300 hover:text-white hover:bg-red-950/50 px-3 py-1.5 rounded-full border border-[#238868]/40 transition-colors flex items-center gap-1 cursor-pointer"
+                          className="text-xs text-neutral-600 hover:text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-full border border-[#238868]/20 transition-colors flex items-center gap-1 cursor-pointer font-bold"
                         >
-                          <Trash2 className="w-3.5 h-3.5 text-neutral-300" />
+                          <Trash2 className="w-3.5 h-3.5" />
                           Delete trip
                         </button>
-                        <p className="text-sm font-extrabold text-white">
-                          Total: <span className="text-[#13EE86]">{formatCurrency(trip.grandTotal, currencySymbol)}</span>
+                        <p className="text-sm font-extrabold text-[#07250D]">
+                          Total: <span className="text-[#238868]">{formatCurrency(trip.grandTotal, currencySymbol)}</span>
                         </p>
                       </div>
                     </div>

@@ -174,9 +174,9 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
             exit={{ opacity: 0, height: 0, y: -20 }}
             className="overflow-hidden"
           >
-            <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-5 sm:p-6 shadow-sm mb-6">
-              <h3 className="text-base font-bold text-white mb-5 flex items-center space-x-2">
-                <Plus className="w-5 h-5 text-[#13EE86]" />
+            <div className="bg-white border border-[#238868]/20 rounded-3xl p-5 sm:p-6 shadow-xs mb-6 text-[#07250D]">
+              <h3 className="text-base font-extrabold text-[#07250D] mb-5 flex items-center space-x-2">
+                <Plus className="w-5 h-5 text-[#238868]" />
                 <span>Record Weekly Delivery Order Credit</span>
               </h3>
 
@@ -207,6 +207,17 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                   </div>
 
                   <div>
+                    <label className={labelClasses}>Date</label>
+                    <input
+                      type="date"
+                      required
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className={inputClasses}
+                    />
+                  </div>
+
+                  <div>
                     <label className={labelClasses}>Amount ({currencySymbol})</label>
                     <input
                       type="number"
@@ -232,7 +243,7 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                   </div>
 
                   <div>
-                    <label className={labelClasses}>Juice Cups Used</label>
+                    <label className={labelClasses}>Juice Cups Count</label>
                     <input
                       type="number"
                       min="0"
@@ -276,13 +287,13 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsFormOpen(false)}
-                    className="px-5 py-2.5 bg-[#07250D] border border-[#238868] text-white hover:bg-[#238868]/30 font-bold text-xs rounded-full transition cursor-pointer"
+                    className="px-5 py-2.5 bg-white border-2 border-[#07250D] text-[#07250D] hover:bg-slate-100 font-extrabold text-xs rounded-full transition cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-[#13EE86] hover:bg-[#13EE86]/90 text-[#07250D] font-bold text-xs rounded-full shadow-md transition cursor-pointer"
+                    className="px-6 py-2.5 bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] font-extrabold text-xs rounded-full shadow-md transition cursor-pointer active:scale-95"
                   >
                     Save Delivery Credit
                   </button>
@@ -294,34 +305,34 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
       </AnimatePresence>
 
       {/* SEARCH & FILTERS */}
-      <div className="bg-[#238868]/20 rounded-3xl p-4 border border-[#238868]/40 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-white rounded-3xl p-4 border border-[#238868]/20 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-[#07250D]">
         <div className="relative w-full sm:max-w-xs">
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search delivery riders/companies..."
-            className="w-full pl-10 pr-4 py-2 bg-[#07250D] border border-[#238868]/50 rounded-full text-sm text-white focus:outline-none focus:border-[#13EE86] placeholder:text-neutral-500"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-[#238868]/30 rounded-full text-sm text-[#07250D] font-bold focus:outline-none focus:border-[#238868] focus:ring-4 focus:ring-[#13EE86]/20 placeholder:text-neutral-400 shadow-xs"
           />
           <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-3" />
         </div>
 
-        <div className="flex bg-[#07250D] p-1 rounded-full border border-[#238868]/40 text-xs font-medium w-full sm:w-auto">
+        <div className="flex bg-[#F4F8F5] p-1 rounded-full border border-[#238868]/20 text-xs font-medium w-full sm:w-auto">
           <button
             onClick={() => setFilterStatus('unsettled')}
-            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-bold ${filterStatus === 'unsettled' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'unsettled' ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
           >
             Weekly Unsettled
           </button>
           <button
             onClick={() => setFilterStatus('settled')}
-            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-bold ${filterStatus === 'settled' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'settled' ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
           >
             Settled Paid
           </button>
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-bold ${filterStatus === 'all' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'all' ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
           >
             All Logs
           </button>
@@ -331,10 +342,10 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
       {/* LIST */}
       <div className="space-y-3.5">
         {filtered.length === 0 ? (
-          <div className="bg-[#238868]/20 rounded-3xl p-12 text-center text-neutral-300 border border-[#238868]/40 flex flex-col items-center">
-            <Truck className="w-12 h-12 text-neutral-400 mb-3" />
-            <h3 className="text-base font-bold text-white">No delivery account logs</h3>
-            <p className="text-xs text-neutral-300 mt-1">Try adjusting search term or status filter</p>
+          <div className="bg-white rounded-3xl p-12 text-center text-neutral-600 border border-[#238868]/20 flex flex-col items-center shadow-xs">
+            <Truck className="w-12 h-12 text-[#238868] mb-3 opacity-40" />
+            <h3 className="text-base font-extrabold text-[#07250D]">No delivery account logs</h3>
+            <p className="text-xs font-medium text-neutral-500 mt-1">Try adjusting search term or status filter</p>
           </div>
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-3.5">
@@ -344,50 +355,50 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.04 }}
-                className={`bg-[#238868]/20 rounded-3xl p-5 border border-[#238868]/40 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:border-[#13EE86]/50`}
+                className="bg-white rounded-3xl p-5 border border-[#238868]/20 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:shadow-md text-[#07250D]"
               >
                 
                 <div className="flex items-start space-x-4">
-                  <div className="p-3 rounded-full bg-[#238868]/40 text-[#13EE86] border border-[#238868]/60 shrink-0">
+                  <div className="p-3 rounded-full bg-[#F4F8F5] text-[#238868] border border-[#238868]/20 shrink-0">
                     <Truck className="w-6 h-6" />
                   </div>
 
                   <div className="space-y-1">
                     <div className="flex items-center flex-wrap gap-2">
-                      <h4 className="text-base font-bold text-white">
+                      <h4 className="text-base font-extrabold text-[#07250D]">
                         {item.deliveryRiderName}
                       </h4>
-                      <span className="px-3 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#07250D] text-[#13EE86] border border-[#238868]/40">
+                      <span className="px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-[#F4F8F5] text-[#07250D] border border-[#238868]/20">
                         {item.shiftType} SHIFT
                       </span>
                       {item.isSettledWeekly ? (
-                        <span className="bg-[#238868]/40 text-[#13EE86] border border-[#238868] text-[10px] font-bold px-3 py-0.5 rounded-full uppercase">
+                        <span className="bg-[#F4F8F5] text-[#238868] border border-[#238868]/20 text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase">
                           WEEKLY SETTLED
                         </span>
                       ) : (
-                        <span className="bg-[#13EE86] text-[#07250D] text-[10px] font-bold px-3 py-0.5 rounded-full uppercase">
+                        <span className="bg-[#13EE86] text-[#07250D] text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase">
                           UNSETTLED
                         </span>
                       )}
                     </div>
 
-                    <p className="text-sm text-neutral-300">
+                    <p className="text-sm text-neutral-600 font-medium">
                       {item.description}
                     </p>
 
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-400 font-medium">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-500 font-medium">
                       <span>Date: {item.date}</span>
                       {item.juiceCupsCount > 0 && <span>• {item.juiceCupsCount} Cups</span>}
                       {item.foodTakeawaysCount > 0 && <span>• {item.foodTakeawaysCount} Takeaways</span>}
                       {item.isSettledWeekly && item.settledDate && (
-                        <span className="text-[#13EE86] font-bold">• Settled on {item.settledDate}</span>
+                        <span className="text-[#238868] font-extrabold">• Settled on {item.settledDate}</span>
                       )}
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-4 self-end sm:self-center">
-                  <span className="text-lg font-extrabold text-[#13EE86]">
+                  <span className="text-lg font-extrabold text-[#238868]">
                     {formatCurrency(item.amount, currencySymbol)}
                   </span>
 
@@ -395,21 +406,21 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                     {!item.isSettledWeekly ? (
                       <button
                         onClick={() => onSettleDeliveryRecord(item.id)}
-                        className="px-4 py-2 bg-[#13EE86] hover:bg-[#13EE86]/90 text-[#07250D] font-bold text-xs rounded-full shadow-md flex items-center space-x-1.5 cursor-pointer"
+                        className="px-4 py-2 bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] font-extrabold text-xs rounded-full shadow-md flex items-center space-x-1.5 cursor-pointer active:scale-95 transition"
                       >
                         <CheckCircle2 className="w-4 h-4 text-[#07250D]" />
                         <span>Settle Payment</span>
                       </button>
                     ) : (
-                      <span className="text-xs font-bold text-[#13EE86] flex items-center space-x-1 px-2">
-                        <CheckCircle2 className="w-4 h-4 text-[#13EE86]" />
+                      <span className="text-xs font-extrabold text-[#238868] flex items-center space-x-1 px-2">
+                        <CheckCircle2 className="w-4 h-4 text-[#238868]" />
                         <span>Settled</span>
                       </span>
                     )}
 
                     <button
                       onClick={() => setEditingRecord(JSON.parse(JSON.stringify(item)))}
-                      className="p-2 text-neutral-300 hover:text-white hover:bg-[#238868]/30 rounded-full transition cursor-pointer"
+                      className="p-2 text-neutral-500 hover:text-[#07250D] hover:bg-slate-100 rounded-full transition cursor-pointer"
                       title="Edit"
                     >
                       <Pencil className="w-4 h-4" />
@@ -417,7 +428,7 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
 
                     <button
                       onClick={() => onDeleteDeliveryRecord(item.id)}
-                      className="p-2 text-neutral-300 hover:text-white hover:bg-red-950/50 rounded-full transition cursor-pointer"
+                      className="p-2 text-neutral-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition cursor-pointer"
                       title="Delete"
                     >
                       <Trash2 className="w-4 h-4" />

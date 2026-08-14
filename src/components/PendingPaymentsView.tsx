@@ -283,16 +283,16 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
             exit={{ opacity: 0, height: 0, y: -20 }}
             className="overflow-hidden"
           >
-            <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-5 sm:p-6 shadow-sm mb-6">
-              <h3 className="text-base font-bold text-white mb-5 flex items-center space-x-2">
-                <Plus className="w-5 h-5 text-[#13EE86]" />
+            <div className="bg-white border border-[#238868]/20 rounded-3xl p-5 sm:p-6 shadow-xs mb-6 text-[#07250D]">
+              <h3 className="text-base font-extrabold text-[#07250D] mb-5 flex items-center space-x-2">
+                <Plus className="w-5 h-5 text-[#238868]" />
                 <span>Record New Customer Pending Credit</span>
               </h3>
 
               <form onSubmit={handleSubmitNewPending} className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-neutral-300 uppercase tracking-wider mb-2">Shift Worker</label>
+                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Shift Worker</label>
                     <select
                       value={shiftType}
                       onChange={(e) => setShiftType(e.target.value as ShiftType)}
@@ -304,7 +304,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-neutral-300 uppercase tracking-wider mb-2">Customer Name</label>
+                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Customer Name</label>
                     <input
                       type="text"
                       required
@@ -316,7 +316,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-neutral-300 uppercase tracking-wider mb-2">Amount ({currencySymbol})</label>
+                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Amount ({currencySymbol})</label>
                     <input
                       type="number"
                       step="0.01"
@@ -330,7 +330,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-neutral-300 uppercase tracking-wider mb-2">Description</label>
+                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Description</label>
                     <input
                       type="text"
                       value={description}
@@ -341,7 +341,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-neutral-300 uppercase tracking-wider mb-2">Juice Cups Count</label>
+                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Juice Cups Count</label>
                     <input
                       type="number"
                       min="0"
@@ -353,7 +353,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-neutral-300 uppercase tracking-wider mb-2">Select Food Dish</label>
+                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Select Food Dish</label>
                     <select
                       value={selectedFoodItemId}
                       onChange={(e) => handleSelectFoodItem(e.target.value)}
@@ -369,7 +369,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-neutral-300 uppercase tracking-wider mb-2">Takeaway Containers</label>
+                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Takeaway Containers</label>
                     <input
                       type="number"
                       min="0"
@@ -385,13 +385,13 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsFormOpen(false)}
-                    className="px-5 py-2.5 bg-[#07250D] border border-[#238868] text-white hover:bg-[#238868]/30 font-bold text-xs rounded-full transition-colors cursor-pointer"
+                    className="px-5 py-2.5 bg-white border-2 border-[#07250D] text-[#07250D] hover:bg-slate-100 font-extrabold text-xs rounded-full transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-[#13EE86] hover:bg-[#13EE86]/90 text-[#07250D] font-bold text-xs rounded-full shadow-md transition-colors cursor-pointer"
+                    className="px-6 py-2.5 bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] font-extrabold text-xs rounded-full shadow-md transition-colors cursor-pointer active:scale-95"
                   >
                     Save Pending Credit Item
                   </button>
@@ -403,71 +403,71 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
       </AnimatePresence>
 
       {/* FILTER BAR */}
-      <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-white border border-[#238868]/20 rounded-3xl p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-[#07250D]">
         <div className="relative w-full sm:max-w-xs">
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search customer credit..."
-            className="w-full pl-10 pr-4 py-2 bg-[#07250D] border border-[#238868]/50 rounded-full text-sm text-white focus:outline-none focus:border-[#13EE86] placeholder:text-neutral-500"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-[#238868]/30 rounded-full text-sm text-[#07250D] font-bold focus:outline-none focus:border-[#238868] focus:ring-4 focus:ring-[#13EE86]/20 placeholder:text-neutral-400 shadow-xs"
           />
           <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-3" />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
-          <div className="flex bg-[#07250D] p-1 rounded-full border border-[#238868]/40 text-xs font-medium">
+          <div className="flex bg-[#F4F8F5] p-1 rounded-full border border-[#238868]/20 text-xs font-medium">
             <button
               onClick={() => setFilterStatus('unpaid')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-bold ${filterStatus === 'unpaid' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterStatus === 'unpaid' ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
             >
               Unpaid
             </button>
             <button
               onClick={() => setFilterStatus('paid')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-bold ${filterStatus === 'paid' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterStatus === 'paid' ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
             >
               Paid
             </button>
             <button
               onClick={() => setFilterStatus('all')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-bold ${filterStatus === 'all' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterStatus === 'all' ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
             >
               All
             </button>
           </div>
 
-          <div className="flex bg-[#07250D] p-1 rounded-full border border-[#238868]/40 text-xs font-medium">
+          <div className="flex bg-[#F4F8F5] p-1 rounded-full border border-[#238868]/20 text-xs font-medium">
             <button
               onClick={() => setFilterShift('all')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-bold ${filterShift === 'all' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterShift === 'all' ? 'bg-[#07250D] text-white shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
             >
               All Shifts
             </button>
             <button
               onClick={() => setFilterShift('day')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-bold ${filterShift === 'day' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterShift === 'day' ? 'bg-[#07250D] text-white shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
             >
               Day
             </button>
             <button
               onClick={() => setFilterShift('night')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-bold ${filterShift === 'night' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterShift === 'night' ? 'bg-[#07250D] text-white shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
             >
               Night
             </button>
           </div>
 
-          <div className="flex bg-[#07250D] p-1 rounded-full border border-[#238868]/40 text-xs font-medium">
+          <div className="flex bg-[#F4F8F5] p-1 rounded-full border border-[#238868]/20 text-xs font-medium">
             <button
               onClick={() => setViewMode('individual')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-bold ${viewMode === 'individual' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${viewMode === 'individual' ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
             >
               Single Items
             </button>
             <button
               onClick={() => setViewMode('grouped')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-bold ${viewMode === 'grouped' ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${viewMode === 'grouped' ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
             >
               Group By Customer ({customerGroups.length})
             </button>

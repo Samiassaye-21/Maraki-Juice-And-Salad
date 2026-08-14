@@ -391,20 +391,20 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
         <>
           {/* PENDING SHIFT APPROVALS BANNER */}
           {pendingApprovalShifts && pendingApprovalShifts.length > 0 && (
-            <div className="bg-[#238868]/20 border border-[#238868]/50 rounded-3xl p-5 shadow-xl text-white space-y-4">
-              <div className="flex items-center justify-between border-b border-[#238868]/30 pb-3">
+            <div className="bg-white border border-[#238868]/20 rounded-3xl p-5 shadow-xs text-[#07250D] space-y-4">
+              <div className="flex items-center justify-between border-b border-[#238868]/15 pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#238868]/40 text-[#13EE86] flex items-center justify-center border border-[#238868]/60 animate-pulse">
+                  <div className="w-10 h-10 rounded-full bg-[#F4F8F5] text-[#238868] flex items-center justify-center border border-[#238868]/20 animate-pulse">
                     <Clock className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                    <h2 className="text-lg font-extrabold tracking-tight text-[#07250D] flex items-center gap-2">
                       <span>ለማረጋገጫ የተላኩ የሸፍት መዝገቦች</span>
-                      <span className="bg-[#13EE86] text-[#07250D] font-bold text-xs px-3 py-0.5 rounded-full">
+                      <span className="bg-[#13EE86] text-[#07250D] font-extrabold text-xs px-3 py-0.5 rounded-full">
                         {pendingApprovalShifts.length} PENDING APPROVAL
                       </span>
                     </h2>
-                    <p className="text-xs text-neutral-300">
+                    <p className="text-xs text-neutral-600 font-medium">
                       Review shift details submitted from mobile phone by workers before approving into database.
                     </p>
                   </div>
@@ -415,60 +415,58 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                 {pendingApprovalShifts.map((pShift) => (
                   <div 
                     key={pShift.id} 
-                    className="bg-[#07250D] border border-[#238868]/40 rounded-2xl p-4 space-y-3"
+                    className="bg-[#F4F8F5] border border-[#238868]/20 rounded-2xl p-4 space-y-3"
                   >
-                    <div className="flex items-center justify-between border-b border-[#238868]/30 pb-2">
+                    <div className="flex items-center justify-between border-b border-[#238868]/15 pb-2">
                       <div className="flex items-center gap-2">
-                        <span className={`px-3 py-0.5 rounded-full text-xs font-bold ${
-                          pShift.shiftType === 'night' ? 'bg-[#13EE86] text-[#07250D]' : 'bg-[#13EE86] text-[#07250D]'
-                        }`}>
+                        <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-[#13EE86] text-[#07250D]">
                           {pShift.shiftType === 'night' ? '🌙 Night Shift' : '☀️ Day Shift'}
                         </span>
-                        <span className="text-sm font-bold text-white">{pShift.date}</span>
-                        <span className="text-xs text-neutral-300">({pShift.workerName})</span>
+                        <span className="text-sm font-extrabold text-[#07250D]">{pShift.date}</span>
+                        <span className="text-xs text-neutral-600 font-medium">({pShift.workerName})</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs text-neutral-400 block">Gross Sales</span>
-                        <span className="text-sm font-bold text-[#13EE86]">
+                        <span className="text-xs text-neutral-500 block font-medium">Gross Sales</span>
+                        <span className="text-sm font-extrabold text-[#238868]">
                           {formatCurrency(pShift.grossIncome, currencySymbol)}
                         </span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                      <div className="bg-[#238868]/20 p-2.5 rounded-xl border border-[#238868]/40">
-                        <span className="text-neutral-300 text-[10px] block">Juice Sold</span>
-                        <span className="font-bold text-[#13EE86]">
+                      <div className="bg-white p-2.5 rounded-xl border border-[#238868]/20 shadow-xs">
+                        <span className="text-neutral-500 text-[10px] block font-medium">Juice Sold</span>
+                        <span className="font-extrabold text-[#238868]">
                           {pShift.juiceCupsSold} Cups ({pShift.juiceRevenue} ETB)
                         </span>
                       </div>
-                      <div className="bg-[#238868]/20 p-2.5 rounded-xl border border-[#238868]/40">
-                        <span className="text-neutral-300 text-[10px] block">Food Sold</span>
-                        <span className="font-bold text-[#13EE86]">
+                      <div className="bg-white p-2.5 rounded-xl border border-[#238868]/20 shadow-xs">
+                        <span className="text-neutral-500 text-[10px] block font-medium">Food Sold</span>
+                        <span className="font-extrabold text-[#238868]">
                           {pShift.foodTakeawaysSold} Boxes ({pShift.foodRevenue} ETB)
                         </span>
                       </div>
-                      <div className="bg-[#238868]/20 p-2.5 rounded-xl border border-[#238868]/40">
-                        <span className="text-neutral-300 text-[10px] block">Digital / Exp</span>
-                        <span className="font-bold text-white">
+                      <div className="bg-white p-2.5 rounded-xl border border-[#238868]/20 shadow-xs">
+                        <span className="text-neutral-500 text-[10px] block font-medium">Digital / Exp</span>
+                        <span className="font-extrabold text-[#07250D]">
                           -{pShift.digitalTransfers + pShift.dailyExpenses} ETB
                         </span>
                       </div>
-                      <div className="bg-[#238868]/20 p-2.5 rounded-xl border border-[#238868]/40">
-                        <span className="text-neutral-300 text-[10px] block">Pending / Del</span>
-                        <span className="font-bold text-white">
+                      <div className="bg-white p-2.5 rounded-xl border border-[#238868]/20 shadow-xs">
+                        <span className="text-neutral-500 text-[10px] block font-medium">Pending / Del</span>
+                        <span className="font-extrabold text-[#07250D]">
                           -{pShift.newPendingPaymentsAmount + pShift.deliveryCreditAmount} ETB
                         </span>
                       </div>
                     </div>
 
                     {/* Net Cash Handover Highlight */}
-                    <div className="flex items-center justify-between bg-[#238868]/30 p-3 rounded-2xl border border-[#238868]/50">
+                    <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-[#238868]/20 shadow-xs">
                       <div>
-                        <span className="text-xs text-white font-bold block">ለባለቤቱ የሚገባ ጥሬ ገንዘብ (Net Cash Handover)</span>
-                        <span className="text-xs text-neutral-300">Actual cash to receive</span>
+                        <span className="text-xs text-[#07250D] font-extrabold block">ለባለቤቱ የሚገባ ጥሬ ገንዘብ (Net Cash Handover)</span>
+                        <span className="text-xs text-neutral-500 font-medium">Actual cash to receive</span>
                       </div>
-                      <span className="text-2xl font-bold text-[#13EE86]">
+                      <span className="text-2xl font-extrabold text-[#238868]">
                         {formatCurrency(pShift.netCashDueToOwner, currencySymbol)}
                       </span>
                     </div>
@@ -477,14 +475,14 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                     <div className="flex items-center gap-3 pt-1">
                       <button
                         onClick={() => onApproveShift?.(pShift)}
-                        className="flex-1 py-3 rounded-full bg-[#13EE86] hover:bg-[#13EE86]/90 text-[#07250D] font-bold text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                        className="flex-1 py-3 rounded-full bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] font-extrabold text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
                       >
                         <CheckCircle2 className="w-4 h-4 text-[#07250D]" />
                         <span>የሸፍት መረጃውን አጽድቅ (Approve & Close Shift)</span>
                       </button>
                       <button
                         onClick={() => onRejectShift?.(pShift.id)}
-                        className="px-5 py-3 rounded-full bg-[#07250D] hover:bg-[#238868]/30 text-white font-bold text-xs border border-[#238868] cursor-pointer"
+                        className="px-5 py-3 rounded-full bg-white hover:bg-rose-50 text-rose-600 font-extrabold text-xs border-2 border-rose-600 cursor-pointer active:scale-95 transition-all shadow-xs"
                       >
                         ሰርዝ (Reject)
                       </button>
@@ -496,16 +494,16 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
           )}
 
           {/* SHIFT & WORKER SELECTION BAR */}
-      <div className="bg-[#238868]/20 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-[#238868]/40">
+      <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-[#238868]/20 text-[#07250D]">
         <div className="flex items-center space-x-4">
-          <div className="p-3 rounded-full bg-[#238868]/40 text-[#13EE86] border border-[#238868]/60">
-            {activeShift === 'day' ? <Sun className="w-6 h-6 text-[#13EE86]" /> : <Moon className="w-6 h-6 text-[#13EE86]" />}
+          <div className="p-3 rounded-full bg-[#F4F8F5] text-[#238868] border border-[#238868]/20">
+            {activeShift === 'day' ? <Sun className="w-6 h-6 text-[#238868]" /> : <Moon className="w-6 h-6 text-[#238868]" />}
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white capitalize flex items-center space-x-2">
+            <h2 className="text-lg font-extrabold text-[#07250D] capitalize flex items-center space-x-2">
               <span>{activeShift} Shift Reconciliation</span>
             </h2>
-            <p className="text-sm text-neutral-300">
+            <p className="text-sm font-medium text-neutral-600">
               Count leftover stock & calculate net physical cash handover
             </p>
           </div>
@@ -514,9 +512,9 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
         <div className="flex flex-wrap items-center gap-3.5 w-full sm:w-auto">
           <div className="flex flex-col">
             <div className="flex items-center justify-between gap-2 mb-1">
-              <label className="text-[10px] font-medium uppercase tracking-wider text-neutral-300">Date</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Date</label>
               {shiftDate && (
-                <span className="text-[11px] font-bold text-[#13EE86] bg-[#07250D] border border-[#238868]/40 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <span className="text-[11px] font-extrabold text-[#238868] bg-[#F4F8F5] border border-[#238868]/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                   <span>🇪🇹</span> {formatEthiopianFullDate(shiftDate)}
                 </span>
               )}
@@ -525,16 +523,16 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
               type="date"
               value={shiftDate}
               onChange={(e) => setShiftDate(e.target.value)}
-              className="px-3.5 py-2 bg-[#07250D] border border-[#238868]/50 rounded-full text-sm text-white focus:outline-none focus:border-[#13EE86] cursor-pointer"
+              className="px-3.5 py-2 bg-white border border-[#238868]/30 rounded-full text-sm text-[#07250D] font-bold focus:outline-none focus:border-[#238868] cursor-pointer shadow-xs"
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-[10px] font-medium uppercase tracking-wider text-neutral-300 mb-1">Worker</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">Worker</label>
             <input
               type="text"
               value={workerName}
               onChange={(e) => setWorkerName(e.target.value)}
-              className="px-3.5 py-2 bg-[#07250D] border border-[#238868]/50 rounded-full text-sm text-white focus:outline-none focus:border-[#13EE86] w-full sm:w-44 placeholder-neutral-500"
+              className="px-3.5 py-2 bg-white border border-[#238868]/30 rounded-full text-sm text-[#07250D] font-bold focus:outline-none focus:border-[#238868] w-full sm:w-44 placeholder-neutral-400 shadow-xs"
               placeholder="Worker Name"
             />
           </div>
@@ -562,15 +560,15 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             
             {/* JUICE CUPS */}
-            <div className="bg-[#238868]/20 rounded-3xl p-5 sm:p-6 border border-[#238868]/40 shadow-sm space-y-4 hover:border-[#13EE86]/50 transition-all">
+            <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#238868]/20 shadow-xs space-y-4 text-[#07250D]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2.5">
-                  <div className="p-2 rounded-full bg-[#238868]/40 text-[#13EE86] border border-[#238868]/60">
+                  <div className="p-2 rounded-full bg-[#F4F8F5] text-[#238868] border border-[#238868]/20">
                     <CupSoda className="w-5 h-5" />
                   </div>
-                  <span className="text-base font-bold text-white">Juice & Smoothie Cups</span>
+                  <span className="text-base font-extrabold text-[#07250D]">Juice & Smoothie Cups</span>
                 </div>
-                <span className="text-xs font-semibold text-[#13EE86] bg-[#07250D] px-3 py-1 rounded-full border border-[#238868]/40">
+                <span className="text-xs font-extrabold text-[#238868] bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20">
                   {juicePrice} {currencySymbol} / cup
                 </span>
               </div>
@@ -603,7 +601,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                   <span className={subLabelClasses}>Restocked</span>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#13EE86] uppercase tracking-wider mb-1.5">Leftover</label>
+                  <label className="block text-xs font-bold text-[#238868] uppercase tracking-wider mb-1.5">Leftover</label>
                   <input
                     type="number"
                     min="0"
@@ -612,18 +610,18 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                     onChange={(e) => setJuiceLeftover(cleanNumberInput(e))}
                     className={leftoverInputClasses}
                   />
-                  <span className="text-xs text-[#13EE86] block text-center mt-1.5 font-medium">Shift End</span>
+                  <span className="text-xs text-[#238868] block text-center mt-1.5 font-bold">Shift End</span>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-[#238868]/30 flex items-center justify-between text-sm">
+              <div className="pt-4 border-t border-[#238868]/15 flex items-center justify-between text-sm">
                 <div>
-                  <span className="text-neutral-300">Sold: </span>
-                  <span className="text-white font-bold">{juiceCupsSold} cups</span>
+                  <span className="text-neutral-500 font-medium">Sold: </span>
+                  <span className="text-[#07250D] font-extrabold">{juiceCupsSold} cups</span>
                 </div>
                 <div>
-                  <span className="text-neutral-300">Revenue: </span>
-                  <span className="text-[#13EE86] font-bold">
+                  <span className="text-neutral-500 font-medium">Revenue: </span>
+                  <span className="text-[#238868] font-extrabold">
                     {formatCurrency(juiceRevenue, currencySymbol)}
                   </span>
                 </div>
@@ -631,31 +629,31 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
             </div>
 
             {/* FOOD BOXES */}
-            <div className="bg-[#238868]/20 rounded-3xl p-5 sm:p-6 border border-[#238868]/40 shadow-sm space-y-4 hover:border-[#13EE86]/50 transition-all">
+            <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#238868]/20 shadow-xs space-y-4 text-[#07250D]">
               {/* Header & Calculation Mode Selector */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center space-x-2.5">
-                  <div className="p-2 rounded-full bg-[#238868]/40 text-[#13EE86] border border-[#238868]/60">
+                  <div className="p-2 rounded-full bg-[#F4F8F5] text-[#238868] border border-[#238868]/20">
                     <UtensilsCrossed className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-base font-bold text-white">Food Takeaway Sales</span>
-                    <p className="text-[11px] text-neutral-300 mt-0.5">Select calculation method below</p>
+                    <span className="text-base font-extrabold text-[#07250D]">Food Takeaway Sales</span>
+                    <p className="text-[11px] text-neutral-500 font-medium mt-0.5">Select calculation method below</p>
                   </div>
                 </div>
 
-                <div className="flex items-center bg-[#07250D] p-1 rounded-full border border-[#238868]/40 text-xs">
+                <div className="flex items-center bg-[#F4F8F5] p-1 rounded-full border border-[#238868]/20 text-xs font-bold">
                   <button
                     type="button"
                     onClick={() => setUseMenuSalesCalc(true)}
-                    className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${useMenuSalesCalc ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-300 hover:text-white'}`}
+                    className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${useMenuSalesCalc ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
                   >
                     ✨ Itemized Menu
                   </button>
                   <button
                     type="button"
                     onClick={() => setUseMenuSalesCalc(false)}
-                    className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${!useMenuSalesCalc ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-300 hover:text-white'}`}
+                    className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${!useMenuSalesCalc ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
                   >
                     📦 Flat Rate
                   </button>
@@ -663,11 +661,11 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
               </div>
 
               {/* LAYER 1: Physical Box Count */}
-              <div className="bg-[#07250D] rounded-2xl p-4 border border-[#238868]/40">
+              <div className="bg-[#F4F8F5] rounded-2xl p-4 border border-[#238868]/20">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="w-5 h-5 rounded-full bg-[#13EE86] text-[#07250D] text-[10px] font-bold flex items-center justify-center">1</span>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#13EE86]">Physical Box Count</span>
-                  <span className="ml-auto text-xs text-neutral-400">Opening + Added − Leftover = Sold</span>
+                  <span className="w-5 h-5 rounded-full bg-[#13EE86] text-[#07250D] text-[10px] font-extrabold flex items-center justify-center">1</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#238868]">Physical Box Count</span>
+                  <span className="ml-auto text-xs text-neutral-500 font-medium">Opening + Added − Leftover = Sold</span>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
@@ -693,49 +691,49 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                     <span className={subLabelClasses}>Restocked</span>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[#13EE86] uppercase tracking-wider mb-1.5">Leftover</label>
+                    <label className="block text-xs font-bold text-[#238868] uppercase tracking-wider mb-1.5">Leftover</label>
                     <input
                       type="number" min="0" value={foodLeftover}
                       onFocus={handleInputFocus}
                       onChange={(e) => setFoodLeftover(cleanNumberInput(e))}
                       className={leftoverInputClasses}
                     />
-                    <span className="text-xs text-[#13EE86] block text-center mt-1.5 font-medium">Shift End</span>
+                    <span className="text-xs text-[#238868] block text-center mt-1.5 font-bold">Shift End</span>
                   </div>
                 </div>
                 {/* Box count summary */}
-                <div className="mt-3 flex items-center justify-between bg-[#238868]/20 rounded-full px-4 py-2 border border-[#238868]/40">
-                  <span className="text-xs text-neutral-300">Total Boxes Sold (by count)</span>
-                  <span className="text-sm font-bold text-white">{foodTakeawaysSold} boxes</span>
+                <div className="mt-3 flex items-center justify-between bg-white rounded-full px-4 py-2 border border-[#238868]/20 shadow-xs">
+                  <span className="text-xs text-neutral-600 font-medium">Total Boxes Sold (by count)</span>
+                  <span className="text-sm font-extrabold text-[#07250D]">{foodTakeawaysSold} boxes</span>
                 </div>
               </div>
 
               {/* LAYER 2: Itemized Dish Sales */}
-              <div className="bg-[#07250D] rounded-2xl p-4 border border-[#238868]/40">
+              <div className="bg-[#F4F8F5] rounded-2xl p-4 border border-[#238868]/20">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="w-5 h-5 rounded-full bg-[#13EE86] text-[#07250D] text-[10px] font-bold flex items-center justify-center">2</span>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#13EE86]">Itemize Which Dishes Were Sold</span>
-                  <span className="ml-auto text-[10px] text-neutral-300 font-medium">Price auto-applied per item</span>
+                  <span className="w-5 h-5 rounded-full bg-[#13EE86] text-[#07250D] text-[10px] font-extrabold flex items-center justify-center">2</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#238868]">Itemize Which Dishes Were Sold</span>
+                  <span className="ml-auto text-[10px] text-neutral-500 font-medium">Price auto-applied per item</span>
                 </div>
 
                 <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
                   {(config.foodMenu || []).map((menuItem) => {
                     const qty = foodSales[menuItem.id] || 0;
                     return (
-                      <div key={menuItem.id} className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-all ${qty > 0 ? 'bg-[#238868]/30 border-[#13EE86]/50 shadow-sm' : 'bg-[#238868]/10 border-transparent'}`}>
+                      <div key={menuItem.id} className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-all ${qty > 0 ? 'bg-white border-[#238868]/40 shadow-xs' : 'bg-white border-transparent'}`}>
                         <div className="flex-1 min-w-0 flex items-center space-x-2 mr-2">
-                          <span className="font-bold text-white text-xs">{menuItem.name}</span>
-                          <span className="text-[10px] text-[#13EE86] font-medium whitespace-nowrap">{menuItem.price} Br / order</span>
+                          <span className="font-extrabold text-[#07250D] text-xs">{menuItem.name}</span>
+                          <span className="text-[10px] text-[#238868] font-bold whitespace-nowrap">{menuItem.price} Br / order</span>
                         </div>
                         {qty > 0 && (
-                          <div className="text-[10px] text-[#13EE86] font-bold mr-2 whitespace-nowrap">
+                          <div className="text-[10px] text-[#238868] font-extrabold mr-2 whitespace-nowrap">
                             = {(qty * menuItem.price).toLocaleString()} Br
                           </div>
                         )}
                         <div className="flex items-center space-x-1 flex-shrink-0">
                           <button type="button"
                             onClick={() => setFoodSales(prev => ({ ...prev, [menuItem.id]: Math.max(0, (prev[menuItem.id] || 0) - 1) }))}
-                            className="w-6 h-6 rounded-full bg-[#07250D] border border-[#238868] text-white font-bold flex items-center justify-center hover:bg-[#238868]/40 cursor-pointer text-xs"
+                            className="w-6 h-6 rounded-full bg-white border border-[#07250D] text-[#07250D] font-extrabold flex items-center justify-center hover:bg-slate-100 cursor-pointer text-xs shadow-xs"
                           >−</button>
                           <input
                             type="number" min="0"
@@ -746,11 +744,11 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                               const val = cleanNumberInput(e);
                               setFoodSales(prev => ({ ...prev, [menuItem.id]: val }));
                             }}
-                            className="w-8 h-6 text-center text-xs font-bold text-white bg-[#07250D] border border-[#238868]/50 rounded-md p-0 focus:outline-none focus:border-[#13EE86]"
+                            className="w-8 h-6 text-center text-xs font-extrabold text-[#07250D] bg-white border border-[#238868]/30 rounded-md p-0 focus:outline-none focus:border-[#238868]"
                           />
                           <button type="button"
                             onClick={() => setFoodSales(prev => ({ ...prev, [menuItem.id]: (prev[menuItem.id] || 0) + 1 }))}
-                            className="w-6 h-6 rounded-full bg-[#13EE86] text-[#07250D] font-bold flex items-center justify-center hover:bg-[#13EE86]/90 cursor-pointer text-xs"
+                            className="w-6 h-6 rounded-full bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] font-extrabold flex items-center justify-center cursor-pointer text-xs shadow-xs"
                           >+</button>
                         </div>
                       </div>
@@ -764,36 +762,36 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                   const overEntered = totalMenuFoodSold > foodTakeawaysSold && foodTakeawaysSold > 0;
                   return (
                     <div className="mt-3 space-y-2">
-                      <div className="flex items-center justify-between text-xs bg-[#238868]/20 rounded-full px-4 py-2 border border-[#238868]/40">
-                        <span className="text-neutral-300">Itemized dishes</span>
-                        <span className="font-bold text-[#13EE86]">{totalMenuFoodSold} / {foodTakeawaysSold} boxes</span>
+                      <div className="flex items-center justify-between text-xs bg-white rounded-full px-4 py-2 border border-[#238868]/20 shadow-xs">
+                        <span className="text-neutral-600 font-medium">Itemized dishes</span>
+                        <span className="font-extrabold text-[#238868]">{totalMenuFoodSold} / {foodTakeawaysSold} boxes</span>
                       </div>
                       {unaccounted > 0 && (
-                        <div className="bg-[#238868]/20 border border-[#238868]/60 rounded-2xl p-3 text-xs space-y-2">
+                        <div className="bg-white border border-[#238868]/20 rounded-2xl p-3 text-xs space-y-2 shadow-xs">
                           <div className="flex items-center gap-2">
-                            <span className="text-[#13EE86] font-bold text-base">⚠</span>
-                            <span className="font-bold text-white">{unaccounted} box{unaccounted > 1 ? 'es' : ''} un-itemized</span>
-                            <span className="text-neutral-300 ml-auto">Physical: {foodTakeawaysSold} | Itemized: {totalMenuFoodSold}</span>
+                            <span className="text-amber-500 font-bold text-base">⚠</span>
+                            <span className="font-extrabold text-[#07250D]">{unaccounted} box{unaccounted > 1 ? 'es' : ''} un-itemized</span>
+                            <span className="text-neutral-500 ml-auto font-medium">Physical: {foodTakeawaysSold} | Itemized: {totalMenuFoodSold}</span>
                           </div>
                           
-                          <label className="flex items-center gap-2 text-white font-medium cursor-pointer pt-1 border-t border-[#238868]/30">
+                          <label className="flex items-center gap-2 text-[#07250D] font-bold cursor-pointer pt-1 border-t border-[#238868]/15">
                             <input
                               type="checkbox"
                               checked={includeUnaccountedInRevenue}
                               onChange={(e) => setIncludeUnaccountedInRevenue(e.target.checked)}
-                              className="rounded border-[#238868] text-[#13EE86] focus:ring-[#13EE86] w-4 h-4 cursor-pointer"
+                              className="rounded border-[#238868] text-[#238868] focus:ring-[#13EE86] w-4 h-4 cursor-pointer"
                             />
                             <span>Include {unaccounted} un-itemized box{unaccounted > 1 ? 'es' : ''} using estimated fallback rate</span>
                           </label>
 
                           {includeUnaccountedInRevenue && (
-                            <div className="flex items-center gap-2 pl-6 pt-1 text-neutral-300">
+                            <div className="flex items-center gap-2 pl-6 pt-1 text-neutral-600 font-medium">
                               <span>Fallback rate:</span>
                               <input
                                 type="number"
                                 value={foodPrice}
                                 onChange={(e) => setFoodPrice(cleanNumberInput(e))}
-                                className="w-16 text-center text-xs font-bold text-white bg-[#07250D] border border-[#238868] rounded-full focus:outline-none focus:border-[#13EE86] py-0.5"
+                                className="w-16 text-center text-xs font-extrabold text-[#07250D] bg-white border border-[#238868]/30 rounded-full focus:outline-none focus:border-[#238868] py-0.5"
                               />
                               <span>Br/box → +{(unaccounted * foodPrice).toLocaleString()} Br added</span>
                             </div>
@@ -801,12 +799,12 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                         </div>
                       )}
                       {overEntered && (
-                        <div className="bg-[#238868]/30 border border-[#238868] rounded-2xl px-4 py-2.5 text-xs text-white font-semibold">
+                        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2.5 text-xs text-amber-800 font-bold">
                           ⚠ Itemized ({totalMenuFoodSold}) exceeds physical boxes sold ({foodTakeawaysSold}). Please recheck counts.
                         </div>
                       )}
                       {totalMenuFoodSold > 0 && unaccounted === 0 && !overEntered && (
-                        <div className="bg-[#238868]/40 border border-[#13EE86]/50 rounded-2xl px-4 py-2.5 text-xs text-[#13EE86] font-bold flex items-center gap-2">
+                        <div className="bg-[#F4F8F5] border border-[#238868]/20 rounded-2xl px-4 py-2.5 text-xs text-[#238868] font-extrabold flex items-center gap-2">
                           <span>✓</span> All boxes fully itemized — revenue is 100% accurate!
                         </div>
                       )}
@@ -816,17 +814,17 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
               </div>
 
               {/* Revenue Summary */}
-              <div className="pt-3 border-t border-[#238868]/30 flex items-center justify-between text-sm">
+              <div className="pt-3 border-t border-[#238868]/15 flex items-center justify-between text-sm">
                 <div>
-                  <span className="text-neutral-300">Sold: </span>
-                  <span className="text-white font-bold">
+                  <span className="text-neutral-500 font-medium">Sold: </span>
+                  <span className="text-[#07250D] font-extrabold">
                     {foodTakeawaysSold} boxes
                     {totalMenuFoodSold > 0 && ` (${totalMenuFoodSold} itemized)`}
                   </span>
                 </div>
                 <div>
-                  <span className="text-neutral-300">Revenue: </span>
-                  <span className="text-[#13EE86] font-bold">
+                  <span className="text-neutral-500 font-medium">Revenue: </span>
+                  <span className="text-[#238868] font-extrabold">
                     {formatCurrency(foodRevenue, currencySymbol)}
                   </span>
                 </div>
@@ -837,14 +835,14 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
           </div>
 
           {/* GROSS INCOME TOTAL */}
-          <div className="bg-[#238868]/20 rounded-3xl p-5 border border-[#238868]/40 shadow-sm flex items-center justify-between">
+          <div className="bg-white rounded-3xl p-5 border border-[#238868]/20 shadow-xs flex items-center justify-between text-[#07250D]">
             <div className="flex items-center space-x-3">
-              <Zap className="w-6 h-6 text-[#13EE86]" />
-              <span className="text-xs font-bold uppercase tracking-widest text-neutral-300">
+              <Zap className="w-6 h-6 text-[#238868]" />
+              <span className="text-xs font-extrabold uppercase tracking-widest text-neutral-500">
                 Calculated Gross Shift Income
               </span>
             </div>
-            <span className="text-2xl font-extrabold text-[#13EE86]">
+            <span className="text-2xl font-extrabold text-[#238868]">
               {formatCurrency(grossIncome, currencySymbol)}
             </span>
           </div>
@@ -853,10 +851,10 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
         {/* STEP 2: CASH ADJUSTMENTS */}
         <div className="space-y-5 pt-2">
           <div className="flex items-center space-x-3">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#13EE86] text-[#07250D] font-bold text-sm shadow-sm">
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#13EE86] text-[#07250D] font-extrabold text-sm shadow-xs">
               2
             </span>
-            <h3 className="text-lg font-bold text-white">
+            <h3 className="text-lg font-extrabold text-[#07250D]">
               Cash Deductions & Additions
             </h3>
           </div>
@@ -866,22 +864,22 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
             {/* 1. DIGITAL TRANSFERS (CALCULATOR) */}
             <div 
               onClick={() => setActiveCalc('transfer')}
-              className="bg-[#238868]/20 rounded-3xl p-5 border border-[#238868]/40 space-y-3 hover:border-[#13EE86]/50 transition-all shadow-sm cursor-pointer group"
+              className="bg-white rounded-3xl p-5 border border-[#238868]/20 space-y-3 hover:border-[#238868]/50 transition-all shadow-xs cursor-pointer group text-[#07250D]"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <TrendingDown className="w-5 h-5 text-[#13EE86]" />
-                  <span className="text-sm font-bold text-white">1. Digital Transfers</span>
+                  <TrendingDown className="w-5 h-5 text-[#238868]" />
+                  <span className="text-sm font-extrabold text-[#07250D]">1. Digital Transfers</span>
                 </div>
-                <div className="p-2 bg-[#07250D] text-[#13EE86] rounded-full border border-[#238868]/40 group-hover:bg-[#13EE86] group-hover:text-[#07250D] transition-colors">
+                <div className="p-2 bg-[#F4F8F5] text-[#238868] rounded-full border border-[#238868]/20 group-hover:bg-[#13EE86] group-hover:text-[#07250D] transition-colors shadow-xs">
                   <Calculator size={18} />
                 </div>
               </div>
-              <p className="text-[11px] text-neutral-300">Telebirr / CBE — Tap to calculate transfers.</p>
+              <p className="text-[11px] text-neutral-500 font-medium">Telebirr / CBE — Tap to calculate transfers.</p>
               
               <div className="pt-2">
-                <div className="text-[10px] font-medium text-neutral-400 uppercase tracking-wider mb-1">Total Amount</div>
-                <div className="text-2xl font-extrabold text-[#13EE86] font-mono">
+                <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Total Amount</div>
+                <div className="text-2xl font-extrabold text-[#238868] font-mono">
                   {formatCurrency(digitalTransfers, currencySymbol)}
                 </div>
               </div>
@@ -890,42 +888,42 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
             {/* 2. DAILY EXPENSES (CALCULATOR) */}
             <div 
               onClick={() => setActiveCalc('expense')}
-              className="bg-[#238868]/20 rounded-3xl p-5 border border-[#238868]/40 space-y-3 hover:border-[#13EE86]/50 transition-all shadow-sm cursor-pointer group"
+              className="bg-white rounded-3xl p-5 border border-[#238868]/20 space-y-3 hover:border-[#238868]/50 transition-all shadow-xs cursor-pointer group text-[#07250D]"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Receipt className="w-5 h-5 text-[#13EE86]" />
-                  <span className="text-sm font-bold text-white">2. Daily Cooking Expenses</span>
+                  <Receipt className="w-5 h-5 text-[#238868]" />
+                  <span className="text-sm font-extrabold text-[#07250D]">2. Daily Cooking Expenses</span>
                 </div>
-                <div className="p-2 bg-[#07250D] text-[#13EE86] rounded-full border border-[#238868]/40 group-hover:bg-[#13EE86] group-hover:text-[#07250D] transition-colors">
+                <div className="p-2 bg-[#F4F8F5] text-[#238868] rounded-full border border-[#238868]/20 group-hover:bg-[#13EE86] group-hover:text-[#07250D] transition-colors shadow-xs">
                   <Calculator size={18} />
                 </div>
               </div>
-              <p className="text-[11px] text-neutral-300">Tap to calculate total spent on ingredients.</p>
+              <p className="text-[11px] text-neutral-500 font-medium">Tap to calculate total spent on ingredients.</p>
 
               <div className="pt-2">
-                <div className="text-[10px] font-medium text-neutral-400 uppercase tracking-wider mb-1">Total Amount</div>
-                <div className="text-2xl font-extrabold text-[#13EE86] font-mono">
+                <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Total Amount</div>
+                <div className="text-2xl font-extrabold text-[#07250D] font-mono">
                   {formatCurrency(dailyExpensesTotal, currencySymbol)}
                 </div>
               </div>
             </div>
 
             {/* 3. NEW PENDING */}
-            <div className="bg-[#238868]/20 rounded-3xl p-5 border border-[#238868]/40 space-y-3 hover:border-[#13EE86]/50 transition-all shadow-sm">
+            <div className="bg-white rounded-3xl p-5 border border-[#238868]/20 space-y-3 hover:border-[#238868]/50 transition-all shadow-xs text-[#07250D]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Clock className="w-5 h-5 text-[#13EE86]" />
-                  <span className="text-sm font-bold text-white">3. New Unpaid Pending Credit</span>
+                  <Clock className="w-5 h-5 text-[#238868]" />
+                  <span className="text-sm font-extrabold text-[#07250D]">3. New Unpaid Pending Credit</span>
                 </div>
-                <span className="text-[10px] font-bold text-[#13EE86] bg-[#07250D] px-3 py-1 rounded-full border border-[#238868]/40 uppercase">
+                <span className="text-[10px] font-extrabold text-[#238868] bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 uppercase">
                   - Deducted
                 </span>
               </div>
-              <p className="text-xs text-neutral-300">Cups & boxes given on credit to unpaid customers.</p>
+              <p className="text-xs text-neutral-500 font-medium">Cups & boxes given on credit to unpaid customers.</p>
               
               <div className="mb-3">
-                <label className="block text-[10px] font-medium text-neutral-300 uppercase tracking-wider mb-1">Customer Name</label>
+                <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Customer Name</label>
                 <input
                   type="text"
                   value={pendingCustomerName}
@@ -935,23 +933,23 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                 />
               </div>
 
-              <div className="bg-[#07250D] rounded-2xl p-3 border border-[#238868]/40">
+              <div className="bg-[#F4F8F5] rounded-2xl p-3 border border-[#238868]/20">
                 <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
                   {/* Juice Row */}
-                  <div className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-all ${pendingJuiceCups > 0 ? 'bg-[#238868]/30 border-[#13EE86]/50 shadow-sm' : 'bg-[#238868]/10 border-transparent'}`}>
+                  <div className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-all ${pendingJuiceCups > 0 ? 'bg-white border-[#238868]/40 shadow-xs' : 'bg-white border-transparent'}`}>
                     <div className="flex-1 min-w-0 flex items-center space-x-2 mr-2">
-                      <span className="font-bold text-white text-xs">Juice & Smoothie Cups</span>
-                      <span className="text-[10px] text-[#13EE86] font-medium whitespace-nowrap">{juicePrice} Br / cup</span>
+                      <span className="font-extrabold text-[#07250D] text-xs">Juice & Smoothie Cups</span>
+                      <span className="text-[10px] text-[#238868] font-bold whitespace-nowrap">{juicePrice} Br / cup</span>
                     </div>
                     {pendingJuiceCups > 0 && (
-                      <div className="text-[10px] text-[#13EE86] font-bold mr-2 whitespace-nowrap">
+                      <div className="text-[10px] text-[#238868] font-extrabold mr-2 whitespace-nowrap">
                         = {(pendingJuiceCups * juicePrice).toLocaleString()} Br
                       </div>
                     )}
                     <div className="flex items-center space-x-1 flex-shrink-0">
                       <button type="button"
                         onClick={() => setPendingJuiceCups(Math.max(0, pendingJuiceCups - 1))}
-                        className="w-6 h-6 rounded-full bg-[#07250D] border border-[#238868] text-white font-bold flex items-center justify-center hover:bg-[#238868]/40 cursor-pointer text-xs"
+                        className="w-6 h-6 rounded-full bg-white border border-[#07250D] text-[#07250D] font-extrabold flex items-center justify-center hover:bg-slate-100 cursor-pointer text-xs shadow-xs"
                       >−</button>
                       <input
                         type="number" min="0"
@@ -959,11 +957,11 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                         placeholder="0"
                         onFocus={handleInputFocus}
                         onChange={(e) => setPendingJuiceCups(cleanNumberInput(e))}
-                        className="w-8 h-6 text-center text-xs font-bold text-white bg-[#07250D] border border-[#238868]/50 rounded-md p-0 focus:outline-none focus:border-[#13EE86]"
+                        className="w-8 h-6 text-center text-xs font-extrabold text-[#07250D] bg-white border border-[#238868]/30 rounded-md p-0 focus:outline-none focus:border-[#238868]"
                       />
                       <button type="button"
                         onClick={() => setPendingJuiceCups(pendingJuiceCups + 1)}
-                        className="w-6 h-6 rounded-full bg-[#13EE86] text-[#07250D] font-bold flex items-center justify-center hover:bg-[#13EE86]/90 cursor-pointer text-xs"
+                        className="w-6 h-6 rounded-full bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] font-extrabold flex items-center justify-center cursor-pointer text-xs shadow-xs"
                       >+</button>
                     </div>
                   </div>
@@ -972,20 +970,20 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                   {(config.foodMenu || []).map((menuItem) => {
                     const qty = pendingFoodSales[menuItem.id] || 0;
                     return (
-                      <div key={menuItem.id} className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-all ${qty > 0 ? 'bg-[#238868]/30 border-[#13EE86]/50 shadow-sm' : 'bg-[#238868]/10 border-transparent'}`}>
+                      <div key={menuItem.id} className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-all ${qty > 0 ? 'bg-white border-[#238868]/40 shadow-xs' : 'bg-white border-transparent'}`}>
                         <div className="flex-1 min-w-0 flex items-center space-x-2 mr-2">
-                          <span className="font-bold text-white text-xs">{menuItem.name}</span>
-                          <span className="text-[10px] text-[#13EE86] font-medium whitespace-nowrap">{menuItem.price} Br / order</span>
+                          <span className="font-extrabold text-[#07250D] text-xs">{menuItem.name}</span>
+                          <span className="text-[10px] text-[#238868] font-bold whitespace-nowrap">{menuItem.price} Br / order</span>
                         </div>
                         {qty > 0 && (
-                          <div className="text-[10px] text-[#13EE86] font-bold mr-2 whitespace-nowrap">
+                          <div className="text-[10px] text-[#238868] font-extrabold mr-2 whitespace-nowrap">
                             = {(qty * menuItem.price).toLocaleString()} Br
                           </div>
                         )}
                         <div className="flex items-center space-x-1 flex-shrink-0">
                           <button type="button"
                             onClick={() => setPendingFoodSales(prev => ({ ...prev, [menuItem.id]: Math.max(0, (prev[menuItem.id] || 0) - 1) }))}
-                            className="w-6 h-6 rounded-full bg-[#07250D] border border-[#238868] text-white font-bold flex items-center justify-center hover:bg-[#238868]/40 cursor-pointer text-xs"
+                            className="w-6 h-6 rounded-full bg-white border border-[#07250D] text-[#07250D] font-extrabold flex items-center justify-center hover:bg-slate-100 cursor-pointer text-xs shadow-xs"
                           >−</button>
                           <input
                             type="number" min="0"
@@ -996,11 +994,11 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                               const val = cleanNumberInput(e);
                               setPendingFoodSales(prev => ({ ...prev, [menuItem.id]: val }));
                             }}
-                            className="w-8 h-6 text-center text-xs font-bold text-white bg-[#07250D] border border-[#238868]/50 rounded-md p-0 focus:outline-none focus:border-[#13EE86]"
+                            className="w-8 h-6 text-center text-xs font-extrabold text-[#07250D] bg-white border border-[#238868]/30 rounded-md p-0 focus:outline-none focus:border-[#238868]"
                           />
                           <button type="button"
                             onClick={() => setPendingFoodSales(prev => ({ ...prev, [menuItem.id]: (prev[menuItem.id] || 0) + 1 }))}
-                            className="w-6 h-6 rounded-full bg-[#13EE86] text-[#07250D] font-bold flex items-center justify-center hover:bg-[#13EE86]/90 cursor-pointer text-xs"
+                            className="w-6 h-6 rounded-full bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] font-extrabold flex items-center justify-center cursor-pointer text-xs shadow-xs"
                           >+</button>
                         </div>
                       </div>
@@ -1008,31 +1006,31 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                   })}
                 </div>
               </div>
-              <div className="pt-2 flex items-center justify-between text-xs font-semibold text-neutral-300">
+              <div className="pt-2 flex items-center justify-between text-xs font-semibold text-neutral-600 font-medium">
                 <span>Deduction Total:</span>
-                <span className="text-[#13EE86] text-sm font-bold">{formatCurrency(newPendingAmount, currencySymbol)}</span>
+                <span className="text-[#238868] text-sm font-extrabold">{formatCurrency(newPendingAmount, currencySymbol)}</span>
               </div>
             </div>
 
             {/* 4. RECOVERED PENDING */}
-            <div className="bg-[#238868]/20 rounded-3xl p-5 border border-[#238868]/40 space-y-3 hover:border-[#13EE86]/50 transition-all shadow-sm">
+            <div className="bg-white rounded-3xl p-5 border border-[#238868]/20 space-y-3 hover:border-[#238868]/50 transition-all shadow-xs text-[#07250D]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <TrendingUp className="w-5 h-5 text-[#13EE86]" />
-                  <span className="text-sm font-bold text-white">4. Recovered Pending Debts</span>
+                  <TrendingUp className="w-5 h-5 text-[#238868]" />
+                  <span className="text-sm font-extrabold text-[#07250D]">4. Recovered Pending Debts</span>
                 </div>
-                <span className="text-[10px] font-bold text-[#13EE86] bg-[#07250D] px-3 py-1 rounded-full border border-[#238868]/40 uppercase">
+                <span className="text-[10px] font-extrabold text-[#238868] bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 uppercase">
                   + Added
                 </span>
               </div>
-              <p className="text-xs text-neutral-300">Past pending debts paid off in cash during this shift.</p>
+              <p className="text-xs text-neutral-500 font-medium">Past pending debts paid off in cash during this shift.</p>
 
               {/* Unpaid Debts Selection Checklist */}
               {unpaidDebts.length > 0 && (
-                <div className="space-y-2 bg-[#07250D] p-3 rounded-2xl border border-[#238868]/40">
-                  <p className="text-xs font-bold text-white flex items-center justify-between">
+                <div className="space-y-2 bg-[#F4F8F5] p-3 rounded-2xl border border-[#238868]/20">
+                  <p className="text-xs font-extrabold text-[#07250D] flex items-center justify-between">
                     <span>Unpaid Customer Debts (Full or Partial Settlement):</span>
-                    <span className="text-[10px] text-[#13EE86] font-bold">{unpaidDebts.length} Unpaid Total</span>
+                    <span className="text-[10px] text-[#238868] font-extrabold">{unpaidDebts.length} Unpaid Total</span>
                   </p>
                   <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
                     {unpaidDebts.map((item) => {
@@ -1248,21 +1246,21 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
             </div>
 
             {/* 5. DELIVERY CREDIT */}
-            <div className="bg-[#238868]/20 rounded-3xl p-5 border border-[#238868]/40 space-y-3 hover:border-[#13EE86]/50 transition-all shadow-sm md:col-span-2">
+            <div className="bg-white rounded-3xl p-5 border border-[#238868]/20 space-y-3 hover:border-[#238868]/50 transition-all shadow-xs md:col-span-2 text-[#07250D]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Truck className="w-5 h-5 text-[#13EE86]" />
-                  <span className="text-sm font-bold text-white">5. Delivery Rider Credit Orders</span>
+                  <Truck className="w-5 h-5 text-[#238868]" />
+                  <span className="text-sm font-extrabold text-[#07250D]">5. Delivery Rider Credit Orders</span>
                 </div>
-                <span className="text-[10px] font-bold text-[#13EE86] bg-[#07250D] px-3 py-1 rounded-full border border-[#238868]/40 uppercase">
+                <span className="text-[10px] font-extrabold text-[#238868] bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 uppercase">
                   - Deducted
                 </span>
               </div>
-              <p className="text-xs text-neutral-300">Delivered via BeU / Deliver Addis / Feres riders on weekly account.</p>
+              <p className="text-xs text-neutral-500 font-medium">Delivered via BeU / Deliver Addis / Feres riders on weekly account.</p>
               
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[10px] font-medium text-neutral-300 uppercase tracking-wider mb-1">Cups</label>
+                  <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Cups</label>
                   <input
                     type="number"
                     min="0"
@@ -1273,7 +1271,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-medium text-neutral-300 uppercase tracking-wider mb-1">Boxes</label>
+                  <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Boxes</label>
                   <input
                     type="number"
                     min="0"
@@ -1284,7 +1282,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-medium text-neutral-300 uppercase tracking-wider mb-1">Rider / Company</label>
+                  <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Rider / Company</label>
                   <input
                     type="text"
                     value={deliveryRiderName}
@@ -1294,41 +1292,41 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                   />
                 </div>
               </div>
-              <div className="pt-2 flex items-center justify-between text-xs font-semibold text-neutral-300">
+              <div className="pt-2 flex items-center justify-between text-xs font-semibold text-neutral-600 font-medium">
                 <span>Deduction Total:</span>
-                <span className="text-[#13EE86] text-sm font-bold">{formatCurrency(deliveryCreditAmount, currencySymbol)}</span>
+                <span className="text-[#238868] text-sm font-extrabold">{formatCurrency(deliveryCreditAmount, currencySymbol)}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* NET CASH RESULT CARD */}
-        <div className="bg-gradient-to-br from-[#238868] to-[#07250D] rounded-3xl p-6 text-white shadow-xl space-y-4 border border-[#13EE86]/40">
+        {/* NET CASH RESULT CARD (Clean White Card) */}
+        <div className="bg-white rounded-3xl p-6 text-[#07250D] shadow-md space-y-4 border border-[#238868]/20">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-[#07250D] bg-[#13EE86] px-3 py-1 rounded-full mb-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-[#07250D] bg-[#13EE86] px-3.5 py-1 rounded-full mb-2 shadow-xs">
                 <ShieldCheck className="w-4 h-4 text-[#07250D]" /> Physical Cash Handover
               </span>
-              <h3 className="text-2xl font-bold text-white tracking-tight">Net Cash Due to Owner</h3>
-              <p className="text-xs text-neutral-300 mt-0.5 font-medium">Exact cash worker must hand over at end of shift</p>
+              <h3 className="text-2xl font-extrabold text-[#07250D] tracking-tight">Net Cash Due to Owner</h3>
+              <p className="text-xs text-neutral-600 mt-0.5 font-medium">Exact cash worker must hand over at end of shift</p>
             </div>
-            <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#13EE86]">
+            <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#238868]">
               {formatCurrency(netCashDueToOwner, currencySymbol)}
             </div>
           </div>
 
-          <div className="text-xs font-semibold text-neutral-300 pt-4 border-t border-[#238868]/40 flex flex-wrap items-center gap-2">
-            <span className="bg-[#07250D] px-3 py-1 rounded-full border border-[#238868]/40">Gross: {formatCurrency(grossIncome, currencySymbol)}</span>
+          <div className="text-xs font-bold text-neutral-600 pt-4 border-t border-[#238868]/15 flex flex-wrap items-center gap-2">
+            <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D]">Gross: {formatCurrency(grossIncome, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#07250D] px-3 py-1 rounded-full border border-[#238868]/40">Digital: {formatCurrency(digitalTransfers, currencySymbol)}</span>
+            <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D]">Digital: {formatCurrency(digitalTransfers, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#07250D] px-3 py-1 rounded-full border border-[#238868]/40">Exp: {formatCurrency(dailyExpensesTotal, currencySymbol)}</span>
+            <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D]">Exp: {formatCurrency(dailyExpensesTotal, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#07250D] px-3 py-1 rounded-full border border-[#238868]/40">Pend: {formatCurrency(newPendingAmount, currencySymbol)}</span>
+            <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D]">Pend: {formatCurrency(newPendingAmount, currencySymbol)}</span>
             <span>+</span>
-            <span className="bg-[#07250D] px-3 py-1 rounded-full border border-[#238868]/40">Rec: {formatCurrency(recoveredPendingAmount, currencySymbol)}</span>
+            <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D]">Rec: {formatCurrency(recoveredPendingAmount, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#07250D] px-3 py-1 rounded-full border border-[#238868]/40">Del: {formatCurrency(deliveryCreditAmount, currencySymbol)}</span>
+            <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D]">Del: {formatCurrency(deliveryCreditAmount, currencySymbol)}</span>
           </div>
         </div>
 
@@ -1348,7 +1346,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#13EE86] hover:bg-[#13EE86]/90 text-[#07250D] font-bold py-4 px-6 rounded-full shadow-lg text-base flex items-center justify-center space-x-2.5 transition-all cursor-pointer"
+            className="w-full bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] font-extrabold py-4 px-6 rounded-full shadow-lg text-base flex items-center justify-center space-x-2.5 transition-all cursor-pointer active:scale-95"
           >
             <CheckCircle2 className="w-5 h-5 text-[#07250D]" />
             <span>Close Shift & Carry Leftovers to Next Worker</span>

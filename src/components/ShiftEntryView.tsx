@@ -388,57 +388,57 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
       </AnimatePresence>
 
       {/* ─── Top Header Bar ────────────────────────────────────────────────── */}
-      <div className="bg-[#07250D] border-b border-[#238868]/40 sticky top-0 z-30 backdrop-blur-md px-4 py-3 text-white">
+      <div className="bg-white border-b border-[#238868]/20 sticky top-0 z-30 backdrop-blur-md px-4 py-3 text-[#07250D]">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-full bg-[#238868]/40 flex items-center justify-center text-[#13EE86] shadow-md border border-[#238868]/60">
-              <Moon className="w-5 h-5 text-[#13EE86]" />
+            <div className="w-10 h-10 rounded-full bg-[#F4F8F5] flex items-center justify-center text-[#238868] shadow-xs border border-[#238868]/20">
+              <Moon className="w-5 h-5 text-[#238868]" />
             </div>
             <div>
-              <h1 className="font-extrabold text-white text-base tracking-tight leading-tight">
+              <h1 className="font-extrabold text-[#07250D] text-base tracking-tight leading-tight">
                 የሸፍት ገቢ መዝገብ
               </h1>
-              <p className="text-[11px] text-neutral-300">Mobile Shift Income Entry</p>
+              <p className="text-[11px] text-neutral-500 font-medium">Mobile Shift Income Entry</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#238868]/20 border border-[#238868]/50 text-[#13EE86] text-xs font-bold">
-            <Clock className="w-3.5 h-3.5 text-[#13EE86]" />
+          <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#F4F8F5] border border-[#238868]/20 text-[#238868] text-xs font-extrabold">
+            <Clock className="w-3.5 h-3.5 text-[#238868]" />
             <span>{formatEthiopianTime(new Date())}</span>
           </div>
         </div>
       </div>
 
       <div className="max-w-md mx-auto px-4 pt-4 space-y-4">
-        {/* ─── Card 0: Unpaid Pending Debt Summary Banner (Hero Deep Green Card) ─────────────────── */}
-        <div className="bg-[#07250D] text-white rounded-3xl p-5 space-y-3 shadow-xl border border-[#238868]/40">
+        {/* ─── Card 0: Unpaid Pending Debt Summary Banner (Clean White Card) ─────────────────── */}
+        <div className="bg-white text-[#07250D] rounded-3xl p-5 space-y-3 shadow-xs border border-[#238868]/20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-[#238868]/40 text-[#13EE86] flex items-center justify-center border border-[#238868]/60">
+              <div className="w-9 h-9 rounded-full bg-[#F4F8F5] text-[#238868] flex items-center justify-center border border-[#238868]/20">
                 <AlertCircle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-white text-sm leading-tight">
+                <h3 className="font-extrabold text-[#07250D] text-sm leading-tight">
                   ያልተከፈለ እዳ ድምር (Total Unpaid Debts)
                 </h3>
-                <p className="text-[11px] text-neutral-300">Unsettled Customer Credit Left</p>
+                <p className="text-[11px] text-neutral-500 font-medium">Unsettled Customer Credit Left</p>
               </div>
             </div>
-            <span className="text-xs font-extrabold text-[#07250D] bg-[#13EE86] px-3.5 py-1 rounded-full shadow-sm">
+            <span className="text-xs font-extrabold text-[#07250D] bg-[#13EE86] px-3.5 py-1 rounded-full shadow-xs">
               {unpaidPendingCount} Debts
             </span>
           </div>
 
-          <div className="flex items-baseline justify-between pt-2 border-t border-[#238868]/30">
-            <div className="text-xs text-neutral-200 font-medium flex items-center gap-2">
-              <span className="bg-[#238868]/30 px-3 py-1 rounded-full border border-[#238868]/50 text-white font-bold">
+          <div className="flex items-baseline justify-between pt-2 border-t border-[#238868]/15">
+            <div className="text-xs text-neutral-600 font-medium flex items-center gap-2">
+              <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D] font-extrabold">
                 🥤 {totalUnpaidJuiceCups} Cups
               </span>
-              <span className="bg-[#238868]/30 px-3 py-1 rounded-full border border-[#238868]/50 text-white font-bold">
+              <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D] font-extrabold">
                 🍱 {totalUnpaidFoodBoxes} Boxes
               </span>
             </div>
-            <div className="text-2xl font-extrabold text-[#13EE86]">
+            <div className="text-2xl font-extrabold text-[#238868]">
               {formatCurrency(totalUnpaidPendingAmount, config.currencySymbol)}
             </div>
           </div>
@@ -829,23 +829,23 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
           </div>
         </div>
 
-        {/* ─── Card 5: Final Shift Income Summary & Cash Handover (Hero Deep Green Card) ───────────── */}
-        <div className="bg-[#07250D] text-white border border-[#238868]/40 rounded-3xl p-5 shadow-xl space-y-4">
-          <div className="flex justify-between items-center text-xs text-neutral-300">
+        {/* ─── Card 5: Final Shift Income Summary & Cash Handover (Clean White Card) ───────────── */}
+        <div className="bg-white text-[#07250D] border border-[#238868]/20 rounded-3xl p-5 shadow-md space-y-4">
+          <div className="flex justify-between items-center text-xs text-neutral-600 font-medium">
             <span>Gross Sales (ጠቅላላ ሽያጭ):</span>
-            <span className="font-extrabold text-white text-base">
+            <span className="font-extrabold text-[#07250D] text-base">
               {formatCurrency(totals.grossIncome, config.currencySymbol)}
             </span>
           </div>
 
-          <div className="border-t border-[#238868]/30 pt-3">
-            <p className="text-xs font-extrabold uppercase tracking-wider text-[#13EE86] mb-1">
+          <div className="border-t border-[#238868]/15 pt-3">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-[#238868] mb-1">
               ለባለቤቱ የሚገባ ጥሬ ገንዘብ (Net Cash Due)
             </p>
-            <h3 className="text-4xl font-extrabold text-[#13EE86]">
+            <h3 className="text-4xl font-extrabold text-[#238868]">
               {formatCurrency(totals.netCashDueToOwner, config.currencySymbol)}
             </h3>
-            <p className="text-[11px] text-neutral-300 mt-1 font-medium">
+            <p className="text-[11px] text-neutral-500 mt-1 font-medium">
               Actual cash to hand over after transfers and shift expenses.
             </p>
           </div>
