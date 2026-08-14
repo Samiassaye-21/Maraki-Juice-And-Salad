@@ -44,7 +44,7 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center px-6 font-sans bg-[#F4F8F5] text-[#07250D]"
+      className="min-h-screen flex flex-col items-center justify-center px-6 font-sans bg-[#f7f5f0] text-[#403c21]"
     >
       {/* Logo & Title */}
       <motion.div
@@ -53,7 +53,7 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
         transition={{ duration: 0.5 }}
         className="flex flex-col items-center mb-10 text-center"
       >
-        <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center mb-4 shadow-md border-2 border-[#238868]/20 p-1">
+        <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center mb-4 shadow-md border-2 border-[#c9b197]/20 p-1">
           <img
             src="/logo.jpg"
             alt="Maraki"
@@ -61,8 +61,8 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
         </div>
-        <h1 className="text-4xl font-extrabold text-[#07250D] tracking-wide mb-1">ማራኪ</h1>
-        <p className="text-xl text-[#238868] font-extrabold uppercase tracking-wider">ኩሽና መዝግቢያ</p>
+        <h1 className="text-4xl font-extrabold text-[#403c21] tracking-wide mb-1">ማራኪ</h1>
+        <p className="text-xl text-[#c9b197] font-extrabold uppercase tracking-wider">ኩሽና መዝግቢያ</p>
         <p className="text-sm font-semibold text-neutral-600 mt-1">Kitchen Order System</p>
       </motion.div>
 
@@ -79,8 +79,8 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
               i < pin.length
                 ? errorMsg
                   ? 'bg-rose-500 border-rose-400 scale-110'
-                  : 'bg-[#13EE86] border-[#07250D] scale-110 shadow-xs'
-                : 'bg-white border-[#238868]/40'
+                  : 'bg-[#c9b197] border-[#403c21] scale-110 shadow-xs'
+                : 'bg-white border-[#c9b197]/40'
             }`}
           />
         ))}
@@ -110,9 +110,9 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
               <button
                 key={idx}
                 onClick={handleDelete}
-                className="h-16 rounded-full bg-white hover:bg-rose-50 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#07250D] shadow-xs text-[#07250D]"
+                className="h-16 rounded-full bg-white hover:bg-rose-50 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#403c21] shadow-xs text-[#403c21]"
               >
-                <Delete className="w-6 h-6 text-[#07250D]" />
+                <Delete className="w-6 h-6 text-[#403c21]" />
               </button>
             );
           }
@@ -120,9 +120,9 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
             <button
               key={idx}
               onClick={() => handleKey(key)}
-              className="h-16 rounded-full bg-white hover:bg-[#EBF5F0] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#07250D] shadow-xs"
+              className="h-16 rounded-full bg-white hover:bg-[#EBF5F0] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#403c21] shadow-xs"
             >
-              <span className="text-2xl font-extrabold text-[#07250D]">{key}</span>
+              <span className="text-2xl font-extrabold text-[#403c21]">{key}</span>
             </button>
           );
         })}

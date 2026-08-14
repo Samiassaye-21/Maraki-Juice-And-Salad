@@ -16,12 +16,12 @@ interface MarketPurchasesViewProps {
 }
 
 const categoryColors: Record<MaterialCategory, string> = {
-  fruits:    'bg-[#238868]/40 text-[#13EE86] border border-[#238868]',
-  dairy:     'bg-[#238868]/40 text-[#13EE86] border border-[#238868]',
-  kitchen:   'bg-[#238868]/40 text-[#13EE86] border border-[#238868]',
-  packaging: 'bg-[#238868]/40 text-[#13EE86] border border-[#238868]',
-  equipment: 'bg-[#238868]/40 text-[#13EE86] border border-[#238868]',
-  other:     'bg-[#238868]/40 text-[#13EE86] border border-[#238868]',
+  fruits:    'bg-[#c9b197]/40 text-[#c9b197] border border-[#c9b197]',
+  dairy:     'bg-[#c9b197]/40 text-[#c9b197] border border-[#c9b197]',
+  kitchen:   'bg-[#c9b197]/40 text-[#c9b197] border border-[#c9b197]',
+  packaging: 'bg-[#c9b197]/40 text-[#c9b197] border border-[#c9b197]',
+  equipment: 'bg-[#c9b197]/40 text-[#c9b197] border border-[#c9b197]',
+  other:     'bg-[#c9b197]/40 text-[#c9b197] border border-[#c9b197]',
 };
 
 const categoryLabels: Record<MaterialCategory, string> = {
@@ -201,27 +201,27 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-[#07250D]/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
+            className="fixed inset-0 z-50 bg-[#403c21]/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
           >
             <motion.div
               initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
               transition={{ type: 'spring', damping: 22, stiffness: 300 }}
-              className="bg-white w-full max-w-2xl rounded-t-3xl sm:rounded-3xl border border-[#238868]/20 shadow-2xl flex flex-col max-h-[92vh] text-[#07250D]"
+              className="bg-white w-full max-w-2xl rounded-t-3xl sm:rounded-3xl border border-[#c9b197]/20 shadow-2xl flex flex-col max-h-[92vh] text-[#403c21]"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-6 py-5 border-b border-[#238868]/30 flex-shrink-0">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-[#c9b197]/30 flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#238868]/40 border border-[#238868]/60 rounded-full flex items-center justify-center">
-                    <ShoppingCart className="w-5 h-5 text-[#13EE86]" />
+                  <div className="w-10 h-10 bg-[#c9b197]/40 border border-[#c9b197]/60 rounded-full flex items-center justify-center">
+                    <ShoppingCart className="w-5 h-5 text-[#c9b197]" />
                   </div>
                   <div>
                     <h3 className="font-bold text-white">New Purchase Trip</h3>
                     <p className="text-xs text-neutral-300">Log bulk inventory purchase</p>
                   </div>
                 </div>
-                <button onClick={() => setShowForm(false)} className="p-2 hover:bg-[#238868]/30 rounded-full transition-colors cursor-pointer">
+                <button onClick={() => setShowForm(false)} className="p-2 hover:bg-[#c9b197]/30 rounded-full transition-colors cursor-pointer">
                   <X className="w-5 h-5 text-neutral-400" />
                 </button>
               </div>
@@ -237,7 +237,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                         type="date"
                         value={tripDate}
                         onChange={e => setTripDate(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 border border-[#238868]/50 bg-[#07250D] text-white rounded-full text-sm focus:outline-none focus:border-[#13EE86]"
+                        className="w-full pl-10 pr-4 py-2.5 border border-[#c9b197]/50 bg-[#403c21] text-white rounded-full text-sm focus:outline-none focus:border-[#c9b197]"
                       />
                     </div>
                   </div>
@@ -248,7 +248,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                       value={tripNotes}
                       onChange={e => setTripNotes(e.target.value)}
                       placeholder="e.g. Weekly market run"
-                      className="w-full px-4 py-2.5 border border-[#238868]/50 bg-[#07250D] text-white rounded-full text-sm focus:outline-none focus:border-[#13EE86] placeholder:text-neutral-500"
+                      className="w-full px-4 py-2.5 border border-[#c9b197]/50 bg-[#403c21] text-white rounded-full text-sm focus:outline-none focus:border-[#c9b197] placeholder:text-neutral-500"
                     />
                   </div>
                 </div>
@@ -258,7 +258,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                   <label className="block text-xs font-medium text-neutral-300 mb-2 uppercase tracking-wide">Items Purchased</label>
                   <div className="space-y-3">
                     {items.map((item, idx) => (
-                      <div key={idx} className="border border-[#238868]/40 rounded-3xl p-4 space-y-3 bg-[#238868]/20">
+                      <div key={idx} className="border border-[#c9b197]/40 rounded-3xl p-4 space-y-3 bg-[#c9b197]/20">
                         {/* Material selector */}
                         <div className="flex gap-2 items-start">
                           <div className="flex-1">
@@ -275,28 +275,28 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                                   }
                                 }}
                                 placeholder="Search or type item name..."
-                                className="w-full px-4 py-2.5 border border-[#238868]/50 rounded-full text-sm focus:outline-none focus:border-[#13EE86] bg-[#07250D] text-white placeholder:text-neutral-500"
+                                className="w-full px-4 py-2.5 border border-[#c9b197]/50 rounded-full text-sm focus:outline-none focus:border-[#c9b197] bg-[#403c21] text-white placeholder:text-neutral-500"
                               />
                               {/* Dropdown */}
                               {!item.materialId && searchMat.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-1 bg-[#07250D] border border-[#238868] rounded-2xl shadow-xl z-10 max-h-40 overflow-y-auto">
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-[#403c21] border border-[#c9b197] rounded-2xl shadow-xl z-10 max-h-40 overflow-y-auto">
                                   {filteredCatalog.map(mat => (
                                     <button
                                       key={mat.id}
                                       onClick={() => selectMaterial(idx, mat)}
-                                      className="w-full flex items-center gap-2 px-4 py-2 hover:bg-[#238868]/30 text-left text-sm text-white cursor-pointer"
+                                      className="w-full flex items-center gap-2 px-4 py-2 hover:bg-[#c9b197]/30 text-left text-sm text-white cursor-pointer"
                                     >
                                       <span>{mat.emoji}</span>
                                       <span className="font-bold">{mat.name}</span>
                                       <span className="text-neutral-400 text-xs ml-auto">{mat.unit}</span>
                                       {mat.lastPricePer && (
-                                        <span className="text-xs text-[#13EE86]">Last: {mat.lastPricePer} Br/{mat.unit}</span>
+                                        <span className="text-xs text-[#c9b197]">Last: {mat.lastPricePer} Br/{mat.unit}</span>
                                       )}
                                     </button>
                                   ))}
                                   {filteredCatalog.length === 0 && (
                                     <div
-                                      className="px-4 py-2 text-sm text-neutral-300 cursor-pointer hover:bg-[#238868]/30"
+                                      className="px-4 py-2 text-sm text-neutral-300 cursor-pointer hover:bg-[#c9b197]/30"
                                       onClick={() => {
                                         setItems(prev => prev.map((it, i) => i === idx ? {
                                           ...it, itemName: searchMat, materialId: '', category: 'other', emoji: '📌',
@@ -336,7 +336,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                               onChange={e => updateItem(idx, 'quantity', e.target.value)}
                               placeholder="0"
                               min="0"
-                              className="w-full px-3 py-2 border border-[#238868]/50 bg-[#07250D] text-white rounded-full text-sm text-center focus:outline-none focus:border-[#13EE86]"
+                              className="w-full px-3 py-2 border border-[#c9b197]/50 bg-[#403c21] text-white rounded-full text-sm text-center focus:outline-none focus:border-[#c9b197]"
                             />
                           </div>
                           <div>
@@ -344,7 +344,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                             <select
                               value={item.unit}
                               onChange={e => updateItem(idx, 'unit', e.target.value)}
-                              className="w-full px-3 py-2 border border-[#238868]/50 bg-[#07250D] text-white rounded-full text-sm focus:outline-none focus:border-[#13EE86]"
+                              className="w-full px-3 py-2 border border-[#c9b197]/50 bg-[#403c21] text-white rounded-full text-sm focus:outline-none focus:border-[#c9b197]"
                             >
                               {Object.entries(unitLabels).map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
@@ -359,14 +359,14 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                               onChange={e => updateItem(idx, 'totalPrice', e.target.value)}
                               placeholder="0"
                               min="0"
-                              className="w-full px-3 py-2 border border-[#238868]/50 bg-[#07250D] text-white rounded-full text-sm text-center focus:outline-none focus:border-[#13EE86]"
+                              className="w-full px-3 py-2 border border-[#c9b197]/50 bg-[#403c21] text-white rounded-full text-sm text-center focus:outline-none focus:border-[#c9b197]"
                             />
                           </div>
                         </div>
                         {/* Per-unit hint */}
                         {item.pricePerUnit && parseFloat(item.pricePerUnit) > 0 && (
                           <p className="text-xs text-neutral-300">
-                            = <strong className="text-[#13EE86]">{parseFloat(item.pricePerUnit).toFixed(2)} Br</strong> per {unitLabels[item.unit]}
+                            = <strong className="text-[#c9b197]">{parseFloat(item.pricePerUnit).toFixed(2)} Br</strong> per {unitLabels[item.unit]}
                           </p>
                         )}
                       </div>
@@ -375,43 +375,43 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
 
                   <button
                     onClick={addItemRow}
-                    className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#238868] rounded-full text-neutral-300 text-sm hover:border-[#13EE86] hover:text-[#13EE86] transition-colors cursor-pointer"
+                    className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#c9b197] rounded-full text-neutral-300 text-sm hover:border-[#c9b197] hover:text-[#c9b197] transition-colors cursor-pointer"
                   >
-                    <Plus className="w-4 h-4 text-[#13EE86]" />
+                    <Plus className="w-4 h-4 text-[#c9b197]" />
                     Add Another Item
                   </button>
                 </div>
 
                 {/* Grand Total */}
                 {grandTotal > 0 && (
-                  <div className="bg-[#238868]/30 border border-[#13EE86]/50 rounded-2xl px-4 py-3 flex items-center justify-between">
+                  <div className="bg-[#c9b197]/30 border border-[#c9b197]/50 rounded-2xl px-4 py-3 flex items-center justify-between">
                     <span className="text-sm font-bold text-white">Grand Total</span>
-                    <span className="text-xl font-extrabold text-[#13EE86]">{formatCurrency(grandTotal, currencySymbol)}</span>
+                    <span className="text-xl font-extrabold text-[#c9b197]">{formatCurrency(grandTotal, currencySymbol)}</span>
                   </div>
                 )}
 
                 {!isFormValid && items.some(it => it.itemName) && (
-                  <div className="flex items-center gap-2 text-[#13EE86] bg-[#238868]/30 rounded-2xl px-3 py-2.5 text-sm border border-[#238868]">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 text-[#13EE86]" />
+                  <div className="flex items-center gap-2 text-[#c9b197] bg-[#c9b197]/30 rounded-2xl px-3 py-2.5 text-sm border border-[#c9b197]">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 text-[#c9b197]" />
                     Please fill in quantity and total price for each item.
                   </div>
                 )}
               </div>
 
               {/* Footer */}
-              <div className="border-t border-[#238868]/30 px-6 py-4 flex gap-3 flex-shrink-0">
+              <div className="border-t border-[#c9b197]/30 px-6 py-4 flex gap-3 flex-shrink-0">
                 <button
                   onClick={() => setShowForm(false)}
-                  className="flex-1 py-3 bg-[#07250D] border border-[#238868] text-white font-bold text-xs rounded-full hover:bg-[#238868]/30 transition-colors cursor-pointer"
+                  className="flex-1 py-3 bg-[#403c21] border border-[#c9b197] text-white font-bold text-xs rounded-full hover:bg-[#c9b197]/30 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={!isFormValid}
-                  className="flex-1 py-3 bg-[#13EE86] hover:bg-[#13EE86]/90 disabled:opacity-40 text-[#07250D] rounded-full font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  className="flex-1 py-3 bg-[#c9b197] hover:bg-[#c9b197]/90 disabled:opacity-40 text-[#403c21] rounded-full font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
                 >
-                  <Save className="w-4 h-4 text-[#07250D]" />
+                  <Save className="w-4 h-4 text-[#403c21]" />
                   Save Trip — {formatCurrency(grandTotal, currencySymbol)}
                 </button>
               </div>
@@ -423,9 +423,9 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
       {/* Trip List */}
       <div className="space-y-3">
         {purchaseTrips.length === 0 && (
-          <div className="text-center py-16 text-neutral-600 bg-white border border-[#238868]/20 rounded-3xl shadow-xs">
-            <Package className="w-12 h-12 mx-auto mb-3 text-[#238868] opacity-40" />
-            <p className="font-extrabold text-[#07250D]">No purchase trips yet</p>
+          <div className="text-center py-16 text-neutral-600 bg-white border border-[#c9b197]/20 rounded-3xl shadow-xs">
+            <Package className="w-12 h-12 mx-auto mb-3 text-[#c9b197] opacity-40" />
+            <p className="font-extrabold text-[#403c21]">No purchase trips yet</p>
             <p className="text-sm mt-1 text-neutral-500 font-medium">Tap "New Trip" to log your first inventory purchase</p>
           </div>
         )}
@@ -435,18 +435,18 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
             <motion.div
               key={trip.id}
               layout
-              className="bg-white border border-[#238868]/20 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all text-[#07250D]"
+              className="bg-white border border-[#c9b197]/20 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all text-[#403c21]"
             >
               <div
-                className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-[#F4F8F5] transition-colors"
+                className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-[#f7f5f0] transition-colors"
                 onClick={() => setExpandedTrip(isExpanded ? null : trip.id)}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#F4F8F5] border border-[#238868]/20 rounded-full flex items-center justify-center flex-shrink-0 text-[#238868]">
+                  <div className="w-10 h-10 bg-[#f7f5f0] border border-[#c9b197]/20 rounded-full flex items-center justify-center flex-shrink-0 text-[#c9b197]">
                     <ShoppingCart className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="font-extrabold text-[#07250D] text-sm">
+                    <p className="font-extrabold text-[#403c21] text-sm">
                       {trip.items.length} item{trip.items.length !== 1 ? 's' : ''} purchased
                     </p>
                     <p className="text-xs text-neutral-600 font-medium mt-0.5">
@@ -457,7 +457,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <p className="font-extrabold text-[#238868]">{formatCurrency(trip.grandTotal, currencySymbol)}</p>
+                    <p className="font-extrabold text-[#c9b197]">{formatCurrency(trip.grandTotal, currencySymbol)}</p>
                     <p className="text-[10px] text-neutral-500 font-medium">total spent</p>
                   </div>
                   {isExpanded ? <ChevronUp className="w-4 h-4 text-neutral-500" /> : <ChevronDown className="w-4 h-4 text-neutral-500" />}
@@ -471,33 +471,33 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="border-t border-[#238868]/15 overflow-hidden"
+                    className="border-t border-[#c9b197]/15 overflow-hidden"
                   >
-                    <div className="px-5 py-4 space-y-2 bg-[#F4F8F5]">
+                    <div className="px-5 py-4 space-y-2 bg-[#f7f5f0]">
                       {trip.items.map(item => (
-                        <div key={item.id} className="flex items-center justify-between py-2 border-b border-[#238868]/15 last:border-0">
+                        <div key={item.id} className="flex items-center justify-between py-2 border-b border-[#c9b197]/15 last:border-0">
                           <div className="flex items-center gap-2">
                             <span className="text-sm">{DEFAULT_MATERIALS_CATALOG.find(m => m.id === item.materialId)?.emoji || '📌'}</span>
                             <div>
-                              <p className="text-sm font-extrabold text-[#07250D]">{item.itemName}</p>
+                              <p className="text-sm font-extrabold text-[#403c21]">{item.itemName}</p>
                               <p className="text-xs text-neutral-600 font-medium">
                                 {item.quantity} {unitLabels[item.unit]} × {item.pricePerUnit.toFixed(2)} Br/{unitLabels[item.unit]}
                               </p>
                             </div>
                           </div>
-                          <p className="text-sm font-extrabold text-[#238868]">{formatCurrency(item.totalPrice, currencySymbol)}</p>
+                          <p className="text-sm font-extrabold text-[#c9b197]">{formatCurrency(item.totalPrice, currencySymbol)}</p>
                         </div>
                       ))}
-                      <div className="flex justify-between items-center pt-3 border-t border-[#238868]/15">
+                      <div className="flex justify-between items-center pt-3 border-t border-[#c9b197]/15">
                         <button
                           onClick={() => onDeleteTrip(trip.id)}
-                          className="text-xs text-neutral-600 hover:text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-full border border-[#238868]/20 transition-colors flex items-center gap-1 cursor-pointer font-bold"
+                          className="text-xs text-neutral-600 hover:text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-full border border-[#c9b197]/20 transition-colors flex items-center gap-1 cursor-pointer font-bold"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                           Delete trip
                         </button>
-                        <p className="text-sm font-extrabold text-[#07250D]">
-                          Total: <span className="text-[#238868]">{formatCurrency(trip.grandTotal, currencySymbol)}</span>
+                        <p className="text-sm font-extrabold text-[#403c21]">
+                          Total: <span className="text-[#c9b197]">{formatCurrency(trip.grandTotal, currencySymbol)}</span>
                         </p>
                       </div>
                     </div>

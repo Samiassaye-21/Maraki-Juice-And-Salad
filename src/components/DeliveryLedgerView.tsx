@@ -174,9 +174,9 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
             exit={{ opacity: 0, height: 0, y: -20 }}
             className="overflow-hidden"
           >
-            <div className="bg-white border border-[#238868]/20 rounded-3xl p-5 sm:p-6 shadow-xs mb-6 text-[#07250D]">
-              <h3 className="text-base font-extrabold text-[#07250D] mb-5 flex items-center space-x-2">
-                <Plus className="w-5 h-5 text-[#238868]" />
+            <div className="bg-white border border-[#c9b197]/20 rounded-3xl p-5 sm:p-6 shadow-xs mb-6 text-[#403c21]">
+              <h3 className="text-base font-extrabold text-[#403c21] mb-5 flex items-center space-x-2">
+                <Plus className="w-5 h-5 text-[#c9b197]" />
                 <span>Record Weekly Delivery Order Credit</span>
               </h3>
 
@@ -287,13 +287,13 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsFormOpen(false)}
-                    className="px-5 py-2.5 bg-white border-2 border-[#07250D] text-[#07250D] hover:bg-slate-100 font-extrabold text-xs rounded-full transition cursor-pointer"
+                    className="px-5 py-2.5 bg-white border-2 border-[#403c21] text-[#403c21] hover:bg-slate-100 font-extrabold text-xs rounded-full transition cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] font-extrabold text-xs rounded-full shadow-md transition cursor-pointer active:scale-95"
+                    className="px-6 py-2.5 bg-[#c9b197] hover:bg-[#bda387] text-[#403c21] font-extrabold text-xs rounded-full shadow-md transition cursor-pointer active:scale-95"
                   >
                     Save Delivery Credit
                   </button>
@@ -305,34 +305,34 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
       </AnimatePresence>
 
       {/* SEARCH & FILTERS */}
-      <div className="bg-white rounded-3xl p-4 border border-[#238868]/20 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-[#07250D]">
+      <div className="bg-white rounded-3xl p-4 border border-[#c9b197]/20 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-[#403c21]">
         <div className="relative w-full sm:max-w-xs">
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search delivery riders/companies..."
-            className="w-full pl-10 pr-4 py-2 bg-white border border-[#238868]/30 rounded-full text-sm text-[#07250D] font-bold focus:outline-none focus:border-[#238868] focus:ring-4 focus:ring-[#13EE86]/20 placeholder:text-neutral-400 shadow-xs"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-[#c9b197]/30 rounded-full text-sm text-[#403c21] font-bold focus:outline-none focus:border-[#c9b197] focus:ring-4 focus:ring-[#c9b197]/20 placeholder:text-neutral-400 shadow-xs"
           />
           <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-3" />
         </div>
 
-        <div className="flex bg-[#F4F8F5] p-1 rounded-full border border-[#238868]/20 text-xs font-medium w-full sm:w-auto">
+        <div className="flex bg-[#f7f5f0] p-1 rounded-full border border-[#c9b197]/20 text-xs font-medium w-full sm:w-auto">
           <button
             onClick={() => setFilterStatus('unsettled')}
-            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'unsettled' ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
+            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'unsettled' ? 'bg-[#c9b197] text-[#403c21] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
           >
             Weekly Unsettled
           </button>
           <button
             onClick={() => setFilterStatus('settled')}
-            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'settled' ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
+            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'settled' ? 'bg-[#c9b197] text-[#403c21] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
           >
             Settled Paid
           </button>
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'all' ? 'bg-[#13EE86] text-[#07250D] shadow-xs' : 'text-neutral-600 hover:text-[#07250D]'}`}
+            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'all' ? 'bg-[#c9b197] text-[#403c21] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
           >
             All Logs
           </button>
@@ -342,9 +342,9 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
       {/* LIST */}
       <div className="space-y-3.5">
         {filtered.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 text-center text-neutral-600 border border-[#238868]/20 flex flex-col items-center shadow-xs">
-            <Truck className="w-12 h-12 text-[#238868] mb-3 opacity-40" />
-            <h3 className="text-base font-extrabold text-[#07250D]">No delivery account logs</h3>
+          <div className="bg-white rounded-3xl p-12 text-center text-neutral-600 border border-[#c9b197]/20 flex flex-col items-center shadow-xs">
+            <Truck className="w-12 h-12 text-[#c9b197] mb-3 opacity-40" />
+            <h3 className="text-base font-extrabold text-[#403c21]">No delivery account logs</h3>
             <p className="text-xs font-medium text-neutral-500 mt-1">Try adjusting search term or status filter</p>
           </div>
         ) : (
@@ -355,28 +355,28 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.04 }}
-                className="bg-white rounded-3xl p-5 border border-[#238868]/20 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:shadow-md text-[#07250D]"
+                className="bg-white rounded-3xl p-5 border border-[#c9b197]/20 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:shadow-md text-[#403c21]"
               >
                 
                 <div className="flex items-start space-x-4">
-                  <div className="p-3 rounded-full bg-[#F4F8F5] text-[#238868] border border-[#238868]/20 shrink-0">
+                  <div className="p-3 rounded-full bg-[#f7f5f0] text-[#c9b197] border border-[#c9b197]/20 shrink-0">
                     <Truck className="w-6 h-6" />
                   </div>
 
                   <div className="space-y-1">
                     <div className="flex items-center flex-wrap gap-2">
-                      <h4 className="text-base font-extrabold text-[#07250D]">
+                      <h4 className="text-base font-extrabold text-[#403c21]">
                         {item.deliveryRiderName}
                       </h4>
-                      <span className="px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-[#F4F8F5] text-[#07250D] border border-[#238868]/20">
+                      <span className="px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-[#f7f5f0] text-[#403c21] border border-[#c9b197]/20">
                         {item.shiftType} SHIFT
                       </span>
                       {item.isSettledWeekly ? (
-                        <span className="bg-[#F4F8F5] text-[#238868] border border-[#238868]/20 text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase">
+                        <span className="bg-[#f7f5f0] text-[#c9b197] border border-[#c9b197]/20 text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase">
                           WEEKLY SETTLED
                         </span>
                       ) : (
-                        <span className="bg-[#13EE86] text-[#07250D] text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase">
+                        <span className="bg-[#c9b197] text-[#403c21] text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase">
                           UNSETTLED
                         </span>
                       )}
@@ -391,14 +391,14 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                       {item.juiceCupsCount > 0 && <span>• {item.juiceCupsCount} Cups</span>}
                       {item.foodTakeawaysCount > 0 && <span>• {item.foodTakeawaysCount} Takeaways</span>}
                       {item.isSettledWeekly && item.settledDate && (
-                        <span className="text-[#238868] font-extrabold">• Settled on {item.settledDate}</span>
+                        <span className="text-[#c9b197] font-extrabold">• Settled on {item.settledDate}</span>
                       )}
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-4 self-end sm:self-center">
-                  <span className="text-lg font-extrabold text-[#238868]">
+                  <span className="text-lg font-extrabold text-[#c9b197]">
                     {formatCurrency(item.amount, currencySymbol)}
                   </span>
 
@@ -406,21 +406,21 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                     {!item.isSettledWeekly ? (
                       <button
                         onClick={() => onSettleDeliveryRecord(item.id)}
-                        className="px-4 py-2 bg-[#13EE86] hover:bg-[#10DF7D] text-[#07250D] font-extrabold text-xs rounded-full shadow-md flex items-center space-x-1.5 cursor-pointer active:scale-95 transition"
+                        className="px-4 py-2 bg-[#c9b197] hover:bg-[#bda387] text-[#403c21] font-extrabold text-xs rounded-full shadow-md flex items-center space-x-1.5 cursor-pointer active:scale-95 transition"
                       >
-                        <CheckCircle2 className="w-4 h-4 text-[#07250D]" />
+                        <CheckCircle2 className="w-4 h-4 text-[#403c21]" />
                         <span>Settle Payment</span>
                       </button>
                     ) : (
-                      <span className="text-xs font-extrabold text-[#238868] flex items-center space-x-1 px-2">
-                        <CheckCircle2 className="w-4 h-4 text-[#238868]" />
+                      <span className="text-xs font-extrabold text-[#c9b197] flex items-center space-x-1 px-2">
+                        <CheckCircle2 className="w-4 h-4 text-[#c9b197]" />
                         <span>Settled</span>
                       </span>
                     )}
 
                     <button
                       onClick={() => setEditingRecord(JSON.parse(JSON.stringify(item)))}
-                      className="p-2 text-neutral-500 hover:text-[#07250D] hover:bg-slate-100 rounded-full transition cursor-pointer"
+                      className="p-2 text-neutral-500 hover:text-[#403c21] hover:bg-slate-100 rounded-full transition cursor-pointer"
                       title="Edit"
                     >
                       <Pencil className="w-4 h-4" />
@@ -448,22 +448,22 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#07250D]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-[#403c21]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#07250D] rounded-3xl shadow-2xl max-w-lg w-full p-6 border border-[#238868]/50 space-y-4 text-white"
+              className="bg-[#403c21] rounded-3xl shadow-2xl max-w-lg w-full p-6 border border-[#c9b197]/50 space-y-4 text-white"
             >
-              <div className="flex items-center justify-between border-b border-[#238868]/30 pb-4">
+              <div className="flex items-center justify-between border-b border-[#c9b197]/30 pb-4">
                 <h3 className="text-base font-bold text-white flex items-center space-x-2">
-                  <Pencil className="w-4 h-4 text-[#13EE86]" />
+                  <Pencil className="w-4 h-4 text-[#c9b197]" />
                   <span>Edit Delivery Credit Record</span>
                 </h3>
                 <button
                   onClick={() => setEditingRecord(null)}
-                  className="p-2 text-neutral-400 hover:text-white hover:bg-[#238868]/30 rounded-full transition cursor-pointer"
+                  className="p-2 text-neutral-400 hover:text-white hover:bg-[#c9b197]/30 rounded-full transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -580,19 +580,19 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                   </div>
                 </div>
 
-                <div className="pt-4 flex items-center justify-end space-x-3 border-t border-[#238868]/30">
+                <div className="pt-4 flex items-center justify-end space-x-3 border-t border-[#c9b197]/30">
                   <button
                     type="button"
                     onClick={() => setEditingRecord(null)}
-                    className="px-5 py-2.5 bg-[#07250D] border border-[#238868] text-white hover:bg-[#238868]/30 font-bold text-xs rounded-full cursor-pointer transition"
+                    className="px-5 py-2.5 bg-[#403c21] border border-[#c9b197] text-white hover:bg-[#c9b197]/30 font-bold text-xs rounded-full cursor-pointer transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-[#13EE86] hover:bg-[#13EE86]/90 text-[#07250D] font-bold text-xs rounded-full shadow-md cursor-pointer flex items-center space-x-1.5 transition"
+                    className="px-6 py-2.5 bg-[#c9b197] hover:bg-[#c9b197]/90 text-[#403c21] font-bold text-xs rounded-full shadow-md cursor-pointer flex items-center space-x-1.5 transition"
                   >
-                    <Save className="w-4 h-4 text-[#07250D]" />
+                    <Save className="w-4 h-4 text-[#403c21]" />
                     <span>Save Changes</span>
                   </button>
                 </div>

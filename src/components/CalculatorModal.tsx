@@ -133,12 +133,12 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
         animate={{ opacity: 1, scale: 1, y: 0 }} 
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="w-full max-w-[360px] bg-white rounded-3xl p-6 shadow-2xl flex flex-col gap-5 border border-[#238868]/20 text-[#07250D] font-sans"
+        className="w-full max-w-[360px] bg-white rounded-3xl p-6 shadow-2xl flex flex-col gap-5 border border-[#c9b197]/20 text-[#403c21] font-sans"
       >
         {/* Header with Title and Close */}
-        <div className="flex items-center justify-between px-1 text-[#07250D]">
+        <div className="flex items-center justify-between px-1 text-[#403c21]">
           <span className="text-sm font-extrabold uppercase tracking-widest">{title}</span>
-          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors cursor-pointer text-neutral-500 hover:text-[#07250D]">
+          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors cursor-pointer text-neutral-500 hover:text-[#403c21]">
             <X size={20} strokeWidth={2.5} />
           </button>
         </div>
