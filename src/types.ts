@@ -77,6 +77,7 @@ export interface ShiftRecord {
   
   // Status & Notes
   notes?: string;
+  signatureUrl?: string;             // Digital signature base64 data URL
   isClosed: boolean;
   timestamp: number;
 }

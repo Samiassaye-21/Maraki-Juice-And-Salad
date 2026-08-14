@@ -479,6 +479,21 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                       </div>
                     )}
 
+                    {/* Worker Digital Signature Preview */}
+                    {pShift.signatureUrl && (
+                      <div className="bg-slate-950/80 p-3 rounded-xl border border-indigo-500/30 flex items-center justify-between">
+                        <div>
+                          <span className="text-[11px] font-extrabold text-indigo-300 block">
+                            የሰራተኛ ፊርማ (Worker Signature)
+                          </span>
+                          <span className="text-[10px] text-slate-400">Signed on mobile submission</span>
+                        </div>
+                        <div className="bg-white rounded-xl p-1.5 border border-slate-300 shadow-sm">
+                          <img src={pShift.signatureUrl} alt="Worker Signature" className="h-12 object-contain" />
+                        </div>
+                      </div>
+                    )}
+
                     {/* Net Cash Handover Highlight */}
                     <div className="flex items-center justify-between bg-indigo-950/60 p-3 rounded-xl border border-indigo-500/40">
                       <div>

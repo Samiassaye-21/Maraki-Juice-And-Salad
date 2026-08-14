@@ -14,31 +14,50 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
   const [errorMsg, setErrorMsg] = useState(false);
 
   const handleKey = (key: string) => {
-    if (pin.length >= 4) return;
-    const next = pin + key;
-    setPin(next);
-    setErrorMsg(false);
+    setPin((prevPin) => {
+      if (prevPin.length >= 4) return prevPin;
+      const next = prevPin + key;
+      setErrorMsg(false);
 
-    if (next.length === 4) {
-      setTimeout(() => {
-        if (next === WORKER_PIN) {
-          onLoginSuccess();
-        } else {
-          setShake(true);
-          setErrorMsg(true);
-          setTimeout(() => {
-            setShake(false);
-            setPin('');
-          }, 700);
-        }
-      }, 200);
-    }
+      if (next.length === 4) {
+        setTimeout(() => {
+          if (next === WORKER_PIN) {
+            onLoginSuccess();
+          } else {
+            setShake(true);
+            setErrorMsg(true);
+            setTimeout(() => {
+              setShake(false);
+              setPin('');
+            }, 700);
+          }
+        }, 200);
+      }
+      return next;
+    });
   };
 
   const handleDelete = () => {
     setPin((p) => p.slice(0, -1));
     setErrorMsg(false);
   };
+
+  // Keyboard Event Listener for physical typing support
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9') {
+        handleKey(e.key);
+      } else if (e.key === 'Backspace') {
+        handleDelete();
+      } else if (e.key === 'Enter') {
+        if (pin === WORKER_PIN) {
+          onLoginSuccess();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pin]);
 
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'];
 

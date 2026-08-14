@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sun, 
@@ -22,7 +22,8 @@ import {
   Package,
   Bike,
   Trash2,
-  Tag
+  Tag,
+  PenTool
 } from 'lucide-react';
 import { ShiftRecord, ShiftType, RestaurantSystemConfig, DailyExpenseItem } from '../types';
 import { supabase } from '../lib/supabaseClient';
@@ -45,6 +46,67 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
   const [workerName, setWorkerName] = useState<string>(
     autoShift.shiftType === 'night' ? config.nightShiftWorkerName : config.dayShiftWorkerName
   );
+
+  // Canvas Signature Pad State
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasSigned, setHasSigned] = useState(false);
+  const [signatureUrl, setSignatureUrl] = useState<string>('');
+
+  const startDrawing = (e: any) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    ctx.beginPath();
+    ctx.moveTo(clientX - rect.left, clientY - rect.top);
+    setIsDrawing(true);
+  };
+
+  const draw = (e: any) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#818cf8';
+
+    ctx.lineTo(clientX - rect.left, clientY - rect.top);
+    ctx.stroke();
+    setHasSigned(true);
+  };
+
+  const stopDrawing = () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    const canvas = canvasRef.current;
+    if (canvas) {
+      setSignatureUrl(canvas.toDataURL('image/png'));
+    }
+  };
+
+  const clearSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    setHasSigned(false);
+    setSignatureUrl('');
+  };
 
   // Sync default worker name when shiftType changes
   useEffect(() => {
@@ -223,6 +285,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
       deliveryCreditAmount,
       netCashDueToOwner: totals.netCashDueToOwner,
       notes: notes.trim(),
+      signatureUrl: signatureUrl || undefined,
       isClosed: false, // PENDING APPROVAL WORKFLOW
       timestamp: now.getTime(),
     };
@@ -248,6 +311,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
       delivery_credit_amount: newShiftRecord.deliveryCreditAmount,
       net_cash_due_to_owner: newShiftRecord.netCashDueToOwner,
       notes: newShiftRecord.notes,
+      signature_url: signatureUrl || null,
       is_closed: false, // Pending approval
       timestamp: newShiftRecord.timestamp,
     });
@@ -687,6 +751,51 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* ─── Card 4.5: Digital Signature Pad ───────────────────────────── */}
+        <div className="bg-slate-800/80 border border-indigo-500/30 rounded-3xl p-4 space-y-2.5 shadow-md">
+          <div className="flex items-center justify-between border-b border-slate-700/80 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                <PenTool className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="font-extrabold text-white text-sm">የሰራተኛ ፊርማ (Worker Signature)</h2>
+                <p className="text-[10px] text-slate-400">Sign with finger or mouse below</p>
+              </div>
+            </div>
+            {hasSigned && (
+              <button
+                type="button"
+                onClick={clearSignature}
+                className="text-xs font-semibold text-rose-400 hover:text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/30 cursor-pointer"
+              >
+                አጽዳ (Clear)
+              </button>
+            )}
+          </div>
+
+          <div className="bg-slate-950 rounded-2xl p-1 border border-slate-700 overflow-hidden relative">
+            <canvas
+              ref={canvasRef}
+              width={340}
+              height={110}
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+              onTouchStart={startDrawing}
+              onTouchMove={draw}
+              onTouchEnd={stopDrawing}
+              className="w-full h-28 touch-none bg-slate-950 cursor-crosshair rounded-xl"
+            />
+            {!hasSigned && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-slate-600 text-xs font-semibold">
+                ✍️ እዚህ ጋር በጣትዎ ይፈረሙ (Draw Signature Here)
+              </div>
+            )}
           </div>
         </div>
 
