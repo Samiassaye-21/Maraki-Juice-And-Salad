@@ -324,6 +324,30 @@ export function buildShiftLedgerEntries(shift: ShiftRecord): LedgerEntry[] {
   return entries;
 }
 
+/**
+ * Safely embeds digital signature data URL into the notes string
+ */
+export function embedSignatureInNotes(notes?: string, signatureUrl?: string): string {
+  const clean = (notes || '').trim();
+  if (!signatureUrl) return clean;
+  return `${clean} [SIGNATURE:${signatureUrl}]`.trim();
+}
+
+/**
+ * Safely extracts signature URL and clean notes from notes string
+ */
+export function extractSignatureFromNotes(notes?: string): { cleanNotes: string; signatureUrl?: string } {
+  if (!notes) return { cleanNotes: '', signatureUrl: undefined };
+  const match = notes.match(/\[SIGNATURE:(data:image\/[^\]]+)\]/);
+  if (match) {
+    const signatureUrl = match[1];
+    const cleanNotes = notes.replace(/\[SIGNATURE:data:image\/[^\]]+\]/, '').trim();
+    return { cleanNotes, signatureUrl };
+  }
+  return { cleanNotes: notes, signatureUrl: undefined };
+}
+
+
 
 
 

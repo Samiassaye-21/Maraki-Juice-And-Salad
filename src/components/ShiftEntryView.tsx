@@ -32,7 +32,8 @@ import {
   getAutoShiftType, 
   formatEthiopianTime, 
   formatCurrency, 
-  calculateShiftTotals
+  calculateShiftTotals,
+  embedSignatureInNotes
 } from '../utils/shiftUtils';
 
 interface ShiftEntryViewProps {
@@ -290,6 +291,8 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
       timestamp: now.getTime(),
     };
 
+    const combinedNotes = embedSignatureInNotes(newShiftRecord.notes, signatureUrl);
+
     // Insert into Supabase with is_closed = false (Pending Admin Approval)
     const { error: shiftErr } = await supabase.from('shifts').insert({
       id: newShiftRecord.id,
@@ -310,8 +313,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
       recovered_pending_amount: newShiftRecord.recoveredPendingAmount,
       delivery_credit_amount: newShiftRecord.deliveryCreditAmount,
       net_cash_due_to_owner: newShiftRecord.netCashDueToOwner,
-      notes: newShiftRecord.notes,
-      signature_url: signatureUrl || null,
+      notes: combinedNotes,
       is_closed: false, // Pending approval
       timestamp: newShiftRecord.timestamp,
     });

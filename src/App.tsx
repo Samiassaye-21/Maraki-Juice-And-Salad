@@ -30,7 +30,7 @@ import {
   LedgerEntry,
   KitchenOrder,
 } from './types';
-import { calculateSystemSummary, getAutoShiftType, buildShiftLedgerEntries } from './utils/shiftUtils';
+import { calculateSystemSummary, getAutoShiftType, buildShiftLedgerEntries, extractSignatureFromNotes } from './utils/shiftUtils';
 
 import { safeLocalStorage, safeSessionStorage } from './utils/safeStorage';
 
@@ -122,19 +122,24 @@ export function App() {
       // Shifts
       const { data: shiftsData } = await supabase.from('shifts').select('*').order('timestamp', { ascending: false });
       if (shiftsData) {
-        const allShifts: ShiftRecord[] = shiftsData.map(s => ({
-          id: s.id, date: s.date, shiftType: s.shift_type, workerName: s.worker_name,
-          juiceCups: s.juice_cups, foodTakeaways: s.food_takeaways,
-          juiceCupsSold: s.juice_cups_sold, juiceRevenue: s.juice_revenue,
-          foodTakeawaysSold: s.food_takeaways_sold, foodRevenue: s.food_revenue,
-          grossIncome: s.gross_income, digitalTransfers: s.digital_transfers,
-          dailyExpenses: s.daily_expenses, expenseItems: s.expense_items,
-          newPendingPaymentsAmount: s.new_pending_payments_amount,
-          recoveredPendingAmount: s.recovered_pending_amount,
-          deliveryCreditAmount: s.delivery_credit_amount,
-          netCashDueToOwner: s.net_cash_due_to_owner,
-          notes: s.notes, isClosed: s.is_closed, timestamp: Number(s.timestamp),
-        }));
+        const allShifts: ShiftRecord[] = shiftsData.map(s => {
+          const { cleanNotes, signatureUrl: sigFromNotes } = extractSignatureFromNotes(s.notes);
+          return {
+            id: s.id, date: s.date, shiftType: s.shift_type, workerName: s.worker_name,
+            juiceCups: s.juice_cups, foodTakeaways: s.food_takeaways,
+            juiceCupsSold: s.juice_cups_sold, juiceRevenue: s.juice_revenue,
+            foodTakeawaysSold: s.food_takeaways_sold, foodRevenue: s.food_revenue,
+            grossIncome: s.gross_income, digitalTransfers: s.digital_transfers,
+            dailyExpenses: s.daily_expenses, expenseItems: s.expense_items,
+            newPendingPaymentsAmount: s.new_pending_payments_amount,
+            recoveredPendingAmount: s.recovered_pending_amount,
+            deliveryCreditAmount: s.delivery_credit_amount,
+            netCashDueToOwner: s.net_cash_due_to_owner,
+            notes: cleanNotes,
+            signatureUrl: s.signature_url || sigFromNotes,
+            isClosed: s.is_closed, timestamp: Number(s.timestamp),
+          };
+        });
 
         setPendingApprovalShifts(allShifts.filter(s => s.isClosed === false));
         setShiftsState(allShifts.filter(s => s.isClosed !== false));
