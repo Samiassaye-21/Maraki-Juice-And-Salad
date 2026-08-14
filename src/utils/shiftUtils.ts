@@ -375,7 +375,7 @@ export function compareSignaturePattern(
 ): Promise<{ matchScore: number; isValid: boolean }> {
   return new Promise((resolve) => {
     if (!drawnDataUrl || !referenceDataUrl) {
-      resolve({ matchScore: 100, isValid: true });
+      resolve({ matchScore: 0, isValid: false });
       return;
     }
 
@@ -388,78 +388,120 @@ export function compareSignaturePattern(
       if (loadedCount < 2) return;
 
       try {
-        /**
-         * Renders image onto a WHITE background canvas, then marks a pixel as "ink"
-         * if it is sufficiently DARK (not white/light). This handles both:
-         * - Canvas drawings (dark strokes on transparent bg → composited onto white = dark on white)
-         * - Uploaded image files (dark strokes on white bg → already dark on white)
-         */
-        const renderBinary = (img: HTMLImageElement, size: number): { map: number[]; inkCount: number } => {
-          const c = document.createElement('canvas');
-          c.width = size;
-          c.height = size;
-          const ctx = c.getContext('2d')!;
-
-          // First fill with white — this flattens transparent canvas signatures correctly
+        const getInkBoundingBox = (img: HTMLImageElement) => {
+          const tempCanvas = document.createElement('canvas');
+          const w = img.naturalWidth || img.width || 340;
+          const h = img.naturalHeight || img.height || 110;
+          tempCanvas.width = w;
+          tempCanvas.height = h;
+          const ctx = tempCanvas.getContext('2d')!;
           ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, size, size);
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          const pixels = ctx.getImageData(0, 0, w, h).data;
 
-          // Draw the signature image on top
-          ctx.drawImage(img, 0, 0, size, size);
+          let minX = w, minY = h, maxX = 0, maxY = 0;
+          let hasInk = false;
 
-          const pixels = ctx.getImageData(0, 0, size, size).data;
-          const map: number[] = [];
-          let inkCount = 0;
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              const idx = (y * w + x) * 4;
+              const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+              const brightness = (r + g + b) / 3;
+              if (brightness < 200) {
+                hasInk = true;
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+              }
+            }
+          }
+          return { minX, minY, maxX, maxY, hasInk, w, h };
+        };
 
-          for (let i = 0; i < size * size; i++) {
+        const box1 = getInkBoundingBox(img1);
+        const box2 = getInkBoundingBox(img2);
+
+        if (!box1.hasInk || !box2.hasInk) {
+          resolve({ matchScore: 0, isValid: false });
+          return;
+        }
+
+        const GRID_SIZE = 64;
+        const createNormalizedGrid = (img: HTMLImageElement, box: typeof box1): number[] => {
+          const c = document.createElement('canvas');
+          c.width = GRID_SIZE;
+          c.height = GRID_SIZE;
+          const ctx = c.getContext('2d')!;
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, GRID_SIZE, GRID_SIZE);
+
+          const cropW = Math.max(1, box.maxX - box.minX + 1);
+          const cropH = Math.max(1, box.maxY - box.minY + 1);
+
+          ctx.drawImage(img, box.minX, box.minY, cropW, cropH, 0, 0, GRID_SIZE, GRID_SIZE);
+
+          const pixels = ctx.getImageData(0, 0, GRID_SIZE, GRID_SIZE).data;
+          const grid: number[] = [];
+          for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
             const r = pixels[i * 4];
             const g = pixels[i * 4 + 1];
             const b = pixels[i * 4 + 2];
-            // A pixel is "ink" if it is dark enough (not white/light background)
-            // Threshold: brightness < 180 out of 255
-            const brightness = (r + g + b) / 3;
-            const inked = brightness < 180 ? 1 : 0;
-            map.push(inked);
-            inkCount += inked;
+            const isInk = ((r + g + b) / 3) < 220 ? 1 : 0;
+            grid.push(isInk);
           }
-
-          return { map, inkCount };
+          return grid;
         };
 
-        // Multi-scale comparison at 3 resolutions
-        const SCALES = [8, 16, 32];
-        let totalScore = 0;
+        const grid1 = createNormalizedGrid(img1, box1);
+        const grid2 = createNormalizedGrid(img2, box2);
 
-        for (const size of SCALES) {
-          const { map: map1, inkCount: ink1 } = renderBinary(img1, size);
-          const { map: map2, inkCount: ink2 } = renderBinary(img2, size);
+        const ar1 = (box1.maxX - box1.minX + 1) / Math.max(1, box1.maxY - box1.minY + 1);
+        const ar2 = (box2.maxX - box2.minX + 1) / Math.max(1, box2.maxY - box2.minY + 1);
+        const aspectSim = Math.min(ar1, ar2) / Math.max(ar1, ar2);
 
-          let intersection = 0;
-          let union = 0;
+        const CELL_NUM = 8;
+        const CELL_SIZE = GRID_SIZE / CELL_NUM;
+        const vector1: number[] = [];
+        const vector2: number[] = [];
 
-          for (let i = 0; i < size * size; i++) {
-            const a = map1[i];
-            const b = map2[i];
-            if (a || b) union++;
-            if (a && b) intersection++;
+        for (let cy = 0; cy < CELL_NUM; cy++) {
+          for (let cx = 0; cx < CELL_NUM; cx++) {
+            let count1 = 0, count2 = 0;
+            for (let dy = 0; dy < CELL_SIZE; dy++) {
+              for (let dx = 0; dx < CELL_SIZE; dx++) {
+                const px = cx * CELL_SIZE + dx;
+                const py = cy * CELL_SIZE + dy;
+                const idx = py * GRID_SIZE + px;
+                count1 += grid1[idx];
+                count2 += grid2[idx];
+              }
+            }
+            vector1.push(count1);
+            vector2.push(count2);
           }
-
-          // IoU — measures spatial shape overlap
-          const iou = union > 0 ? intersection / union : 0;
-
-          // Ink density ratio — heavily punishes large vs small stroke differences
-          const densityRatio = ink1 > 0 && ink2 > 0
-            ? Math.min(ink1, ink2) / Math.max(ink1, ink2)
-            : 0;
-
-          totalScore += iou * 0.65 + densityRatio * 0.35;
         }
 
-        const averageScore = totalScore / SCALES.length;
-        const matchScore = Math.round(averageScore * 100);
+        let dot = 0, mag1 = 0, mag2 = 0;
+        for (let i = 0; i < vector1.length; i++) {
+          dot += vector1[i] * vector2[i];
+          mag1 += vector1[i] * vector1[i];
+          mag2 += vector2[i] * vector2[i];
+        }
+        const spatialSim = (mag1 > 0 && mag2 > 0) ? dot / (Math.sqrt(mag1) * Math.sqrt(mag2)) : 0;
 
-        // Strict threshold: 60% required
+        let intersection = 0, union = 0;
+        for (let i = 0; i < grid1.length; i++) {
+          if (grid1[i] || grid2[i]) union++;
+          if (grid1[i] && grid2[i]) intersection++;
+        }
+        const iou = union > 0 ? intersection / union : 0;
+
+        const combinedScore = (spatialSim * 0.50) + (iou * 0.30) + (aspectSim * 0.20);
+        const matchScore = Math.round(Math.min(100, Math.max(0, combinedScore * 100)));
         const isValid = matchScore >= 60;
+
         resolve({ matchScore, isValid });
       } catch {
         resolve({ matchScore: 0, isValid: false });
@@ -468,8 +510,8 @@ export function compareSignaturePattern(
 
     img1.onload = onFinish;
     img2.onload = onFinish;
-    img1.onerror = () => resolve({ matchScore: 100, isValid: true });
-    img2.onerror = () => resolve({ matchScore: 100, isValid: true });
+    img1.onerror = () => resolve({ matchScore: 0, isValid: false });
+    img2.onerror = () => resolve({ matchScore: 0, isValid: false });
 
     img1.src = drawnDataUrl;
     img2.src = referenceDataUrl;

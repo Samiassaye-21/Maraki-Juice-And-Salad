@@ -16,12 +16,12 @@ interface MarketPurchasesViewProps {
 }
 
 const categoryColors: Record<MaterialCategory, string> = {
-  fruits:    'bg-orange-100 text-orange-700',
-  dairy:     'bg-blue-100 text-blue-700',
-  kitchen:   'bg-yellow-100 text-yellow-700',
-  packaging: 'bg-purple-100 text-purple-700',
-  equipment: 'bg-slate-100 text-slate-700',
-  other:     'bg-gray-100 text-gray-700',
+  fruits:    'bg-[#238868]/40 text-[#13EE86] border border-[#238868]',
+  dairy:     'bg-[#238868]/40 text-[#13EE86] border border-[#238868]',
+  kitchen:   'bg-[#238868]/40 text-[#13EE86] border border-[#238868]',
+  packaging: 'bg-[#238868]/40 text-[#13EE86] border border-[#238868]',
+  equipment: 'bg-[#238868]/40 text-[#13EE86] border border-[#238868]',
+  other:     'bg-[#238868]/40 text-[#13EE86] border border-[#238868]',
 };
 
 const categoryLabels: Record<MaterialCategory, string> = {
@@ -159,38 +159,38 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
   })();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-white">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Inventory Purchases</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Bulk buying — fruits, packaging & supplies</p>
+          <h2 className="text-xl font-bold text-white">Inventory Purchases</h2>
+          <p className="text-sm text-neutral-300 mt-0.5">Bulk buying — fruits, packaging & supplies</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm shadow-sm transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#13EE86] hover:bg-[#13EE86]/90 text-[#07250D] rounded-full font-bold text-sm shadow-md transition-all cursor-pointer"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 text-[#07250D]" />
           New Trip
         </button>
       </div>
 
       {/* This-week summary */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4">
-          <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide">This Week</p>
-          <p className="text-2xl font-bold text-orange-700 mt-1">{formatCurrency(totalThisWeek, currencySymbol)}</p>
-          <p className="text-xs text-orange-500 mt-0.5">{purchaseTrips.filter(t => {
+        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-5">
+          <p className="text-xs font-medium text-neutral-300 uppercase tracking-wide">This Week</p>
+          <p className="text-2xl font-extrabold text-[#13EE86] mt-1">{formatCurrency(totalThisWeek, currencySymbol)}</p>
+          <p className="text-xs text-neutral-400 mt-0.5">{purchaseTrips.filter(t => {
             const ws = new Date(); ws.setDate(ws.getDate() - ws.getDay());
             return new Date(t.date) >= ws;
           }).length} trips</p>
         </div>
-        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">All Time</p>
-          <p className="text-2xl font-bold text-slate-800 mt-1">
+        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-5">
+          <p className="text-xs font-medium text-neutral-300 uppercase tracking-wide">All Time</p>
+          <p className="text-2xl font-extrabold text-white mt-1">
             {formatCurrency(purchaseTrips.reduce((s, t) => s + t.grandTotal, 0), currencySymbol)}
           </p>
-          <p className="text-xs text-slate-400 mt-0.5">{purchaseTrips.length} total trips</p>
+          <p className="text-xs text-neutral-400 mt-0.5">{purchaseTrips.length} total trips</p>
         </div>
       </div>
 
@@ -201,28 +201,28 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+            className="fixed inset-0 z-50 bg-[#07250D]/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
           >
             <motion.div
               initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
               transition={{ type: 'spring', damping: 22, stiffness: 300 }}
-              className="bg-white w-full max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh]"
+              className="bg-[#07250D] w-full max-w-2xl rounded-t-3xl sm:rounded-3xl border border-[#238868]/50 shadow-2xl flex flex-col max-h-[92vh] text-white"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 flex-shrink-0">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-[#238868]/30 flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center">
-                    <ShoppingCart className="w-5 h-5 text-orange-600" />
+                  <div className="w-10 h-10 bg-[#238868]/40 border border-[#238868]/60 rounded-full flex items-center justify-center">
+                    <ShoppingCart className="w-5 h-5 text-[#13EE86]" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-900">New Purchase Trip</h3>
-                    <p className="text-xs text-slate-400">Log bulk inventory purchase</p>
+                    <h3 className="font-bold text-white">New Purchase Trip</h3>
+                    <p className="text-xs text-neutral-300">Log bulk inventory purchase</p>
                   </div>
                 </div>
-                <button onClick={() => setShowForm(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
-                  <X className="w-5 h-5 text-slate-500" />
+                <button onClick={() => setShowForm(false)} className="p-2 hover:bg-[#238868]/30 rounded-full transition-colors cursor-pointer">
+                  <X className="w-5 h-5 text-neutral-400" />
                 </button>
               </div>
 
@@ -230,35 +230,35 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                 {/* Date & Notes */}
                 <div className="flex gap-3">
                   <div className="flex-1">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Trip Date</label>
+                    <label className="block text-xs font-medium text-neutral-300 mb-1.5 uppercase tracking-wide">Trip Date</label>
                     <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                       <input
                         type="date"
                         value={tripDate}
                         onChange={e => setTripDate(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full pl-10 pr-4 py-2.5 border border-[#238868]/50 bg-[#07250D] text-white rounded-full text-sm focus:outline-none focus:border-[#13EE86]"
                       />
                     </div>
                   </div>
                   <div className="flex-1">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Notes (optional)</label>
+                    <label className="block text-xs font-medium text-neutral-300 mb-1.5 uppercase tracking-wide">Notes (optional)</label>
                     <input
                       type="text"
                       value={tripNotes}
                       onChange={e => setTripNotes(e.target.value)}
                       placeholder="e.g. Weekly market run"
-                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-[#238868]/50 bg-[#07250D] text-white rounded-full text-sm focus:outline-none focus:border-[#13EE86] placeholder:text-neutral-500"
                     />
                   </div>
                 </div>
 
                 {/* Items */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Items Purchased</label>
+                  <label className="block text-xs font-medium text-neutral-300 mb-2 uppercase tracking-wide">Items Purchased</label>
                   <div className="space-y-3">
                     {items.map((item, idx) => (
-                      <div key={idx} className="border border-slate-200 rounded-2xl p-4 space-y-3 bg-slate-50/50">
+                      <div key={idx} className="border border-[#238868]/40 rounded-3xl p-4 space-y-3 bg-[#238868]/20">
                         {/* Material selector */}
                         <div className="flex gap-2 items-start">
                           <div className="flex-1">
@@ -275,28 +275,28 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                                   }
                                 }}
                                 placeholder="Search or type item name..."
-                                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                className="w-full px-4 py-2.5 border border-[#238868]/50 rounded-full text-sm focus:outline-none focus:border-[#13EE86] bg-[#07250D] text-white placeholder:text-neutral-500"
                               />
                               {/* Dropdown */}
                               {!item.materialId && searchMat.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 max-h-40 overflow-y-auto">
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-[#07250D] border border-[#238868] rounded-2xl shadow-xl z-10 max-h-40 overflow-y-auto">
                                   {filteredCatalog.map(mat => (
                                     <button
                                       key={mat.id}
                                       onClick={() => selectMaterial(idx, mat)}
-                                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-50 text-left text-sm"
+                                      className="w-full flex items-center gap-2 px-4 py-2 hover:bg-[#238868]/30 text-left text-sm text-white cursor-pointer"
                                     >
                                       <span>{mat.emoji}</span>
-                                      <span className="font-medium">{mat.name}</span>
-                                      <span className="text-slate-400 text-xs ml-auto">{mat.unit}</span>
+                                      <span className="font-bold">{mat.name}</span>
+                                      <span className="text-neutral-400 text-xs ml-auto">{mat.unit}</span>
                                       {mat.lastPricePer && (
-                                        <span className="text-xs text-orange-500">Last: {mat.lastPricePer} Br/{mat.unit}</span>
+                                        <span className="text-xs text-[#13EE86]">Last: {mat.lastPricePer} Br/{mat.unit}</span>
                                       )}
                                     </button>
                                   ))}
                                   {filteredCatalog.length === 0 && (
                                     <div
-                                      className="px-3 py-2 text-sm text-slate-500 cursor-pointer hover:bg-slate-50"
+                                      className="px-4 py-2 text-sm text-neutral-300 cursor-pointer hover:bg-[#238868]/30"
                                       onClick={() => {
                                         setItems(prev => prev.map((it, i) => i === idx ? {
                                           ...it, itemName: searchMat, materialId: '', category: 'other', emoji: '📌',
@@ -311,16 +311,16 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                               )}
                             </div>
                             {item.materialId && (
-                              <div className="flex items-center gap-1.5 mt-1.5">
+                              <div className="flex items-center gap-1.5 mt-2">
                                 <span>{item.emoji}</span>
-                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${categoryColors[item.category]}`}>
+                                <span className={`text-xs font-bold px-3 py-0.5 rounded-full ${categoryColors[item.category]}`}>
                                   {categoryLabels[item.category]}
                                 </span>
                               </div>
                             )}
                           </div>
                           {items.length > 1 && (
-                            <button onClick={() => removeItem(idx)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg mt-0.5">
+                            <button onClick={() => removeItem(idx)} className="p-2 text-neutral-400 hover:text-white hover:bg-red-950/50 rounded-full mt-0.5 cursor-pointer">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           )}
@@ -329,22 +329,22 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                         {/* Quantity, Unit, Total */}
                         <div className="grid grid-cols-3 gap-2">
                           <div>
-                            <label className="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Quantity</label>
+                            <label className="block text-[10px] font-medium text-neutral-300 mb-1 uppercase">Quantity</label>
                             <input
                               type="number"
                               value={item.quantity}
                               onChange={e => updateItem(idx, 'quantity', e.target.value)}
                               placeholder="0"
                               min="0"
-                              className="w-full px-2 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 border border-[#238868]/50 bg-[#07250D] text-white rounded-full text-sm text-center focus:outline-none focus:border-[#13EE86]"
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Unit</label>
+                            <label className="block text-[10px] font-medium text-neutral-300 mb-1 uppercase">Unit</label>
                             <select
                               value={item.unit}
                               onChange={e => updateItem(idx, 'unit', e.target.value)}
-                              className="w-full px-2 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 border border-[#238868]/50 bg-[#07250D] text-white rounded-full text-sm focus:outline-none focus:border-[#13EE86]"
                             >
                               {Object.entries(unitLabels).map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
@@ -352,21 +352,21 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                             </select>
                           </div>
                           <div>
-                            <label className="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Total Paid (Br)</label>
+                            <label className="block text-[10px] font-medium text-neutral-300 mb-1 uppercase">Total Paid (Br)</label>
                             <input
                               type="number"
                               value={item.totalPrice}
                               onChange={e => updateItem(idx, 'totalPrice', e.target.value)}
                               placeholder="0"
                               min="0"
-                              className="w-full px-2 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 border border-[#238868]/50 bg-[#07250D] text-white rounded-full text-sm text-center focus:outline-none focus:border-[#13EE86]"
                             />
                           </div>
                         </div>
                         {/* Per-unit hint */}
                         {item.pricePerUnit && parseFloat(item.pricePerUnit) > 0 && (
-                          <p className="text-xs text-slate-400">
-                            = <strong className="text-slate-600">{parseFloat(item.pricePerUnit).toFixed(2)} Br</strong> per {unitLabels[item.unit]}
+                          <p className="text-xs text-neutral-300">
+                            = <strong className="text-[#13EE86]">{parseFloat(item.pricePerUnit).toFixed(2)} Br</strong> per {unitLabels[item.unit]}
                           </p>
                         )}
                       </div>
@@ -375,43 +375,43 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
 
                   <button
                     onClick={addItemRow}
-                    className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 text-sm hover:border-blue-400 hover:text-blue-600 transition-colors"
+                    className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#238868] rounded-full text-neutral-300 text-sm hover:border-[#13EE86] hover:text-[#13EE86] transition-colors cursor-pointer"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4 text-[#13EE86]" />
                     Add Another Item
                   </button>
                 </div>
 
                 {/* Grand Total */}
                 {grandTotal > 0 && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-orange-700">Grand Total</span>
-                    <span className="text-xl font-bold text-orange-700">{formatCurrency(grandTotal, currencySymbol)}</span>
+                  <div className="bg-[#238868]/30 border border-[#13EE86]/50 rounded-2xl px-4 py-3 flex items-center justify-between">
+                    <span className="text-sm font-bold text-white">Grand Total</span>
+                    <span className="text-xl font-extrabold text-[#13EE86]">{formatCurrency(grandTotal, currencySymbol)}</span>
                   </div>
                 )}
 
                 {!isFormValid && items.some(it => it.itemName) && (
-                  <div className="flex items-center gap-2 text-amber-600 bg-amber-50 rounded-xl px-3 py-2.5 text-sm">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <div className="flex items-center gap-2 text-[#13EE86] bg-[#238868]/30 rounded-2xl px-3 py-2.5 text-sm border border-[#238868]">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 text-[#13EE86]" />
                     Please fill in quantity and total price for each item.
                   </div>
                 )}
               </div>
 
               {/* Footer */}
-              <div className="border-t border-slate-100 px-6 py-4 flex gap-3 flex-shrink-0">
+              <div className="border-t border-[#238868]/30 px-6 py-4 flex gap-3 flex-shrink-0">
                 <button
                   onClick={() => setShowForm(false)}
-                  className="flex-1 py-3 border border-slate-200 rounded-xl text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors"
+                  className="flex-1 py-3 bg-[#07250D] border border-[#238868] text-white font-bold text-xs rounded-full hover:bg-[#238868]/30 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={!isFormValid}
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+                  className="flex-1 py-3 bg-[#13EE86] hover:bg-[#13EE86]/90 disabled:opacity-40 text-[#07250D] rounded-full font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
                 >
-                  <Save className="w-4 h-4" />
+                  <Save className="w-4 h-4 text-[#07250D]" />
                   Save Trip — {formatCurrency(grandTotal, currencySymbol)}
                 </button>
               </div>
@@ -423,10 +423,10 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
       {/* Trip List */}
       <div className="space-y-3">
         {purchaseTrips.length === 0 && (
-          <div className="text-center py-16 text-slate-400">
-            <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="font-medium">No purchase trips yet</p>
-            <p className="text-sm mt-1">Tap "New Trip" to log your first inventory purchase</p>
+          <div className="text-center py-16 text-neutral-400 bg-[#238868]/20 border border-[#238868]/40 rounded-3xl">
+            <Package className="w-12 h-12 mx-auto mb-3 opacity-30 text-neutral-300" />
+            <p className="font-bold text-white">No purchase trips yet</p>
+            <p className="text-sm mt-1 text-neutral-300">Tap "New Trip" to log your first inventory purchase</p>
           </div>
         )}
         {purchaseTrips.map(trip => {
@@ -435,32 +435,32 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
             <motion.div
               key={trip.id}
               layout
-              className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden"
+              className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl overflow-hidden shadow-sm hover:border-[#13EE86]/50 transition-all"
             >
               <div
-                className="flex items-center justify-between px-4 py-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-[#238868]/30 transition-colors"
                 onClick={() => setExpandedTrip(isExpanded ? null : trip.id)}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <ShoppingCart className="w-5 h-5 text-orange-500" />
+                  <div className="w-10 h-10 bg-[#238868]/40 border border-[#238868]/60 rounded-full flex items-center justify-center flex-shrink-0">
+                    <ShoppingCart className="w-5 h-5 text-[#13EE86]" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 text-sm">
+                    <p className="font-bold text-white text-sm">
                       {trip.items.length} item{trip.items.length !== 1 ? 's' : ''} purchased
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-neutral-300 mt-0.5">
                       {formatEthiopianFullDate(trip.date)} — {trip.date}
                     </p>
-                    {trip.notes && <p className="text-xs text-slate-500 italic mt-0.5">{trip.notes}</p>}
+                    {trip.notes && <p className="text-xs text-neutral-400 italic mt-0.5">{trip.notes}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <p className="font-bold text-red-600">{formatCurrency(trip.grandTotal, currencySymbol)}</p>
-                    <p className="text-[10px] text-slate-400">total spent</p>
+                    <p className="font-extrabold text-[#13EE86]">{formatCurrency(trip.grandTotal, currencySymbol)}</p>
+                    <p className="text-[10px] text-neutral-400">total spent</p>
                   </div>
-                  {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                  {isExpanded ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
                 </div>
               </div>
 
@@ -471,33 +471,33 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="border-t border-slate-100 overflow-hidden"
+                    className="border-t border-[#238868]/30 overflow-hidden"
                   >
-                    <div className="px-4 py-3 space-y-2 bg-slate-50/50">
+                    <div className="px-5 py-4 space-y-2 bg-[#07250D]">
                       {trip.items.map(item => (
-                        <div key={item.id} className="flex items-center justify-between py-1.5">
+                        <div key={item.id} className="flex items-center justify-between py-2 border-b border-[#238868]/20 last:border-0">
                           <div className="flex items-center gap-2">
                             <span className="text-sm">{DEFAULT_MATERIALS_CATALOG.find(m => m.id === item.materialId)?.emoji || '📌'}</span>
                             <div>
-                              <p className="text-sm font-medium text-slate-800">{item.itemName}</p>
-                              <p className="text-xs text-slate-400">
+                              <p className="text-sm font-bold text-white">{item.itemName}</p>
+                              <p className="text-xs text-neutral-300">
                                 {item.quantity} {unitLabels[item.unit]} × {item.pricePerUnit.toFixed(2)} Br/{unitLabels[item.unit]}
                               </p>
                             </div>
                           </div>
-                          <p className="text-sm font-semibold text-slate-700">{formatCurrency(item.totalPrice, currencySymbol)}</p>
+                          <p className="text-sm font-extrabold text-[#13EE86]">{formatCurrency(item.totalPrice, currencySymbol)}</p>
                         </div>
                       ))}
-                      <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                      <div className="flex justify-between items-center pt-3 border-t border-[#238868]/30">
                         <button
                           onClick={() => onDeleteTrip(trip.id)}
-                          className="text-xs text-red-400 hover:text-red-600 flex items-center gap-1"
+                          className="text-xs text-neutral-300 hover:text-white hover:bg-red-950/50 px-3 py-1.5 rounded-full border border-[#238868]/40 transition-colors flex items-center gap-1 cursor-pointer"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5 text-neutral-300" />
                           Delete trip
                         </button>
-                        <p className="text-sm font-bold text-slate-800">
-                          Total: {formatCurrency(trip.grandTotal, currencySymbol)}
+                        <p className="text-sm font-extrabold text-white">
+                          Total: <span className="text-[#13EE86]">{formatCurrency(trip.grandTotal, currencySymbol)}</span>
                         </p>
                       </div>
                     </div>

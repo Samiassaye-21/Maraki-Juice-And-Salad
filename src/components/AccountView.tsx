@@ -19,12 +19,12 @@ type FilterType = 'all' | 'income' | 'expense';
 type FilterPeriod = 'all' | 'week' | 'month';
 
 const entryTypeConfig: Record<LedgerEntry['type'], { label: string; icon: string; color: string }> = {
-  shift_income:           { label: 'Shift Sales',         icon: '💰', color: 'text-emerald-600' },
-  shift_daily_expense:    { label: 'Daily Shift Expense', icon: '🧾', color: 'text-red-500'     },
-  pending_recovered:      { label: 'Debt Recovered',      icon: '✅', color: 'text-emerald-600' },
-  delivery_recovered:     { label: 'Delivery Settled',    icon: '🛵', color: 'text-blue-600'    },
-  purchase_trip:          { label: 'Inventory Purchase',  icon: '🛒', color: 'text-red-500'     },
-  other_expense:          { label: 'Business Expense',    icon: '🏢', color: 'text-orange-500'  },
+  shift_income:           { label: 'Shift Sales',         icon: '💰', color: 'text-[#13EE86]' },
+  shift_daily_expense:    { label: 'Daily Shift Expense', icon: '🧾', color: 'text-neutral-300' },
+  pending_recovered:      { label: 'Debt Recovered',      icon: '✅', color: 'text-[#13EE86]' },
+  delivery_recovered:     { label: 'Delivery Settled',    icon: '🛵', color: 'text-[#13EE86]' },
+  purchase_trip:          { label: 'Inventory Purchase',  icon: '🛒', color: 'text-neutral-300' },
+  other_expense:          { label: 'Business Expense',    icon: '🏢', color: 'text-neutral-300' },
 };
 
 import { safeLocalStorage } from '../utils/safeStorage';
@@ -97,26 +97,26 @@ export const AccountView: React.FC<AccountViewProps> = ({
   const periodLabel = filterPeriod === 'week' ? 'This Week' : filterPeriod === 'month' ? 'Last 30 Days' : 'All Time';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-white">
       {/* Title with Hide/Show Toggle */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Account Balance</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Running financial position — like a bank statement</p>
+          <h2 className="text-xl font-bold text-white">Account Balance</h2>
+          <p className="text-sm text-neutral-300 mt-0.5">Running financial position — like a bank statement</p>
         </div>
         <button
           onClick={toggleShowBalance}
-          className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#238868]/30 hover:bg-[#238868]/50 border border-[#238868]/60 text-white rounded-full text-xs font-bold transition-colors cursor-pointer"
           title={showBalance ? "Hide Balance" : "Show Balance"}
         >
           {showBalance ? (
             <>
-              <EyeOff className="w-4 h-4 text-slate-500" />
+              <EyeOff className="w-4 h-4 text-neutral-300" />
               <span>Hide Balance</span>
             </>
           ) : (
             <>
-              <Eye className="w-4 h-4 text-emerald-600" />
+              <Eye className="w-4 h-4 text-[#13EE86]" />
               <span>Show Balance</span>
             </>
           )}
@@ -127,78 +127,80 @@ export const AccountView: React.FC<AccountViewProps> = ({
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`rounded-2xl p-6 text-white shadow-lg ${balance >= 0 ? 'bg-gradient-to-br from-emerald-600 to-emerald-500' : 'bg-gradient-to-br from-red-600 to-red-500'}`}
+        className="rounded-3xl p-6 text-white border border-[#238868]/50 bg-gradient-to-br from-[#07250D] via-[#07250D] to-[#238868]/40 shadow-xl"
       >
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-white/70 uppercase tracking-wide">Current Balance</p>
+              <p className="text-xs font-medium text-neutral-300 uppercase tracking-wider">Current Balance</p>
               <button 
                 onClick={toggleShowBalance} 
-                className="text-white/60 hover:text-white transition-colors"
+                className="text-neutral-400 hover:text-white transition-colors cursor-pointer"
                 title={showBalance ? "Hide Balance" : "Show Balance"}
               >
                 {showBalance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-4xl font-extrabold mt-1 tracking-tight">{renderAmount(balance)}</p>
-            <p className="text-sm text-white/60 mt-1">All time net position</p>
+            <p className="text-4xl font-extrabold mt-1 tracking-tight text-[#13EE86]">{renderAmount(balance)}</p>
+            <p className="text-sm text-neutral-300 mt-1">All time net position</p>
           </div>
-          <Wallet className="w-10 h-10 text-white/40" />
+          <div className="p-3 bg-[#238868]/40 border border-[#238868]/60 text-[#13EE86] rounded-full">
+            <Wallet className="w-8 h-8" />
+          </div>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="bg-white/10 rounded-xl px-3 py-2.5">
-            <div className="flex items-center gap-1.5 text-white/70 text-xs font-semibold">
-              <TrendingUp className="w-3.5 h-3.5" /> Total Income
+          <div className="bg-[#238868]/30 border border-[#238868]/40 rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-1.5 text-neutral-300 text-xs font-semibold">
+              <TrendingUp className="w-3.5 h-3.5 text-[#13EE86]" /> Total Income
             </div>
-            <p className="text-lg font-bold mt-0.5">{renderAmount(allIncome)}</p>
+            <p className="text-lg font-extrabold text-[#13EE86] mt-0.5">{renderAmount(allIncome)}</p>
           </div>
-          <div className="bg-white/10 rounded-xl px-3 py-2.5">
-            <div className="flex items-center gap-1.5 text-white/70 text-xs font-semibold">
-              <TrendingDown className="w-3.5 h-3.5" /> Total Expenses
+          <div className="bg-[#238868]/30 border border-[#238868]/40 rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-1.5 text-neutral-300 text-xs font-semibold">
+              <TrendingDown className="w-3.5 h-3.5 text-neutral-300" /> Total Expenses
             </div>
-            <p className="text-lg font-bold mt-0.5">{renderAmount(allExpenses)}</p>
+            <p className="text-lg font-extrabold text-white mt-0.5">{renderAmount(allExpenses)}</p>
           </div>
         </div>
       </motion.div>
 
       {/* Period Summary */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 text-center">
-          <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">{periodLabel} Income</p>
-          <p className="text-base font-bold text-emerald-700 mt-1">{renderAmount(periodIncome)}</p>
+        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-4 text-center">
+          <p className="text-[10px] font-medium text-neutral-300 uppercase tracking-wide">{periodLabel} Income</p>
+          <p className="text-base font-extrabold text-[#13EE86] mt-1">{renderAmount(periodIncome)}</p>
         </div>
-        <div className="bg-red-50 border border-red-100 rounded-2xl p-3 text-center">
-          <p className="text-[10px] font-bold text-red-500 uppercase tracking-wide">{periodLabel} Expenses</p>
-          <p className="text-base font-bold text-red-600 mt-1">{renderAmount(periodExpenses)}</p>
+        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-4 text-center">
+          <p className="text-[10px] font-medium text-neutral-300 uppercase tracking-wide">{periodLabel} Expenses</p>
+          <p className="text-base font-extrabold text-white mt-1">{renderAmount(periodExpenses)}</p>
         </div>
-        <div className={`border rounded-2xl p-3 text-center ${periodNet >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'}`}>
-          <p className={`text-[10px] font-bold uppercase tracking-wide ${periodNet >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>Net Profit</p>
-          <p className={`text-base font-bold mt-1 ${periodNet >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>{renderAmount(periodNet)}</p>
+        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-4 text-center">
+          <p className="text-[10px] font-medium text-neutral-300 uppercase tracking-wide">Net Profit</p>
+          <p className="text-base font-extrabold text-[#13EE86] mt-1">{renderAmount(periodNet)}</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap justify-between bg-[#238868]/20 p-3 rounded-3xl border border-[#238868]/40">
         {/* Period */}
-        <div className="flex bg-slate-100 rounded-xl p-1 gap-0.5">
+        <div className="flex bg-[#07250D] rounded-full p-1 border border-[#238868]/40">
           {(['week', 'month', 'all'] as FilterPeriod[]).map(p => (
             <button
               key={p}
               onClick={() => setFilterPeriod(p)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filterPeriod === p ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${filterPeriod === p ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
             >
               {p === 'week' ? 'This Week' : p === 'month' ? 'Last 30 Days' : 'All Time'}
             </button>
           ))}
         </div>
         {/* Type */}
-        <div className="flex bg-slate-100 rounded-xl p-1 gap-0.5 ml-auto">
+        <div className="flex bg-[#07250D] rounded-full p-1 border border-[#238868]/40">
           {([['all', 'All'], ['income', 'Income'], ['expense', 'Expenses']] as [FilterType, string][]).map(([v, l]) => (
             <button
               key={v}
               onClick={() => setFilterType(v)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filterType === v ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${filterType === v ? 'bg-[#13EE86] text-[#07250D]' : 'text-neutral-300 hover:text-white'}`}
             >
               {l}
             </button>
@@ -208,50 +210,50 @@ export const AccountView: React.FC<AccountViewProps> = ({
 
       {/* Ledger */}
       <div className="space-y-2">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+        <p className="text-xs font-medium text-neutral-300 uppercase tracking-wide">
           Transaction History ({filteredEntries.length} entries)
         </p>
 
         {filteredEntries.length === 0 && (
-          <div className="text-center py-12 text-slate-400">
-            <RefreshCw className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p>No transactions in this period yet.</p>
-            <p className="text-sm mt-1">Close a shift or add a purchase to see entries here.</p>
+          <div className="text-center py-16 text-neutral-400 bg-[#238868]/20 border border-[#238868]/40 rounded-3xl">
+            <RefreshCw className="w-10 h-10 mx-auto mb-3 opacity-30 text-neutral-300" />
+            <p className="font-bold text-white">No transactions in this period yet.</p>
+            <p className="text-sm mt-1 text-neutral-300">Close a shift or add a purchase to see entries here.</p>
           </div>
         )}
 
         {entriesWithRunning.map((entry) => {
-          const cfg = entryTypeConfig[entry.type as any] || { label: 'Legacy Entry', icon: '📌', color: 'text-slate-500' };
+          const cfg = entryTypeConfig[entry.type as any] || { label: 'Legacy Entry', icon: '📌', color: 'text-neutral-400' };
           const isIncome = entry.sign === 1;
           return (
             <motion.div
               key={entry.id}
               layout
-              className="bg-white border border-slate-100 rounded-2xl px-4 py-3.5 flex items-center gap-3 shadow-sm"
+              className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl px-5 py-3.5 flex items-center gap-3 shadow-sm hover:border-[#13EE86]/50 transition-all"
             >
               {/* Icon */}
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base ${isIncome ? 'bg-emerald-50' : 'bg-red-50'}`}>
+              <div className="w-10 h-10 rounded-full bg-[#07250D] border border-[#238868]/40 flex items-center justify-center flex-shrink-0 text-base">
                 {cfg.icon}
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 truncate">{entry.description}</p>
+                <p className="text-sm font-bold text-white truncate">{entry.description}</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isIncome ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isIncome ? 'bg-[#13EE86] text-[#07250D]' : 'bg-[#07250D] text-neutral-300 border border-[#238868]/40'}`}>
                     {cfg.label}
                   </span>
-                  <span className="text-[10px] text-slate-400">{entry.date}</span>
+                  <span className="text-[10px] text-neutral-400">{entry.date}</span>
                 </div>
               </div>
 
               {/* Amount */}
               <div className="text-right flex-shrink-0">
-                <p className={`text-base font-bold ${isIncome ? 'text-emerald-600' : 'text-red-500'}`}>
+                <p className={`text-base font-extrabold ${isIncome ? 'text-[#13EE86]' : 'text-white'}`}>
                   {renderAmount(entry.amount, isIncome ? '+' : '−')}
                 </p>
                 {entry.runningAfter !== null && (
-                  <p className="text-[10px] text-slate-400 mt-0.5">
+                  <p className="text-[10px] text-neutral-400 mt-0.5">
                     Bal: {renderAmount(entry.runningAfter)}
                   </p>
                 )}

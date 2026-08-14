@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Delete, Sun, Moon, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Delete, Moon, ArrowRight, ShieldCheck } from 'lucide-react';
 
 interface ShiftLoginProps {
   onLoginSuccess: () => void;
@@ -63,20 +63,19 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
 
   return (
     <div
-      style={{ background: 'linear-gradient(160deg, #0f172a 0%, #1e1b4b 100%)' }}
-      className="min-h-screen flex flex-col items-center justify-center px-6 font-sans relative"
+      className="min-h-screen flex flex-col items-center justify-center px-6 font-sans bg-[#07250D] text-white relative"
     >
       {/* Top navigation shortcuts */}
       <div className="absolute top-6 right-6 flex items-center gap-3">
         <a
           href="/kitchen"
-          className="text-xs font-semibold px-3 py-1.5 rounded-full bg-white/10 text-slate-300 hover:bg-white/20 transition-all border border-white/10 flex items-center gap-1"
+          className="text-xs font-semibold px-4 py-2 rounded-full bg-[#07250D] text-white hover:bg-[#238868]/40 transition-all border border-[#238868] flex items-center gap-1"
         >
           <span>🍳 Kitchen</span>
         </a>
         <a
           href="/"
-          className="text-xs font-semibold px-3 py-1.5 rounded-full bg-white/10 text-slate-300 hover:bg-white/20 transition-all border border-white/10 flex items-center gap-1"
+          className="text-xs font-semibold px-4 py-2 rounded-full bg-[#07250D] text-white hover:bg-[#238868]/40 transition-all border border-[#238868] flex items-center gap-1"
         >
           <span>💻 Admin</span>
         </a>
@@ -87,19 +86,19 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
         initial={{ opacity: 0, y: -24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex flex-col items-center mb-10 text-center"
+        className="flex flex-col items-center mb-8 text-center"
       >
-        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-5 shadow-xl shadow-indigo-500/30 border border-white/20 text-white">
-          <Moon className="w-10 h-10 text-amber-300" />
+        <div className="w-20 h-20 rounded-full bg-[#238868] flex items-center justify-center mb-4 shadow-xl border border-[#13EE86]/30 text-[#13EE86]">
+          <Moon className="w-10 h-10" />
         </div>
         
         <h1 className="text-3xl font-extrabold text-white tracking-tight mb-1">
           ማራኪ የሸፍት ገቢ መመዝገቢያ
         </h1>
-        <p className="text-sm font-semibold text-indigo-300">
+        <p className="text-sm font-semibold text-[#13EE86]">
           Mobile Worker Shift Income Portal
         </p>
-        <p className="text-xs text-slate-400 mt-1 max-w-xs">
+        <p className="text-xs text-neutral-300 mt-1 max-w-xs">
           ለሌሊትና ለቀን ሸፍት ሰራተኞች የገቢና የሽያጭ መመዝገቢያ
         </p>
       </motion.div>
@@ -108,7 +107,7 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
       <motion.div
         animate={shake ? { x: [0, -12, 12, -10, 10, -6, 6, 0] } : {}}
         transition={{ duration: 0.5 }}
-        className="flex gap-4 mb-8"
+        className="flex gap-4 mb-6"
       >
         {[0, 1, 2, 3].map((i) => (
           <div
@@ -116,9 +115,9 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
             className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
               i < pin.length
                 ? errorMsg
-                  ? 'bg-red-500 border-red-400 scale-110'
-                  : 'bg-indigo-400 border-indigo-300 scale-110'
-                : 'bg-transparent border-white/30'
+                  ? 'bg-rose-500 border-rose-400 scale-110'
+                  : 'bg-[#13EE86] border-[#13EE86] scale-110'
+                : 'bg-transparent border-[#238868]'
             }`}
           />
         ))}
@@ -130,7 +129,7 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="text-red-400 text-sm font-semibold mb-4"
+            className="text-rose-400 text-sm font-semibold mb-4"
           >
             ስህተት ቁጥር! (የስራ ባልደረባ ቁጥር 1234)
           </motion.p>
@@ -146,9 +145,9 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
               <button
                 key={idx}
                 onClick={handleDelete}
-                className="h-16 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border border-white/10"
+                className="h-14 rounded-full bg-[#238868]/30 hover:bg-[#238868]/50 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border border-[#238868]/50"
               >
-                <Delete className="w-6 h-6 text-white/70" />
+                <Delete className="w-6 h-6 text-white" />
               </button>
             );
           }
@@ -156,7 +155,7 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
             <button
               key={idx}
               onClick={() => handleKey(key)}
-              className="h-16 rounded-2xl bg-white/10 hover:bg-indigo-500/40 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border border-white/10"
+              className="h-14 rounded-full bg-[#238868]/30 hover:bg-[#238868] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border border-[#238868]/50"
             >
               <span className="text-2xl font-bold text-white">{key}</span>
             </button>
@@ -164,14 +163,14 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
         })}
       </div>
 
-      {/* Quick Direct Pass Button for Convenience */}
+      {/* Quick Direct Pass Button */}
       <button
         onClick={onLoginSuccess}
-        className="mt-8 flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-600/60 hover:bg-indigo-600 text-white text-xs font-bold transition-all border border-indigo-500/40 shadow-md cursor-pointer"
+        className="mt-8 flex items-center gap-2 px-6 py-3 rounded-full bg-[#13EE86] text-[#07250D] text-xs font-bold transition-all shadow-md cursor-pointer hover:bg-[#13EE86]/90"
       >
-        <ShieldCheck className="w-4 h-4 text-emerald-300" />
+        <ShieldCheck className="w-4 h-4 text-[#07250D]" />
         <span>በቀጥታ ግባ (Quick Login: 1234)</span>
-        <ArrowRight className="w-3.5 h-3.5" />
+        <ArrowRight className="w-3.5 h-3.5 text-[#07250D]" />
       </button>
     </div>
   );

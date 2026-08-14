@@ -1,31 +1,37 @@
 @import "tailwindcss";
 
 /* ========================================
-   Maraki — White & Light Blue Modern SaaS Theme
+   Maraki — Brand Design System
+   Deep Forest Green: #07250D (Primary Dark Backgrounds, Headers, Nav)
+   Teal Green: #238868 (Secondary Surfaces, Cards, Icons, Panels)
+   Bright Mint Green: #13EE86 (CTAs, Active States, Highlights, Accents)
    ======================================== */
 
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --color-forest: #07250D;
+  --color-teal: #238868;
+  --color-mint: #13EE86;
 }
 
-/* Smooth Scrolling & Antialiasing */
 html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
 body {
-  background-color: #F8FAFC; /* slate-50 background for subtle depth */
+  background-color: #07250D;
   min-height: 100vh;
-  color: #0F172A; /* slate-900 */
+  color: #FFFFFF;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #64748B; }
+::-webkit-scrollbar-track { background: #07250D; }
+::-webkit-scrollbar-thumb { background: #238868; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #13EE86; }
 
 /* Hide number spinners */
 input[type="number"]::-webkit-outer-spin-button,
@@ -37,20 +43,12 @@ input[type="number"] { -moz-appearance: textfield; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* Selection */
-::selection { background: #3B82F6; color: #fff; }
+::selection { background: #13EE86; color: #07250D; }
 
-/* Focus ring - Modern blue focus */
+/* Focus ring - Mint focus */
 *:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-  border-color: #60A5FA;
-  border-radius: 8px;
-}
-
-/* Gradients */
-.gradient-text-blue {
-  background: linear-gradient(135deg, #3B82F6, #0EA5E9);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  box-shadow: 0 0 0 3px rgba(19, 238, 134, 0.35);
+  border-color: #13EE86;
+  border-radius: 9999px;
 }

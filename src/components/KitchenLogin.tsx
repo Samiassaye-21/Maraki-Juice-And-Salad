@@ -44,36 +44,33 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
 
   return (
     <div
-      style={{ background: 'linear-gradient(160deg, #1a2a3a 0%, #0f1f2e 100%)' }}
-      className="min-h-screen flex flex-col items-center justify-center px-6 font-sans"
+      className="min-h-screen flex flex-col items-center justify-center px-6 font-sans bg-[#07250D] text-white"
     >
       {/* Logo & Title */}
       <motion.div
         initial={{ opacity: 0, y: -24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex flex-col items-center mb-12"
+        className="flex flex-col items-center mb-10 text-center"
       >
-        <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center mb-6 shadow-lg border border-white/20">
+        <div className="w-24 h-24 rounded-full bg-[#238868]/30 flex items-center justify-center mb-4 shadow-lg border border-[#13EE86]/30">
           <img
             src="/logo.jpg"
             alt="Maraki"
             className="w-20 h-20 rounded-full object-cover"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
-          <span className="text-5xl" style={{ display: 'none' }}>🍽️</span>
         </div>
-        {/* Amharic: "Maraki Kitchen" */}
         <h1 className="text-4xl font-bold text-white tracking-wide mb-1">ማራኪ</h1>
-        <p className="text-xl text-orange-300 font-semibold">ኩሽና መዝግቢያ</p>
-        <p className="text-sm text-white/40 mt-2">Kitchen Order System</p>
+        <p className="text-xl text-[#13EE86] font-semibold">ኩሽና መዝግቢያ</p>
+        <p className="text-sm text-neutral-300 mt-1">Kitchen Order System</p>
       </motion.div>
 
       {/* PIN Dots */}
       <motion.div
         animate={shake ? { x: [0, -12, 12, -10, 10, -6, 6, 0] } : {}}
         transition={{ duration: 0.5 }}
-        className="flex gap-4 mb-10"
+        className="flex gap-4 mb-8"
       >
         {[0, 1, 2, 3].map((i) => (
           <div
@@ -81,9 +78,9 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
             className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
               i < pin.length
                 ? errorMsg
-                  ? 'bg-red-500 border-red-400 scale-110'
-                  : 'bg-orange-400 border-orange-300 scale-110'
-                : 'bg-transparent border-white/30'
+                  ? 'bg-rose-500 border-rose-400 scale-110'
+                  : 'bg-[#13EE86] border-[#13EE86] scale-110'
+                : 'bg-transparent border-[#238868]'
             }`}
           />
         ))}
@@ -95,16 +92,15 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="text-red-400 text-lg font-semibold mb-6 -mt-4"
+            className="text-rose-400 text-sm font-semibold mb-4 -mt-2"
           >
-            {/* Amharic: "Wrong PIN" */}
             ስህተት ቁጥር! እንደገና ሞክር
           </motion.p>
         )}
       </AnimatePresence>
 
       {/* Number Pad */}
-      <div className="grid grid-cols-3 gap-4 w-full max-w-xs">
+      <div className="grid grid-cols-3 gap-3.5 w-full max-w-xs">
         {keys.map((key, idx) => {
           if (key === '') {
             return <div key={idx} />;
@@ -114,9 +110,9 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
               <button
                 key={idx}
                 onClick={handleDelete}
-                className="h-20 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border border-white/10"
+                className="h-16 rounded-full bg-[#238868]/30 hover:bg-[#238868]/50 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border border-[#238868]/50"
               >
-                <Delete className="w-7 h-7 text-white/70" />
+                <Delete className="w-6 h-6 text-white" />
               </button>
             );
           }
@@ -124,16 +120,15 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
             <button
               key={idx}
               onClick={() => handleKey(key)}
-              className="h-20 rounded-2xl bg-white/10 hover:bg-orange-500/30 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border border-white/10"
+              className="h-16 rounded-full bg-[#238868]/30 hover:bg-[#238868] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border border-[#238868]/50"
             >
-              <span className="text-3xl font-bold text-white">{key}</span>
+              <span className="text-2xl font-bold text-white">{key}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Amharic instruction */}
-      <p className="mt-10 text-white/30 text-sm text-center">
+      <p className="mt-8 text-neutral-400 text-xs text-center">
         የምስጢር ቁጥርዎን ያስገቡ
       </p>
     </div>

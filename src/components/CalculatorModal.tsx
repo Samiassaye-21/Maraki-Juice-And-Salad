@@ -120,7 +120,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1C2E0A]/40 backdrop-blur-md outline-none"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#07250D]/80 backdrop-blur-md outline-none"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       onKeyDown={handleKeyDown}
       tabIndex={0}
@@ -133,50 +133,50 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
         animate={{ opacity: 1, scale: 1, y: 0 }} 
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="w-full max-w-[360px] bg-[#F6F1E3] rounded-[32px] p-6 shadow-2xl flex flex-col gap-5 border-2 border-[#C5D89A]"
+        className="w-full max-w-[360px] bg-[#07250D] rounded-3xl p-6 shadow-2xl flex flex-col gap-5 border border-[#238868]/50 text-white"
       >
         {/* Header with Title and Close */}
-        <div className="flex items-center justify-between px-1 text-[#2B4A18]">
+        <div className="flex items-center justify-between px-1 text-white">
           <span className="text-sm font-bold uppercase tracking-widest">{title}</span>
-          <button onClick={onClose} className="p-1.5 hover:bg-[#C5D89A]/50 rounded-full transition-colors">
+          <button onClick={onClose} className="p-1.5 hover:bg-[#238868]/40 rounded-full transition-colors cursor-pointer text-neutral-300 hover:text-white">
             <X size={20} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Display Screen */}
-        <div className="bg-[#2B4A18] rounded-2xl h-28 flex items-end justify-end p-5 shadow-[inset_0_4px_16px_rgba(0,0,0,0.4)] border border-[#1C2E0A]">
-          <span className="text-[#F6F1E3] text-[54px] leading-none font-mono tracking-tighter font-semibold overflow-hidden">
+        <div className="bg-[#238868]/20 rounded-2xl h-28 flex items-end justify-end p-5 shadow-inner border border-[#238868]/40">
+          <span className="text-[#13EE86] text-[54px] leading-none font-mono tracking-tighter font-extrabold overflow-hidden">
             {display}
           </span>
         </div>
 
-        {/* Button Grid matching the user's exact image layout but AVOCADO THEMED */}
+        {/* Button Grid */}
         <div className="grid grid-cols-4 gap-3">
-          {/* Row 1 (Operators - Mid Green) */}
+          {/* Row 1 (Operators - Teal Green) */}
           {['*', '/', '-', '+'].map((op) => (
             <button 
               key={op} onClick={() => handleOperator(op)}
-              className="h-[64px] bg-[#4A7C2F] rounded-2xl text-[#F6F1E3] text-3xl font-black flex items-center justify-center border-b-4 border-[#2B4A18] active:border-b-0 active:translate-y-1 transition-all"
+              className="h-[60px] bg-[#238868] hover:bg-[#238868]/80 rounded-2xl text-white text-3xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-sm"
             >
               {op}
             </button>
           ))}
 
-          {/* Row 2 (Numbers 9,8,7,6 - Cream/White) */}
+          {/* Row 2 (Numbers 9,8,7,6) */}
           {['9', '8', '7', '6'].map((num) => (
             <button 
               key={num} onClick={() => handleDigit(num)}
-              className="h-[64px] bg-white rounded-2xl text-[#2B4A18] text-3xl font-black flex items-center justify-center border-b-4 border-[#C5D89A] active:border-b-0 active:translate-y-1 transition-all"
+              className="h-[60px] bg-[#07250D] hover:bg-[#238868]/30 rounded-2xl text-white text-3xl font-extrabold flex items-center justify-center border border-[#238868]/50 cursor-pointer transition-all active:scale-95 shadow-sm"
             >
               {num}
             </button>
           ))}
 
-          {/* Row 3 (Numbers 5,4,3,2 - Cream/White) */}
+          {/* Row 3 (Numbers 5,4,3,2) */}
           {['5', '4', '3', '2'].map((num) => (
             <button 
               key={num} onClick={() => handleDigit(num)}
-              className="h-[64px] bg-white rounded-2xl text-[#2B4A18] text-3xl font-black flex items-center justify-center border-b-4 border-[#C5D89A] active:border-b-0 active:translate-y-1 transition-all"
+              className="h-[60px] bg-[#07250D] hover:bg-[#238868]/30 rounded-2xl text-white text-3xl font-extrabold flex items-center justify-center border border-[#238868]/50 cursor-pointer transition-all active:scale-95 shadow-sm"
             >
               {num}
             </button>
@@ -186,7 +186,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           {['1', '0', '.'].map((num) => (
             <button 
               key={num} onClick={num === '.' ? handleDot : () => handleDigit(num)}
-              className="h-[64px] bg-white rounded-2xl text-[#2B4A18] text-3xl font-black flex items-center justify-center border-b-4 border-[#C5D89A] active:border-b-0 active:translate-y-1 transition-all"
+              className="h-[60px] bg-[#07250D] hover:bg-[#238868]/30 rounded-2xl text-white text-3xl font-extrabold flex items-center justify-center border border-[#238868]/50 cursor-pointer transition-all active:scale-95 shadow-sm"
             >
               {num}
             </button>
@@ -194,15 +194,15 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           
           <button 
             onClick={handleEqual}
-            className="h-[64px] bg-[#8DB55A] rounded-2xl text-[#1C2E0A] text-4xl font-black flex items-center justify-center border-b-4 border-[#4A7C2F] active:border-b-0 active:translate-y-1 transition-all"
+            className="h-[60px] bg-[#13EE86] hover:bg-[#13EE86]/90 rounded-2xl text-[#07250D] text-4xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-md"
           >
             =
           </button>
 
-          {/* Row 5 (Clear button - Pit Brown) */}
+          {/* Row 5 (Clear button) */}
           <button 
             onClick={handleClear}
-            className="col-span-1 h-[64px] bg-[#7A4F2D] rounded-2xl text-[#F6F1E3] text-2xl font-black flex items-center justify-center border-b-4 border-[#4A2F1D] active:border-b-0 active:translate-y-1 transition-all shadow-sm"
+            className="col-span-1 h-[60px] bg-[#07250D] hover:bg-red-950/50 rounded-2xl text-neutral-300 hover:text-white text-2xl font-extrabold flex items-center justify-center border border-[#238868]/50 cursor-pointer transition-all active:scale-95 shadow-sm"
           >
             C
           </button>

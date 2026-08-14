@@ -12,7 +12,6 @@ import {
   Settings,
   Receipt,
   Sparkles,
-  Store,
   ShoppingCart,
   BarChart3,
   FileText,
@@ -52,15 +51,9 @@ export const Header: React.FC<HeaderProps> = ({
   selectedMonth,
   onPrevMonth,
   onNextMonth,
-  selectedCurrency, // unused in UI
-  onChangeCurrency, // unused in UI
-  selectedLanguage, // unused in UI
-  onChangeLanguage, // unused in UI
   summary,
   config,
   pendingShiftsCount,
-  themeMode = 'light',
-  onToggleTheme,
   onLogout
 }) => {
   interface TabItem {
@@ -87,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
       initial={{ opacity: 0, y: -20 }} 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="sticky top-0 z-50 bg-white border-b border-sky-100 shadow-sm"
+      className="sticky top-0 z-50 bg-[#07250D] border-b border-[#238868]/40 shadow-md text-white font-sans"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         
@@ -103,18 +96,17 @@ export const Header: React.FC<HeaderProps> = ({
               <img 
                 src="/logo.jpg" 
                 alt="Maraki Juice and Salad Logo" 
-                className="h-full w-auto object-contain"
+                className="h-full w-auto object-contain rounded-lg"
                 onError={(e) => {
-                  // Fallback to text/icon if image not found
                   e.currentTarget.style.display = 'none';
-                  e.currentTarget.parentElement?.classList.add('bg-blue-50', 'text-blue-600', 'rounded-lg', 'w-10');
+                  e.currentTarget.parentElement?.classList.add('bg-[#238868]/30', 'text-[#13EE86]', 'rounded-lg', 'w-10');
                   e.currentTarget.parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-store"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h2V14h8v8h2a2 2 0 0 0 2-2v-8"/><path d="M2 7h20v2a2 2 0 0 1-2 2h-1.3c-.63 0-1.22-.3-1.6-.8l-.8-1.1a1 1 0 0 0-1.6 0l-.8 1.1c-.38.5-.97.8-1.6.8H12c-.63 0-1.22-.3-1.6-.8l-.8-1.1a1 1 0 0 0-1.6 0l-.8 1.1c-.38.5-.97.8-1.6.8H4a2 2 0 0 1-2-2z"/></svg>';
                 }}
               />
             </div>
             <div className="flex flex-col hidden sm:flex">
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-semibold tracking-tight text-slate-900">
+                <h1 className="text-xl font-bold tracking-tight text-white">
                   Maraki Juice and Salad
                 </h1>
               </div>
@@ -122,41 +114,41 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Center: Month & Worker Name */}
-          <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-2 py-1.5 border border-slate-100 hidden lg:flex">
+          <div className="flex items-center gap-3 bg-[#238868]/20 rounded-full px-3 py-1.5 border border-[#238868]/40 hidden lg:flex">
             <button
               onClick={onPrevMonth}
-              className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 transition-colors cursor-pointer"
+              className="p-1 rounded-full hover:bg-[#238868]/40 text-white transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             
-            <div className="flex flex-col items-center min-w-[130px]">
-              <div className="flex items-center gap-1.5 text-slate-900">
-                <CalendarIcon className="w-3.5 h-3.5 text-blue-500" />
-                <span className="font-semibold text-sm">{selectedMonth} <span className="text-slate-400 font-medium ml-1">({getEthiopianMonthYear(selectedMonth)})</span></span>
+            <div className="flex flex-col items-center min-w-[140px]">
+              <div className="flex items-center gap-1.5 text-white">
+                <CalendarIcon className="w-3.5 h-3.5 text-[#13EE86]" />
+                <span className="font-semibold text-sm">{selectedMonth} <span className="text-neutral-300 font-normal text-xs ml-1">({getEthiopianMonthYear(selectedMonth)})</span></span>
               </div>
-              <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium">
-                <Sparkles className="w-3 h-3 text-sky-400" />
+              <div className="flex items-center gap-1 text-[11px] text-neutral-300 font-medium">
+                <Sparkles className="w-3 h-3 text-[#13EE86]" />
                 <span>{activeShift === 'day' ? config.dayShiftWorkerName : config.nightShiftWorkerName}</span>
               </div>
             </div>
 
             <button
               onClick={onNextMonth}
-              className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 transition-colors cursor-pointer"
+              className="p-1 rounded-full hover:bg-[#238868]/40 text-white transition-colors cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
           {/* Controls: Shift Toggle */}
-          <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100">
+          <div className="flex items-center gap-1 bg-[#238868]/30 p-1 rounded-full border border-[#238868]/50">
             <button
               onClick={() => setActiveShift('day')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase transition-all duration-150 cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase transition-all duration-150 cursor-pointer ${
                 activeShift === 'day'
-                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                  ? 'bg-[#13EE86] text-[#07250D] font-bold shadow-md'
+                  : 'text-neutral-300 hover:text-white hover:bg-[#238868]/40'
               }`}
             >
               <Sun className="w-3.5 h-3.5" />
@@ -165,10 +157,10 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={() => setActiveShift('night')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase transition-all duration-150 cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase transition-all duration-150 cursor-pointer ${
                 activeShift === 'night'
-                  ? 'bg-slate-800 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                  ? 'bg-[#13EE86] text-[#07250D] font-bold shadow-md'
+                  : 'text-neutral-300 hover:text-white hover:bg-[#238868]/40'
               }`}
             >
               <Moon className="w-3.5 h-3.5" />
@@ -176,51 +168,51 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-2 border-l border-slate-200 pl-3 ml-1">
+          <div className="flex items-center gap-2 border-l border-[#238868]/40 pl-3 ml-1">
             <a
               href="/shift"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all border border-indigo-200"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-[#07250D] bg-[#13EE86] hover:bg-[#13EE86]/90 transition-all shadow-md"
               title="Open Mobile Shift Income Portal"
             >
-              <Moon className="w-3.5 h-3.5 text-amber-500" />
+              <Moon className="w-3.5 h-3.5 text-[#07250D]" />
               <span className="hidden sm:inline">Mobile Shift App</span>
               <span className="sm:hidden">Shift App</span>
             </a>
 
             <button
               onClick={onLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-white border border-[#238868] hover:bg-[#238868]/40 transition-all cursor-pointer"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-3.5 h-3.5 text-[#13EE86]" />
               <span>Log Out</span>
             </button>
           </div>
         </div>
 
         {/* Bottom Row: Navigation Tabs */}
-        <div className="mt-4 flex gap-1 overflow-x-auto no-scrollbar pb-1">
+        <div className="mt-3 flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             
             const activeClasses = isActive 
-              ? 'bg-blue-50 text-blue-600 font-medium' 
-              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50 font-normal';
+              ? 'bg-[#13EE86] text-[#07250D] font-bold shadow-md' 
+              : 'text-neutral-300 hover:text-white hover:bg-[#238868]/30 font-medium';
 
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as MainTab)}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full whitespace-nowrap transition-all duration-150 cursor-pointer text-sm ${activeClasses}`}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full whitespace-nowrap transition-all duration-150 cursor-pointer text-xs ${activeClasses}`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-[#07250D]' : 'text-[#13EE86]'}`} />
                 <span>{tab.label}</span>
 
                 {tab.count !== undefined && tab.count > 0 && (
                   <span className={`flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-bold ml-1 ${
-                    isActive ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'
+                    isActive ? 'bg-[#07250D] text-[#13EE86]' : 'bg-[#13EE86] text-[#07250D]'
                   }`}>
                     {tab.count}
                   </span>

@@ -256,6 +256,10 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
       return;
     }
 
+    const currentSigUrl = (canvasRef.current && !isCanvasBlank(canvasRef.current))
+      ? canvasRef.current.toDataURL('image/png')
+      : signatureUrl;
+
     // 1. Signature Blank Check
     if (isCanvasBlank(canvasRef.current)) {
       alert('እባክዎን ፊርማዎን ያንሱ! (Please draw your signature before submitting)');
@@ -267,12 +271,15 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
       ? config.nightWorkerSignatureUrl 
       : config.dayWorkerSignatureUrl;
 
-    if (masterSignature) {
-      const { matchScore, isValid } = await compareSignaturePattern(signatureUrl, masterSignature);
-      if (!isValid) {
-        alert(`⚠️ ፊርማው ከተመዘገበው ሰራተኛ ፊርማ ጋር አይመሳሰልም! (Signature match score: ${matchScore}%. Signature does not match registered signature for ${workerName})`);
-        return;
-      }
+    if (!masterSignature) {
+      alert(`⚠️ ለ${workerName} በሲስተሙ የተመዘገበ ፊርማ የለም! እባክዎን አስቀድመው በሲስተም ማስተካከያ (Settings) የሰራተኛውን ፊርማ ይመዝግቡ። (No registered reference signature found for ${workerName}. Please register the worker signature in System Settings first.)`);
+      return;
+    }
+
+    const { matchScore, isValid } = await compareSignaturePattern(currentSigUrl, masterSignature);
+    if (!isValid) {
+      alert(`⚠️ ፊርማው ከተመዘገበው ሰራተኛ ፊርማ ጋር አይመሳሰልም! (Signature match score: ${matchScore}%. Signature does not match registered signature for ${workerName})`);
+      return;
     }
 
     setSaving(true);
@@ -354,7 +361,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans pb-12 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#07250D] text-white font-sans pb-12 relative overflow-x-hidden">
       {/* ─── Success Animation Overlay ─────────────────────────────────────── */}
       <AnimatePresence>
         {showSuccess && (
@@ -362,18 +369,18 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-emerald-600/95 p-6 backdrop-blur-md text-center"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#238868]/95 p-6 backdrop-blur-md text-center"
           >
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: [0, 1.2, 1] }}
               transition={{ duration: 0.4 }}
-              className="w-24 h-24 rounded-full bg-white flex items-center justify-center text-emerald-600 mb-4 shadow-2xl"
+              className="w-24 h-24 rounded-full bg-[#13EE86] flex items-center justify-center text-[#07250D] mb-4 shadow-2xl"
             >
               <CheckCircle2 className="w-16 h-16" strokeWidth={3} />
             </motion.div>
-            <h2 className="text-3xl font-black text-white">የሸፍት ገቢ ለአስተዳዳሪው ተልኳል!</h2>
-            <p className="text-emerald-100 text-base font-medium mt-2 max-w-xs">
+            <h2 className="text-3xl font-bold text-white">የሸፍት ገቢ ለአስተዳዳሪው ተልኳል!</h2>
+            <p className="text-neutral-100 text-base font-medium mt-2 max-w-xs">
               Shift submitted for Admin approval. Once reviewed by admin, it will enter system records.
             </p>
           </motion.div>
@@ -381,22 +388,22 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
       </AnimatePresence>
 
       {/* ─── Top Header Bar ────────────────────────────────────────────────── */}
-      <div className="bg-slate-800/90 border-b border-slate-700/80 sticky top-0 z-30 backdrop-blur-md px-4 py-3">
+      <div className="bg-[#07250D] border-b border-[#238868]/40 sticky top-0 z-30 backdrop-blur-md px-4 py-3">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md">
-              <Moon className="w-5 h-5 text-amber-300" />
+            <div className="w-10 h-10 rounded-full bg-[#238868]/40 flex items-center justify-center text-[#13EE86] shadow-md border border-[#238868]/60">
+              <Moon className="w-5 h-5 text-[#13EE86]" />
             </div>
             <div>
-              <h1 className="font-black text-white text-base tracking-tight leading-tight">
+              <h1 className="font-bold text-white text-base tracking-tight leading-tight">
                 የሸፍት ገቢ መዝገብ
               </h1>
-              <p className="text-[11px] text-slate-400">Mobile Shift Income Entry</p>
+              <p className="text-[11px] text-neutral-300">Mobile Shift Income Entry</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 text-xs font-semibold">
-            <Clock className="w-3.5 h-3.5 text-amber-400" />
+          <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#238868]/20 border border-[#238868]/50 text-[#13EE86] text-xs font-semibold">
+            <Clock className="w-3.5 h-3.5 text-[#13EE86]" />
             <span>{formatEthiopianTime(new Date())}</span>
           </div>
         </div>
@@ -404,63 +411,63 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
 
       <div className="max-w-md mx-auto px-4 pt-4 space-y-4">
         {/* ─── Card 0: Unpaid Pending Debt Summary Banner ─────────────────── */}
-        <div className="bg-gradient-to-r from-amber-950/60 via-slate-900 to-amber-950/40 border border-amber-500/40 rounded-3xl p-4 space-y-2 shadow-md">
+        <div className="bg-[#238868]/20 border border-[#238868]/50 rounded-3xl p-4 space-y-2 shadow-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+              <div className="w-9 h-9 rounded-full bg-[#238868]/40 text-[#13EE86] flex items-center justify-center border border-[#238868]/60">
                 <AlertCircle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-extrabold text-amber-200 text-sm leading-tight">
+                <h3 className="font-semibold text-white text-sm leading-tight">
                   ያልተከፈለ እዳ ድምር (Total Unpaid Debts)
                 </h3>
-                <p className="text-[11px] text-amber-300/70">Unsettled Customer Credit Left</p>
+                <p className="text-[11px] text-neutral-300">Unsettled Customer Credit Left</p>
               </div>
             </div>
-            <span className="text-xs font-black text-amber-300 bg-amber-500/20 px-2.5 py-1 rounded-full border border-amber-500/40">
+            <span className="text-xs font-bold text-[#07250D] bg-[#13EE86] px-3 py-1 rounded-full shadow-sm">
               {unpaidPendingCount} Debts
             </span>
           </div>
 
-          <div className="flex items-baseline justify-between pt-2 border-t border-amber-500/20">
-            <div className="text-xs text-amber-200/90 font-medium flex items-center gap-2">
-              <span className="bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+          <div className="flex items-baseline justify-between pt-2 border-t border-[#238868]/30">
+            <div className="text-xs text-neutral-200 font-medium flex items-center gap-2">
+              <span className="bg-[#07250D] px-2.5 py-1 rounded-full border border-[#238868]/40 text-neutral-300">
                 🥤 {totalUnpaidJuiceCups} Cups
               </span>
-              <span className="bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+              <span className="bg-[#07250D] px-2.5 py-1 rounded-full border border-[#238868]/40 text-neutral-300">
                 🍱 {totalUnpaidFoodBoxes} Boxes
               </span>
             </div>
-            <div className="text-xl font-black text-amber-300">
+            <div className="text-xl font-bold text-[#13EE86]">
               {formatCurrency(totalUnpaidPendingAmount, config.currencySymbol)}
             </div>
           </div>
         </div>
 
         {/* ─── Card 1: Shift & Worker Details ─────────────────────────────── */}
-        <div className="bg-slate-800/80 border border-slate-700/80 rounded-3xl p-4 space-y-3.5 shadow-md">
+        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-4 space-y-3.5 shadow-md">
           {/* Shift Toggle */}
-          <div className="flex items-center gap-2 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-700">
+          <div className="flex items-center gap-2 bg-[#07250D] p-1.5 rounded-full border border-[#238868]/40">
             <button
               onClick={() => setShiftType('night')}
-              className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              className={`flex-1 py-2 rounded-full font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 shiftType === 'night'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#13EE86] text-[#07250D] shadow-md'
+                  : 'text-neutral-300 hover:text-white'
               }`}
             >
-              <Moon className="w-4 h-4 text-amber-300" />
+              <Moon className="w-4 h-4 text-[#07250D]" />
               <span>ሌሊት ሸፍት (Night Shift)</span>
             </button>
             <button
               onClick={() => setShiftType('day')}
-              className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              className={`flex-1 py-2 rounded-full font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 shiftType === 'day'
-                  ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#13EE86] text-[#07250D] shadow-md'
+                  : 'text-neutral-300 hover:text-white'
               }`}
             >
-              <Sun className="w-4 h-4 text-amber-950" />
+              <Sun className="w-4 h-4 text-[#07250D]" />
               <span>ቀን ሸፍት (Day Shift)</span>
             </button>
           </div>
@@ -468,20 +475,20 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
           {/* Operational Date & Worker Name */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-semibold text-slate-400 flex items-center gap-1 mb-1">
-                <Calendar className="w-3 h-3 text-indigo-400" />
+              <label className="text-[11px] font-medium text-neutral-300 flex items-center gap-1 mb-1">
+                <Calendar className="w-3 h-3 text-[#13EE86]" />
                 <span>የሸፍት ቀን (Date)</span>
               </label>
               <input
                 type="date"
                 value={shiftDate}
                 onChange={(e) => setShiftDate(e.target.value)}
-                className="w-full bg-slate-900/80 border border-slate-700 rounded-2xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-[#07250D] border border-[#238868]/50 rounded-full px-3.5 py-2 text-xs font-semibold text-white focus:outline-none focus:border-[#13EE86]"
               />
             </div>
             <div>
-              <label className="text-[11px] font-semibold text-slate-400 flex items-center gap-1 mb-1">
-                <User className="w-3 h-3 text-indigo-400" />
+              <label className="text-[11px] font-medium text-neutral-300 flex items-center gap-1 mb-1">
+                <User className="w-3 h-3 text-[#13EE86]" />
                 <span>የሰራተኛ ስም (Worker)</span>
               </label>
               <input
@@ -489,119 +496,119 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                 value={workerName}
                 onChange={(e) => setWorkerName(e.target.value)}
                 placeholder="Worker Name"
-                className="w-full bg-slate-900/80 border border-slate-700 rounded-2xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-[#07250D] border border-[#238868]/50 rounded-full px-3.5 py-2 text-xs font-semibold text-white focus:outline-none focus:border-[#13EE86]"
               />
             </div>
           </div>
         </div>
 
         {/* ─── Card 2: Juice Stock & Sales (የጁስ ሂሳብ) ────────────────────── */}
-        <div className="bg-slate-800/80 border border-amber-500/30 rounded-3xl p-4 space-y-3 shadow-md">
-          <div className="flex items-center justify-between border-b border-slate-700/80 pb-2.5">
+        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-4 space-y-3 shadow-md">
+          <div className="flex items-center justify-between border-b border-[#238868]/30 pb-2.5">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-[#238868]/40 text-[#13EE86] flex items-center justify-center">
                 <CupSoda className="w-4 h-4" />
               </div>
-              <h2 className="font-extrabold text-white text-sm">የጁስ ሂሳብ (Juice Sales)</h2>
+              <h2 className="font-bold text-white text-sm">የጁስ ሂሳብ (Juice Sales)</h2>
             </div>
-            <span className="text-xs font-black text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs font-bold text-[#07250D] bg-[#13EE86] px-3 py-0.5 rounded-full">
               {totals.juiceCupsSold} Cups Sold
             </span>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-[10px] font-semibold text-slate-400">መጀመሪያ (Opening)</label>
+              <label className="text-[10px] font-medium text-neutral-300">መጀመሪያ (Opening)</label>
               <input
                 type="number"
                 value={juiceOpening}
                 onChange={(e) => setJuiceOpening(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-white text-center"
+                className="w-full bg-[#07250D] border border-[#238868]/50 rounded-full px-2.5 py-1.5 text-xs font-bold text-white text-center"
               />
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-slate-400">የተጨመረ (Added)</label>
+              <label className="text-[10px] font-medium text-neutral-300">የተጨመረ (Added)</label>
               <input
                 type="number"
                 value={juiceAdded}
                 onChange={(e) => setJuiceAdded(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-white text-center"
+                className="w-full bg-[#07250D] border border-[#238868]/50 rounded-full px-2.5 py-1.5 text-xs font-bold text-white text-center"
               />
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-slate-400">የቀረ (Remaining)</label>
+              <label className="text-[10px] font-medium text-neutral-300">የቀረ (Remaining)</label>
               <input
                 type="number"
                 value={juiceLeftover}
                 onChange={(e) => setJuiceLeftover(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-amber-500/50 rounded-xl px-2.5 py-1.5 text-xs font-black text-amber-300 text-center"
+                className="w-full bg-[#07250D] border border-[#13EE86] rounded-full px-2.5 py-1.5 text-xs font-bold text-[#13EE86] text-center"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between bg-slate-900/60 p-2.5 rounded-2xl border border-slate-700/60 text-xs">
-            <span className="text-slate-400">Juice Price: {juicePrice} ETB/cup</span>
-            <span className="font-extrabold text-amber-300 text-sm">
+          <div className="flex items-center justify-between bg-[#07250D] p-2.5 rounded-full border border-[#238868]/40 text-xs px-4">
+            <span className="text-neutral-300">Juice Price: {juicePrice} ETB/cup</span>
+            <span className="font-bold text-[#13EE86] text-sm">
               = {formatCurrency(totals.juiceRevenue, config.currencySymbol)}
             </span>
           </div>
         </div>
 
         {/* ─── Card 3: Food Sales (የምግብ ሂሳብ) ──────────────────────────── */}
-        <div className="bg-slate-800/80 border border-emerald-500/30 rounded-3xl p-4 space-y-3 shadow-md">
-          <div className="flex items-center justify-between border-b border-slate-700/80 pb-2.5">
+        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-4 space-y-3 shadow-md">
+          <div className="flex items-center justify-between border-b border-[#238868]/30 pb-2.5">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-[#238868]/40 text-[#13EE86] flex items-center justify-center">
                 <UtensilsCrossed className="w-4 h-4" />
               </div>
-              <h2 className="font-extrabold text-white text-sm">የምግብ ሂሳብ (Food Sales)</h2>
+              <h2 className="font-bold text-white text-sm">የምግብ ሂሳብ (Food Sales)</h2>
             </div>
-            <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs font-bold text-[#07250D] bg-[#13EE86] px-3 py-0.5 rounded-full">
               {totals.foodTakeawaysSold} Takeaways
             </span>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-[10px] font-semibold text-slate-400">መጀመሪያ (Opening)</label>
+              <label className="text-[10px] font-medium text-neutral-300">መጀመሪያ (Opening)</label>
               <input
                 type="number"
                 value={foodOpening}
                 onChange={(e) => setFoodOpening(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-white text-center"
+                className="w-full bg-[#07250D] border border-[#238868]/50 rounded-full px-2.5 py-1.5 text-xs font-bold text-white text-center"
               />
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-slate-400">የተጨመረ (Added)</label>
+              <label className="text-[10px] font-medium text-neutral-300">የተጨመረ (Added)</label>
               <input
                 type="number"
                 value={foodAdded}
                 onChange={(e) => setFoodAdded(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-white text-center"
+                className="w-full bg-[#07250D] border border-[#238868]/50 rounded-full px-2.5 py-1.5 text-xs font-bold text-white text-center"
               />
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-slate-400">የቀረ (Remaining)</label>
+              <label className="text-[10px] font-medium text-neutral-300">የቀረ (Remaining)</label>
               <input
                 type="number"
                 value={foodLeftover}
                 onChange={(e) => setFoodLeftover(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-emerald-500/50 rounded-xl px-2.5 py-1.5 text-xs font-black text-emerald-300 text-center"
+                className="w-full bg-[#07250D] border border-[#13EE86] rounded-full px-2.5 py-1.5 text-xs font-bold text-[#13EE86] text-center"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between bg-slate-900/60 p-2.5 rounded-2xl border border-slate-700/60 text-xs">
-            <span className="text-slate-400">Food Price: {foodPrice} ETB/unit</span>
-            <span className="font-extrabold text-emerald-300 text-sm">
+          <div className="flex items-center justify-between bg-[#07250D] p-2.5 rounded-full border border-[#238868]/40 text-xs px-4">
+            <span className="text-neutral-300">Food Price: {foodPrice} ETB/unit</span>
+            <span className="font-bold text-[#13EE86] text-sm">
               = {formatCurrency(totals.foodRevenue, config.currencySymbol)}
             </span>
           </div>
         </div>
 
         {/* ─── Card 4: Financial Deductions & Additions ─────────────────────── */}
-        <div className="bg-slate-800/80 border border-slate-700/80 rounded-3xl p-4 space-y-3.5 shadow-md">
-          <h2 className="font-extrabold text-white text-sm border-b border-slate-700/80 pb-2">
+        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-4 space-y-3.5 shadow-md">
+          <h2 className="font-bold text-white text-sm border-b border-[#238868]/30 pb-2">
             ዲጂታል ክፍያ፣ ወጪዎችና እዳዎች (Transfers, Expenses & Debts)
           </h2>
 
@@ -609,38 +616,38 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
             {/* 1. Digital Transfers */}
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-slate-300 font-semibold">1. Telebirr / CBE Birr (ለባለቤቱ የተላከ)</span>
-                <span className="text-slate-400 font-mono text-[11px]">Deduction (-)</span>
+                <span className="text-neutral-200 font-medium">1. Telebirr / CBE Birr (ለባለቤቱ የተላከ)</span>
+                <span className="text-neutral-400 font-mono text-[11px]">Deduction (-)</span>
               </div>
               <input
                 type="number"
                 value={digitalTransfers || ''}
                 onChange={(e) => setDigitalTransfers(Number(e.target.value))}
                 placeholder="0 ETB"
-                className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-3 py-2 text-xs font-bold text-indigo-300 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-[#07250D] border border-[#238868]/50 rounded-full px-3.5 py-2 text-xs font-bold text-[#13EE86] focus:outline-none focus:border-[#13EE86]"
               />
             </div>
 
             {/* 2. Itemized Daily Expenses with Reasons */}
-            <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-700/80 space-y-2">
+            <div className="bg-[#07250D] p-3 rounded-2xl border border-[#238868]/40 space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-rose-300 font-extrabold">2. የዕለት ወጪዎች (Itemized Expenses)</span>
-                <span className="text-rose-400 font-black text-xs">
+                <span className="text-white font-bold">2. የዕለት ወጪዎች (Itemized Expenses)</span>
+                <span className="text-[#13EE86] font-bold text-xs">
                   Total = -{formatCurrency(dailyExpensesTotal, config.currencySymbol)}
                 </span>
               </div>
 
               {/* Added Expense List */}
               {expenseList.length > 0 && (
-                <div className="divide-y divide-slate-800 border-y border-slate-800 my-1 py-1">
+                <div className="divide-y divide-[#238868]/30 border-y border-[#238868]/30 my-1 py-1">
                   {expenseList.map((item) => (
                     <div key={item.id} className="flex items-center justify-between text-xs py-1">
-                      <span className="text-slate-300 font-medium">{item.title}</span>
+                      <span className="text-neutral-200 font-medium">{item.title}</span>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-rose-300">{item.amount} ETB</span>
+                        <span className="font-bold text-[#13EE86]">{item.amount} ETB</span>
                         <button
                           onClick={() => handleRemoveExpenseItem(item.id)}
-                          className="text-slate-500 hover:text-red-400 cursor-pointer"
+                          className="text-neutral-400 hover:text-rose-400 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -656,120 +663,120 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                   type="text"
                   value={expenseTitleInput}
                   onChange={(e) => setExpenseTitleInput(e.target.value)}
-                  placeholder="የወጪ ምክንያት (Reason, e.g. አትክልት)"
-                  className="col-span-3 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-rose-500"
+                  placeholder="የወጪ ምክንያት (Reason)"
+                  className="col-span-3 bg-[#07250D] border border-[#238868]/50 rounded-full px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#13EE86]"
                 />
                 <input
                   type="number"
                   value={expenseAmountInput}
                   onChange={(e) => setExpenseAmountInput(e.target.value)}
                   placeholder="Birr"
-                  className="col-span-2 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-bold text-center focus:outline-none focus:border-rose-500"
+                  className="col-span-2 bg-[#07250D] border border-[#238868]/50 rounded-full px-3 py-1.5 text-xs text-white font-bold text-center focus:outline-none focus:border-[#13EE86]"
                 />
               </div>
 
               <button
                 onClick={handleAddExpenseItem}
-                className="w-full py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
+                className="w-full py-2 rounded-full bg-white text-[#07250D] border border-[#238868] text-xs font-bold flex items-center justify-center gap-1 cursor-pointer hover:bg-neutral-100 shadow-sm"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 text-[#07250D]" />
                 <span>ወጪ ጨምር (Add Expense Line)</span>
               </button>
             </div>
 
             {/* 3. BeU Delivery Credit Orders */}
-            <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-700/80 space-y-2">
+            <div className="bg-[#07250D] p-3 rounded-2xl border border-[#238868]/40 space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-emerald-400 font-extrabold flex items-center gap-1">
-                  <Bike className="w-3.5 h-3.5" /> 3. BeU Delivery (የዴሊቨሪ ሂሳብ)
+                <span className="text-white font-bold flex items-center gap-1">
+                  <Bike className="w-3.5 h-3.5 text-[#13EE86]" /> 3. BeU Delivery (የዴሊቨሪ ሂሳብ)
                 </span>
-                <span className="text-emerald-300 font-black text-xs">
+                <span className="text-[#13EE86] font-bold text-xs">
                   = -{formatCurrency(deliveryCreditAmount, config.currencySymbol)}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] font-semibold text-slate-400">Juice Cups (የጁስ ብዛት)</label>
+                  <label className="text-[10px] font-medium text-neutral-300">Juice Cups (የጁስ ብዛት)</label>
                   <input
                     type="number"
                     value={deliveryJuiceCups || ''}
                     onChange={(e) => setDeliveryJuiceCups(Number(e.target.value))}
                     placeholder="0 cups"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-emerald-300 text-center focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#07250D] border border-[#238868]/50 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#13EE86] text-center focus:outline-none focus:border-[#13EE86]"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold text-slate-400">Food Boxes (የምግብ ብዛት)</label>
+                  <label className="text-[10px] font-medium text-neutral-300">Food Boxes (የምግብ ብዛት)</label>
                   <input
                     type="number"
                     value={deliveryFoodBoxes || ''}
                     onChange={(e) => setDeliveryFoodBoxes(Number(e.target.value))}
                     placeholder="0 boxes"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-emerald-300 text-center focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#07250D] border border-[#238868]/50 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#13EE86] text-center focus:outline-none focus:border-[#13EE86]"
                   />
                 </div>
               </div>
             </div>
 
             {/* 4. New Pending Debts (Entered in Cups & Boxes) */}
-            <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-700/80 space-y-2">
+            <div className="bg-[#07250D] p-3 rounded-2xl border border-[#238868]/40 space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-amber-300 font-extrabold">4. አዲስ ያልተከፈለ እዳ (New Credit Given)</span>
-                <span className="text-amber-400 font-black text-xs">
+                <span className="text-white font-bold">4. አዲስ ያልተከፈለ እዳ (New Credit Given)</span>
+                <span className="text-[#13EE86] font-bold text-xs">
                   = -{formatCurrency(newPendingAmount, config.currencySymbol)}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] font-semibold text-slate-400">Juice Cups (የጁስ ብዛት)</label>
+                  <label className="text-[10px] font-medium text-neutral-300">Juice Cups (የጁስ ብዛት)</label>
                   <input
                     type="number"
                     value={newPendingJuiceCups || ''}
                     onChange={(e) => setNewPendingJuiceCups(Number(e.target.value))}
                     placeholder="0 cups"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-amber-300 text-center focus:outline-none focus:border-amber-500"
+                    className="w-full bg-[#07250D] border border-[#238868]/50 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#13EE86] text-center focus:outline-none focus:border-[#13EE86]"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold text-slate-400">Food Boxes (የምግብ ብዛት)</label>
+                  <label className="text-[10px] font-medium text-neutral-300">Food Boxes (የምግብ ብዛት)</label>
                   <input
                     type="number"
                     value={newPendingFoodBoxes || ''}
                     onChange={(e) => setNewPendingFoodBoxes(Number(e.target.value))}
                     placeholder="0 boxes"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-amber-300 text-center focus:outline-none focus:border-amber-500"
+                    className="w-full bg-[#07250D] border border-[#238868]/50 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#13EE86] text-center focus:outline-none focus:border-[#13EE86]"
                   />
                 </div>
               </div>
             </div>
 
             {/* 5. Recovered Debts (Entered in Cups & Boxes) */}
-            <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-700/80 space-y-2">
+            <div className="bg-[#07250D] p-3 rounded-2xl border border-[#238868]/40 space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-emerald-300 font-extrabold">5. የተመለሰ አሮጌ እዳ (Old Debts Collected)</span>
-                <span className="text-emerald-400 font-black text-xs">
+                <span className="text-white font-bold">5. የተመለሰ አሮጌ እዳ (Old Debts Collected)</span>
+                <span className="text-[#13EE86] font-bold text-xs">
                   = +{formatCurrency(recoveredPendingAmount, config.currencySymbol)}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] font-semibold text-slate-400">Juice Cups (የጁስ ብዛት)</label>
+                  <label className="text-[10px] font-medium text-neutral-300">Juice Cups (የጁስ ብዛት)</label>
                   <input
                     type="number"
                     value={recoveredJuiceCups || ''}
                     onChange={(e) => setRecoveredJuiceCups(Number(e.target.value))}
                     placeholder="0 cups"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-emerald-300 text-center focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#07250D] border border-[#238868]/50 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#13EE86] text-center focus:outline-none focus:border-[#13EE86]"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold text-slate-400">Food Boxes (የምግብ ብዛት)</label>
+                  <label className="text-[10px] font-medium text-neutral-300">Food Boxes (የምግብ ብዛት)</label>
                   <input
                     type="number"
                     value={recoveredFoodBoxes || ''}
                     onChange={(e) => setRecoveredFoodBoxes(Number(e.target.value))}
                     placeholder="0 boxes"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-emerald-300 text-center focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#07250D] border border-[#238868]/50 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#13EE86] text-center focus:outline-none focus:border-[#13EE86]"
                   />
                 </div>
               </div>
@@ -778,29 +785,29 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
         </div>
 
         {/* ─── Card 4.5: Digital Signature Pad ───────────────────────────── */}
-        <div className="bg-slate-800/80 border border-indigo-500/30 rounded-3xl p-4 space-y-2.5 shadow-md">
-          <div className="flex items-center justify-between border-b border-slate-700/80 pb-2">
+        <div className="bg-[#238868]/20 border border-[#238868]/40 rounded-3xl p-4 space-y-2.5 shadow-md">
+          <div className="flex items-center justify-between border-b border-[#238868]/30 pb-2">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-[#238868]/40 text-[#13EE86] flex items-center justify-center">
                 <PenTool className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="font-extrabold text-white text-sm">የሰራተኛ ፊርማ (Worker Signature)</h2>
-                <p className="text-[10px] text-slate-400">Sign with finger or mouse below</p>
+                <h2 className="font-bold text-white text-sm">የሰራተኛ ፊርማ (Worker Signature)</h2>
+                <p className="text-[10px] text-neutral-300">Sign with finger or mouse below</p>
               </div>
             </div>
             {hasSigned && (
               <button
                 type="button"
                 onClick={clearSignature}
-                className="text-xs font-semibold text-rose-400 hover:text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/30 cursor-pointer"
+                className="text-xs font-semibold text-rose-300 bg-rose-500/20 px-3 py-1 rounded-full border border-rose-500/40 cursor-pointer"
               >
                 አጽዳ (Clear)
               </button>
             )}
           </div>
 
-          <div className="bg-white rounded-2xl p-1 border border-slate-300 overflow-hidden relative">
+          <div className="bg-white rounded-2xl p-1 border border-neutral-300 overflow-hidden relative">
             <canvas
               ref={canvasRef}
               width={340}
@@ -815,7 +822,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
               className="w-full h-28 touch-none bg-white cursor-crosshair rounded-xl"
             />
             {!hasSigned && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-slate-600 text-xs font-semibold">
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-neutral-500 text-xs font-medium">
                 ✍️ እዚህ ጋር በጣትዎ ይፈረሙ (Draw Signature Here)
               </div>
             )}
@@ -823,22 +830,22 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
         </div>
 
         {/* ─── Card 5: Final Shift Income Summary & Cash Handover ───────────── */}
-        <div className="bg-gradient-to-br from-indigo-900 via-purple-950 to-slate-950 border border-indigo-500/40 rounded-3xl p-5 shadow-xl space-y-3">
-          <div className="flex justify-between items-center text-xs text-indigo-200">
+        <div className="bg-[#238868]/20 border border-[#238868]/50 rounded-3xl p-5 shadow-xl space-y-3">
+          <div className="flex justify-between items-center text-xs text-neutral-300">
             <span>Gross Sales (ጠቅላላ ሽያጭ):</span>
-            <span className="font-extrabold text-white text-base">
+            <span className="font-bold text-white text-base">
               {formatCurrency(totals.grossIncome, config.currencySymbol)}
             </span>
           </div>
 
-          <div className="border-t border-indigo-500/30 pt-3">
-            <p className="text-xs font-bold uppercase tracking-wider text-amber-300 mb-1">
+          <div className="border-t border-[#238868]/30 pt-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#13EE86] mb-1">
               ለባለቤቱ የሚገባ ጥሬ ገንዘብ (Net Cash Due)
             </p>
-            <h3 className="text-3xl font-black text-white">
+            <h3 className="text-3xl font-bold text-white">
               {formatCurrency(totals.netCashDueToOwner, config.currencySymbol)}
             </h3>
-            <p className="text-[11px] text-slate-300/80 mt-1">
+            <p className="text-[11px] text-neutral-300 mt-1">
               Actual cash to hand over after transfers and shift expenses.
             </p>
           </div>
@@ -847,13 +854,13 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
           <button
             onClick={handleSaveShift}
             disabled={saving}
-            className="w-full h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-95 text-white font-extrabold text-lg shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-3"
+            className="w-full h-14 rounded-full bg-[#13EE86] hover:bg-[#13EE86]/90 text-[#07250D] font-bold text-lg shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-3"
           >
             {saving ? (
-              <div className="w-6 h-6 border-3 border-white/40 border-t-white rounded-full animate-spin" />
+              <div className="w-6 h-6 border-3 border-[#07250D]/40 border-t-[#07250D] rounded-full animate-spin" />
             ) : (
               <>
-                <Send className="w-5 h-5" />
+                <Send className="w-5 h-5 text-[#07250D]" />
                 <span>የሸፍት ገቢ ላክ (Submit for Admin Approval)</span>
               </>
             )}
@@ -865,3 +872,4 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
 };
 
 export default ShiftEntryView;
+

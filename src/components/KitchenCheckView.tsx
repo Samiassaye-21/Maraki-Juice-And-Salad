@@ -47,33 +47,33 @@ const TAKER_CONFIG: Record<
     label: 'Day Shift (ቀን ሸፍት)',
     shortLabel: 'Day Shift',
     subLabel: '2:00 morning – 2:00 evening ET',
-    bg: 'bg-amber-50/70 dark:bg-amber-950/20',
-    text: 'text-amber-900 dark:text-amber-300',
-    border: 'border-amber-200/80 dark:border-amber-800/40',
-    badgeBg: 'bg-amber-100 text-amber-900 border-amber-300/80 dark:bg-amber-900/40 dark:text-amber-200 dark:border-amber-700/60',
-    accentGradient: 'from-amber-500 to-orange-500',
+    bg: 'bg-[#238868]/20',
+    text: 'text-white',
+    border: 'border-[#238868]/40',
+    badgeBg: 'bg-[#13EE86] text-[#07250D] font-bold border-[#13EE86]',
+    accentGradient: 'from-[#07250D] to-[#238868]',
   },
   night_shift: {
     emoji: '🌙',
     label: 'Night Shift (ሌሊት ሸፍት)',
     shortLabel: 'Night Shift',
     subLabel: '2:00 evening – morning 2:00 ET',
-    bg: 'bg-indigo-50/70 dark:bg-indigo-950/20',
-    text: 'text-indigo-900 dark:text-indigo-300',
-    border: 'border-indigo-200/80 dark:border-indigo-800/40',
-    badgeBg: 'bg-indigo-100 text-indigo-900 border-indigo-300/80 dark:bg-indigo-900/40 dark:text-indigo-200 dark:border-indigo-700/60',
-    accentGradient: 'from-indigo-600 to-purple-600',
+    bg: 'bg-[#238868]/20',
+    text: 'text-white',
+    border: 'border-[#238868]/40',
+    badgeBg: 'bg-[#13EE86] text-[#07250D] font-bold border-[#13EE86]',
+    accentGradient: 'from-[#07250D] to-[#238868]',
   },
   beu_delivery: {
     emoji: '🚴',
     label: 'BeU Delivery',
     shortLabel: 'BeU Delivery',
     subLabel: 'Online / Rider Orders',
-    bg: 'bg-emerald-50/70 dark:bg-emerald-950/20',
-    text: 'text-emerald-900 dark:text-emerald-300',
-    border: 'border-emerald-200/80 dark:border-emerald-800/40',
-    badgeBg: 'bg-emerald-100 text-emerald-900 border-emerald-300/80 dark:bg-emerald-900/40 dark:text-emerald-200 dark:border-emerald-700/60',
-    accentGradient: 'from-emerald-500 to-teal-600',
+    bg: 'bg-[#238868]/20',
+    text: 'text-white',
+    border: 'border-[#238868]/40',
+    badgeBg: 'bg-[#13EE86] text-[#07250D] font-bold border-[#13EE86]',
+    accentGradient: 'from-[#07250D] to-[#238868]',
   },
 };
 
@@ -190,24 +190,24 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="space-y-6 max-w-7xl mx-auto"
+      className="space-y-6 max-w-7xl mx-auto text-white"
     >
       {/* ─── Top Header & Controls ─────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#238868]/20 border border-[#238868]/40 p-5 rounded-3xl shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-md shadow-emerald-500/20 text-white">
+          <div className="w-12 h-12 rounded-full bg-[#238868]/40 text-[#13EE86] border border-[#238868]/60 flex items-center justify-center">
             <ChefHat className="w-6.5 h-6.5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              <h2 className="text-xl font-bold text-white tracking-tight">
                 Kitchen Check & Reconciliation
               </h2>
-              <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs px-2.5 py-0.5 rounded-full font-bold border border-amber-300/60 dark:border-amber-800/60">
+              <span className="bg-[#13EE86] text-[#07250D] text-xs px-3 py-0.5 rounded-full font-bold">
                 Audit Dashboard
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-neutral-300 mt-0.5">
               Classified orders breakdown by Taker & Ethiopian Shift Clock
             </p>
           </div>
@@ -216,24 +216,24 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
         {/* Action Controls & Date Navigator */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Date Selector Pill */}
-          <div className="flex items-center gap-1.5 bg-slate-100/90 dark:bg-slate-800/90 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700">
+          <div className="flex items-center gap-1.5 bg-[#07250D] p-1.5 rounded-full border border-[#238868]/40">
             <button
               onClick={() => setDateIdx((i) => Math.min(i + 1, availableDates.length - 1))}
               disabled={dateIdx >= availableDates.length - 1}
-              className="p-1.5 rounded-xl hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all cursor-pointer disabled:opacity-30"
+              className="p-1.5 rounded-full hover:bg-[#238868]/30 text-white transition-all cursor-pointer disabled:opacity-30"
               title="Previous Date"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <div className="px-3 text-center min-w-[140px]">
               <div className="flex items-center justify-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <p className="font-bold text-slate-900 dark:text-white text-xs">
+                <Calendar className="w-3.5 h-3.5 text-[#13EE86]" />
+                <p className="font-bold text-white text-xs">
                   {formatDate(selectedDate)}
                 </p>
               </div>
               {selectedDate === getOperationalDate() && (
-                <span className="inline-block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                <span className="inline-block text-[10px] font-bold text-[#13EE86] uppercase tracking-wider">
                   Active Shift Date
                 </span>
               )}
@@ -241,7 +241,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
             <button
               onClick={() => setDateIdx((i) => Math.max(i - 1, 0))}
               disabled={dateIdx <= 0}
-              className="p-1.5 rounded-xl hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all cursor-pointer disabled:opacity-30"
+              className="p-1.5 rounded-full hover:bg-[#238868]/30 text-white transition-all cursor-pointer disabled:opacity-30"
               title="Next Date"
             >
               <ChevronRight className="w-4 h-4" />
@@ -253,7 +253,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
             <button
               onClick={() => handleClear(false)}
               disabled={isClearing || kitchenOrders.length === 0}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200/80 dark:border-red-900/50 transition-all cursor-pointer disabled:opacity-40"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-neutral-300 hover:text-white bg-[#07250D] hover:bg-red-950/50 border border-[#238868]/40 transition-all cursor-pointer disabled:opacity-40"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Clear Orders</span>
@@ -262,113 +262,86 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
         </div>
       </div>
 
-      {/* ─── Metric Stat Cards (BitePoint Style) ──────────────────────────── */}
+      {/* ─── Metric Stat Cards ──────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Stat Card 1: Total Kitchen Orders (Deep Teal Primary) */}
-        <div className="bg-gradient-to-br from-teal-800 via-emerald-800 to-slate-900 text-white p-5 rounded-3xl shadow-lg relative overflow-hidden border border-teal-700/50 flex flex-col justify-between min-h-[130px]">
-          <div className="absolute -right-4 -bottom-4 opacity-10 pointer-events-none">
-            <ChefHat className="w-32 h-32 text-white" />
-          </div>
+        {/* Stat Card 1 */}
+        <div className="bg-[#238868]/20 border border-[#238868]/40 text-white p-5 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[130px]">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-teal-200">
+              <p className="text-xs font-medium uppercase tracking-wider text-neutral-300">
                 Chef Logged Items
               </p>
-              <h3 className="text-3xl font-black text-white mt-1">
-                {grandChefTotalItems} <span className="text-sm font-normal text-teal-200">items</span>
+              <h3 className="text-3xl font-extrabold text-[#13EE86] mt-1">
+                {grandChefTotalItems} <span className="text-sm font-normal text-white">items</span>
               </h3>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/15 text-teal-200">
+            <div className="w-10 h-10 rounded-full bg-[#07250D] border border-[#238868]/60 flex items-center justify-center text-[#13EE86]">
               <ShoppingBag className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-xs text-teal-200/80 mt-2 font-medium flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-amber-300" />
+          <p className="text-xs text-neutral-300 mt-2 font-medium flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-[#13EE86]" />
             Recorded by kitchen staff for {selectedDate}
           </p>
         </div>
 
-        {/* Stat Card 2: Worker Shift Reported Sales */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between min-h-[130px]">
+        {/* Stat Card 2 */}
+        <div className="bg-[#238868]/20 border border-[#238868]/40 p-5 rounded-3xl shadow-sm flex flex-col justify-between min-h-[130px]">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <p className="text-xs font-medium uppercase tracking-wider text-neutral-300">
                 Worker Shift Sales
               </p>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1">
-                {workerTotalItems} <span className="text-sm font-normal text-slate-400">items</span>
+              <h3 className="text-3xl font-extrabold text-white mt-1">
+                {workerTotalItems} <span className="text-sm font-normal text-neutral-400">items</span>
               </h3>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
+            <div className="w-10 h-10 rounded-full bg-[#07250D] border border-[#238868]/60 flex items-center justify-center text-[#13EE86]">
               <Receipt className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">
+          <p className="text-xs text-neutral-300 mt-2 font-medium">
             Reported in closed worker shift reconciliations
           </p>
         </div>
 
-        {/* Stat Card 3: Reconciliation Status */}
-        <div className={`p-5 rounded-3xl shadow-sm border flex flex-col justify-between min-h-[130px] transition-all ${
-          !hasData 
-            ? 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800'
-            : itemsMatch 
-            ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-300/80 dark:border-emerald-800/60' 
-            : 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-300/80 dark:border-rose-800/60'
-        }`}>
+        {/* Stat Card 3 */}
+        <div className="bg-[#238868]/20 border border-[#238868]/40 p-5 rounded-3xl shadow-sm flex flex-col justify-between min-h-[130px]">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <p className="text-xs font-medium uppercase tracking-wider text-neutral-300">
                 Audit Status
               </p>
-              <h3 className={`text-xl font-extrabold mt-1 flex items-center gap-1.5 ${
-                !hasData
-                  ? 'text-slate-700 dark:text-slate-300'
-                  : itemsMatch
-                  ? 'text-emerald-700 dark:text-emerald-400'
-                  : 'text-rose-700 dark:text-rose-400'
-              }`}>
+              <h3 className="text-xl font-extrabold mt-1 flex items-center gap-1.5 text-white">
                 {!hasData ? (
                   'Pending Shift'
                 ) : itemsMatch ? (
                   <>
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                    <span>Balanced</span>
+                    <CheckCircle2 className="w-5 h-5 text-[#13EE86]" />
+                    <span className="text-[#13EE86]">Balanced</span>
                   </>
                 ) : (
                   <>
-                    <XCircle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                    <XCircle className="w-5 h-5 text-white" />
                     <span>Discrepancy</span>
                   </>
                 )}
               </h3>
             </div>
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
-              !hasData
-                ? 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                : itemsMatch
-                ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
-                : 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300'
-            }`}>
-              {!hasData ? (
-                <AlertCircle className="w-5 h-5" />
-              ) : itemsMatch ? (
-                <CheckCircle2 className="w-5 h-5" />
-              ) : (
-                <AlertCircle className="w-5 h-5" />
-              )}
+            <div className="w-10 h-10 rounded-full bg-[#07250D] border border-[#238868]/60 flex items-center justify-center text-[#13EE86]">
+              <AlertCircle className="w-5 h-5 text-[#13EE86]" />
             </div>
           </div>
 
           <p className="text-xs mt-2 font-medium">
             {!hasData ? (
-              <span className="text-slate-400">Waiting for shift reports...</span>
+              <span className="text-neutral-400">Waiting for shift reports...</span>
             ) : itemsMatch ? (
-              <span className="text-emerald-700 dark:text-emerald-400 font-semibold">
+              <span className="text-[#13EE86] font-bold">
                 ✅ Chef & Worker records agree exactly ({grandChefTotalItems} items)
               </span>
             ) : (
-              <span className="text-rose-700 dark:text-rose-400 font-semibold">
+              <span className="text-white font-bold">
                 ❌ {diff > 0 ? `+${diff} extra in chef log` : `${Math.abs(diff)} missing from chef log`}
               </span>
             )}
@@ -376,14 +349,14 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
         </div>
       </div>
 
-      {/* ─── Breakdown Cards per Taker (3 Columns) ──────────────────────────── */}
+      {/* ─── Breakdown Cards per Taker ──────────────────────────── */}
       <div>
         <div className="flex items-center justify-between mb-3 px-1">
-          <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
-            <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <h3 className="text-sm font-extrabold uppercase tracking-wider text-white flex items-center gap-2">
+            <Layers className="w-4 h-4 text-[#13EE86]" />
             <span>Shift Taker Summary</span>
           </h3>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-neutral-300">
             Categorized food quantities
           </span>
         </div>
@@ -402,15 +375,15 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                 className={`rounded-3xl ${cfg.bg} border ${cfg.border} overflow-hidden flex flex-col shadow-sm`}
               >
                 {/* Header */}
-                <div className={`flex items-center justify-between px-5 py-3.5 border-b ${cfg.border} bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm`}>
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#238868]/30 bg-[#07250D]">
                   <div className="flex items-center gap-2.5">
                     <span className="text-2xl">{cfg.emoji}</span>
                     <div>
-                      <h4 className={`font-black text-sm leading-tight ${cfg.text}`}>{cfg.shortLabel}</h4>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">{cfg.subLabel}</p>
+                      <h4 className="font-bold text-sm leading-tight text-white">{cfg.shortLabel}</h4>
+                      <p className="text-[10px] text-neutral-400">{cfg.subLabel}</p>
                     </div>
                   </div>
-                  <span className={`font-black text-xs px-3 py-1 rounded-full border shadow-xs ${cfg.badgeBg}`}>
+                  <span className="font-bold text-xs px-3 py-1 rounded-full bg-[#13EE86] text-[#07250D]">
                     {data.totalCount} items
                   </span>
                 </div>
@@ -418,19 +391,19 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                 {/* Items List */}
                 <div className="p-4 flex-1 space-y-2">
                   {data.items.length === 0 ? (
-                    <div className="py-6 text-center text-slate-400 dark:text-slate-500 text-xs italic">
+                    <div className="py-6 text-center text-neutral-400 text-xs italic">
                       No orders logged for {cfg.shortLabel}
                     </div>
                   ) : (
                     data.items.map((item) => (
                       <div
                         key={item.name}
-                        className="flex items-center justify-between text-xs bg-white/80 dark:bg-slate-900/80 px-3 py-2 rounded-2xl border border-slate-200/60 dark:border-slate-800"
+                        className="flex items-center justify-between text-xs bg-[#07250D] px-3.5 py-2 rounded-2xl border border-[#238868]/40"
                       >
-                        <span className="text-slate-800 dark:text-slate-200 font-bold truncate max-w-[70%]">
+                        <span className="text-white font-bold truncate max-w-[70%]">
                           {item.name}
                         </span>
-                        <span className="font-black text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 rounded-lg text-xs">
+                        <span className="font-bold text-[#13EE86] bg-[#238868]/40 px-2.5 py-0.5 rounded-full text-xs border border-[#238868]">
                           ×{item.quantity}
                         </span>
                       </div>
@@ -444,18 +417,18 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
       </div>
 
       {/* ─── Detailed Time-Stamped Order Stream ────────────────────────────── */}
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+      <div className="rounded-3xl border border-[#238868]/40 overflow-hidden bg-[#238868]/20 shadow-sm">
         {/* Stream Header & Controls */}
-        <div className="p-4 bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="p-4 bg-[#07250D] border-b border-[#238868]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-slate-200/70 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200">
+            <div className="w-8 h-8 rounded-full bg-[#238868]/40 text-[#13EE86] flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-extrabold text-slate-900 dark:text-white text-sm">
+              <h3 className="font-bold text-white text-sm">
                 Detailed Order Stream
               </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p className="text-[11px] text-neutral-300">
                 {filteredChefOrders.length} orders match current filter
               </p>
             </div>
@@ -465,24 +438,24 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             {/* Search Input */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-neutral-400" />
               <input
                 type="text"
                 placeholder="Search food item..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-xs rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-36 sm:w-44"
+                className="pl-8 pr-3 py-1.5 text-xs rounded-full bg-[#07250D] border border-[#238868]/50 text-white focus:outline-none focus:border-[#13EE86] w-36 sm:w-44 placeholder:text-neutral-500"
               />
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1 bg-slate-200/60 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+            <div className="flex items-center gap-1 bg-[#07250D] p-1 rounded-full border border-[#238868]/40">
               <button
                 onClick={() => setTakerFilter('all')}
-                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
                   takerFilter === 'all'
-                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    ? 'bg-[#13EE86] text-[#07250D]'
+                    : 'text-neutral-300 hover:text-white'
                 }`}
               >
                 All ({grandChefTotalItems})
@@ -495,10 +468,10 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                   <button
                     key={tk}
                     onClick={() => setTakerFilter(tk)}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
                       isActive
-                        ? `${cfg.badgeBg} shadow-xs`
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        ? 'bg-[#13EE86] text-[#07250D]'
+                        : 'text-neutral-300 hover:text-white'
                     }`}
                   >
                     <span>{cfg.emoji}</span>
@@ -513,38 +486,38 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
 
         {/* Order Stream List */}
         {filteredChefOrders.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 dark:text-slate-500 text-sm">
-            <ShoppingBag className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            <p className="font-semibold">No orders found</p>
-            <p className="text-xs mt-1">Try selecting another date or clearing the search filter.</p>
+          <div className="p-12 text-center text-neutral-400 text-sm">
+            <ShoppingBag className="w-10 h-10 mx-auto mb-2 opacity-30 text-neutral-300" />
+            <p className="font-bold text-white">No orders found</p>
+            <p className="text-xs mt-1 text-neutral-300">Try selecting another date or clearing the search filter.</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800/60 max-h-96 overflow-y-auto">
+          <div className="divide-y divide-[#238868]/20 max-h-96 overflow-y-auto">
             {filteredChefOrders.map((order) => {
               const cfg = TAKER_CONFIG[order.taker];
               return (
                 <div
                   key={order.id}
-                  className="flex items-center justify-between px-5 py-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                  className="flex items-center justify-between px-5 py-3 hover:bg-[#238868]/30 transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className={`px-2.5 py-1 rounded-xl text-xs font-bold border ${cfg.badgeBg} flex items-center gap-1 shrink-0`}>
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#13EE86] text-[#07250D] flex items-center gap-1 shrink-0">
                       <span>{cfg.emoji}</span>
                       <span>{cfg.shortLabel}</span>
                     </span>
-                    <span className="text-slate-900 dark:text-white font-bold text-sm truncate">
+                    <span className="text-white font-bold text-sm truncate">
                       {order.foodItemName}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="font-black text-slate-900 dark:text-white text-xs bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+                    <span className="font-bold text-[#13EE86] text-xs bg-[#07250D] px-3 py-1 rounded-full border border-[#238868]/40">
                       ×{order.quantity}
                     </span>
-                    <span className="text-slate-600 dark:text-slate-400 text-xs font-medium bg-slate-100/70 dark:bg-slate-800/70 px-2.5 py-1 rounded-xl border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-slate-400" />
+                    <span className="text-neutral-300 text-xs font-medium bg-[#07250D] px-3 py-1 rounded-full border border-[#238868]/40 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-[#13EE86]" />
                       <span>{formatEthiopianTime(order.orderTime)}</span>
-                      <span className="text-slate-400 text-[10px] font-mono">({formatTime(order.orderTime)})</span>
+                      <span className="text-neutral-400 text-[10px] font-mono">({formatTime(order.orderTime)})</span>
                     </span>
                   </div>
                 </div>
