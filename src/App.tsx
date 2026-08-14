@@ -115,6 +115,8 @@ export function App() {
           currencySymbol: configData.currency_symbol,
           dayShiftWorkerName: configData.day_shift_worker_name,
           nightShiftWorkerName: configData.night_shift_worker_name,
+          dayWorkerSignatureUrl: configData.day_worker_signature_url,
+          nightWorkerSignatureUrl: configData.night_worker_signature_url,
           restaurantName: configData.restaurant_name,
         });
       }
@@ -239,7 +241,7 @@ export function App() {
   // ─── Config Handler ────────────────────────────────────────────────────────
   const setConfig = async (newConfig: RestaurantSystemConfig) => {
     setConfigState(newConfig);
-    await supabase.from('config').upsert({
+    const payload: any = {
       id: 1,
       default_juice_unit_price: newConfig.defaultJuiceUnitPrice,
       default_food_unit_price: newConfig.defaultFoodUnitPrice,
@@ -248,7 +250,11 @@ export function App() {
       day_shift_worker_name: newConfig.dayShiftWorkerName,
       night_shift_worker_name: newConfig.nightShiftWorkerName,
       restaurant_name: newConfig.restaurantName,
-    });
+    };
+    if (newConfig.dayWorkerSignatureUrl) payload.day_worker_signature_url = newConfig.dayWorkerSignatureUrl;
+    if (newConfig.nightWorkerSignatureUrl) payload.night_worker_signature_url = newConfig.nightWorkerSignatureUrl;
+
+    await supabase.from('config').upsert(payload);
   };
 
   // ─── Shift Handlers ────────────────────────────────────────────────────────

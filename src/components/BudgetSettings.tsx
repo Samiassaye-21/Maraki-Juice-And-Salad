@@ -357,7 +357,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
         <div className="border-t border-slate-100 dark:border-slate-800 pt-6 space-y-5">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center space-x-2.5">
             <User className="w-5 h-5 text-blue-500" />
-            <span>Shift Workers & Restaurant Name</span>
+            <span>Shift Workers & Registered Master Signatures</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -385,6 +385,12 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 onChange={(e) => setDayWorker(e.target.value)}
                 className={inputClasses}
               />
+              {config.dayWorkerSignatureUrl && (
+                <div className="mt-2 bg-slate-900 border border-slate-700 p-2 rounded-xl text-center">
+                  <p className="text-[10px] text-emerald-400 font-bold mb-1">✅ Registered Master Signature (Day)</p>
+                  <img src={config.dayWorkerSignatureUrl} alt="Day Worker Signature" className="h-12 mx-auto bg-slate-950 rounded-md p-1 border border-slate-800" />
+                </div>
+              )}
             </div>
 
             <div>
@@ -398,6 +404,12 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 onChange={(e) => setNightWorker(e.target.value)}
                 className={inputClasses}
               />
+              {config.nightWorkerSignatureUrl && (
+                <div className="mt-2 bg-slate-900 border border-slate-700 p-2 rounded-xl text-center">
+                  <p className="text-[10px] text-emerald-400 font-bold mb-1">✅ Registered Master Signature (Night)</p>
+                  <img src={config.nightWorkerSignatureUrl} alt="Night Worker Signature" className="h-12 mx-auto bg-slate-950 rounded-md p-1 border border-slate-800" />
+                </div>
+              )}
             </div>
           </div>
         </div>

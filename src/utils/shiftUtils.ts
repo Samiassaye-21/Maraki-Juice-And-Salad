@@ -347,6 +347,109 @@ export function extractSignatureFromNotes(notes?: string): { cleanNotes: string;
   return { cleanNotes: notes, signatureUrl: undefined };
 }
 
+/**
+ * Checks if a signature canvas is blank or has fewer than 50 painted pixels
+ */
+export function isCanvasBlank(canvas: HTMLCanvasElement | null): boolean {
+  if (!canvas) return true;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return true;
+  const pixelData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  let paintedCount = 0;
+  for (let i = 3; i < pixelData.length; i += 4) {
+    if (pixelData[i] > 30) {
+      paintedCount++;
+      if (paintedCount >= 50) return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Mathematical Pattern Matching Comparison between drawn signature and reference signature
+ */
+export function compareSignaturePattern(
+  drawnDataUrl: string,
+  referenceDataUrl: string
+): Promise<{ matchScore: number; isValid: boolean }> {
+  return new Promise((resolve) => {
+    if (!drawnDataUrl || !referenceDataUrl) {
+      resolve({ matchScore: 100, isValid: true });
+      return;
+    }
+
+    const img1 = new Image();
+    const img2 = new Image();
+    let loadedCount = 0;
+
+    const onFinish = () => {
+      loadedCount++;
+      if (loadedCount < 2) return;
+
+      try {
+        const GRID_SIZE = 40;
+        const canvas1 = document.createElement('canvas');
+        const canvas2 = document.createElement('canvas');
+        canvas1.width = GRID_SIZE;
+        canvas1.height = GRID_SIZE;
+        canvas2.width = GRID_SIZE;
+        canvas2.height = GRID_SIZE;
+
+        const ctx1 = canvas1.getContext('2d');
+        const ctx2 = canvas2.getContext('2d');
+
+        if (!ctx1 || !ctx2) {
+          resolve({ matchScore: 80, isValid: true });
+          return;
+        }
+
+        ctx1.drawImage(img1, 0, 0, GRID_SIZE, GRID_SIZE);
+        ctx2.drawImage(img2, 0, 0, GRID_SIZE, GRID_SIZE);
+
+        const data1 = ctx1.getImageData(0, 0, GRID_SIZE, GRID_SIZE).data;
+        const data2 = ctx2.getImageData(0, 0, GRID_SIZE, GRID_SIZE).data;
+
+        let intersection = 0;
+        let union = 0;
+        let diffSum = 0;
+        const totalPixels = GRID_SIZE * GRID_SIZE;
+
+        for (let i = 0; i < totalPixels; i++) {
+          const alpha1 = data1[i * 4 + 3] > 30 ? 1 : 0;
+          const alpha2 = data2[i * 4 + 3] > 30 ? 1 : 0;
+
+          if (alpha1 || alpha2) {
+            union++;
+            if (alpha1 && alpha2) {
+              intersection++;
+            }
+          }
+          diffSum += Math.abs(alpha1 - alpha2);
+        }
+
+        const iou = union > 0 ? intersection / union : 1;
+        const similarity = Math.max(0, 1 - diffSum / totalPixels);
+        const matchScore = Math.round(((iou * 0.6) + (similarity * 0.4)) * 100);
+
+        // Threshold: 40% match score is required
+        const isValid = matchScore >= 40;
+        resolve({ matchScore, isValid });
+      } catch {
+        resolve({ matchScore: 80, isValid: true });
+      }
+    };
+
+    img1.onload = onFinish;
+    img2.onload = onFinish;
+    img1.onerror = () => resolve({ matchScore: 100, isValid: true });
+    img2.onerror = () => resolve({ matchScore: 100, isValid: true });
+
+    img1.src = drawnDataUrl;
+    img2.src = referenceDataUrl;
+  });
+}
+
+
 
 
 

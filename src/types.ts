@@ -97,6 +97,8 @@ export interface RestaurantSystemConfig {
   currencySymbol: string;            // 'Br ETB' or 'Br'
   dayShiftWorkerName: string;
   nightShiftWorkerName: string;
+  dayWorkerSignatureUrl?: string;    // Registered Master Signature for Day Worker
+  nightWorkerSignatureUrl?: string;  // Registered Master Signature for Night Worker
   restaurantName: string;
 }
 

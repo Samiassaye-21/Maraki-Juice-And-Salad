@@ -33,7 +33,9 @@ import {
   formatEthiopianTime, 
   formatCurrency, 
   calculateShiftTotals,
-  embedSignatureInNotes
+  embedSignatureInNotes,
+  isCanvasBlank,
+  compareSignaturePattern
 } from '../utils/shiftUtils';
 
 interface ShiftEntryViewProps {
@@ -252,6 +254,25 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
     if (!workerName.trim()) {
       alert('እባክዎን የሰራተኛውን ስም ያስገቡ (Please enter worker name)');
       return;
+    }
+
+    // 1. Signature Blank Check
+    if (isCanvasBlank(canvasRef.current)) {
+      alert('እባክዎን ፊርማዎን ያንሱ! (Please draw your signature before submitting)');
+      return;
+    }
+
+    // 2. Master Reference Signature Pattern Match Check
+    const masterSignature = shiftType === 'night' 
+      ? config.nightWorkerSignatureUrl 
+      : config.dayWorkerSignatureUrl;
+
+    if (masterSignature) {
+      const { matchScore, isValid } = await compareSignaturePattern(signatureUrl, masterSignature);
+      if (!isValid) {
+        alert(`⚠️ ፊርማው ከተመዘገበው ሰራተኛ ፊርማ ጋር አይመሳሰልም! (Signature match score: ${matchScore}%. Signature does not match registered signature for ${workerName})`);
+        return;
+      }
     }
 
     setSaving(true);

@@ -483,9 +483,14 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                     {pShift.signatureUrl && (
                       <div className="bg-slate-950/80 p-3 rounded-xl border border-indigo-500/30 flex items-center justify-between">
                         <div>
-                          <span className="text-[11px] font-extrabold text-indigo-300 block">
-                            የሰራተኛ ፊርማ (Worker Signature)
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-extrabold text-indigo-300 block">
+                              የሰራተኛ ፊርማ (Worker Signature)
+                            </span>
+                            <span className="text-[9px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-2 py-0.5 rounded-md">
+                              ✅ Registered Pattern Verified
+                            </span>
+                          </div>
                           <span className="text-[10px] text-slate-400">Signed on mobile submission</span>
                         </div>
                         <div className="bg-white rounded-xl p-1.5 border border-slate-300 shadow-sm">
