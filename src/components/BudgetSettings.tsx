@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Settings, 
   CupSoda, 
@@ -10,7 +10,9 @@ import {
   Trash2,
   Pencil,
   RotateCcw,
-  Tag
+  Tag,
+  PenTool,
+  Upload
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RestaurantSystemConfig, SystemSummaryStats, FoodMenuItem } from '../types';
@@ -32,8 +34,76 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
   const [foodPrice, setFoodPrice] = useState(config.defaultFoodUnitPrice || 220);
   const [dayWorker, setDayWorker] = useState(config.dayShiftWorkerName);
   const [nightWorker, setNightWorker] = useState(config.nightShiftWorkerName);
+  const [daySignatureUrl, setDaySignatureUrl] = useState<string>(config.dayWorkerSignatureUrl || '');
+  const [nightSignatureUrl, setNightSignatureUrl] = useState<string>(config.nightWorkerSignatureUrl || '');
   const [restaurantName, setRestaurantName] = useState(config.restaurantName);
   const [currencySymbol, setCurrencySymbol] = useState(config.currencySymbol);
+
+  // Master Canvas Refs
+  const dayCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isDrawingDay, setIsDrawingDay] = useState(false);
+
+  const nightCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isDrawingNight, setIsDrawingNight] = useState(false);
+
+  const startDrawingMaster = (canvasRef: React.RefObject<HTMLCanvasElement | null>, setIsDrawing: (v: boolean) => void, e: any) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    ctx.beginPath();
+    ctx.moveTo(clientX - rect.left, clientY - rect.top);
+    setIsDrawing(true);
+  };
+
+  const drawMaster = (canvasRef: React.RefObject<HTMLCanvasElement | null>, isDrawing: boolean, e: any) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineTo(clientX - rect.left, clientY - rect.top);
+    ctx.stroke();
+  };
+
+  const stopDrawingMaster = (canvasRef: React.RefObject<HTMLCanvasElement | null>, setIsDrawing: (v: boolean) => void, setUrl: (s: string) => void) => {
+    setIsDrawing(false);
+    const canvas = canvasRef.current;
+    if (canvas) {
+      setUrl(canvas.toDataURL('image/png'));
+    }
+  };
+
+  const clearMaster = (canvasRef: React.RefObject<HTMLCanvasElement | null>, setUrl: (s: string) => void) => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    setUrl('');
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, setUrl: (s: string) => void) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setUrl(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Food Menu state
   const [foodMenu, setFoodMenu] = useState<FoodMenuItem[]>(config.foodMenu || DEFAULT_FOOD_MENU);
@@ -91,6 +161,8 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       foodMenu,
       dayShiftWorkerName: dayWorker.trim() || 'Day Worker',
       nightShiftWorkerName: nightWorker.trim() || 'Night Worker',
+      dayWorkerSignatureUrl: daySignatureUrl || undefined,
+      nightWorkerSignatureUrl: nightSignatureUrl || undefined,
       restaurantName: restaurantName.trim() || 'Maraki Juice and Salad',
       currencySymbol,
     });
@@ -385,12 +457,63 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 onChange={(e) => setDayWorker(e.target.value)}
                 className={inputClasses}
               />
-              {config.dayWorkerSignatureUrl && (
-                <div className="mt-2 bg-slate-900 border border-slate-700 p-2 rounded-xl text-center">
-                  <p className="text-[10px] text-emerald-400 font-bold mb-1">✅ Registered Master Signature (Day)</p>
-                  <img src={config.dayWorkerSignatureUrl} alt="Day Worker Signature" className="h-12 mx-auto bg-slate-950 rounded-md p-1 border border-slate-800" />
+
+              <div className="mt-3 bg-slate-900/90 border border-slate-800 p-3 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <PenTool className="w-3.5 h-3.5 text-blue-400" />
+                    Day Worker Master Signature
+                  </span>
+                  {daySignatureUrl && (
+                    <button
+                      type="button"
+                      onClick={() => clearMaster(dayCanvasRef, setDaySignatureUrl)}
+                      className="text-[10px] text-rose-400 hover:underline cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
-              )}
+
+                {daySignatureUrl ? (
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
+                    <img src={daySignatureUrl} alt="Day Worker Master Signature" className="h-14 mx-auto object-contain bg-white rounded-lg p-1" />
+                    <p className="text-[10px] text-emerald-400 font-bold mt-1">✅ Master Signature Saved</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="bg-slate-950 rounded-xl p-1 border border-slate-800 relative">
+                      <canvas
+                        ref={dayCanvasRef}
+                        width={260}
+                        height={90}
+                        onMouseDown={(e) => startDrawingMaster(dayCanvasRef, setIsDrawingDay, e)}
+                        onMouseMove={(e) => drawMaster(dayCanvasRef, isDrawingDay, e)}
+                        onMouseUp={() => stopDrawingMaster(dayCanvasRef, setIsDrawingDay, setDaySignatureUrl)}
+                        onMouseLeave={() => stopDrawingMaster(dayCanvasRef, setIsDrawingDay, setDaySignatureUrl)}
+                        onTouchStart={(e) => startDrawingMaster(dayCanvasRef, setIsDrawingDay, e)}
+                        onTouchMove={(e) => drawMaster(dayCanvasRef, isDrawingDay, e)}
+                        onTouchEnd={() => stopDrawingMaster(dayCanvasRef, setIsDrawingDay, setDaySignatureUrl)}
+                        className="w-full h-20 touch-none bg-slate-950 rounded-lg cursor-crosshair"
+                      />
+                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-slate-600 text-[11px]">
+                        ✍️ Draw Day Worker Signature Here
+                      </span>
+                    </div>
+
+                    <label className="flex items-center justify-center gap-2 py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 cursor-pointer">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload Image File</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, setDaySignatureUrl)}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
@@ -404,12 +527,63 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 onChange={(e) => setNightWorker(e.target.value)}
                 className={inputClasses}
               />
-              {config.nightWorkerSignatureUrl && (
-                <div className="mt-2 bg-slate-900 border border-slate-700 p-2 rounded-xl text-center">
-                  <p className="text-[10px] text-emerald-400 font-bold mb-1">✅ Registered Master Signature (Night)</p>
-                  <img src={config.nightWorkerSignatureUrl} alt="Night Worker Signature" className="h-12 mx-auto bg-slate-950 rounded-md p-1 border border-slate-800" />
+
+              <div className="mt-3 bg-slate-900/90 border border-slate-800 p-3 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <PenTool className="w-3.5 h-3.5 text-indigo-400" />
+                    Night Worker Master Signature
+                  </span>
+                  {nightSignatureUrl && (
+                    <button
+                      type="button"
+                      onClick={() => clearMaster(nightCanvasRef, setNightSignatureUrl)}
+                      className="text-[10px] text-rose-400 hover:underline cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
-              )}
+
+                {nightSignatureUrl ? (
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
+                    <img src={nightSignatureUrl} alt="Night Worker Master Signature" className="h-14 mx-auto object-contain bg-white rounded-lg p-1" />
+                    <p className="text-[10px] text-emerald-400 font-bold mt-1">✅ Master Signature Saved</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="bg-slate-950 rounded-xl p-1 border border-slate-800 relative">
+                      <canvas
+                        ref={nightCanvasRef}
+                        width={260}
+                        height={90}
+                        onMouseDown={(e) => startDrawingMaster(nightCanvasRef, setIsDrawingNight, e)}
+                        onMouseMove={(e) => drawMaster(nightCanvasRef, isDrawingNight, e)}
+                        onMouseUp={() => stopDrawingMaster(nightCanvasRef, setIsDrawingNight, setNightSignatureUrl)}
+                        onMouseLeave={() => stopDrawingMaster(nightCanvasRef, setIsDrawingNight, setNightSignatureUrl)}
+                        onTouchStart={(e) => startDrawingMaster(nightCanvasRef, setIsDrawingNight, e)}
+                        onTouchMove={(e) => drawMaster(nightCanvasRef, isDrawingNight, e)}
+                        onTouchEnd={() => stopDrawingMaster(nightCanvasRef, setIsDrawingNight, setNightSignatureUrl)}
+                        className="w-full h-20 touch-none bg-slate-950 rounded-lg cursor-crosshair"
+                      />
+                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-slate-600 text-[11px]">
+                        ✍️ Draw Night Worker Signature Here
+                      </span>
+                    </div>
+
+                    <label className="flex items-center justify-center gap-2 py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 cursor-pointer">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload Image File</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, setNightSignatureUrl)}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
