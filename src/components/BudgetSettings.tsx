@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Settings, 
   CupSoda, 
@@ -39,56 +39,92 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
   const [restaurantName, setRestaurantName] = useState(config.restaurantName);
   const [currencySymbol, setCurrencySymbol] = useState(config.currencySymbol);
 
-  // Master Canvas Refs
-  const dayCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [isDrawingDay, setIsDrawingDay] = useState(false);
+  // ── Full-screen Signature Modal ──────────────────────────────────────────
+  const [sigModalOpen, setSigModalOpen] = useState(false);
+  const [sigModalTarget, setSigModalTarget] = useState<'day' | 'night'>('day');
+  const modalCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isDrawingModal = useRef(false);
+  const modalHasSigned = useRef(false);
 
-  const nightCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [isDrawingNight, setIsDrawingNight] = useState(false);
-
-  const startDrawingMaster = (canvasRef: React.RefObject<HTMLCanvasElement | null>, setIsDrawing: (v: boolean) => void, e: any) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    ctx.beginPath();
-    ctx.moveTo(clientX - rect.left, clientY - rect.top);
-    setIsDrawing(true);
+  const openSigModal = (target: 'day' | 'night') => {
+    setSigModalTarget(target);
+    setSigModalOpen(true);
+    modalHasSigned.current = false;
   };
 
-  const drawMaster = (canvasRef: React.RefObject<HTMLCanvasElement | null>, isDrawing: boolean, e: any) => {
-    if (!isDrawing) return;
-    const canvas = canvasRef.current;
+  // Fill canvas white when modal opens
+  useEffect(() => {
+    if (!sigModalOpen) return;
+    // Small delay so the canvas has rendered
+    const t = setTimeout(() => {
+      const canvas = modalCanvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }, 50);
+    return () => clearTimeout(t);
+  }, [sigModalOpen]);
+
+  const modalStart = (e: React.TouchEvent | React.MouseEvent) => {
+    e.preventDefault();
+    const canvas = modalCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    ctx.lineWidth = 2.5;
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    ctx.beginPath();
+    ctx.moveTo(clientX - rect.left, clientY - rect.top);
+    isDrawingModal.current = true;
+    modalHasSigned.current = true;
+  };
+
+  const modalDraw = (e: React.TouchEvent | React.MouseEvent) => {
+    e.preventDefault();
+    if (!isDrawingModal.current) return;
+    const canvas = modalCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    ctx.lineWidth = 3;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.strokeStyle = '#111111';
     ctx.lineTo(clientX - rect.left, clientY - rect.top);
     ctx.stroke();
   };
 
-  const stopDrawingMaster = (canvasRef: React.RefObject<HTMLCanvasElement | null>, setIsDrawing: (v: boolean) => void, setUrl: (s: string) => void) => {
-    setIsDrawing(false);
-    const canvas = canvasRef.current;
-    if (canvas) {
-      setUrl(canvas.toDataURL('image/png'));
-    }
+  const modalStop = (e: React.TouchEvent | React.MouseEvent) => {
+    e.preventDefault();
+    isDrawingModal.current = false;
   };
 
-  const clearMaster = (canvasRef: React.RefObject<HTMLCanvasElement | null>, setUrl: (s: string) => void) => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
+  const confirmModalSignature = () => {
+    const canvas = modalCanvasRef.current;
+    if (!canvas || !modalHasSigned.current) return;
+    const dataUrl = canvas.toDataURL('image/png');
+    if (sigModalTarget === 'day') setDaySignatureUrl(dataUrl);
+    else setNightSignatureUrl(dataUrl);
+    setSigModalOpen(false);
+  };
+
+  const clearModalCanvas = () => {
+    const canvas = modalCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    modalHasSigned.current = false;
+  };
+
+  const clearMaster = (setUrl: (s: string) => void) => {
     setUrl('');
   };
 
@@ -479,31 +515,22 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                   <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
                     <img src={daySignatureUrl} alt="Day Worker Master Signature" className="h-14 mx-auto object-contain bg-white rounded-lg p-1" />
                     <p className="text-[10px] text-emerald-400 font-bold mt-1">✅ Master Signature Saved</p>
+                    <button type="button" onClick={() => clearMaster(setDaySignatureUrl)} className="mt-1 text-[10px] text-rose-400 hover:underline cursor-pointer">Clear & Re-draw</button>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <div className="bg-white rounded-xl p-1 border border-slate-300 relative">
-                      <canvas
-                        ref={dayCanvasRef}
-                        width={260}
-                        height={90}
-                        onMouseDown={(e) => startDrawingMaster(dayCanvasRef, setIsDrawingDay, e)}
-                        onMouseMove={(e) => drawMaster(dayCanvasRef, isDrawingDay, e)}
-                        onMouseUp={() => stopDrawingMaster(dayCanvasRef, setIsDrawingDay, setDaySignatureUrl)}
-                        onMouseLeave={() => stopDrawingMaster(dayCanvasRef, setIsDrawingDay, setDaySignatureUrl)}
-                        onTouchStart={(e) => startDrawingMaster(dayCanvasRef, setIsDrawingDay, e)}
-                        onTouchMove={(e) => drawMaster(dayCanvasRef, isDrawingDay, e)}
-                        onTouchEnd={() => stopDrawingMaster(dayCanvasRef, setIsDrawingDay, setDaySignatureUrl)}
-                        className="w-full h-20 touch-none bg-white rounded-lg cursor-crosshair"
-                      />
-                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-slate-600 text-[11px]">
-                        ✍️ Draw Day Worker Signature Here
-                      </span>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openSigModal('day')}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-3 bg-white hover:bg-slate-50 border-2 border-dashed border-slate-400 rounded-xl text-slate-700 text-sm font-semibold cursor-pointer transition-colors"
+                    >
+                      <PenTool className="w-4 h-4 text-blue-500" />
+                      ✍️ Tap Here to Draw Signature
+                    </button>
 
                     <label className="flex items-center justify-center gap-2 py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 cursor-pointer">
                       <Upload className="w-3.5 h-3.5" />
-                      <span>Upload Image File</span>
+                      <span>Upload Image File Instead</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -537,7 +564,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                   {nightSignatureUrl && (
                     <button
                       type="button"
-                      onClick={() => clearMaster(nightCanvasRef, setNightSignatureUrl)}
+                      onClick={() => clearMaster(setNightSignatureUrl)}
                       className="text-[10px] text-rose-400 hover:underline cursor-pointer"
                     >
                       Clear
@@ -549,31 +576,22 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                   <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
                     <img src={nightSignatureUrl} alt="Night Worker Master Signature" className="h-14 mx-auto object-contain bg-white rounded-lg p-1" />
                     <p className="text-[10px] text-emerald-400 font-bold mt-1">✅ Master Signature Saved</p>
+                    <button type="button" onClick={() => clearMaster(setNightSignatureUrl)} className="mt-1 text-[10px] text-rose-400 hover:underline cursor-pointer">Clear & Re-draw</button>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <div className="bg-white rounded-xl p-1 border border-slate-300 relative">
-                      <canvas
-                        ref={nightCanvasRef}
-                        width={260}
-                        height={90}
-                        onMouseDown={(e) => startDrawingMaster(nightCanvasRef, setIsDrawingNight, e)}
-                        onMouseMove={(e) => drawMaster(nightCanvasRef, isDrawingNight, e)}
-                        onMouseUp={() => stopDrawingMaster(nightCanvasRef, setIsDrawingNight, setNightSignatureUrl)}
-                        onMouseLeave={() => stopDrawingMaster(nightCanvasRef, setIsDrawingNight, setNightSignatureUrl)}
-                        onTouchStart={(e) => startDrawingMaster(nightCanvasRef, setIsDrawingNight, e)}
-                        onTouchMove={(e) => drawMaster(nightCanvasRef, isDrawingNight, e)}
-                        onTouchEnd={() => stopDrawingMaster(nightCanvasRef, setIsDrawingNight, setNightSignatureUrl)}
-                        className="w-full h-20 touch-none bg-white rounded-lg cursor-crosshair"
-                      />
-                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-slate-600 text-[11px]">
-                        ✍️ Draw Night Worker Signature Here
-                      </span>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openSigModal('night')}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-3 bg-white hover:bg-slate-50 border-2 border-dashed border-slate-400 rounded-xl text-slate-700 text-sm font-semibold cursor-pointer transition-colors"
+                    >
+                      <PenTool className="w-4 h-4 text-indigo-500" />
+                      ✍️ Tap Here to Draw Signature
+                    </button>
 
                     <label className="flex items-center justify-center gap-2 py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 cursor-pointer">
                       <Upload className="w-3.5 h-3.5" />
-                      <span>Upload Image File</span>
+                      <span>Upload Image File Instead</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -701,6 +719,77 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── Full-screen Signature Drawing Modal ──────────────────────────────── */}
+      {sigModalOpen && (
+        <div
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.92)' }}
+        >
+          <div className="w-full max-w-md px-4 flex flex-col gap-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white font-bold text-lg">
+                  {sigModalTarget === 'day' ? '☀️ Day Worker' : '🌙 Night Worker'} Master Signature
+                </p>
+                <p className="text-slate-400 text-xs mt-0.5">Sign clearly inside the white box below</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSigModalOpen(false)}
+                className="text-slate-400 hover:text-white text-2xl font-bold leading-none cursor-pointer px-2"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Canvas */}
+            <div className="bg-white rounded-2xl overflow-hidden shadow-2xl border-4 border-white relative">
+              <canvas
+                ref={modalCanvasRef}
+                width={560}
+                height={260}
+                onMouseDown={modalStart}
+                onMouseMove={modalDraw}
+                onMouseUp={modalStop}
+                onMouseLeave={modalStop}
+                onTouchStart={modalStart}
+                onTouchMove={modalDraw}
+                onTouchEnd={modalStop}
+                onTouchCancel={modalStop}
+                className="w-full bg-white cursor-crosshair block"
+                style={{ touchAction: 'none' }}
+              />
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-slate-300 text-sm font-medium select-none">
+                ✍️ Sign here with your finger
+              </span>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={clearModalCanvas}
+                className="flex-1 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold cursor-pointer transition-colors flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="w-4 h-4" /> Clear
+              </button>
+              <button
+                type="button"
+                onClick={confirmModalSignature}
+                className="flex-2 flex-grow-[2] py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold cursor-pointer transition-colors flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" /> Confirm & Save Signature
+              </button>
+            </div>
+
+            <p className="text-center text-slate-500 text-xs">
+              After saving, click the main <strong className="text-white">Save Settings</strong> button to store it permanently.
+            </p>
+          </div>
+        </div>
+      )}
 
     </motion.div>
   );
