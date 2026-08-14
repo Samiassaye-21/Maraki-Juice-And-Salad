@@ -42,6 +42,11 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
     setErrorMsg(false);
   };
 
+  const handleClear = () => {
+    setPin('');
+    setErrorMsg(false);
+  };
+
   // Keyboard Event Listener for physical typing support
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -49,6 +54,8 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
         handleKey(e.key);
       } else if (e.key === 'Backspace') {
         handleDelete();
+      } else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
+        handleClear();
       } else if (e.key === 'Enter') {
         if (pin === WORKER_PIN) {
           onLoginSuccess();
@@ -59,7 +66,7 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [pin]);
 
-  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'];
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'del'];
 
   return (
     <div
@@ -139,7 +146,18 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
       {/* Number Pad */}
       <div className="grid grid-cols-3 gap-3.5 w-full max-w-xs">
         {keys.map((key, idx) => {
-          if (key === '') return <div key={idx} />;
+          if (key === 'C') {
+            return (
+              <button
+                key={idx}
+                onClick={handleClear}
+                className="h-14 rounded-full bg-white hover:bg-rose-50 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#403c21] shadow-xs text-[#403c21]"
+                title="Clear PIN"
+              >
+                <span className="text-xl font-black text-[#403c21]">C</span>
+              </button>
+            );
+          }
           if (key === 'del') {
             return (
               <button

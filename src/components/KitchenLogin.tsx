@@ -40,7 +40,12 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
     setErrorMsg(false);
   };
 
-  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'];
+  const handleClear = () => {
+    setPin('');
+    setErrorMsg(false);
+  };
+
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'del'];
 
   return (
     <div
@@ -102,8 +107,17 @@ const KitchenLogin: React.FC<KitchenLoginProps> = ({ onLoginSuccess }) => {
       {/* Number Pad */}
       <div className="grid grid-cols-3 gap-3.5 w-full max-w-xs">
         {keys.map((key, idx) => {
-          if (key === '') {
-            return <div key={idx} />;
+          if (key === 'C') {
+            return (
+              <button
+                key={idx}
+                onClick={handleClear}
+                className="h-16 rounded-full bg-white hover:bg-rose-50 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#403c21] shadow-xs text-[#403c21]"
+                title="Clear PIN"
+              >
+                <span className="text-xl font-black text-[#403c21]">C</span>
+              </button>
+            );
           }
           if (key === 'del') {
             return (
