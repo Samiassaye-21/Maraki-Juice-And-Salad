@@ -191,14 +191,14 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
       {/* HEADER CARD (#403c21 Hero Styling with #403c21 Accent) */}
       <div className="bg-[#403c21] border border-[#403c21]/40 rounded-3xl shadow-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 text-white">
         <div className="flex items-center space-x-3.5">
-          <div className="p-3.5 rounded-full bg-[#403c21] text-[#f7f5f0] border border-[#403c21]/40">
+          <div className="p-3.5 rounded-full bg-[#403c21] text-white font-extrabold border border-[#403c21]/40">
             <Clock className="w-6 h-6" />
           </div>
           <div>
             <h2 className="text-xl font-extrabold text-white">
               Customer Pending Payments
             </h2>
-            <p className="text-sm font-medium text-white/80 mt-0.5">
+            <p className="text-sm font-medium text-white font-bold mt-0.5">
               Track customer unpaid credit ledgers by shift worker
             </p>
           </div>
@@ -206,18 +206,18 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
 
         <div className="flex items-center space-x-4 w-full sm:w-auto">
           <div className="flex flex-col items-end">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-[#f7f5f0]">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-white font-extrabold">
               Outstanding Unpaid
             </span>
-            <span className="text-2xl font-extrabold text-[#f7f5f0]">
+            <span className="text-2xl font-extrabold text-white font-extrabold">
               {formatCurrency(totalOutstanding, currencySymbol)}
             </span>
           </div>
           <button
             onClick={() => setIsFormOpen(!isFormOpen)}
-            className="px-5 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] font-extrabold rounded-full shadow-md transition-all flex items-center space-x-2 shrink-0 cursor-pointer text-sm active:scale-95"
+            className="px-5 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold font-extrabold rounded-full shadow-md transition-all flex items-center space-x-2 shrink-0 cursor-pointer text-sm active:scale-95"
           >
-            <Plus className="w-5 h-5 text-[#f7f5f0]" />
+            <Plus className="w-5 h-5 text-white font-extrabold" />
             <span>Add Record</span>
           </button>
         </div>
@@ -233,8 +233,8 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-[#f7f5f0]">Day Shift Pending</span>
-                <span className="bg-[#403c21] text-[#f7f5f0] text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">{dayShiftUnpaid.length} Unpaid</span>
+                <span className="text-xs font-extrabold uppercase tracking-wider text-white font-extrabold">Day Shift Pending</span>
+                <span className="bg-[#403c21] text-white font-extrabold text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">{dayShiftUnpaid.length} Unpaid</span>
               </div>
               <div className="text-xs font-bold text-neutral-600 mt-1 flex items-center space-x-2">
                 <span>🥤 {dayShiftCups} Cups</span>
@@ -257,8 +257,8 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-[#f7f5f0]">Night Shift Pending</span>
-                <span className="bg-[#403c21] text-[#f7f5f0] text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">{nightShiftUnpaid.length} Unpaid</span>
+                <span className="text-xs font-extrabold uppercase tracking-wider text-white font-extrabold">Night Shift Pending</span>
+                <span className="bg-[#403c21] text-white font-extrabold text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">{nightShiftUnpaid.length} Unpaid</span>
               </div>
               <div className="text-xs font-bold text-neutral-600 mt-1 flex items-center space-x-2">
                 <span>🥤 {nightShiftCups} Cups</span>
@@ -285,7 +285,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
           >
             <div className="bg-white border border-[#403c21]/20 rounded-3xl p-5 sm:p-6 shadow-xs mb-6 text-[#403c21]">
               <h3 className="text-base font-extrabold text-[#403c21] mb-5 flex items-center space-x-2">
-                <Plus className="w-5 h-5 text-[#f7f5f0]" />
+                <Plus className="w-5 h-5 text-white font-extrabold" />
                 <span>Record New Customer Pending Credit</span>
               </h3>
 
@@ -391,7 +391,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] font-extrabold text-xs rounded-full shadow-md transition-colors cursor-pointer active:scale-95"
+                    className="px-6 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold font-extrabold text-xs rounded-full shadow-md transition-colors cursor-pointer active:scale-95"
                   >
                     Save Pending Credit Item
                   </button>
@@ -419,19 +419,19 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
           <div className="flex bg-[#f7f5f0] p-1 rounded-full border border-[#403c21]/20 text-xs font-medium">
             <button
               onClick={() => setFilterStatus('unpaid')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterStatus === 'unpaid' ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterStatus === 'unpaid' ? 'bg-[#403c21] text-white font-extrabold shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
             >
               Unpaid
             </button>
             <button
               onClick={() => setFilterStatus('paid')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterStatus === 'paid' ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterStatus === 'paid' ? 'bg-[#403c21] text-white font-extrabold shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
             >
               Paid
             </button>
             <button
               onClick={() => setFilterStatus('all')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterStatus === 'all' ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterStatus === 'all' ? 'bg-[#403c21] text-white font-extrabold shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
             >
               All
             </button>
@@ -461,13 +461,13 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
           <div className="flex bg-[#f7f5f0] p-1 rounded-full border border-[#403c21]/20 text-xs font-medium">
             <button
               onClick={() => setViewMode('individual')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${viewMode === 'individual' ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${viewMode === 'individual' ? 'bg-[#403c21] text-white font-extrabold shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
             >
               Single Items
             </button>
             <button
               onClick={() => setViewMode('grouped')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${viewMode === 'grouped' ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${viewMode === 'grouped' ? 'bg-[#403c21] text-white font-extrabold shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
             >
               Group By Customer ({customerGroups.length})
             </button>
@@ -496,7 +496,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                       <h3 className="text-base font-bold text-white flex items-center gap-2">
                         {group.customerName}
                         {group.unpaidCount > 0 ? (
-                          <span className="bg-[#403c21] text-[#f7f5f0] text-xs font-bold px-3 py-0.5 rounded-full">
+                          <span className="bg-[#403c21] text-white font-extrabold text-xs font-bold px-3 py-0.5 rounded-full">
                             {group.unpaidCount} Unpaid Order{group.unpaidCount > 1 ? 's' : ''}
                           </span>
                         ) : (
@@ -513,7 +513,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
 
                   <div className="flex items-center justify-between sm:justify-end space-x-4">
                     <div className="text-right">
-                      <span className="text-[10px] uppercase font-medium text-[#403c21]/70 block">Total Unpaid Balance</span>
+                      <span className="text-[10px] uppercase font-bold text-[#403c21]/70 block">Total Unpaid Balance</span>
                       <span className={`text-xl font-extrabold ${group.unpaidAmount > 0 ? 'text-[#403c21]' : 'text-white'}`}>
                         {formatCurrency(group.unpaidAmount, currencySymbol)}
                       </span>
@@ -551,12 +551,12 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                           {!item.isPaid ? (
                             <button
                               onClick={() => onSettlePendingPayment(item.id)}
-                              className="px-3 py-1 bg-[#403c21] text-[#f7f5f0] text-[11px] font-bold rounded-full hover:bg-[#403c21]/90 transition-colors cursor-pointer"
+                              className="px-3 py-1 bg-[#403c21] text-white font-extrabold text-[11px] font-bold rounded-full hover:bg-[#403c21]/90 transition-colors cursor-pointer"
                             >
                               Settle
                             </button>
                           ) : (
-                            <span className="text-[10px] font-bold text-[#f7f5f0] bg-[#403c21]/40 px-2.5 py-0.5 rounded-full border border-[#403c21]">PAID</span>
+                            <span className="text-[10px] font-bold text-white font-extrabold bg-[#403c21]/40 px-2.5 py-0.5 rounded-full border border-[#403c21]">PAID</span>
                           )}
                         </div>
                       </div>
@@ -590,7 +590,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                             {item.customerName || 'Customer Credit'}
                           </h4>
                           
-                          <span className="px-3 py-0.5 rounded-full text-xs font-bold flex items-center space-x-1 bg-[#403c21] text-[#f7f5f0] border border-[#403c21]/40">
+                          <span className="px-3 py-0.5 rounded-full text-xs font-bold flex items-center space-x-1 bg-[#403c21] text-white font-extrabold border border-[#403c21]/40">
                             {item.shiftType === 'day' ? <Sun className="w-3 h-3 mr-0.5 inline text-[#403c21]" /> : <Moon className="w-3 h-3 mr-0.5 inline text-[#403c21]" />}
                             <span>{item.shiftType.toUpperCase()} SHIFT</span>
                           </span>
@@ -600,7 +600,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                               PAID & SETTLED
                             </span>
                           ) : (
-                            <span className="bg-[#403c21] text-[#f7f5f0] px-3 py-0.5 rounded-full text-xs font-bold">
+                            <span className="bg-[#403c21] text-white font-extrabold px-3 py-0.5 rounded-full text-xs font-bold">
                               UNPAID CREDIT
                             </span>
                           )}
@@ -609,13 +609,13 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                         {/* HIGH LEVEL QUANTITIES SUMMARY ONLY (NO FOOD NAMES HERE) */}
                         <div className="flex items-center space-x-3 text-xs font-bold text-neutral-300 pt-0.5">
                           {item.juiceCupsCount > 0 && (
-                            <span className="bg-[#403c21] text-[#f7f5f0] px-3 py-1 rounded-full border border-[#403c21]/40 flex items-center space-x-1">
+                            <span className="bg-[#403c21] text-white font-extrabold px-3 py-1 rounded-full border border-[#403c21]/40 flex items-center space-x-1">
                               <CupSoda className="w-3.5 h-3.5" />
                               <span>{item.juiceCupsCount} Juice Cups</span>
                             </span>
                           )}
                           {item.foodTakeawaysCount > 0 && (
-                            <span className="bg-[#403c21] text-[#f7f5f0] px-3 py-1 rounded-full border border-[#403c21]/40 flex items-center space-x-1">
+                            <span className="bg-[#403c21] text-white font-extrabold px-3 py-1 rounded-full border border-[#403c21]/40 flex items-center space-x-1">
                               <Utensils className="w-3.5 h-3.5" />
                               <span>{item.foodTakeawaysCount} Food Boxes</span>
                             </span>
@@ -625,7 +625,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                           )}
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#403c21]/70 pt-0.5">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-[#403c21] pt-0.5">
                           <span>Date: {item.date}</span>
                           {item.isPaid && item.paidDate && (
                             <span className="text-[#403c21] font-medium">• Cash Collected on {item.paidDate}</span>
@@ -718,7 +718,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                               {Object.entries(item.itemizedBreakdown).map(([dishName, count]) => (
                                 <div key={dishName} className="flex items-center justify-between text-xs bg-[#403c21]/20 px-3 py-1.5 rounded-full border border-[#403c21]/40">
                                   <span className="font-bold text-white">{dishName}</span>
-                                  <span className="font-bold text-[#f7f5f0] bg-[#403c21] px-2 py-0.5 rounded-full text-[11px]">
+                                  <span className="font-bold text-white font-extrabold bg-[#403c21] px-2 py-0.5 rounded-full text-[11px]">
                                     x{count}
                                   </span>
                                 </div>
@@ -726,7 +726,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                             </div>
                           ) : (
                             <div className="text-xs text-neutral-300 bg-[#403c21]/20 p-2.5 rounded-2xl border border-[#403c21]/40">
-                              <span className="font-medium text-[#403c21]/70">Note:</span> {item.description}
+                              <span className="font-bold text-[#403c21]/70">Note:</span> {item.description}
                             </div>
                           )}
                         </div>
@@ -964,7 +964,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                       <button
                         type="button"
                         onClick={() => setPartialCupsPaid(Math.min(partialItem.juiceCupsCount, partialCupsPaid + 1))}
-                        className="w-7 h-7 rounded-full bg-[#403c21] text-[#f7f5f0] font-bold flex items-center justify-center hover:bg-[#403c21]/90 cursor-pointer"
+                        className="w-7 h-7 rounded-full bg-[#403c21] text-white font-extrabold font-bold flex items-center justify-center hover:bg-[#403c21]/90 cursor-pointer"
                       >+</button>
                     </div>
                   </div>
@@ -992,7 +992,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                       <button
                         type="button"
                         onClick={() => setPartialBoxesPaid(Math.min(partialItem.foodTakeawaysCount, partialBoxesPaid + 1))}
-                        className="w-7 h-7 rounded-full bg-[#403c21] text-[#f7f5f0] font-bold flex items-center justify-center hover:bg-[#403c21]/90 cursor-pointer"
+                        className="w-7 h-7 rounded-full bg-[#403c21] text-white font-extrabold font-bold flex items-center justify-center hover:bg-[#403c21]/90 cursor-pointer"
                       >+</button>
                     </div>
                   </div>

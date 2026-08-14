@@ -102,7 +102,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-extrabold text-[#403c21]">Account Balance</h2>
-          <p className="text-sm font-medium text-[#403c21]/70 mt-0.5">Running financial position — like a bank statement</p>
+          <p className="text-sm font-bold text-[#403c21]/70 mt-0.5">Running financial position — like a bank statement</p>
         </div>
         <button
           onClick={toggleShowBalance}
@@ -123,7 +123,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
         </button>
       </div>
 
-      {/* Main Balance Hero Card (#403c21 Hero Card with #f7f5f0 Accents) */}
+      {/* Main Balance Hero Card (#403c21 Hero Card with White Accents) */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -132,34 +132,34 @@ export const AccountView: React.FC<AccountViewProps> = ({
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-xs font-extrabold text-[#f7f5f0] uppercase tracking-wider">Current Balance</p>
+              <p className="text-xs font-extrabold text-white uppercase tracking-wider">Current Balance</p>
               <button 
                 onClick={toggleShowBalance} 
-                className="text-[#f7f5f0] hover:text-white transition-colors cursor-pointer"
+                className="text-white hover:text-stone-200 transition-colors cursor-pointer"
                 title={showBalance ? "Hide Balance" : "Show Balance"}
               >
-                {showBalance ? <EyeOff className="w-4 h-4 text-[#f7f5f0]" /> : <Eye className="w-4 h-4 text-[#f7f5f0]" />}
+                {showBalance ? <EyeOff className="w-4 h-4 text-white" /> : <Eye className="w-4 h-4 text-white" />}
               </button>
             </div>
-            <p className="text-4xl font-extrabold mt-1 tracking-tight text-[#f7f5f0]">{renderAmount(balance)}</p>
-            <p className="text-sm text-[#f7f5f0]/90 mt-1 font-medium">All time net position</p>
+            <p className="text-4xl sm:text-5xl font-black mt-1 tracking-tight text-white">{renderAmount(balance)}</p>
+            <p className="text-sm text-white/90 mt-1 font-bold">All time net position</p>
           </div>
-          <div className="p-3.5 bg-[#524d2c] border border-[#f7f5f0]/30 text-[#f7f5f0] rounded-full shadow-xs">
-            <Wallet className="w-8 h-8 text-[#f7f5f0]" />
+          <div className="p-3.5 bg-[#524d2c] border border-white/30 text-white rounded-full shadow-xs">
+            <Wallet className="w-8 h-8 text-white" />
           </div>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="bg-[#524d2c] border border-[#f7f5f0]/30 rounded-2xl px-4 py-3">
-            <div className="flex items-center gap-1.5 text-[#f7f5f0] text-xs font-bold">
-              <TrendingUp className="w-3.5 h-3.5 text-[#f7f5f0]" /> Total Income
+          <div className="bg-[#524d2c] border border-white/30 rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-1.5 text-white text-xs font-bold">
+              <TrendingUp className="w-3.5 h-3.5 text-white" /> Total Income
             </div>
-            <p className="text-lg font-extrabold text-[#f7f5f0] mt-0.5">{renderAmount(allIncome)}</p>
+            <p className="text-xl font-black text-white mt-0.5">{renderAmount(allIncome)}</p>
           </div>
-          <div className="bg-[#524d2c] border border-[#f7f5f0]/30 rounded-2xl px-4 py-3">
-            <div className="flex items-center gap-1.5 text-[#f7f5f0] text-xs font-bold">
-              <TrendingDown className="w-3.5 h-3.5 text-[#f7f5f0]" /> Total Expenses
+          <div className="bg-[#524d2c] border border-white/30 rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-1.5 text-white text-xs font-bold">
+              <TrendingDown className="w-3.5 h-3.5 text-white" /> Total Expenses
             </div>
-            <p className="text-lg font-extrabold text-[#f7f5f0] mt-0.5">{renderAmount(allExpenses)}</p>
+            <p className="text-xl font-black text-white mt-0.5">{renderAmount(allExpenses)}</p>
           </div>
         </div>
       </motion.div>
@@ -188,7 +188,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
             <button
               key={p}
               onClick={() => setFilterPeriod(p)}
-              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${filterPeriod === p ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${filterPeriod === p ? 'bg-[#403c21] text-white font-extrabold shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
             >
               {p === 'week' ? 'This Week' : p === 'month' ? 'Last 30 Days' : 'All Time'}
             </button>
@@ -200,7 +200,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
             <button
               key={v}
               onClick={() => setFilterType(v)}
-              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${filterType === v ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${filterType === v ? 'bg-[#403c21] text-white font-extrabold shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
             >
               {l}
             </button>
@@ -240,7 +240,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-extrabold text-[#403c21] truncate">{entry.description}</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${isIncome ? 'bg-[#403c21] text-[#f7f5f0]' : 'bg-[#f7f5f0] text-neutral-600 border border-[#403c21]/20'}`}>
+                  <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${isIncome ? 'bg-[#403c21] text-white font-extrabold' : 'bg-[#f7f5f0] text-neutral-600 border border-[#403c21]/20'}`}>
                     {cfg.label}
                   </span>
                   <span className="text-[10px] text-neutral-500 font-medium">{entry.date}</span>

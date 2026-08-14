@@ -360,7 +360,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
   const inputClasses = "w-full px-4 py-2.5 bg-white border border-[#403c21]/30 rounded-full text-[#403c21] text-sm font-bold focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/40 transition-all shadow-xs placeholder:text-[#403c21]/50";
   const leftoverInputClasses = "w-full px-4 py-2.5 bg-white border-2 border-[#403c21] rounded-full text-[#403c21] text-base font-extrabold text-center focus:outline-none transition-all shadow-xs";
   const labelClasses = "block text-xs font-bold text-[#403c21]/80 uppercase tracking-wider mb-1.5";
-  const subLabelClasses = "text-xs text-[#403c21]/70 font-medium block text-center mt-1.5";
+  const subLabelClasses = "text-xs font-bold text-[#403c21] font-medium block text-center mt-1.5";
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 font-sans text-[#403c21]">
@@ -379,7 +379,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
             </p>
             <button 
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] font-bold text-xs rounded-full shadow-md transition-colors whitespace-nowrap"
+              className="px-4 py-2 bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold font-bold text-xs rounded-full shadow-md transition-colors whitespace-nowrap"
             >
               Start New Shift
             </button>
@@ -400,7 +400,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                   <div>
                     <h2 className="text-lg font-extrabold tracking-tight text-[#403c21] flex items-center gap-2">
                       <span>ለማረጋገጫ የተላኩ የሸፍት መዝገቦች</span>
-                      <span className="bg-[#403c21] text-[#f7f5f0] font-extrabold text-xs px-3 py-0.5 rounded-full">
+                      <span className="bg-[#403c21] text-white font-extrabold font-extrabold text-xs px-3 py-0.5 rounded-full">
                         {pendingApprovalShifts.length} PENDING APPROVAL
                       </span>
                     </h2>
@@ -419,7 +419,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                   >
                     <div className="flex items-center justify-between border-b border-[#403c21]/15 pb-2">
                       <div className="flex items-center gap-2">
-                        <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-[#403c21] text-[#f7f5f0]">
+                        <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-[#403c21] text-white font-extrabold">
                           {pShift.shiftType === 'night' ? '🌙 Night Shift' : '☀️ Day Shift'}
                         </span>
                         <span className="text-sm font-extrabold text-[#403c21]">{pShift.date}</span>
@@ -466,7 +466,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                         <span className="text-xs text-[#403c21] font-extrabold block">ለባለቤቱ የሚገባ ጥሬ ገንዘብ (Net Cash Handover)</span>
                         <span className="text-xs text-neutral-500 font-medium">Actual cash to receive</span>
                       </div>
-                      <span className="text-2xl font-extrabold text-[#f7f5f0]">
+                      <span className="text-2xl font-extrabold text-white font-extrabold">
                         {formatCurrency(pShift.netCashDueToOwner, currencySymbol)}
                       </span>
                     </div>
@@ -475,7 +475,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                     <div className="flex items-center gap-3 pt-1">
                       <button
                         onClick={() => onApproveShift?.(pShift)}
-                        className="flex-1 py-3 rounded-full bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] font-extrabold text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
+                        className="flex-1 py-3 rounded-full bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold font-extrabold text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
                       >
                         <CheckCircle2 className="w-4 h-4 text-[#403c21]" />
                         <span>የሸፍት መረጃውን አጽድቅ (Approve & Close Shift)</span>
@@ -545,14 +545,14 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
         <div className="space-y-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#403c21] text-[#f7f5f0] font-bold text-sm shadow-sm">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#403c21] text-white font-extrabold font-bold text-sm shadow-sm">
                 1
               </span>
               <h3 className="text-lg font-extrabold text-[#403c21]">
                 Stock Inventory Count
               </h3>
             </div>
-            <span className="text-xs font-semibold text-[#f7f5f0] bg-[#403c21] px-3 py-1 rounded-full border border-[#403c21]/40">
+            <span className="text-xs font-semibold text-white font-extrabold bg-[#403c21] px-3 py-1 rounded-full border border-[#403c21]/40">
               ⚡ Auto-Calculates
             </span>
           </div>
@@ -646,14 +646,14 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                   <button
                     type="button"
                     onClick={() => setUseMenuSalesCalc(true)}
-                    className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${useMenuSalesCalc ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+                    className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${useMenuSalesCalc ? 'bg-[#403c21] text-white font-extrabold shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
                   >
                     ✨ Itemized Menu
                   </button>
                   <button
                     type="button"
                     onClick={() => setUseMenuSalesCalc(false)}
-                    className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${!useMenuSalesCalc ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+                    className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${!useMenuSalesCalc ? 'bg-[#403c21] text-white font-extrabold shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
                   >
                     📦 Flat Rate
                   </button>
@@ -663,8 +663,8 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
               {/* LAYER 1: Physical Box Count */}
               <div className="bg-[#f7f5f0] rounded-2xl p-4 border border-[#403c21]/20">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="w-5 h-5 rounded-full bg-[#403c21] text-[#f7f5f0] text-[10px] font-extrabold flex items-center justify-center">1</span>
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#f7f5f0]">Physical Box Count</span>
+                  <span className="w-5 h-5 rounded-full bg-[#403c21] text-white font-extrabold text-[10px] font-extrabold flex items-center justify-center">1</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-white font-extrabold">Physical Box Count</span>
                   <span className="ml-auto text-xs text-neutral-500 font-medium">Opening + Added − Leftover = Sold</span>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -711,8 +711,8 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
               {/* LAYER 2: Itemized Dish Sales */}
               <div className="bg-[#f7f5f0] rounded-2xl p-4 border border-[#403c21]/20">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="w-5 h-5 rounded-full bg-[#403c21] text-[#f7f5f0] text-[10px] font-extrabold flex items-center justify-center">2</span>
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#f7f5f0]">Itemize Which Dishes Were Sold</span>
+                  <span className="w-5 h-5 rounded-full bg-[#403c21] text-white font-extrabold text-[10px] font-extrabold flex items-center justify-center">2</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-white font-extrabold">Itemize Which Dishes Were Sold</span>
                   <span className="ml-auto text-[10px] text-neutral-500 font-medium">Price auto-applied per item</span>
                 </div>
 
@@ -748,7 +748,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                           />
                           <button type="button"
                             onClick={() => setFoodSales(prev => ({ ...prev, [menuItem.id]: (prev[menuItem.id] || 0) + 1 }))}
-                            className="w-6 h-6 rounded-full bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] font-extrabold flex items-center justify-center cursor-pointer text-xs shadow-xs"
+                            className="w-6 h-6 rounded-full bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold font-extrabold flex items-center justify-center cursor-pointer text-xs shadow-xs"
                           >+</button>
                         </div>
                       </div>
@@ -842,7 +842,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                 Calculated Gross Shift Income
               </span>
             </div>
-            <span className="text-2xl font-extrabold text-[#f7f5f0]">
+            <span className="text-2xl font-extrabold text-white font-extrabold">
               {formatCurrency(grossIncome, currencySymbol)}
             </span>
           </div>
@@ -851,7 +851,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
         {/* STEP 2: CASH ADJUSTMENTS */}
         <div className="space-y-5 pt-2">
           <div className="flex items-center space-x-3">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#403c21] text-[#f7f5f0] font-extrabold text-sm shadow-xs">
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#403c21] text-white font-extrabold font-extrabold text-sm shadow-xs">
               2
             </span>
             <h3 className="text-lg font-extrabold text-[#403c21]">
@@ -961,7 +961,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                       />
                       <button type="button"
                         onClick={() => setPendingJuiceCups(pendingJuiceCups + 1)}
-                        className="w-6 h-6 rounded-full bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] font-extrabold flex items-center justify-center cursor-pointer text-xs shadow-xs"
+                        className="w-6 h-6 rounded-full bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold font-extrabold flex items-center justify-center cursor-pointer text-xs shadow-xs"
                       >+</button>
                     </div>
                   </div>
@@ -998,7 +998,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                           />
                           <button type="button"
                             onClick={() => setPendingFoodSales(prev => ({ ...prev, [menuItem.id]: (prev[menuItem.id] || 0) + 1 }))}
-                            className="w-6 h-6 rounded-full bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] font-extrabold flex items-center justify-center cursor-pointer text-xs shadow-xs"
+                            className="w-6 h-6 rounded-full bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold font-extrabold flex items-center justify-center cursor-pointer text-xs shadow-xs"
                           >+</button>
                         </div>
                       </div>
@@ -1089,7 +1089,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                                     <span className="text-[10px] font-semibold text-neutral-300">Paid Cups:</span>
                                     <button type="button"
                                       onClick={() => setPartialPendingCups(prev => ({ ...prev, [item.id]: Math.max(0, (prev[item.id] || 0) - 1) }))}
-                                      className="w-4 h-4 rounded-full bg-[#403c21] text-[#f7f5f0] font-bold flex items-center justify-center text-[10px]"
+                                      className="w-4 h-4 rounded-full bg-[#403c21] text-white font-extrabold font-bold flex items-center justify-center text-[10px]"
                                     >−</button>
                                     <input
                                       type="number" min="0" max={item.juiceCupsCount}
@@ -1104,7 +1104,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                                     />
                                     <button type="button"
                                       onClick={() => setPartialPendingCups(prev => ({ ...prev, [item.id]: Math.min(item.juiceCupsCount, (prev[item.id] || 0) + 1) }))}
-                                      className="w-4 h-4 rounded-full bg-[#403c21] text-[#f7f5f0] font-bold flex items-center justify-center text-[10px]"
+                                      className="w-4 h-4 rounded-full bg-[#403c21] text-white font-extrabold font-bold flex items-center justify-center text-[10px]"
                                     >+</button>
                                   </div>
                                 )}
@@ -1114,7 +1114,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                                     <span className="text-[10px] font-semibold text-neutral-300">Paid Boxes:</span>
                                     <button type="button"
                                       onClick={() => setPartialPendingBoxes(prev => ({ ...prev, [item.id]: Math.max(0, (prev[item.id] || 0) - 1) }))}
-                                      className="w-4 h-4 rounded-full bg-[#403c21] text-[#f7f5f0] font-bold flex items-center justify-center text-[10px]"
+                                      className="w-4 h-4 rounded-full bg-[#403c21] text-white font-extrabold font-bold flex items-center justify-center text-[10px]"
                                     >−</button>
                                     <input
                                       type="number" min="0" max={item.foodTakeawaysCount}
@@ -1129,7 +1129,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                                     />
                                     <button type="button"
                                       onClick={() => setPartialPendingBoxes(prev => ({ ...prev, [item.id]: Math.min(item.foodTakeawaysCount, (prev[item.id] || 0) + 1) }))}
-                                      className="w-4 h-4 rounded-full bg-[#403c21] text-[#f7f5f0] font-bold flex items-center justify-center text-[10px]"
+                                      className="w-4 h-4 rounded-full bg-[#403c21] text-white font-extrabold font-bold flex items-center justify-center text-[10px]"
                                     >+</button>
                                   </div>
                                 )}
@@ -1194,7 +1194,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                         />
                         <button type="button"
                           onClick={() => setRecoveredJuiceCups(recoveredJuiceCups + 1)}
-                          className="w-6 h-6 rounded-full bg-[#403c21] text-[#f7f5f0] font-bold flex items-center justify-center hover:bg-[#403c21]/90 cursor-pointer text-xs"
+                          className="w-6 h-6 rounded-full bg-[#403c21] text-white font-extrabold font-bold flex items-center justify-center hover:bg-[#403c21]/90 cursor-pointer text-xs"
                         >+</button>
                       </div>
                     </div>
@@ -1230,7 +1230,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                             />
                             <button type="button"
                               onClick={() => setRecoveredFoodSales(prev => ({ ...prev, [menuItem.id]: (prev[menuItem.id] || 0) + 1 }))}
-                              className="w-6 h-6 rounded-full bg-[#403c21] text-[#f7f5f0] font-bold flex items-center justify-center hover:bg-[#403c21]/90 cursor-pointer text-xs"
+                              className="w-6 h-6 rounded-full bg-[#403c21] text-white font-extrabold font-bold flex items-center justify-center hover:bg-[#403c21]/90 cursor-pointer text-xs"
                             >+</button>
                           </div>
                         </div>
@@ -1304,18 +1304,18 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
         <div className="bg-[#403c21] rounded-3xl p-6 text-white shadow-2xl space-y-4 border border-[#403c21]/40">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-[#f7f5f0] bg-[#403c21] px-3.5 py-1 rounded-full mb-2 shadow-xs">
-                <ShieldCheck className="w-4 h-4 text-[#f7f5f0]" /> Physical Cash Handover
+              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-white font-extrabold bg-[#403c21] px-3.5 py-1 rounded-full mb-2 shadow-xs">
+                <ShieldCheck className="w-4 h-4 text-white font-extrabold" /> Physical Cash Handover
               </span>
               <h3 className="text-2xl font-extrabold text-white tracking-tight">Net Cash Due to Owner</h3>
-              <p className="text-xs text-white/80 mt-0.5 font-medium">Exact cash worker must hand over at end of shift</p>
+              <p className="text-xs text-white font-bold mt-0.5 font-medium">Exact cash worker must hand over at end of shift</p>
             </div>
-            <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#f7f5f0]">
+            <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white font-extrabold">
               {formatCurrency(netCashDueToOwner, currencySymbol)}
             </div>
           </div>
 
-          <div className="text-xs font-bold text-white/80 pt-4 border-t border-[#403c21]/30 flex flex-wrap items-center gap-2">
+          <div className="text-xs font-bold text-white font-bold pt-4 border-t border-[#403c21]/30 flex flex-wrap items-center gap-2">
             <span className="bg-[#403c21] px-3 py-1 rounded-full border border-[#403c21]/30 text-white">Gross: {formatCurrency(grossIncome, currencySymbol)}</span>
             <span>−</span>
             <span className="bg-[#403c21] px-3 py-1 rounded-full border border-[#403c21]/30 text-white">Digital: {formatCurrency(digitalTransfers, currencySymbol)}</span>
@@ -1346,9 +1346,9 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] font-extrabold py-4 px-6 rounded-full shadow-lg text-base flex items-center justify-center space-x-2.5 transition-all cursor-pointer active:scale-95"
+            className="w-full bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold font-extrabold py-4 px-6 rounded-full shadow-lg text-base flex items-center justify-center space-x-2.5 transition-all cursor-pointer active:scale-95"
           >
-            <CheckCircle2 className="w-5 h-5 text-[#f7f5f0]" />
+            <CheckCircle2 className="w-5 h-5 text-white font-extrabold" />
             <span>Close Shift & Carry Leftovers to Next Worker</span>
           </button>
         </div>

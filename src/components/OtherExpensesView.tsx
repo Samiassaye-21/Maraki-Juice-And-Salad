@@ -94,9 +94,9 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
         >
-          <Plus className="w-4 h-4 text-[#f7f5f0]" />
+          <Plus className="w-4 h-4 text-white font-extrabold" />
           <span>Add Expense</span>
         </button>
       </div>
@@ -106,12 +106,12 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
         <div className="bg-[#403c21] border border-[#403c21]/40 rounded-3xl p-5 shadow-2xl text-white">
           <p className="text-xs font-extrabold text-[#403c21] uppercase tracking-wide">This Month</p>
           <p className="text-2xl font-extrabold text-[#403c21] mt-1">{formatCurrency(totalThisMonth, currencySymbol)}</p>
-          <p className="text-xs text-white/80 font-medium mt-0.5">Overhead spent</p>
+          <p className="text-xs text-white font-bold font-medium mt-0.5">Overhead spent</p>
         </div>
         <div className="bg-white border border-[#403c21]/20 rounded-3xl p-5 shadow-xs text-[#403c21]">
           <p className="text-xs font-bold text-[#403c21]/70 uppercase tracking-wide">All Time</p>
           <p className="text-2xl font-extrabold text-[#403c21] mt-1">{formatCurrency(totalAllTime, currencySymbol)}</p>
-          <p className="text-xs text-[#403c21]/70 font-medium mt-0.5">{expenses.length} total records</p>
+          <p className="text-xs font-bold text-[#403c21] font-medium mt-0.5">{expenses.length} total records</p>
         </div>
       </div>
 
@@ -160,7 +160,7 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                           onClick={() => setCategory(preset.id)}
                           className={`flex items-center gap-2 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                             isSelected 
-                              ? 'border-[#403c21] bg-[#403c21] text-[#f7f5f0] font-extrabold shadow-xs' 
+                              ? 'border-[#403c21] bg-[#403c21] text-white font-extrabold font-extrabold shadow-xs' 
                               : 'border-[#403c21]/20 bg-[#f7f5f0] text-[#403c21] hover:bg-slate-100'
                           }`}
                         >

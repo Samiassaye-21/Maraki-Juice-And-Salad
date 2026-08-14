@@ -424,7 +424,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                 <p className="text-[11px] text-neutral-500 font-medium">Unsettled Customer Credit Left</p>
               </div>
             </div>
-            <span className="text-xs font-extrabold text-[#f7f5f0] bg-[#403c21] px-3.5 py-1 rounded-full shadow-xs">
+            <span className="text-xs font-extrabold text-white font-extrabold bg-[#403c21] px-3.5 py-1 rounded-full shadow-xs">
               {unpaidPendingCount} Debts
             </span>
           </div>
@@ -438,7 +438,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                 🍱 {totalUnpaidFoodBoxes} Boxes
               </span>
             </div>
-            <div className="text-2xl font-extrabold text-[#f7f5f0]">
+            <div className="text-2xl font-extrabold text-white font-extrabold">
               {formatCurrency(totalUnpaidPendingAmount, config.currencySymbol)}
             </div>
           </div>
@@ -511,7 +511,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
               </div>
               <h2 className="font-extrabold text-[#403c21] text-sm">የጁስ ሂሳብ (Juice Sales)</h2>
             </div>
-            <span className="text-xs font-bold text-[#f7f5f0] bg-[#403c21] px-3 py-0.5 rounded-full shadow-xs">
+            <span className="text-xs font-bold text-white font-extrabold bg-[#403c21] px-3 py-0.5 rounded-full shadow-xs">
               {totals.juiceCupsSold} Cups Sold
             </span>
           </div>
@@ -563,7 +563,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
               </div>
               <h2 className="font-extrabold text-[#403c21] text-sm">የምግብ ሂሳብ (Food Sales)</h2>
             </div>
-            <span className="text-xs font-bold text-[#f7f5f0] bg-[#403c21] px-3 py-0.5 rounded-full shadow-xs">
+            <span className="text-xs font-bold text-white font-extrabold bg-[#403c21] px-3 py-0.5 rounded-full shadow-xs">
               {totals.foodTakeawaysSold} Takeaways
             </span>
           </div>
@@ -854,7 +854,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
           <button
             onClick={handleSaveShift}
             disabled={saving}
-            className="w-full h-14 rounded-full bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] font-extrabold text-lg shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-3 active:scale-95 transition-all"
+            className="w-full h-14 rounded-full bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold font-extrabold text-lg shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-3 active:scale-95 transition-all"
           >
             {saving ? (
               <div className="w-6 h-6 border-3 border-[#403c21]/40 border-t-[#403c21] rounded-full animate-spin" />

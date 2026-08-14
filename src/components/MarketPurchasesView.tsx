@@ -164,13 +164,13 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-extrabold text-[#403c21]">Inventory Purchases</h2>
-          <p className="text-sm font-medium text-[#403c21]/70 mt-0.5">Bulk buying — fruits, packaging & supplies</p>
+          <p className="text-sm font-bold text-[#403c21]/70 mt-0.5">Bulk buying — fruits, packaging & supplies</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold rounded-full font-extrabold text-sm shadow-md transition-all cursor-pointer active:scale-95"
         >
-          <Plus className="w-4 h-4 text-[#f7f5f0]" />
+          <Plus className="w-4 h-4 text-white font-extrabold" />
           <span>New Trip</span>
         </button>
       </div>
@@ -180,7 +180,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
         <div className="bg-[#403c21] border border-[#403c21]/40 rounded-3xl p-5 shadow-2xl text-white">
           <p className="text-xs font-extrabold text-[#403c21] uppercase tracking-wide">This Week</p>
           <p className="text-2xl font-extrabold text-[#403c21] mt-1">{formatCurrency(totalThisWeek, currencySymbol)}</p>
-          <p className="text-xs text-white/80 font-medium mt-0.5">{purchaseTrips.filter(t => {
+          <p className="text-xs text-white font-bold font-medium mt-0.5">{purchaseTrips.filter(t => {
             const ws = new Date(); ws.setDate(ws.getDate() - ws.getDay());
             return new Date(t.date) >= ws;
           }).length} trips</p>
@@ -190,7 +190,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
           <p className="text-2xl font-extrabold text-[#403c21] mt-1">
             {formatCurrency(purchaseTrips.reduce((s, t) => s + t.grandTotal, 0), currencySymbol)}
           </p>
-          <p className="text-xs text-[#403c21]/70 font-medium mt-0.5">{purchaseTrips.length} total trips</p>
+          <p className="text-xs font-bold text-[#403c21] font-medium mt-0.5">{purchaseTrips.length} total trips</p>
         </div>
       </div>
 
@@ -377,7 +377,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                     onClick={addItemRow}
                     className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#403c21] rounded-full text-neutral-300 text-sm hover:border-[#403c21] hover:text-[#403c21] transition-colors cursor-pointer"
                   >
-                    <Plus className="w-4 h-4 text-[#f7f5f0]" />
+                    <Plus className="w-4 h-4 text-white font-extrabold" />
                     Add Another Item
                   </button>
                 </div>
@@ -391,7 +391,7 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
                 )}
 
                 {!isFormValid && items.some(it => it.itemName) && (
-                  <div className="flex items-center gap-2 text-[#f7f5f0] bg-[#403c21]/30 rounded-2xl px-3 py-2.5 text-sm border border-[#403c21]">
+                  <div className="flex items-center gap-2 text-white font-extrabold bg-[#403c21]/30 rounded-2xl px-3 py-2.5 text-sm border border-[#403c21]">
                     <AlertCircle className="w-4 h-4 flex-shrink-0 text-[#403c21]" />
                     Please fill in quantity and total price for each item.
                   </div>

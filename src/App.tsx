@@ -862,7 +862,7 @@ export function App() {
       </main>
 
       <footer className="border-t border-stone-200/60 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm py-5 text-center mt-auto transition-colors">
-        <p className="text-xs font-medium text-[#403c21]/70 dark:text-slate-500">
+        <p className="text-xs font-bold text-[#403c21]/70 dark:text-slate-500">
           Maraki Juice and Salad • Stock Inventory & Shift Reconciliation
         </p>
       </footer>

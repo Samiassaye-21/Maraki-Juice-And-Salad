@@ -133,14 +133,14 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
       {/* HEADER CARD (#403c21 Hero Styling with #403c21 Accent) */}
       <div className="bg-[#403c21] rounded-3xl p-5 sm:p-6 border border-[#403c21]/40 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 text-white">
         <div className="flex items-center space-x-4">
-          <div className="p-3.5 rounded-full bg-[#403c21] text-[#f7f5f0] border border-[#403c21]/40">
+          <div className="p-3.5 rounded-full bg-[#403c21] text-white font-extrabold border border-[#403c21]/40">
             <Truck className="w-6 h-6" />
           </div>
           <div>
             <h2 className="text-xl font-extrabold text-white">
               Weekly Delivery Accounts
             </h2>
-            <p className="text-sm font-medium text-white/80 mt-0.5">
+            <p className="text-sm font-medium text-white font-bold mt-0.5">
               BeU, Deliver Addis & Feres delivery partner ledgers
             </p>
           </div>
@@ -151,15 +151,15 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#403c21]">
               Unsettled Balance
             </span>
-            <span className="text-2xl font-extrabold text-[#f7f5f0]">
+            <span className="text-2xl font-extrabold text-white font-extrabold">
               {formatCurrency(totalUnsettled, currencySymbol)}
             </span>
           </div>
           <button
             onClick={() => setIsFormOpen(!isFormOpen)}
-            className="px-5 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] font-extrabold rounded-full shadow-md transition-all flex items-center space-x-2 shrink-0 cursor-pointer text-sm active:scale-95"
+            className="px-5 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold font-extrabold rounded-full shadow-md transition-all flex items-center space-x-2 shrink-0 cursor-pointer text-sm active:scale-95"
           >
-            <Plus className="w-5 h-5 text-[#f7f5f0]" />
+            <Plus className="w-5 h-5 text-white font-extrabold" />
             <span>Add Delivery</span>
           </button>
         </div>
@@ -176,7 +176,7 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
           >
             <div className="bg-white border border-[#403c21]/20 rounded-3xl p-5 sm:p-6 shadow-xs mb-6 text-[#403c21]">
               <h3 className="text-base font-extrabold text-[#403c21] mb-5 flex items-center space-x-2">
-                <Plus className="w-5 h-5 text-[#f7f5f0]" />
+                <Plus className="w-5 h-5 text-white font-extrabold" />
                 <span>Record Weekly Delivery Order Credit</span>
               </h3>
 
@@ -293,7 +293,7 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] font-extrabold text-xs rounded-full shadow-md transition cursor-pointer active:scale-95"
+                    className="px-6 py-2.5 bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold font-extrabold text-xs rounded-full shadow-md transition cursor-pointer active:scale-95"
                   >
                     Save Delivery Credit
                   </button>
@@ -320,19 +320,19 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
         <div className="flex bg-[#f7f5f0] p-1 rounded-full border border-[#403c21]/20 text-xs font-medium w-full sm:w-auto">
           <button
             onClick={() => setFilterStatus('unsettled')}
-            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'unsettled' ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'unsettled' ? 'bg-[#403c21] text-white font-extrabold shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
           >
             Weekly Unsettled
           </button>
           <button
             onClick={() => setFilterStatus('settled')}
-            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'settled' ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'settled' ? 'bg-[#403c21] text-white font-extrabold shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
           >
             Settled Paid
           </button>
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'all' ? 'bg-[#403c21] text-[#f7f5f0] shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
+            className={`px-4 py-1.5 rounded-full transition cursor-pointer flex-1 sm:flex-none font-extrabold ${filterStatus === 'all' ? 'bg-[#403c21] text-white font-extrabold shadow-xs' : 'text-neutral-600 hover:text-[#403c21]'}`}
           >
             All Logs
           </button>
@@ -376,7 +376,7 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                           WEEKLY SETTLED
                         </span>
                       ) : (
-                        <span className="bg-[#403c21] text-[#f7f5f0] text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase">
+                        <span className="bg-[#403c21] text-white font-extrabold text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase">
                           UNSETTLED
                         </span>
                       )}
@@ -406,7 +406,7 @@ export const DeliveryLedgerView: React.FC<DeliveryLedgerViewProps> = ({
                     {!item.isSettledWeekly ? (
                       <button
                         onClick={() => onSettleDeliveryRecord(item.id)}
-                        className="px-4 py-2 bg-[#403c21] hover:bg-[#33301a] text-[#f7f5f0] font-extrabold text-xs rounded-full shadow-md flex items-center space-x-1.5 cursor-pointer active:scale-95 transition"
+                        className="px-4 py-2 bg-[#403c21] hover:bg-[#33301a] text-white font-extrabold font-extrabold text-xs rounded-full shadow-md flex items-center space-x-1.5 cursor-pointer active:scale-95 transition"
                       >
                         <CheckCircle2 className="w-4 h-4 text-[#403c21]" />
                         <span>Settle Payment</span>
