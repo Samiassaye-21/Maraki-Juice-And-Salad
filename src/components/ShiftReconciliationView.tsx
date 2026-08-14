@@ -1300,33 +1300,33 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
           </div>
         </div>
 
-        {/* NET CASH RESULT CARD (Clean White Card) */}
-        <div className="bg-white rounded-3xl p-6 text-[#07250D] shadow-md space-y-4 border border-[#238868]/20">
+        {/* NET CASH RESULT CARD (Deep Navy Hero Card) */}
+        <div className="bg-[#0B1D28] rounded-3xl p-6 text-white shadow-2xl space-y-4 border border-[#238868]/40">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-[#07250D] bg-[#13EE86] px-3.5 py-1 rounded-full mb-2 shadow-xs">
-                <ShieldCheck className="w-4 h-4 text-[#07250D]" /> Physical Cash Handover
+              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-[#0B1D28] bg-[#13EE86] px-3.5 py-1 rounded-full mb-2 shadow-xs">
+                <ShieldCheck className="w-4 h-4 text-[#0B1D28]" /> Physical Cash Handover
               </span>
-              <h3 className="text-2xl font-extrabold text-[#07250D] tracking-tight">Net Cash Due to Owner</h3>
-              <p className="text-xs text-neutral-600 mt-0.5 font-medium">Exact cash worker must hand over at end of shift</p>
+              <h3 className="text-2xl font-extrabold text-white tracking-tight">Net Cash Due to Owner</h3>
+              <p className="text-xs text-neutral-300 mt-0.5 font-medium">Exact cash worker must hand over at end of shift</p>
             </div>
-            <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#238868]">
+            <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#13EE86]">
               {formatCurrency(netCashDueToOwner, currencySymbol)}
             </div>
           </div>
 
-          <div className="text-xs font-bold text-neutral-600 pt-4 border-t border-[#238868]/15 flex flex-wrap items-center gap-2">
-            <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D]">Gross: {formatCurrency(grossIncome, currencySymbol)}</span>
+          <div className="text-xs font-bold text-neutral-300 pt-4 border-t border-[#238868]/30 flex flex-wrap items-center gap-2">
+            <span className="bg-[#122A3B] px-3 py-1 rounded-full border border-[#238868]/30 text-white">Gross: {formatCurrency(grossIncome, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D]">Digital: {formatCurrency(digitalTransfers, currencySymbol)}</span>
+            <span className="bg-[#122A3B] px-3 py-1 rounded-full border border-[#238868]/30 text-white">Digital: {formatCurrency(digitalTransfers, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D]">Exp: {formatCurrency(dailyExpensesTotal, currencySymbol)}</span>
+            <span className="bg-[#122A3B] px-3 py-1 rounded-full border border-[#238868]/30 text-white">Exp: {formatCurrency(dailyExpensesTotal, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D]">Pend: {formatCurrency(newPendingAmount, currencySymbol)}</span>
+            <span className="bg-[#122A3B] px-3 py-1 rounded-full border border-[#238868]/30 text-white">Pend: {formatCurrency(newPendingAmount, currencySymbol)}</span>
             <span>+</span>
-            <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D]">Rec: {formatCurrency(recoveredPendingAmount, currencySymbol)}</span>
+            <span className="bg-[#122A3B] px-3 py-1 rounded-full border border-[#238868]/30 text-white">Rec: {formatCurrency(recoveredPendingAmount, currencySymbol)}</span>
             <span>−</span>
-            <span className="bg-[#F4F8F5] px-3 py-1 rounded-full border border-[#238868]/20 text-[#07250D]">Del: {formatCurrency(deliveryCreditAmount, currencySymbol)}</span>
+            <span className="bg-[#122A3B] px-3 py-1 rounded-full border border-[#238868]/30 text-white">Del: {formatCurrency(deliveryCreditAmount, currencySymbol)}</span>
           </div>
         </div>
 

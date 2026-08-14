@@ -98,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
       initial={{ opacity: 0, y: -20 }} 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="sticky top-0 z-50 bg-white border-b border-[#238868]/20 shadow-xs text-[#07250D] font-sans"
+      className="sticky top-0 z-50 bg-white border-b border-[#238868]/20 shadow-xs text-[#0B1D28] font-sans"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         
@@ -123,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
               />
             </div>
             <div className="flex flex-col hidden sm:flex">
-              <h1 className="text-xl font-extrabold tracking-tight text-[#07250D]">
+              <h1 className="text-xl font-extrabold tracking-tight text-[#0B1D28]">
                 Maraki Juice and Salad
               </h1>
             </div>
@@ -133,14 +133,14 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-3 bg-[#F4F8F5] rounded-full px-3 py-1.5 border border-[#238868]/20 hidden md:flex">
             <button
               onClick={onPrevMonth}
-              className="p-1 rounded-full hover:bg-slate-200 text-[#07250D] transition-colors cursor-pointer"
+              className="p-1 rounded-full hover:bg-slate-200 text-[#0B1D28] transition-colors cursor-pointer"
               title="Previous Month"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             
             <div className="flex flex-col items-center min-w-[140px]">
-              <div className="flex items-center gap-1.5 text-[#07250D]">
+              <div className="flex items-center gap-1.5 text-[#0B1D28]">
                 <CalendarIcon className="w-3.5 h-3.5 text-[#238868]" />
                 <span className="font-extrabold text-sm">{selectedMonth} <span className="text-neutral-500 font-normal text-xs ml-1">({getEthiopianMonthYear(selectedMonth)})</span></span>
               </div>
@@ -148,7 +148,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={onNextMonth}
-              className="p-1 rounded-full hover:bg-slate-200 text-[#07250D] transition-colors cursor-pointer"
+              className="p-1 rounded-full hover:bg-slate-200 text-[#0B1D28] transition-colors cursor-pointer"
               title="Next Month"
             >
               <ChevronRight className="w-4 h-4" />
@@ -164,11 +164,11 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setActiveShift('day')}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase transition-all duration-150 cursor-pointer ${
                   activeShift === 'day'
-                    ? 'bg-[#13EE86] text-[#07250D] shadow-xs'
-                    : 'text-neutral-600 hover:text-[#07250D] hover:bg-slate-200'
+                    ? 'bg-[#13EE86] text-[#0B1D28] shadow-xs'
+                    : 'text-neutral-600 hover:text-[#0B1D28] hover:bg-slate-200'
                 }`}
               >
-                <Sun className="w-3.5 h-3.5 text-[#07250D]" />
+                <Sun className="w-3.5 h-3.5 text-[#0B1D28]" />
                 <span>Day</span>
               </button>
 
@@ -176,11 +176,11 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setActiveShift('night')}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase transition-all duration-150 cursor-pointer ${
                   activeShift === 'night'
-                    ? 'bg-[#13EE86] text-[#07250D] shadow-xs'
-                    : 'text-neutral-600 hover:text-[#07250D] hover:bg-slate-200'
+                    ? 'bg-[#13EE86] text-[#0B1D28] shadow-xs'
+                    : 'text-neutral-600 hover:text-[#0B1D28] hover:bg-slate-200'
                 }`}
               >
-                <Moon className="w-3.5 h-3.5 text-[#07250D]" />
+                <Moon className="w-3.5 h-3.5 text-[#0B1D28]" />
                 <span>Night</span>
               </button>
             </div>
@@ -189,19 +189,19 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className="flex items-center gap-2 bg-[#F4F8F5] hover:bg-slate-200 border border-[#238868]/20 px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-xs active:scale-95 text-[#07250D]"
+                className="flex items-center gap-2 bg-[#F4F8F5] hover:bg-slate-200 border border-[#238868]/20 px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-xs active:scale-95 text-[#0B1D28]"
               >
-                <div className="w-7 h-7 rounded-full bg-[#13EE86] text-[#07250D] flex items-center justify-center font-extrabold text-xs shadow-xs">
+                <div className="w-7 h-7 rounded-full bg-[#13EE86] text-[#0B1D28] flex items-center justify-center font-extrabold text-xs shadow-xs">
                   <User className="w-4 h-4" />
                 </div>
                 <div className="hidden sm:flex flex-col text-left">
-                  <span className="text-xs font-extrabold leading-tight text-[#07250D]">{currentWorker}</span>
+                  <span className="text-xs font-extrabold leading-tight text-[#0B1D28]">{currentWorker}</span>
                   <span className="text-[10px] text-[#238868] font-bold uppercase tracking-wider">{activeShift} Shift</span>
                 </div>
                 <ChevronDown className={`w-4 h-4 text-neutral-500 transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Profile Dropdown Menu */}
+              {/* Profile Dropdown Menu (Deep Navy Style) */}
               <AnimatePresence>
                 {isProfileMenuOpen && (
                   <motion.div
@@ -209,17 +209,17 @@ export const Header: React.FC<HeaderProps> = ({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="absolute right-0 mt-2 w-72 bg-white rounded-3xl shadow-xl border border-[#238868]/20 p-4 z-50 text-[#07250D] space-y-4"
+                    className="absolute right-0 mt-2 w-72 bg-[#0B1D28] rounded-3xl shadow-2xl border border-[#238868]/40 p-4 z-50 text-white space-y-4"
                   >
                     {/* User Info Header */}
-                    <div className="flex items-center gap-3 p-3 bg-[#F4F8F5] rounded-2xl border border-[#238868]/15">
-                      <div className="w-10 h-10 rounded-full bg-[#13EE86] text-[#07250D] flex items-center justify-center font-extrabold shadow-xs">
+                    <div className="flex items-center gap-3 p-3 bg-[#122A3B] rounded-2xl border border-[#238868]/30">
+                      <div className="w-10 h-10 rounded-full bg-[#13EE86] text-[#0B1D28] flex items-center justify-center font-extrabold shadow-xs">
                         <User className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="font-extrabold text-sm text-[#07250D]">{currentWorker}</h4>
+                        <h4 className="font-extrabold text-sm text-white">{currentWorker}</h4>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#13EE86] text-[#07250D] uppercase">
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#13EE86] text-[#0B1D28] uppercase">
                             {activeShift} Shift Active
                           </span>
                         </div>
@@ -228,10 +228,10 @@ export const Header: React.FC<HeaderProps> = ({
 
                     {/* Shift Switcher inside Dropdown Menu */}
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-neutral-500 px-1">
+                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-neutral-400 px-1">
                         Switch Duty Shift
                       </label>
-                      <div className="grid grid-cols-2 gap-2 bg-[#F4F8F5] p-1.5 rounded-2xl border border-[#238868]/20">
+                      <div className="grid grid-cols-2 gap-2 bg-[#122A3B] p-1.5 rounded-2xl border border-[#238868]/30">
                         <button
                           onClick={() => {
                             setActiveShift('day');
@@ -239,11 +239,11 @@ export const Header: React.FC<HeaderProps> = ({
                           }}
                           className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                             activeShift === 'day'
-                              ? 'bg-[#13EE86] text-[#07250D] shadow-xs'
-                              : 'text-neutral-600 hover:text-[#07250D] hover:bg-slate-200'
+                              ? 'bg-[#13EE86] text-[#0B1D28] shadow-xs'
+                              : 'text-neutral-300 hover:text-white hover:bg-[#1C3B52]'
                           }`}
                         >
-                          <Sun className="w-4 h-4 text-[#07250D]" />
+                          <Sun className="w-4 h-4 text-[#0B1D28]" />
                           <span>Day Shift</span>
                         </button>
 
@@ -254,29 +254,29 @@ export const Header: React.FC<HeaderProps> = ({
                           }}
                           className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                             activeShift === 'night'
-                              ? 'bg-[#13EE86] text-[#07250D] shadow-xs'
-                              : 'text-neutral-600 hover:text-[#07250D] hover:bg-slate-200'
+                              ? 'bg-[#13EE86] text-[#0B1D28] shadow-xs'
+                              : 'text-neutral-300 hover:text-white hover:bg-[#1C3B52]'
                           }`}
                         >
-                          <Moon className="w-4 h-4 text-[#07250D]" />
+                          <Moon className="w-4 h-4 text-[#0B1D28]" />
                           <span>Night Shift</span>
                         </button>
                       </div>
                     </div>
 
                     {/* Quick Links inside Menu */}
-                    <div className="space-y-1 border-t border-[#238868]/15 pt-3">
+                    <div className="space-y-1 border-t border-[#238868]/20 pt-3">
                       <a
                         href="/shift"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#F4F8F5] text-xs font-bold text-[#07250D] transition-colors"
+                        className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#122A3B] text-xs font-bold text-white transition-colors"
                       >
                         <div className="flex items-center gap-2">
-                          <Smartphone className="w-4 h-4 text-[#238868]" />
+                          <Smartphone className="w-4 h-4 text-[#13EE86]" />
                           <span>Mobile Shift App</span>
                         </div>
-                        <span className="text-[10px] bg-[#13EE86] text-[#07250D] font-extrabold px-2 py-0.5 rounded-full">Open</span>
+                        <span className="text-[10px] bg-[#13EE86] text-[#0B1D28] font-extrabold px-2 py-0.5 rounded-full">Open</span>
                       </a>
 
                       <button
@@ -284,10 +284,10 @@ export const Header: React.FC<HeaderProps> = ({
                           setActiveTab('settings');
                           setIsProfileMenuOpen(false);
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#F4F8F5] text-xs font-bold text-[#07250D] transition-colors cursor-pointer"
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#122A3B] text-xs font-bold text-white transition-colors cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
-                          <Settings className="w-4 h-4 text-[#238868]" />
+                          <Settings className="w-4 h-4 text-[#13EE86]" />
                           <span>System Settings</span>
                         </div>
                         <ChevronRight className="w-4 h-4 text-neutral-400" />
@@ -295,15 +295,15 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
 
                     {/* Logout Option inside Menu */}
-                    <div className="border-t border-[#238868]/15 pt-3">
+                    <div className="border-t border-[#238868]/20 pt-3">
                       <button
                         onClick={() => {
                           setIsProfileMenuOpen(false);
                           onLogout();
                         }}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-extrabold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer active:scale-95"
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-extrabold text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 transition-all cursor-pointer active:scale-95"
                       >
-                        <LogOut className="w-4 h-4 text-rose-600" />
+                        <LogOut className="w-4 h-4 text-rose-400" />
                         <span>Log Out</span>
                       </button>
                     </div>
@@ -322,8 +322,8 @@ export const Header: React.FC<HeaderProps> = ({
             const isActive = activeTab === tab.id;
             
             const activeClasses = isActive 
-              ? 'bg-[#13EE86] text-[#07250D] font-extrabold shadow-xs' 
-              : 'bg-[#F4F8F5] text-neutral-600 hover:text-[#07250D] hover:bg-slate-200 font-bold border border-[#238868]/15';
+              ? 'bg-[#13EE86] text-[#0B1D28] font-extrabold shadow-xs' 
+              : 'bg-[#F4F8F5] text-neutral-600 hover:text-[#0B1D28] hover:bg-slate-200 font-bold border border-[#238868]/15';
 
             return (
               <button
@@ -331,12 +331,12 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setActiveTab(tab.id as MainTab)}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-full whitespace-nowrap transition-all duration-150 cursor-pointer text-xs ${activeClasses}`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-[#07250D]' : 'text-[#238868]'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-[#0B1D28]' : 'text-[#238868]'}`} />
                 <span>{tab.label}</span>
 
                 {tab.count !== undefined && tab.count > 0 && (
                   <span className={`flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-extrabold ml-1 ${
-                    isActive ? 'bg-[#238868] text-white' : 'bg-[#13EE86] text-[#07250D]'
+                    isActive ? 'bg-[#238868] text-white' : 'bg-[#13EE86] text-[#0B1D28]'
                   }`}>
                     {tab.count}
                   </span>

@@ -2,14 +2,14 @@
 
 /* ========================================
    Maraki — Brand Design System
-   Deep Forest Green: #07250D (Primary Dark Backgrounds, Headers, Nav)
+   Deep Navy: #0B1D28 (Primary Dark Navy Accent & Text)
    Teal Green: #238868 (Secondary Surfaces, Cards, Icons, Panels)
    Bright Mint Green: #13EE86 (CTAs, Active States, Highlights, Accents)
    ======================================== */
 
 @theme {
   --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --color-forest: #07250D;
+  --color-forest: #0B1D28;
   --color-teal: #238868;
   --color-mint: #13EE86;
 }
@@ -22,9 +22,9 @@ html {
 }
 
 body {
-  background-color: #F8FAFC;
+  background-color: #F4F8F5;
   min-height: 100vh;
-  color: #07250D;
+  color: #0B1D28;
 }
 
 /* Custom Scrollbar */

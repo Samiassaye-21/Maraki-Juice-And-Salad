@@ -175,19 +175,19 @@ export const MarketPurchasesView: React.FC<MarketPurchasesViewProps> = ({
         </button>
       </div>
 
-      {/* This-week summary */}
+      {/* This-week summary (Deep Navy Hero Style) */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white border border-[#238868]/20 rounded-3xl p-5 shadow-xs">
-          <p className="text-xs font-bold text-neutral-500 uppercase tracking-wide">This Week</p>
-          <p className="text-2xl font-extrabold text-[#238868] mt-1">{formatCurrency(totalThisWeek, currencySymbol)}</p>
-          <p className="text-xs text-neutral-500 font-medium mt-0.5">{purchaseTrips.filter(t => {
+        <div className="bg-[#0B1D28] border border-[#238868]/40 rounded-3xl p-5 shadow-2xl text-white">
+          <p className="text-xs font-extrabold text-neutral-400 uppercase tracking-wide">This Week</p>
+          <p className="text-2xl font-extrabold text-[#13EE86] mt-1">{formatCurrency(totalThisWeek, currencySymbol)}</p>
+          <p className="text-xs text-neutral-300 font-medium mt-0.5">{purchaseTrips.filter(t => {
             const ws = new Date(); ws.setDate(ws.getDate() - ws.getDay());
             return new Date(t.date) >= ws;
           }).length} trips</p>
         </div>
-        <div className="bg-white border border-[#238868]/20 rounded-3xl p-5 shadow-xs">
+        <div className="bg-white border border-[#238868]/20 rounded-3xl p-5 shadow-xs text-[#0B1D28]">
           <p className="text-xs font-bold text-neutral-500 uppercase tracking-wide">All Time</p>
-          <p className="text-2xl font-extrabold text-[#07250D] mt-1">
+          <p className="text-2xl font-extrabold text-[#0B1D28] mt-1">
             {formatCurrency(purchaseTrips.reduce((s, t) => s + t.grandTotal, 0), currencySymbol)}
           </p>
           <p className="text-xs text-neutral-500 font-medium mt-0.5">{purchaseTrips.length} total trips</p>

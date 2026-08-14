@@ -719,8 +719,8 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       {/* ── Full-screen Signature Drawing Modal ──────────────────────────────── */}
       {sigModalOpen && (
         <div
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-4"
-          style={{ background: 'rgba(7, 37, 13, 0.95)' }}
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-md"
+          style={{ background: 'rgba(11, 29, 44, 0.95)' }}
         >
           <div className="w-full max-w-md flex flex-col gap-4">
             {/* Header */}

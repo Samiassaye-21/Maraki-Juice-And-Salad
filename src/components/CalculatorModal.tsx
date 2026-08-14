@@ -143,9 +143,9 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           </button>
         </div>
 
-        {/* Display Screen */}
-        <div className="bg-[#F4F8F5] rounded-2xl h-28 flex items-end justify-end p-5 shadow-xs border border-[#238868]/20">
-          <span className="text-[#07250D] text-[54px] leading-none font-mono tracking-tighter font-extrabold overflow-hidden">
+        {/* Display Screen (Deep Navy with Neon Mint Digits) */}
+        <div className="bg-[#0B1D28] rounded-2xl h-28 flex items-end justify-end p-5 shadow-inner border border-[#238868]/40">
+          <span className="text-[#13EE86] text-[54px] leading-none font-mono tracking-tighter font-extrabold overflow-hidden">
             {display}
           </span>
         </div>
