@@ -366,7 +366,8 @@ export function isCanvasBlank(canvas: HTMLCanvasElement | null): boolean {
 }
 
 /**
- * Mathematical Pattern Matching Comparison between drawn signature and reference signature
+ * Mathematical Pattern Matching Comparison between drawn signature and reference signature.
+ * Uses multi-scale IoU + ink density ratio comparison. Threshold: 60%.
  */
 export function compareSignaturePattern(
   drawnDataUrl: string,
@@ -387,52 +388,58 @@ export function compareSignaturePattern(
       if (loadedCount < 2) return;
 
       try {
-        const GRID_SIZE = 40;
-        const canvas1 = document.createElement('canvas');
-        const canvas2 = document.createElement('canvas');
-        canvas1.width = GRID_SIZE;
-        canvas1.height = GRID_SIZE;
-        canvas2.width = GRID_SIZE;
-        canvas2.height = GRID_SIZE;
-
-        const ctx1 = canvas1.getContext('2d');
-        const ctx2 = canvas2.getContext('2d');
-
-        if (!ctx1 || !ctx2) {
-          resolve({ matchScore: 80, isValid: true });
-          return;
-        }
-
-        ctx1.drawImage(img1, 0, 0, GRID_SIZE, GRID_SIZE);
-        ctx2.drawImage(img2, 0, 0, GRID_SIZE, GRID_SIZE);
-
-        const data1 = ctx1.getImageData(0, 0, GRID_SIZE, GRID_SIZE).data;
-        const data2 = ctx2.getImageData(0, 0, GRID_SIZE, GRID_SIZE).data;
-
-        let intersection = 0;
-        let union = 0;
-        let diffSum = 0;
-        const totalPixels = GRID_SIZE * GRID_SIZE;
-
-        for (let i = 0; i < totalPixels; i++) {
-          const alpha1 = data1[i * 4 + 3] > 30 ? 1 : 0;
-          const alpha2 = data2[i * 4 + 3] > 30 ? 1 : 0;
-
-          if (alpha1 || alpha2) {
-            union++;
-            if (alpha1 && alpha2) {
-              intersection++;
-            }
+        // Renders an image to a binary pixel map at given resolution
+        const renderBinary = (img: HTMLImageElement, size: number): { map: number[]; inkCount: number } => {
+          const c = document.createElement('canvas');
+          c.width = size;
+          c.height = size;
+          const ctx = c.getContext('2d')!;
+          ctx.drawImage(img, 0, 0, size, size);
+          const pixels = ctx.getImageData(0, 0, size, size).data;
+          const map: number[] = [];
+          let inkCount = 0;
+          for (let i = 0; i < size * size; i++) {
+            const inked = pixels[i * 4 + 3] > 30 ? 1 : 0;
+            map.push(inked);
+            inkCount += inked;
           }
-          diffSum += Math.abs(alpha1 - alpha2);
+          return { map, inkCount };
+        };
+
+        // Multi-scale comparison at 3 resolutions
+        const SCALES = [8, 16, 32];
+        let totalScore = 0;
+
+        for (const size of SCALES) {
+          const { map: map1, inkCount: ink1 } = renderBinary(img1, size);
+          const { map: map2, inkCount: ink2 } = renderBinary(img2, size);
+
+          let intersection = 0;
+          let union = 0;
+
+          for (let i = 0; i < size * size; i++) {
+            const a = map1[i];
+            const b = map2[i];
+            if (a || b) union++;
+            if (a && b) intersection++;
+          }
+
+          // Intersection over Union — measures spatial shape overlap
+          const iou = union > 0 ? intersection / union : 0;
+
+          // Ink density ratio — punishes huge stroke size differences
+          const densityRatio = ink1 > 0 && ink2 > 0
+            ? Math.min(ink1, ink2) / Math.max(ink1, ink2)
+            : 0;
+
+          totalScore += iou * 0.65 + densityRatio * 0.35;
         }
 
-        const iou = union > 0 ? intersection / union : 1;
-        const similarity = Math.max(0, 1 - diffSum / totalPixels);
-        const matchScore = Math.round(((iou * 0.6) + (similarity * 0.4)) * 100);
+        const averageScore = totalScore / SCALES.length;
+        const matchScore = Math.round(averageScore * 100);
 
-        // Threshold: 40% match score is required
-        const isValid = matchScore >= 40;
+        // Strict threshold: 60% required to accept
+        const isValid = matchScore >= 60;
         resolve({ matchScore, isValid });
       } catch {
         resolve({ matchScore: 80, isValid: true });
