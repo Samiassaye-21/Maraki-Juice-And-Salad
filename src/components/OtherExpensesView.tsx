@@ -104,14 +104,14 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
       {/* Summary Cards (#403c21 Hero Style with #403c21 Accent) */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-[#403c21] border border-[#403c21]/40 rounded-3xl p-5 shadow-2xl text-white">
-          <p className="text-xs font-extrabold text-[#403c21] uppercase tracking-wide">This Month</p>
-          <p className="text-2xl font-extrabold text-[#403c21] mt-1">{formatCurrency(totalThisMonth, currencySymbol)}</p>
-          <p className="text-xs text-white font-bold font-medium mt-0.5">Overhead spent</p>
+          <p className="text-xs font-extrabold text-white/80 uppercase tracking-wide">This Month</p>
+          <p className="text-2xl font-black text-white mt-1">{formatCurrency(totalThisMonth, currencySymbol)}</p>
+          <p className="text-xs text-white/90 font-bold mt-0.5">Overhead spent</p>
         </div>
         <div className="bg-white border border-[#403c21]/20 rounded-3xl p-5 shadow-xs text-[#403c21]">
           <p className="text-xs font-bold text-[#403c21]/70 uppercase tracking-wide">All Time</p>
-          <p className="text-2xl font-extrabold text-[#403c21] mt-1">{formatCurrency(totalAllTime, currencySymbol)}</p>
-          <p className="text-xs font-bold text-[#403c21] font-medium mt-0.5">{expenses.length} total records</p>
+          <p className="text-2xl font-black text-[#403c21] mt-1">{formatCurrency(totalAllTime, currencySymbol)}</p>
+          <p className="text-xs font-bold text-[#403c21] mt-0.5">{expenses.length} total records</p>
         </div>
       </div>
 
