@@ -234,10 +234,10 @@ export const OtherExpensesView: React.FC<OtherExpensesViewProps> = ({
                 <button
                   onClick={handleSave}
                   disabled={!isFormValid}
-                  className="flex-1 py-3 bg-[#403c21] hover:bg-[#33301a] disabled:opacity-40 text-[#403c21] rounded-full font-extrabold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-95 shadow-md"
+                  className="flex-1 py-3 bg-[#403c21] hover:bg-[#33301a] disabled:opacity-40 text-white font-black text-xs rounded-full flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-95 shadow-md"
                 >
-                  <Save className="w-4 h-4 text-[#403c21]" />
-                  Save Expense
+                  <Save className="w-4 h-4 text-white" />
+                  <span>Save Expense</span>
                 </button>
               </div>
             </motion.div>

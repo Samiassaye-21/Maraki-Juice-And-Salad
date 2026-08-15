@@ -612,7 +612,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="submit"
-            className="px-8 py-3 rounded-full text-[#403c21] font-extrabold bg-[#403c21] hover:bg-[#33301a] shadow-md transition-all flex items-center justify-center space-x-2 min-w-[170px] cursor-pointer"
+            className="px-8 py-3 rounded-full text-white font-black bg-[#403c21] hover:bg-[#33301a] shadow-md transition-all flex items-center justify-center space-x-2 min-w-[170px] cursor-pointer"
           >
             <AnimatePresence mode="wait">
               {savedSuccess ? (
@@ -653,7 +653,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
               className="bg-[#403c21] rounded-3xl shadow-2xl max-w-md w-full p-6 border border-[#403c21]/50 space-y-4 text-white"
             >
               <h3 className="text-base font-bold text-white flex items-center space-x-2">
-                <Pencil className="w-4 h-4 text-[#403c21]" />
+                <Pencil className="w-4 h-4 text-white" />
                 <span>Edit Food Dish</span>
               </h3>
 
@@ -699,14 +699,14 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 <button
                   type="button"
                   onClick={() => setEditingItem(null)}
-                  className="px-4 py-2 bg-[#403c21] border border-[#403c21] text-white text-xs font-bold rounded-full hover:bg-[#403c21]/30 cursor-pointer"
+                  className="px-4 py-2 bg-white border border-[#403c21] text-[#403c21] font-bold text-xs rounded-full hover:bg-slate-100 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={() => handleUpdateFoodItem(editingItem)}
-                  className="px-5 py-2 bg-[#403c21] hover:bg-[#403c21]/90 text-[#403c21] text-xs font-bold rounded-full shadow-md cursor-pointer"
+                  className="px-5 py-2 bg-[#403c21] hover:bg-[#33301a] text-white font-black text-xs rounded-full shadow-md cursor-pointer"
                 >
                   Update Dish
                 </button>
@@ -726,7 +726,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[#403c21] font-bold text-lg">
+                <p className="text-white font-bold text-lg">
                   {sigModalTarget === 'day' ? '☀️ Day Worker' : '🌙 Night Worker'} Master Signature
                 </p>
                 <p className="text-neutral-300 text-xs mt-0.5">Sign clearly inside the white box below</p>
@@ -734,7 +734,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
               <button
                 type="button"
                 onClick={() => setSigModalOpen(false)}
-                className="text-[#403c21]/70 hover:text-white text-2xl font-bold leading-none cursor-pointer px-2"
+                className="text-white/70 hover:text-white text-2xl font-bold leading-none cursor-pointer px-2"
               >
                 ✕
               </button>
@@ -767,16 +767,16 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
               <button
                 type="button"
                 onClick={clearModalCanvas}
-                className="flex-1 py-3 rounded-full bg-[#403c21] border border-[#403c21] hover:bg-[#403c21]/30 text-white text-sm font-bold cursor-pointer transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-full bg-white border border-[#403c21] text-[#403c21] text-sm font-bold cursor-pointer transition-colors flex items-center justify-center gap-2"
               >
                 <RotateCcw className="w-4 h-4 text-[#403c21]" /> Clear
               </button>
               <button
                 type="button"
                 onClick={confirmModalSignature}
-                className="flex-2 flex-grow-[2] py-3 rounded-full bg-[#403c21] hover:bg-[#403c21]/90 text-[#403c21] text-sm font-bold cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-md"
+                className="flex-2 flex-grow-[2] py-3 rounded-full bg-[#403c21] hover:bg-[#33301a] text-white text-sm font-black cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-md"
               >
-                <CheckCircle2 className="w-4 h-4 text-[#403c21]" /> Confirm & Save Signature
+                <CheckCircle2 className="w-4 h-4 text-white" /> Confirm & Save Signature
               </button>
             </div>
 
