@@ -2,17 +2,17 @@
 
 /* ========================================
    Maraki — Strict Color Palette
-   Primary Dark: #403c21 (Dark Earth Bronze)
-   Primary Warm Accent: #403c21 (Warm Sand Gold)
+   Primary Dark: #0B1D2C (Dark Earth Bronze)
+   Primary Warm Accent: #0B1D2C (Warm Sand Gold)
    Black: #000000 / #1a1813
    White / Off-White: #ffffff / #f7f5f0
    ======================================== */
 
 @theme {
   --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --color-forest: #403c21;
-  --color-teal: #403c21;
-  --color-mint: #403c21;
+  --color-forest: #0B1D2C;
+  --color-teal: #0B1D2C;
+  --color-mint: #0B1D2C;
 }
 
 html {
@@ -25,14 +25,14 @@ html {
 body {
   background-color: #f7f5f0;
   min-height: 100vh;
-  color: #403c21;
+  color: #0B1D2C;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #f7f5f0; }
-::-webkit-scrollbar-thumb { background: #403c21; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #403c21; }
+::-webkit-scrollbar-thumb { background: #0B1D2C; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #0B1D2C; }
 
 /* Hide number spinners */
 input[type="number"]::-webkit-outer-spin-button,
@@ -44,12 +44,12 @@ input[type="number"] { -moz-appearance: textfield; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* Selection */
-::selection { background: #403c21; color: #ffffff; }
+::selection { background: #0B1D2C; color: #ffffff; }
 
 /* Focus ring */
 *:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(64, 60, 33, 0.3);
-  border-color: #403c21;
+  border-color: #0B1D2C;
   border-radius: 9999px;
 }

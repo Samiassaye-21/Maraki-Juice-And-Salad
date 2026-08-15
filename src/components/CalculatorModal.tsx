@@ -133,30 +133,30 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
         animate={{ opacity: 1, scale: 1, y: 0 }} 
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="w-full max-w-[360px] bg-white rounded-3xl p-6 shadow-2xl flex flex-col gap-5 border border-[#403c21]/20 text-[#403c21] font-sans"
+        className="w-full max-w-[360px] bg-white rounded-3xl p-6 shadow-2xl flex flex-col gap-5 border border-[#0B1D2C]/20 text-[#0B1D2C] font-sans"
       >
         {/* Header with Title and Close */}
-        <div className="flex items-center justify-between px-1 text-[#403c21]">
+        <div className="flex items-center justify-between px-1 text-[#0B1D2C]">
           <span className="text-sm font-extrabold uppercase tracking-widest">{title}</span>
-          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors cursor-pointer text-neutral-500 hover:text-[#403c21]">
+          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors cursor-pointer text-neutral-500 hover:text-[#0B1D2C]">
             <X size={20} strokeWidth={2.5} />
           </button>
         </div>
 
-        {/* Display Screen (#403c21 with #403c21 Digits) */}
-        <div className="bg-[#403c21] rounded-2xl h-28 flex items-end justify-end p-5 shadow-inner border border-[#403c21]/40">
-          <span className="text-[#403c21] text-[54px] leading-none font-mono tracking-tighter font-extrabold overflow-hidden">
+        {/* Display Screen (#0B1D2C with #0B1D2C Digits) */}
+        <div className="bg-[#0B1D2C] rounded-2xl h-28 flex items-end justify-end p-5 shadow-inner border border-[#0B1D2C]/40">
+          <span className="text-[#0B1D2C] text-[54px] leading-none font-mono tracking-tighter font-extrabold overflow-hidden">
             {display}
           </span>
         </div>
 
         {/* Button Grid */}
         <div className="grid grid-cols-4 gap-3">
-          {/* Row 1 (Operators - #403c21 with #403c21 text) */}
+          {/* Row 1 (Operators - #0B1D2C with #0B1D2C text) */}
           {['*', '/', '-', '+'].map((op) => (
             <button 
               key={op} onClick={() => handleOperator(op)}
-              className="h-[60px] bg-[#403c21] hover:bg-[#33301a] rounded-full text-[#403c21] text-3xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
+              className="h-[60px] bg-[#0B1D2C] hover:bg-[#081521] rounded-full text-[#0B1D2C] text-3xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
             >
               {op}
             </button>
@@ -166,7 +166,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           {['9', '8', '7', '6'].map((num) => (
             <button 
               key={num} onClick={() => handleDigit(num)}
-              className="h-[60px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#403c21] text-3xl font-extrabold flex items-center justify-center border-2 border-[#403c21] cursor-pointer transition-all active:scale-95 shadow-xs"
+              className="h-[60px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#0B1D2C] text-3xl font-extrabold flex items-center justify-center border-2 border-[#0B1D2C] cursor-pointer transition-all active:scale-95 shadow-xs"
             >
               {num}
             </button>
@@ -176,7 +176,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           {['5', '4', '3', '2'].map((num) => (
             <button 
               key={num} onClick={() => handleDigit(num)}
-              className="h-[60px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#403c21] text-3xl font-extrabold flex items-center justify-center border-2 border-[#403c21] cursor-pointer transition-all active:scale-95 shadow-xs"
+              className="h-[60px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#0B1D2C] text-3xl font-extrabold flex items-center justify-center border-2 border-[#0B1D2C] cursor-pointer transition-all active:scale-95 shadow-xs"
             >
               {num}
             </button>
@@ -186,7 +186,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           {['1', '0', '.'].map((num) => (
             <button 
               key={num} onClick={num === '.' ? handleDot : () => handleDigit(num)}
-              className="h-[60px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#403c21] text-3xl font-extrabold flex items-center justify-center border-2 border-[#403c21] cursor-pointer transition-all active:scale-95 shadow-xs"
+              className="h-[60px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#0B1D2C] text-3xl font-extrabold flex items-center justify-center border-2 border-[#0B1D2C] cursor-pointer transition-all active:scale-95 shadow-xs"
             >
               {num}
             </button>
@@ -194,7 +194,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           
           <button 
             onClick={handleEqual}
-            className="h-[60px] bg-[#403c21] hover:bg-[#33301a] rounded-full text-[#403c21] text-4xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-md"
+            className="h-[60px] bg-[#0B1D2C] hover:bg-[#081521] rounded-full text-[#0B1D2C] text-4xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-md"
           >
             =
           </button>
@@ -202,7 +202,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           {/* Row 5 (Clear button) */}
           <button 
             onClick={handleClear}
-            className="col-span-1 h-[60px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#403c21] border-2 border-[#403c21] text-2xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
+            className="col-span-1 h-[60px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#0B1D2C] border-2 border-[#0B1D2C] text-2xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
           >
             C
           </button>

@@ -70,19 +70,19 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center px-6 font-sans bg-[#f7f5f0] text-[#403c21] relative"
+      className="min-h-screen flex flex-col items-center justify-center px-6 font-sans bg-[#f7f5f0] text-[#0B1D2C] relative"
     >
       {/* Top navigation shortcuts */}
       <div className="absolute top-6 right-6 flex items-center gap-3">
         <a
           href="/kitchen"
-          className="text-xs font-bold px-4 py-2 rounded-full bg-white text-[#403c21] hover:bg-[#EBF5F0] transition-all border-2 border-[#403c21] flex items-center gap-1 shadow-xs"
+          className="text-xs font-bold px-4 py-2 rounded-full bg-white text-[#0B1D2C] hover:bg-[#EBF5F0] transition-all border-2 border-[#0B1D2C] flex items-center gap-1 shadow-xs"
         >
           <span>🍳 Kitchen</span>
         </a>
         <a
           href="/"
-          className="text-xs font-bold px-4 py-2 rounded-full bg-white text-[#403c21] hover:bg-[#EBF5F0] transition-all border-2 border-[#403c21] flex items-center gap-1 shadow-xs"
+          className="text-xs font-bold px-4 py-2 rounded-full bg-white text-[#0B1D2C] hover:bg-[#EBF5F0] transition-all border-2 border-[#0B1D2C] flex items-center gap-1 shadow-xs"
         >
           <span>💻 Admin</span>
         </a>
@@ -95,14 +95,14 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
         transition={{ duration: 0.5 }}
         className="flex flex-col items-center mb-8 text-center"
       >
-        <div className="w-20 h-20 rounded-full bg-[#403c21] flex items-center justify-center mb-4 shadow-xl text-white font-bold">
+        <div className="w-20 h-20 rounded-full bg-[#0B1D2C] flex items-center justify-center mb-4 shadow-xl text-white font-bold">
           <Moon className="w-10 h-10 text-white font-bold" />
         </div>
         
-        <h1 className="text-3xl font-extrabold text-[#403c21] tracking-tight mb-1">
+        <h1 className="text-3xl font-extrabold text-[#0B1D2C] tracking-tight mb-1">
           ማራኪ የሸፍት ገቢ መመዝገቢያ
         </h1>
-        <p className="text-sm font-bold text-[#403c21] uppercase tracking-wider">
+        <p className="text-sm font-bold text-[#0B1D2C] uppercase tracking-wider">
           Mobile Worker Shift Income Portal
         </p>
         <p className="text-xs text-neutral-600 font-medium mt-1 max-w-xs">
@@ -123,8 +123,8 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
               i < pin.length
                 ? errorMsg
                   ? 'bg-rose-500 border-rose-400 scale-110'
-                  : 'bg-[#403c21] border-[#403c21] scale-110 shadow-xs'
-                : 'bg-white border-[#403c21]/40'
+                  : 'bg-[#0B1D2C] border-[#0B1D2C] scale-110 shadow-xs'
+                : 'bg-white border-[#0B1D2C]/40'
             }`}
           />
         ))}
@@ -151,10 +151,10 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
               <button
                 key={idx}
                 onClick={handleClear}
-                className="h-14 rounded-full bg-white hover:bg-rose-50 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#403c21] shadow-xs text-[#403c21]"
+                className="h-14 rounded-full bg-white hover:bg-rose-50 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#0B1D2C] shadow-xs text-[#0B1D2C]"
                 title="Clear PIN"
               >
-                <span className="text-xl font-black text-[#403c21]">C</span>
+                <span className="text-xl font-black text-[#0B1D2C]">C</span>
               </button>
             );
           }
@@ -163,9 +163,9 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
               <button
                 key={idx}
                 onClick={handleDelete}
-                className="h-14 rounded-full bg-white hover:bg-rose-50 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#403c21] shadow-xs text-[#403c21]"
+                className="h-14 rounded-full bg-white hover:bg-rose-50 active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#0B1D2C] shadow-xs text-[#0B1D2C]"
               >
-                <Delete className="w-6 h-6 text-[#403c21]" />
+                <Delete className="w-6 h-6 text-[#0B1D2C]" />
               </button>
             );
           }
@@ -173,9 +173,9 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
             <button
               key={idx}
               onClick={() => handleKey(key)}
-              className="h-14 rounded-full bg-white hover:bg-[#f7f5f0] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#403c21] shadow-sm"
+              className="h-14 rounded-full bg-white hover:bg-[#f7f5f0] active:scale-95 transition-all duration-100 flex items-center justify-center cursor-pointer border-2 border-[#0B1D2C] shadow-sm"
             >
-              <span className="text-2xl font-black text-[#403c21]">{key}</span>
+              <span className="text-2xl font-black text-[#0B1D2C]">{key}</span>
             </button>
           );
         })}
@@ -184,7 +184,7 @@ const ShiftLogin: React.FC<ShiftLoginProps> = ({ onLoginSuccess }) => {
       {/* Quick Direct Pass Button */}
       <button
         onClick={onLoginSuccess}
-        className="mt-8 flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#403c21] text-white font-black text-xs transition-all shadow-md cursor-pointer hover:bg-[#33301a] active:scale-95"
+        className="mt-8 flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#0B1D2C] text-white font-black text-xs transition-all shadow-md cursor-pointer hover:bg-[#081521] active:scale-95"
       >
         <ShieldCheck className="w-4 h-4 text-white" />
         <span>በቀጥታ ግባ (Quick Login: 1234)</span>

@@ -361,7 +361,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f5f0] text-[#403c21] font-sans pb-12 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#f7f5f0] text-[#0B1D2C] font-sans pb-12 relative overflow-x-hidden">
       {/* ─── Success Animation Overlay ─────────────────────────────────────── */}
       <AnimatePresence>
         {showSuccess && (
@@ -369,13 +369,13 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#403c21]/95 p-6 backdrop-blur-md text-center"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0B1D2C]/95 p-6 backdrop-blur-md text-center"
           >
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: [0, 1.2, 1] }}
               transition={{ duration: 0.4 }}
-              className="w-24 h-24 rounded-full bg-[#403c21] flex items-center justify-center text-[#403c21] mb-4 shadow-2xl"
+              className="w-24 h-24 rounded-full bg-[#0B1D2C] flex items-center justify-center text-[#0B1D2C] mb-4 shadow-2xl"
             >
               <CheckCircle2 className="w-16 h-16" strokeWidth={3} />
             </motion.div>
@@ -388,22 +388,22 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
       </AnimatePresence>
 
       {/* ─── Top Header Bar ────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-[#403c21]/20 sticky top-0 z-30 backdrop-blur-md px-4 py-3 text-[#403c21]">
+      <div className="bg-white border-b border-[#0B1D2C]/20 sticky top-0 z-30 backdrop-blur-md px-4 py-3 text-[#0B1D2C]">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-full bg-[#f7f5f0] flex items-center justify-center text-[#403c21] shadow-xs border border-[#403c21]/20">
-              <Moon className="w-5 h-5 text-[#403c21]" />
+            <div className="w-10 h-10 rounded-full bg-[#f7f5f0] flex items-center justify-center text-[#0B1D2C] shadow-xs border border-[#0B1D2C]/20">
+              <Moon className="w-5 h-5 text-[#0B1D2C]" />
             </div>
             <div>
-              <h1 className="font-extrabold text-[#403c21] text-base tracking-tight leading-tight">
+              <h1 className="font-extrabold text-[#0B1D2C] text-base tracking-tight leading-tight">
                 የሸፍት ገቢ መዝገብ
               </h1>
               <p className="text-[11px] text-neutral-500 font-medium">Mobile Shift Income Entry</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#f7f5f0] border border-[#403c21]/20 text-[#403c21] text-xs font-extrabold">
-            <Clock className="w-3.5 h-3.5 text-[#403c21]" />
+          <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#f7f5f0] border border-[#0B1D2C]/20 text-[#0B1D2C] text-xs font-extrabold">
+            <Clock className="w-3.5 h-3.5 text-[#0B1D2C]" />
             <span>{formatEthiopianTime(new Date())}</span>
           </div>
         </div>
@@ -411,30 +411,30 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
 
       <div className="max-w-md mx-auto px-4 pt-4 space-y-4">
         {/* ─── Card 0: Unpaid Pending Debt Summary Banner (Clean White Card) ─────────────────── */}
-        <div className="bg-white text-[#403c21] rounded-3xl p-5 space-y-3 shadow-xs border border-[#403c21]/20">
+        <div className="bg-white text-[#0B1D2C] rounded-3xl p-5 space-y-3 shadow-xs border border-[#0B1D2C]/20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-[#f7f5f0] text-[#403c21] flex items-center justify-center border border-[#403c21]/20">
+              <div className="w-9 h-9 rounded-full bg-[#f7f5f0] text-[#0B1D2C] flex items-center justify-center border border-[#0B1D2C]/20">
                 <AlertCircle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-extrabold text-[#403c21] text-sm leading-tight">
+                <h3 className="font-extrabold text-[#0B1D2C] text-sm leading-tight">
                   ያልተከፈለ እዳ ድምር (Total Unpaid Debts)
                 </h3>
                 <p className="text-[11px] text-neutral-500 font-medium">Unsettled Customer Credit Left</p>
               </div>
             </div>
-            <span className="text-xs font-extrabold text-white font-bold bg-[#403c21] px-3.5 py-1 rounded-full shadow-xs">
+            <span className="text-xs font-extrabold text-white font-bold bg-[#0B1D2C] px-3.5 py-1 rounded-full shadow-xs">
               {unpaidPendingCount} Debts
             </span>
           </div>
 
-          <div className="flex items-baseline justify-between pt-2 border-t border-[#403c21]/15">
+          <div className="flex items-baseline justify-between pt-2 border-t border-[#0B1D2C]/15">
             <div className="text-xs text-neutral-600 font-medium flex items-center gap-2">
-              <span className="bg-[#f7f5f0] px-3 py-1 rounded-full border border-[#403c21]/20 text-[#403c21] font-extrabold">
+              <span className="bg-[#f7f5f0] px-3 py-1 rounded-full border border-[#0B1D2C]/20 text-[#0B1D2C] font-extrabold">
                 🥤 {totalUnpaidJuiceCups} Cups
               </span>
-              <span className="bg-[#f7f5f0] px-3 py-1 rounded-full border border-[#403c21]/20 text-[#403c21] font-extrabold">
+              <span className="bg-[#f7f5f0] px-3 py-1 rounded-full border border-[#0B1D2C]/20 text-[#0B1D2C] font-extrabold">
                 🍱 {totalUnpaidFoodBoxes} Boxes
               </span>
             </div>
@@ -445,29 +445,29 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
         </div>
 
         {/* ─── Card 1: Shift & Worker Details ─────────────────────────────── */}
-        <div className="bg-white border border-[#403c21]/20 rounded-3xl p-4 space-y-3.5 shadow-md">
+        <div className="bg-white border border-[#0B1D2C]/20 rounded-3xl p-4 space-y-3.5 shadow-md">
           {/* Shift Toggle */}
-          <div className="flex items-center gap-2 bg-[#f7f5f0] p-1.5 rounded-full border border-[#403c21]/20">
+          <div className="flex items-center gap-2 bg-[#f7f5f0] p-1.5 rounded-full border border-[#0B1D2C]/20">
             <button
               onClick={() => setShiftType('night')}
               className={`flex-1 py-2 rounded-full font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 shiftType === 'night'
-                  ? 'bg-[#403c21] text-white shadow-md'
-                  : 'text-neutral-600 hover:text-[#403c21]'
+                  ? 'bg-[#0B1D2C] text-white shadow-md'
+                  : 'text-neutral-600 hover:text-[#0B1D2C]'
               }`}
             >
-              <Moon className={`w-4 h-4 ${shiftType === 'night' ? 'text-[#403c21]' : 'text-neutral-500'}`} />
+              <Moon className={`w-4 h-4 ${shiftType === 'night' ? 'text-[#0B1D2C]' : 'text-neutral-500'}`} />
               <span>ሌሊት ሸፍት (Night Shift)</span>
             </button>
             <button
               onClick={() => setShiftType('day')}
               className={`flex-1 py-2 rounded-full font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 shiftType === 'day'
-                  ? 'bg-[#403c21] text-white shadow-md'
-                  : 'text-neutral-600 hover:text-[#403c21]'
+                  ? 'bg-[#0B1D2C] text-white shadow-md'
+                  : 'text-neutral-600 hover:text-[#0B1D2C]'
               }`}
             >
-              <Sun className={`w-4 h-4 ${shiftType === 'day' ? 'text-[#403c21]' : 'text-neutral-500'}`} />
+              <Sun className={`w-4 h-4 ${shiftType === 'day' ? 'text-[#0B1D2C]' : 'text-neutral-500'}`} />
               <span>ቀን ሸፍት (Day Shift)</span>
             </button>
           </div>
@@ -476,19 +476,19 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] font-bold text-neutral-600 flex items-center gap-1 mb-1">
-                <Calendar className="w-3 h-3 text-[#403c21]" />
+                <Calendar className="w-3 h-3 text-[#0B1D2C]" />
                 <span>የሸፍት ቀን (Date)</span>
               </label>
               <input
                 type="date"
                 value={shiftDate}
                 onChange={(e) => setShiftDate(e.target.value)}
-                className="w-full bg-white border border-[#403c21]/30 rounded-full px-3.5 py-2 text-xs font-bold text-[#403c21] focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 shadow-xs"
+                className="w-full bg-white border border-[#0B1D2C]/30 rounded-full px-3.5 py-2 text-xs font-bold text-[#0B1D2C] focus:outline-none focus:border-[#0B1D2C] focus:ring-4 focus:ring-[#0B1D2C]/20 shadow-xs"
               />
             </div>
             <div>
               <label className="text-[11px] font-bold text-neutral-600 flex items-center gap-1 mb-1">
-                <User className="w-3 h-3 text-[#403c21]" />
+                <User className="w-3 h-3 text-[#0B1D2C]" />
                 <span>የሰራተኛ ስም (Worker)</span>
               </label>
               <input
@@ -496,22 +496,22 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                 value={workerName}
                 onChange={(e) => setWorkerName(e.target.value)}
                 placeholder="Worker Name"
-                className="w-full bg-white border border-[#403c21]/30 rounded-full px-3.5 py-2 text-xs font-bold text-[#403c21] focus:outline-none focus:border-[#403c21] focus:ring-4 focus:ring-[#403c21]/20 shadow-xs"
+                className="w-full bg-white border border-[#0B1D2C]/30 rounded-full px-3.5 py-2 text-xs font-bold text-[#0B1D2C] focus:outline-none focus:border-[#0B1D2C] focus:ring-4 focus:ring-[#0B1D2C]/20 shadow-xs"
               />
             </div>
           </div>
         </div>
 
         {/* ─── Card 2: Juice Stock & Sales (የጁስ ሂሳብ) ────────────────────── */}
-        <div className="bg-white border border-[#403c21]/20 rounded-3xl p-4 space-y-3 shadow-md">
-          <div className="flex items-center justify-between border-b border-[#403c21]/15 pb-2.5">
+        <div className="bg-white border border-[#0B1D2C]/20 rounded-3xl p-4 space-y-3 shadow-md">
+          <div className="flex items-center justify-between border-b border-[#0B1D2C]/15 pb-2.5">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#403c21]/10 text-[#403c21] flex items-center justify-center border border-[#403c21]/30">
+              <div className="w-8 h-8 rounded-full bg-[#0B1D2C]/10 text-[#0B1D2C] flex items-center justify-center border border-[#0B1D2C]/30">
                 <CupSoda className="w-4 h-4" />
               </div>
-              <h2 className="font-extrabold text-[#403c21] text-sm">የጁስ ሂሳብ (Juice Sales)</h2>
+              <h2 className="font-extrabold text-[#0B1D2C] text-sm">የጁስ ሂሳብ (Juice Sales)</h2>
             </div>
-            <span className="text-xs font-bold text-white font-bold bg-[#403c21] px-3 py-0.5 rounded-full shadow-xs">
+            <span className="text-xs font-bold text-white font-bold bg-[#0B1D2C] px-3 py-0.5 rounded-full shadow-xs">
               {totals.juiceCupsSold} Cups Sold
             </span>
           </div>
@@ -523,7 +523,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                 type="number"
                 value={juiceOpening}
                 onChange={(e) => setJuiceOpening(Number(e.target.value))}
-                className="w-full bg-white border border-[#403c21]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#403c21] text-center focus:outline-none focus:border-[#403c21]"
+                className="w-full bg-white border border-[#0B1D2C]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#0B1D2C] text-center focus:outline-none focus:border-[#0B1D2C]"
               />
             </div>
             <div>
@@ -532,7 +532,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                 type="number"
                 value={juiceAdded}
                 onChange={(e) => setJuiceAdded(Number(e.target.value))}
-                className="w-full bg-white border border-[#403c21]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#403c21] text-center focus:outline-none focus:border-[#403c21]"
+                className="w-full bg-white border border-[#0B1D2C]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#0B1D2C] text-center focus:outline-none focus:border-[#0B1D2C]"
               />
             </div>
             <div>
@@ -541,29 +541,29 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                 type="number"
                 value={juiceLeftover}
                 onChange={(e) => setJuiceLeftover(Number(e.target.value))}
-                className="w-full bg-white border-2 border-[#403c21] rounded-full px-2.5 py-1.5 text-xs font-extrabold text-[#403c21] text-center focus:outline-none"
+                className="w-full bg-white border-2 border-[#0B1D2C] rounded-full px-2.5 py-1.5 text-xs font-extrabold text-[#0B1D2C] text-center focus:outline-none"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between bg-[#f7f5f0] p-2.5 rounded-full border border-[#403c21]/20 text-xs px-4">
+          <div className="flex items-center justify-between bg-[#f7f5f0] p-2.5 rounded-full border border-[#0B1D2C]/20 text-xs px-4">
             <span className="text-neutral-600 font-medium">Juice Price: {juicePrice} ETB/cup</span>
-            <span className="font-extrabold text-[#403c21] text-sm">
+            <span className="font-extrabold text-[#0B1D2C] text-sm">
               = {formatCurrency(totals.juiceRevenue, config.currencySymbol)}
             </span>
           </div>
         </div>
 
         {/* ─── Card 3: Food Sales (የምግብ ሂሳብ) ──────────────────────────── */}
-        <div className="bg-white border border-[#403c21]/20 rounded-3xl p-4 space-y-3 shadow-md">
-          <div className="flex items-center justify-between border-b border-[#403c21]/15 pb-2.5">
+        <div className="bg-white border border-[#0B1D2C]/20 rounded-3xl p-4 space-y-3 shadow-md">
+          <div className="flex items-center justify-between border-b border-[#0B1D2C]/15 pb-2.5">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#403c21]/10 text-[#403c21] flex items-center justify-center border border-[#403c21]/30">
+              <div className="w-8 h-8 rounded-full bg-[#0B1D2C]/10 text-[#0B1D2C] flex items-center justify-center border border-[#0B1D2C]/30">
                 <UtensilsCrossed className="w-4 h-4" />
               </div>
-              <h2 className="font-extrabold text-[#403c21] text-sm">የምግብ ሂሳብ (Food Sales)</h2>
+              <h2 className="font-extrabold text-[#0B1D2C] text-sm">የምግብ ሂሳብ (Food Sales)</h2>
             </div>
-            <span className="text-xs font-bold text-white font-bold bg-[#403c21] px-3 py-0.5 rounded-full shadow-xs">
+            <span className="text-xs font-bold text-white font-bold bg-[#0B1D2C] px-3 py-0.5 rounded-full shadow-xs">
               {totals.foodTakeawaysSold} Takeaways
             </span>
           </div>
@@ -575,7 +575,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                 type="number"
                 value={foodOpening}
                 onChange={(e) => setFoodOpening(Number(e.target.value))}
-                className="w-full bg-white border border-[#403c21]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#403c21] text-center focus:outline-none focus:border-[#403c21]"
+                className="w-full bg-white border border-[#0B1D2C]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#0B1D2C] text-center focus:outline-none focus:border-[#0B1D2C]"
               />
             </div>
             <div>
@@ -584,7 +584,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                 type="number"
                 value={foodAdded}
                 onChange={(e) => setFoodAdded(Number(e.target.value))}
-                className="w-full bg-white border border-[#403c21]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#403c21] text-center focus:outline-none focus:border-[#403c21]"
+                className="w-full bg-white border border-[#0B1D2C]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#0B1D2C] text-center focus:outline-none focus:border-[#0B1D2C]"
               />
             </div>
             <div>
@@ -593,22 +593,22 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                 type="number"
                 value={foodLeftover}
                 onChange={(e) => setFoodLeftover(Number(e.target.value))}
-                className="w-full bg-white border-2 border-[#403c21] rounded-full px-2.5 py-1.5 text-xs font-extrabold text-[#403c21] text-center focus:outline-none"
+                className="w-full bg-white border-2 border-[#0B1D2C] rounded-full px-2.5 py-1.5 text-xs font-extrabold text-[#0B1D2C] text-center focus:outline-none"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between bg-[#f7f5f0] p-2.5 rounded-full border border-[#403c21]/20 text-xs px-4">
+          <div className="flex items-center justify-between bg-[#f7f5f0] p-2.5 rounded-full border border-[#0B1D2C]/20 text-xs px-4">
             <span className="text-neutral-600 font-medium">Food Price: {foodPrice} ETB/unit</span>
-            <span className="font-extrabold text-[#403c21] text-sm">
+            <span className="font-extrabold text-[#0B1D2C] text-sm">
               = {formatCurrency(totals.foodRevenue, config.currencySymbol)}
             </span>
           </div>
         </div>
 
         {/* ─── Card 4: Financial Deductions & Additions ─────────────────────── */}
-        <div className="bg-white border border-[#403c21]/20 rounded-3xl p-4 space-y-3.5 shadow-md">
-          <h2 className="font-extrabold text-[#403c21] text-sm border-b border-[#403c21]/15 pb-2">
+        <div className="bg-white border border-[#0B1D2C]/20 rounded-3xl p-4 space-y-3.5 shadow-md">
+          <h2 className="font-extrabold text-[#0B1D2C] text-sm border-b border-[#0B1D2C]/15 pb-2">
             ዲጂታል ክፍያ፣ ወጪዎችና እዳዎች (Transfers, Expenses & Debts)
           </h2>
 
@@ -616,7 +616,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
             {/* 1. Digital Transfers */}
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-[#403c21] font-bold">1. Telebirr / CBE Birr (ለባለቤቱ የተላከ)</span>
+                <span className="text-[#0B1D2C] font-bold">1. Telebirr / CBE Birr (ለባለቤቱ የተላከ)</span>
                 <span className="text-neutral-500 font-mono text-[11px]">Deduction (-)</span>
               </div>
               <input
@@ -624,30 +624,30 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                 value={digitalTransfers || ''}
                 onChange={(e) => setDigitalTransfers(Number(e.target.value))}
                 placeholder="0 ETB"
-                className="w-full bg-white border border-[#403c21]/30 rounded-full px-3.5 py-2 text-xs font-extrabold text-[#403c21] focus:outline-none focus:border-[#403c21] shadow-xs"
+                className="w-full bg-white border border-[#0B1D2C]/30 rounded-full px-3.5 py-2 text-xs font-extrabold text-[#0B1D2C] focus:outline-none focus:border-[#0B1D2C] shadow-xs"
               />
             </div>
 
             {/* 2. Itemized Daily Expenses with Reasons */}
-            <div className="bg-[#f7f5f0] p-3.5 rounded-2xl border border-[#403c21]/20 space-y-2">
+            <div className="bg-[#f7f5f0] p-3.5 rounded-2xl border border-[#0B1D2C]/20 space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-[#403c21] font-bold">2. የዕለት ወጪዎች (Itemized Expenses)</span>
-                <span className="text-[#403c21] font-extrabold text-xs">
+                <span className="text-[#0B1D2C] font-bold">2. የዕለት ወጪዎች (Itemized Expenses)</span>
+                <span className="text-[#0B1D2C] font-extrabold text-xs">
                   Total = -{formatCurrency(dailyExpensesTotal, config.currencySymbol)}
                 </span>
               </div>
 
               {/* Added Expense List */}
               {expenseList.length > 0 && (
-                <div className="divide-y divide-[#403c21]/15 border-y border-[#403c21]/15 my-1 py-1">
+                <div className="divide-y divide-[#0B1D2C]/15 border-y border-[#0B1D2C]/15 my-1 py-1">
                   {expenseList.map((item) => (
                     <div key={item.id} className="flex items-center justify-between text-xs py-1">
-                      <span className="text-[#403c21] font-medium">{item.title}</span>
+                      <span className="text-[#0B1D2C] font-medium">{item.title}</span>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-[#403c21]">{item.amount} ETB</span>
+                        <span className="font-bold text-[#0B1D2C]">{item.amount} ETB</span>
                         <button
                           onClick={() => handleRemoveExpenseItem(item.id)}
-                          className="text-[#403c21]/70 hover:text-rose-600 cursor-pointer"
+                          className="text-[#0B1D2C]/70 hover:text-rose-600 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -664,33 +664,33 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                   value={expenseTitleInput}
                   onChange={(e) => setExpenseTitleInput(e.target.value)}
                   placeholder="የወጪ ምክንያት (Reason)"
-                  className="col-span-3 bg-white border border-[#403c21]/30 rounded-full px-3 py-1.5 text-xs text-[#403c21] focus:outline-none focus:border-[#403c21]"
+                  className="col-span-3 bg-white border border-[#0B1D2C]/30 rounded-full px-3 py-1.5 text-xs text-[#0B1D2C] focus:outline-none focus:border-[#0B1D2C]"
                 />
                 <input
                   type="number"
                   value={expenseAmountInput}
                   onChange={(e) => setExpenseAmountInput(e.target.value)}
                   placeholder="Birr"
-                  className="col-span-2 bg-white border border-[#403c21]/30 rounded-full px-3 py-1.5 text-xs text-[#403c21] font-bold text-center focus:outline-none focus:border-[#403c21]"
+                  className="col-span-2 bg-white border border-[#0B1D2C]/30 rounded-full px-3 py-1.5 text-xs text-[#0B1D2C] font-bold text-center focus:outline-none focus:border-[#0B1D2C]"
                 />
               </div>
 
               <button
                 onClick={handleAddExpenseItem}
-                className="w-full py-2.5 rounded-full bg-white text-[#403c21] border-2 border-[#403c21] text-xs font-bold flex items-center justify-center gap-1 cursor-pointer hover:bg-[#f7f5f0] shadow-xs active:scale-95 transition-all"
+                className="w-full py-2.5 rounded-full bg-white text-[#0B1D2C] border-2 border-[#0B1D2C] text-xs font-bold flex items-center justify-center gap-1 cursor-pointer hover:bg-[#f7f5f0] shadow-xs active:scale-95 transition-all"
               >
-                <Plus className="w-3.5 h-3.5 text-[#403c21]" />
+                <Plus className="w-3.5 h-3.5 text-[#0B1D2C]" />
                 <span>ወጪ ጨምር (Add Expense Line)</span>
               </button>
             </div>
 
             {/* 3. BeU Delivery Credit Orders */}
-            <div className="bg-[#f7f5f0] p-3.5 rounded-2xl border border-[#403c21]/20 space-y-2">
+            <div className="bg-[#f7f5f0] p-3.5 rounded-2xl border border-[#0B1D2C]/20 space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-[#403c21] font-bold flex items-center gap-1">
-                  <Bike className="w-3.5 h-3.5 text-[#403c21]" /> 3. BeU Delivery (የዴሊቨሪ ሂሳብ)
+                <span className="text-[#0B1D2C] font-bold flex items-center gap-1">
+                  <Bike className="w-3.5 h-3.5 text-[#0B1D2C]" /> 3. BeU Delivery (የዴሊቨሪ ሂሳብ)
                 </span>
-                <span className="text-[#403c21] font-extrabold text-xs">
+                <span className="text-[#0B1D2C] font-extrabold text-xs">
                   = -{formatCurrency(deliveryCreditAmount, config.currencySymbol)}
                 </span>
               </div>
@@ -702,7 +702,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                     value={deliveryJuiceCups || ''}
                     onChange={(e) => setDeliveryJuiceCups(Number(e.target.value))}
                     placeholder="0 cups"
-                    className="w-full bg-white border border-[#403c21]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#403c21] text-center focus:outline-none focus:border-[#403c21]"
+                    className="w-full bg-white border border-[#0B1D2C]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#0B1D2C] text-center focus:outline-none focus:border-[#0B1D2C]"
                   />
                 </div>
                 <div>
@@ -712,17 +712,17 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                     value={deliveryFoodBoxes || ''}
                     onChange={(e) => setDeliveryFoodBoxes(Number(e.target.value))}
                     placeholder="0 boxes"
-                    className="w-full bg-white border border-[#403c21]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#403c21] text-center focus:outline-none focus:border-[#403c21]"
+                    className="w-full bg-white border border-[#0B1D2C]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#0B1D2C] text-center focus:outline-none focus:border-[#0B1D2C]"
                   />
                 </div>
               </div>
             </div>
 
             {/* 4. New Pending Debts (Entered in Cups & Boxes) */}
-            <div className="bg-[#f7f5f0] p-3.5 rounded-2xl border border-[#403c21]/20 space-y-2">
+            <div className="bg-[#f7f5f0] p-3.5 rounded-2xl border border-[#0B1D2C]/20 space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-[#403c21] font-bold">4. አዲስ ያልተከፈለ እዳ (New Credit Given)</span>
-                <span className="text-[#403c21] font-extrabold text-xs">
+                <span className="text-[#0B1D2C] font-bold">4. አዲስ ያልተከፈለ እዳ (New Credit Given)</span>
+                <span className="text-[#0B1D2C] font-extrabold text-xs">
                   = -{formatCurrency(newPendingAmount, config.currencySymbol)}
                 </span>
               </div>
@@ -734,7 +734,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                     value={newPendingJuiceCups || ''}
                     onChange={(e) => setNewPendingJuiceCups(Number(e.target.value))}
                     placeholder="0 cups"
-                    className="w-full bg-white border border-[#403c21]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#403c21] text-center focus:outline-none focus:border-[#403c21]"
+                    className="w-full bg-white border border-[#0B1D2C]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#0B1D2C] text-center focus:outline-none focus:border-[#0B1D2C]"
                   />
                 </div>
                 <div>
@@ -744,17 +744,17 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                     value={newPendingFoodBoxes || ''}
                     onChange={(e) => setNewPendingFoodBoxes(Number(e.target.value))}
                     placeholder="0 boxes"
-                    className="w-full bg-white border border-[#403c21]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#403c21] text-center focus:outline-none focus:border-[#403c21]"
+                    className="w-full bg-white border border-[#0B1D2C]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#0B1D2C] text-center focus:outline-none focus:border-[#0B1D2C]"
                   />
                 </div>
               </div>
             </div>
 
             {/* 5. Recovered Debts (Entered in Cups & Boxes) */}
-            <div className="bg-[#f7f5f0] p-3.5 rounded-2xl border border-[#403c21]/20 space-y-2">
+            <div className="bg-[#f7f5f0] p-3.5 rounded-2xl border border-[#0B1D2C]/20 space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-[#403c21] font-bold">5. የተመለሰ አሮጌ እዳ (Old Debts Collected)</span>
-                <span className="text-[#403c21] font-extrabold text-xs">
+                <span className="text-[#0B1D2C] font-bold">5. የተመለሰ አሮጌ እዳ (Old Debts Collected)</span>
+                <span className="text-[#0B1D2C] font-extrabold text-xs">
                   = +{formatCurrency(recoveredPendingAmount, config.currencySymbol)}
                 </span>
               </div>
@@ -766,7 +766,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                     value={recoveredJuiceCups || ''}
                     onChange={(e) => setRecoveredJuiceCups(Number(e.target.value))}
                     placeholder="0 cups"
-                    className="w-full bg-white border border-[#403c21]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#403c21] text-center focus:outline-none focus:border-[#403c21]"
+                    className="w-full bg-white border border-[#0B1D2C]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#0B1D2C] text-center focus:outline-none focus:border-[#0B1D2C]"
                   />
                 </div>
                 <div>
@@ -776,7 +776,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
                     value={recoveredFoodBoxes || ''}
                     onChange={(e) => setRecoveredFoodBoxes(Number(e.target.value))}
                     placeholder="0 boxes"
-                    className="w-full bg-white border border-[#403c21]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#403c21] text-center focus:outline-none focus:border-[#403c21]"
+                    className="w-full bg-white border border-[#0B1D2C]/30 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#0B1D2C] text-center focus:outline-none focus:border-[#0B1D2C]"
                   />
                 </div>
               </div>
@@ -785,14 +785,14 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
         </div>
 
         {/* ─── Card 4.5: Digital Signature Pad ───────────────────────────── */}
-        <div className="bg-white border border-[#403c21]/20 rounded-3xl p-4 space-y-2.5 shadow-md">
-          <div className="flex items-center justify-between border-b border-[#403c21]/15 pb-2">
+        <div className="bg-white border border-[#0B1D2C]/20 rounded-3xl p-4 space-y-2.5 shadow-md">
+          <div className="flex items-center justify-between border-b border-[#0B1D2C]/15 pb-2">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#403c21]/10 text-[#403c21] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-[#0B1D2C]/10 text-[#0B1D2C] flex items-center justify-center">
                 <PenTool className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="font-extrabold text-[#403c21] text-sm">የሰራተኛ ፊርማ (Worker Signature)</h2>
+                <h2 className="font-extrabold text-[#0B1D2C] text-sm">የሰራተኛ ፊርማ (Worker Signature)</h2>
                 <p className="text-[10px] text-neutral-500">Sign with finger or mouse below</p>
               </div>
             </div>
@@ -807,7 +807,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
             )}
           </div>
 
-          <div className="bg-[#f7f5f0] rounded-2xl p-1 border border-[#403c21]/20 overflow-hidden relative">
+          <div className="bg-[#f7f5f0] rounded-2xl p-1 border border-[#0B1D2C]/20 overflow-hidden relative">
             <canvas
               ref={canvasRef}
               width={340}
@@ -822,7 +822,7 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
               className="w-full h-28 touch-none bg-white cursor-crosshair rounded-xl border border-neutral-200 shadow-inner"
             />
             {!hasSigned && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[#403c21]/70 text-xs font-bold">
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[#0B1D2C]/70 text-xs font-bold">
                 ✍️ እዚህ ጋር በጣትዎ ይፈረሙ (Draw Signature Here)
               </div>
             )}
@@ -830,19 +830,19 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
         </div>
 
         {/* ─── Card 5: Final Shift Income Summary & Cash Handover (Clean White Card) ───────────── */}
-        <div className="bg-white text-[#403c21] border border-[#403c21]/20 rounded-3xl p-5 shadow-md space-y-4">
+        <div className="bg-white text-[#0B1D2C] border border-[#0B1D2C]/20 rounded-3xl p-5 shadow-md space-y-4">
           <div className="flex justify-between items-center text-xs text-neutral-600 font-medium">
             <span>Gross Sales (ጠቅላላ ሽያጭ):</span>
-            <span className="font-extrabold text-[#403c21] text-base">
+            <span className="font-extrabold text-[#0B1D2C] text-base">
               {formatCurrency(totals.grossIncome, config.currencySymbol)}
             </span>
           </div>
 
-          <div className="border-t border-[#403c21]/15 pt-3">
-            <p className="text-xs font-extrabold uppercase tracking-wider text-[#403c21] mb-1">
+          <div className="border-t border-[#0B1D2C]/15 pt-3">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-[#0B1D2C] mb-1">
               ለባለቤቱ የሚገባ ጥሬ ገንዘብ (Net Cash Due)
             </p>
-            <h3 className="text-4xl font-extrabold text-[#403c21]">
+            <h3 className="text-4xl font-extrabold text-[#0B1D2C]">
               {formatCurrency(totals.netCashDueToOwner, config.currencySymbol)}
             </h3>
             <p className="text-[11px] text-neutral-500 mt-1 font-medium">
@@ -854,13 +854,13 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
           <button
             onClick={handleSaveShift}
             disabled={saving}
-            className="w-full h-14 rounded-full bg-[#403c21] hover:bg-[#33301a] text-white font-black text-lg shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-3 active:scale-95 transition-all"
+            className="w-full h-14 rounded-full bg-[#0B1D2C] hover:bg-[#081521] text-white font-black text-lg shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-3 active:scale-95 transition-all"
           >
             {saving ? (
-              <div className="w-6 h-6 border-3 border-[#403c21]/40 border-t-[#403c21] rounded-full animate-spin" />
+              <div className="w-6 h-6 border-3 border-[#0B1D2C]/40 border-t-[#0B1D2C] rounded-full animate-spin" />
             ) : (
               <>
-                <Send className="w-5 h-5 text-[#403c21]" />
+                <Send className="w-5 h-5 text-[#0B1D2C]" />
                 <span>የሸፍት ገቢ ላክ (Submit for Admin Approval)</span>
               </>
             )}

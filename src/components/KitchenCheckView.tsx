@@ -48,9 +48,9 @@ const TAKER_CONFIG: Record<
     shortLabel: 'Day Shift',
     subLabel: '2:00 morning – 2:00 evening ET',
     bg: 'bg-white',
-    text: 'text-[#403c21]',
-    border: 'border-[#403c21]/20',
-    badgeBg: 'bg-[#403c21] text-white font-black border-[#403c21]',
+    text: 'text-[#0B1D2C]',
+    border: 'border-[#0B1D2C]/20',
+    badgeBg: 'bg-[#0B1D2C] text-white font-black border-[#0B1D2C]',
     accentGradient: 'from-[#f7f5f0] to-white',
   },
   night_shift: {
@@ -59,9 +59,9 @@ const TAKER_CONFIG: Record<
     shortLabel: 'Night Shift',
     subLabel: '2:00 evening – morning 2:00 ET',
     bg: 'bg-white',
-    text: 'text-[#403c21]',
-    border: 'border-[#403c21]/20',
-    badgeBg: 'bg-[#403c21] text-white font-black border-[#403c21]',
+    text: 'text-[#0B1D2C]',
+    border: 'border-[#0B1D2C]/20',
+    badgeBg: 'bg-[#0B1D2C] text-white font-black border-[#0B1D2C]',
     accentGradient: 'from-[#f7f5f0] to-white',
   },
   beu_delivery: {
@@ -70,9 +70,9 @@ const TAKER_CONFIG: Record<
     shortLabel: 'BeU Delivery',
     subLabel: 'Online / Rider Orders',
     bg: 'bg-white',
-    text: 'text-[#403c21]',
-    border: 'border-[#403c21]/20',
-    badgeBg: 'bg-[#403c21] text-white font-black border-[#403c21]',
+    text: 'text-[#0B1D2C]',
+    border: 'border-[#0B1D2C]/20',
+    badgeBg: 'bg-[#0B1D2C] text-white font-black border-[#0B1D2C]',
     accentGradient: 'from-[#f7f5f0] to-white',
   },
 };
@@ -190,20 +190,20 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="space-y-6 max-w-7xl mx-auto text-[#403c21] font-sans"
+      className="space-y-6 max-w-7xl mx-auto text-[#0B1D2C] font-sans"
     >
       {/* ─── Top Header & Controls ─────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-[#403c21]/20 p-5 rounded-3xl shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-[#0B1D2C]/20 p-5 rounded-3xl shadow-xs">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-[#f7f5f0] text-[#403c21] border border-[#403c21]/20 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-[#f7f5f0] text-[#0B1D2C] border border-[#0B1D2C]/20 flex items-center justify-center">
             <ChefHat className="w-6.5 h-6.5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-extrabold text-[#403c21] tracking-tight">
+              <h2 className="text-xl font-extrabold text-[#0B1D2C] tracking-tight">
                 Kitchen Check & Reconciliation
               </h2>
-              <span className="bg-[#403c21] text-white font-bold text-xs px-3 py-0.5 rounded-full font-extrabold">
+              <span className="bg-[#0B1D2C] text-white font-bold text-xs px-3 py-0.5 rounded-full font-extrabold">
                 Audit Dashboard
               </span>
             </div>
@@ -216,24 +216,24 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
         {/* Action Controls & Date Navigator */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Date Selector Pill */}
-          <div className="flex items-center gap-1.5 bg-[#f7f5f0] p-1.5 rounded-full border border-[#403c21]/20">
+          <div className="flex items-center gap-1.5 bg-[#f7f5f0] p-1.5 rounded-full border border-[#0B1D2C]/20">
             <button
               onClick={() => setDateIdx((i) => Math.min(i + 1, availableDates.length - 1))}
               disabled={dateIdx >= availableDates.length - 1}
-              className="p-1.5 rounded-full hover:bg-slate-200 text-[#403c21] transition-all cursor-pointer disabled:opacity-30"
+              className="p-1.5 rounded-full hover:bg-slate-200 text-[#0B1D2C] transition-all cursor-pointer disabled:opacity-30"
               title="Previous Date"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <div className="px-3 text-center min-w-[140px]">
               <div className="flex items-center justify-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-[#403c21]" />
-                <p className="font-extrabold text-[#403c21] text-xs">
+                <Calendar className="w-3.5 h-3.5 text-[#0B1D2C]" />
+                <p className="font-extrabold text-[#0B1D2C] text-xs">
                   {formatDate(selectedDate)}
                 </p>
               </div>
               {selectedDate === getOperationalDate() && (
-                <span className="inline-block text-[10px] font-extrabold text-[#403c21] uppercase tracking-wider">
+                <span className="inline-block text-[10px] font-extrabold text-[#0B1D2C] uppercase tracking-wider">
                   Active Shift Date
                 </span>
               )}
@@ -241,7 +241,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
             <button
               onClick={() => setDateIdx((i) => Math.max(i - 1, 0))}
               disabled={dateIdx <= 0}
-              className="p-1.5 rounded-full hover:bg-slate-200 text-[#403c21] transition-all cursor-pointer disabled:opacity-30"
+              className="p-1.5 rounded-full hover:bg-slate-200 text-[#0B1D2C] transition-all cursor-pointer disabled:opacity-30"
               title="Next Date"
             >
               <ChevronRight className="w-4 h-4" />
@@ -264,8 +264,8 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
 
       {/* ─── Metric Stat Cards ──────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Stat Card 1 (#403c21 Hero Style with #403c21 Accent) */}
-        <div className="bg-[#403c21] border border-[#403c21]/40 text-white p-5 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[130px]">
+        {/* Stat Card 1 (#0B1D2C Hero Style with #0B1D2C Accent) */}
+        <div className="bg-[#0B1D2C] border border-[#0B1D2C]/40 text-white p-5 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[130px]">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-wider text-white font-bold">
@@ -275,18 +275,18 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                 {grandChefTotalItems} <span className="text-sm font-normal text-white font-bold">items</span>
               </h3>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#403c21] border border-[#403c21]/40 flex items-center justify-center text-[#403c21]">
+            <div className="w-10 h-10 rounded-full bg-[#0B1D2C] border border-[#0B1D2C]/40 flex items-center justify-center text-[#0B1D2C]">
               <ShoppingBag className="w-5 h-5" />
             </div>
           </div>
           <p className="text-xs text-white font-bold mt-2 font-medium flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-[#403c21]" />
+            <Sparkles className="w-3 h-3 text-[#0B1D2C]" />
             Recorded by kitchen staff for {selectedDate}
           </p>
         </div>
 
         {/* Stat Card 2 */}
-        <div className="bg-white border border-[#403c21]/20 text-[#403c21] p-5 rounded-3xl shadow-xs flex flex-col justify-between min-h-[130px]">
+        <div className="bg-white border border-[#0B1D2C]/20 text-[#0B1D2C] p-5 rounded-3xl shadow-xs flex flex-col justify-between min-h-[130px]">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
@@ -296,7 +296,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                 {workerTotalItems} <span className="text-sm font-normal text-neutral-500">items</span>
               </h3>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#f7f5f0] border border-[#403c21]/20 flex items-center justify-center text-[#403c21]">
+            <div className="w-10 h-10 rounded-full bg-[#f7f5f0] border border-[#0B1D2C]/20 flex items-center justify-center text-[#0B1D2C]">
               <Receipt className="w-5 h-5" />
             </div>
           </div>
@@ -306,19 +306,19 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
         </div>
 
         {/* Stat Card 3 */}
-        <div className="bg-white border border-[#403c21]/20 text-[#403c21] p-5 rounded-3xl shadow-xs flex flex-col justify-between min-h-[130px]">
+        <div className="bg-white border border-[#0B1D2C]/20 text-[#0B1D2C] p-5 rounded-3xl shadow-xs flex flex-col justify-between min-h-[130px]">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
                 Audit Status
               </p>
-              <h3 className="text-xl font-extrabold mt-1 flex items-center gap-1.5 text-[#403c21]">
+              <h3 className="text-xl font-extrabold mt-1 flex items-center gap-1.5 text-[#0B1D2C]">
                 {!hasData ? (
                   'Pending Shift'
                 ) : itemsMatch ? (
                   <>
                     <CheckCircle2 className="w-5 h-5 text-white font-bold" />
-                    <span className="text-[#403c21]">Balanced</span>
+                    <span className="text-[#0B1D2C]">Balanced</span>
                   </>
                 ) : (
                   <>
@@ -328,8 +328,8 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                 )}
               </h3>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#f7f5f0] border border-[#403c21]/20 flex items-center justify-center text-[#403c21]">
-              <AlertCircle className="w-5 h-5 text-[#403c21]" />
+            <div className="w-10 h-10 rounded-full bg-[#f7f5f0] border border-[#0B1D2C]/20 flex items-center justify-center text-[#0B1D2C]">
+              <AlertCircle className="w-5 h-5 text-[#0B1D2C]" />
             </div>
           </div>
 
@@ -337,7 +337,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
             {!hasData ? (
               <span className="text-neutral-500">Waiting for shift reports...</span>
             ) : itemsMatch ? (
-              <span className="text-[#403c21] font-bold">
+              <span className="text-[#0B1D2C] font-bold">
                 ✅ Chef & Worker records agree exactly ({grandChefTotalItems} items)
               </span>
             ) : (
@@ -352,8 +352,8 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
       {/* ─── Breakdown Cards per Taker ──────────────────────────── */}
       <div>
         <div className="flex items-center justify-between mb-3 px-1">
-          <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#403c21] flex items-center gap-2">
-            <Layers className="w-4 h-4 text-[#403c21]" />
+          <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#0B1D2C] flex items-center gap-2">
+            <Layers className="w-4 h-4 text-[#0B1D2C]" />
             <span>Shift Taker Summary</span>
           </h3>
           <span className="text-xs text-neutral-500 font-medium">
@@ -372,18 +372,18 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                 key={tk}
                 whileHover={{ y: -2 }}
                 transition={{ duration: 0.15 }}
-                className={`rounded-3xl bg-white border border-[#403c21]/20 overflow-hidden flex flex-col shadow-xs text-[#403c21]`}
+                className={`rounded-3xl bg-white border border-[#0B1D2C]/20 overflow-hidden flex flex-col shadow-xs text-[#0B1D2C]`}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#403c21]/15 bg-[#f7f5f0]">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#0B1D2C]/15 bg-[#f7f5f0]">
                   <div className="flex items-center gap-2.5">
                     <span className="text-2xl">{cfg.emoji}</span>
                     <div>
-                      <h4 className="font-extrabold text-sm leading-tight text-[#403c21]">{cfg.shortLabel}</h4>
+                      <h4 className="font-extrabold text-sm leading-tight text-[#0B1D2C]">{cfg.shortLabel}</h4>
                       <p className="text-[10px] text-neutral-500 font-medium">{cfg.subLabel}</p>
                     </div>
                   </div>
-                  <span className="font-extrabold text-xs px-3 py-1 rounded-full bg-[#403c21] text-white font-bold shadow-xs">
+                  <span className="font-extrabold text-xs px-3 py-1 rounded-full bg-[#0B1D2C] text-white font-bold shadow-xs">
                     {data.totalCount} items
                   </span>
                 </div>
@@ -391,19 +391,19 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                 {/* Items List */}
                 <div className="p-4 flex-1 space-y-2">
                   {data.items.length === 0 ? (
-                    <div className="py-6 text-center text-[#403c21]/70 text-xs italic">
+                    <div className="py-6 text-center text-[#0B1D2C]/70 text-xs italic">
                       No orders logged for {cfg.shortLabel}
                     </div>
                   ) : (
                     data.items.map((item) => (
                       <div
                         key={item.name}
-                        className="flex items-center justify-between text-xs bg-[#f7f5f0] px-3.5 py-2 rounded-2xl border border-[#403c21]/15 text-[#403c21]"
+                        className="flex items-center justify-between text-xs bg-[#f7f5f0] px-3.5 py-2 rounded-2xl border border-[#0B1D2C]/15 text-[#0B1D2C]"
                       >
-                        <span className="text-[#403c21] font-bold truncate max-w-[70%]">
+                        <span className="text-[#0B1D2C] font-bold truncate max-w-[70%]">
                           {item.name}
                         </span>
-                        <span className="font-extrabold text-white font-bold bg-[#403c21] px-2.5 py-0.5 rounded-full text-xs shadow-xs">
+                        <span className="font-extrabold text-white font-bold bg-[#0B1D2C] px-2.5 py-0.5 rounded-full text-xs shadow-xs">
                           ×{item.quantity}
                         </span>
                       </div>
@@ -417,15 +417,15 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
       </div>
 
       {/* ─── Detailed Time-Stamped Order Stream ────────────────────────────── */}
-      <div className="rounded-3xl border border-[#403c21]/20 overflow-hidden bg-white shadow-xs text-[#403c21]">
+      <div className="rounded-3xl border border-[#0B1D2C]/20 overflow-hidden bg-white shadow-xs text-[#0B1D2C]">
         {/* Stream Header & Controls */}
-        <div className="p-4 bg-[#f7f5f0] border-b border-[#403c21]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="p-4 bg-[#f7f5f0] border-b border-[#0B1D2C]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-white text-[#403c21] border border-[#403c21]/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-white text-[#0B1D2C] border border-[#0B1D2C]/20 flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-extrabold text-[#403c21] text-sm">
+              <h3 className="font-extrabold text-[#0B1D2C] text-sm">
                 Detailed Order Stream
               </h3>
               <p className="text-[11px] text-neutral-500 font-medium">
@@ -438,24 +438,24 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             {/* Search Input */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#403c21]/70" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#0B1D2C]/70" />
               <input
                 type="text"
                 placeholder="Search food item..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-xs rounded-full bg-white border border-[#403c21]/30 text-[#403c21] font-bold focus:outline-none focus:border-[#403c21] w-36 sm:w-44 placeholder:text-[#403c21]/70 shadow-xs"
+                className="pl-8 pr-3 py-1.5 text-xs rounded-full bg-white border border-[#0B1D2C]/30 text-[#0B1D2C] font-bold focus:outline-none focus:border-[#0B1D2C] w-36 sm:w-44 placeholder:text-[#0B1D2C]/70 shadow-xs"
               />
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1 bg-white p-1 rounded-full border border-[#403c21]/20 shadow-xs">
+            <div className="flex items-center gap-1 bg-white p-1 rounded-full border border-[#0B1D2C]/20 shadow-xs">
               <button
                 onClick={() => setTakerFilter('all')}
                 className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
                   takerFilter === 'all'
-                    ? 'bg-[#403c21] text-white font-bold shadow-xs'
-                    : 'text-neutral-600 hover:text-[#403c21]'
+                    ? 'bg-[#0B1D2C] text-white font-bold shadow-xs'
+                    : 'text-neutral-600 hover:text-[#0B1D2C]'
                 }`}
               >
                 All ({grandChefTotalItems})
@@ -470,8 +470,8 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                     onClick={() => setTakerFilter(tk)}
                     className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1 ${
                       isActive
-                        ? 'bg-[#403c21] text-white font-bold shadow-xs'
-                        : 'text-neutral-600 hover:text-[#403c21]'
+                        ? 'bg-[#0B1D2C] text-white font-bold shadow-xs'
+                        : 'text-neutral-600 hover:text-[#0B1D2C]'
                     }`}
                   >
                     <span>{cfg.emoji}</span>
@@ -487,12 +487,12 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
         {/* Order Stream List */}
         {filteredChefOrders.length === 0 ? (
           <div className="p-12 text-center text-neutral-500 text-sm">
-            <ShoppingBag className="w-10 h-10 mx-auto mb-2 opacity-30 text-[#403c21]" />
-            <p className="font-extrabold text-[#403c21]">No orders found</p>
+            <ShoppingBag className="w-10 h-10 mx-auto mb-2 opacity-30 text-[#0B1D2C]" />
+            <p className="font-extrabold text-[#0B1D2C]">No orders found</p>
             <p className="text-xs mt-1 text-neutral-500 font-medium">Try selecting another date or clearing the search filter.</p>
           </div>
         ) : (
-          <div className="divide-y divide-[#403c21]/15 max-h-96 overflow-y-auto">
+          <div className="divide-y divide-[#0B1D2C]/15 max-h-96 overflow-y-auto">
             {filteredChefOrders.map((order) => {
               const cfg = TAKER_CONFIG[order.taker];
               return (
@@ -501,21 +501,21 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                   className="flex items-center justify-between px-5 py-3 hover:bg-[#f7f5f0] transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-[#403c21] text-white font-bold flex items-center gap-1 shrink-0 shadow-xs">
+                    <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-[#0B1D2C] text-white font-bold flex items-center gap-1 shrink-0 shadow-xs">
                       <span>{cfg.emoji}</span>
                       <span>{cfg.shortLabel}</span>
                     </span>
-                    <span className="text-[#403c21] font-extrabold text-sm truncate">
+                    <span className="text-[#0B1D2C] font-extrabold text-sm truncate">
                       {order.foodItemName}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="font-extrabold text-[#403c21] text-xs bg-[#403c21] px-3 py-1 rounded-full shadow-xs">
+                    <span className="font-extrabold text-[#0B1D2C] text-xs bg-[#0B1D2C] px-3 py-1 rounded-full shadow-xs">
                       ×{order.quantity}
                     </span>
-                    <span className="text-neutral-600 text-xs font-medium bg-[#f7f5f0] px-3 py-1 rounded-full border border-[#403c21]/20 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-[#403c21]" />
+                    <span className="text-neutral-600 text-xs font-medium bg-[#f7f5f0] px-3 py-1 rounded-full border border-[#0B1D2C]/20 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-[#0B1D2C]" />
                       <span>{formatEthiopianTime(order.orderTime)}</span>
                       <span className="text-neutral-500 text-[10px] font-mono">({formatTime(order.orderTime)})</span>
                     </span>

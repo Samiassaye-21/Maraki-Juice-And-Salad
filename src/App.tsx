@@ -719,7 +719,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f5f0] text-[#403c21] font-sans flex flex-col antialiased transition-colors duration-300">
+    <div className="min-h-screen bg-[#f7f5f0] text-[#0B1D2C] font-sans flex flex-col antialiased transition-colors duration-300">
       
       <Header
         activeTab={activeTab}
@@ -745,7 +745,7 @@ export function App() {
         <SupabaseMigration onMigrationComplete={fetchData} />
 
         {isDbLoading ? (
-          <div className="flex flex-col items-center justify-center h-64 text-[#403c21]/70">
+          <div className="flex flex-col items-center justify-center h-64 text-[#0B1D2C]/70">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-800 dark:border-white mb-4"></div>
             <p>Loading data from database...</p>
           </div>
@@ -862,7 +862,7 @@ export function App() {
       </main>
 
       <footer className="border-t border-stone-200/60 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm py-5 text-center mt-auto transition-colors">
-        <p className="text-xs font-bold text-[#403c21]/70 dark:text-slate-500">
+        <p className="text-xs font-bold text-[#0B1D2C]/70 dark:text-slate-500">
           Maraki Juice and Salad • Stock Inventory & Shift Reconciliation
         </p>
       </footer>
