@@ -110,6 +110,12 @@ export function App() {
     try {
       // Config
       const { data: configData } = await supabase.from('config').select('*').single();
+      const savedPinsStr = safeLocalStorage.getItem('maraki_shift_pins');
+      let savedPins: any = {};
+      if (savedPinsStr) {
+        try { savedPins = JSON.parse(savedPinsStr); } catch {}
+      }
+
       if (configData) {
         setConfigState({
           defaultJuiceUnitPrice: configData.default_juice_unit_price,
@@ -120,10 +126,16 @@ export function App() {
           nightShiftWorkerName: configData.night_shift_worker_name,
           dayWorkerSignatureUrl: configData.day_worker_signature_url,
           nightWorkerSignatureUrl: configData.night_worker_signature_url,
-          dayShiftPin: configData.day_shift_pin || '1111',
-          nightShiftPin: configData.night_shift_pin || '2222',
+          dayShiftPin: configData.day_shift_pin || savedPins.dayShiftPin || '1111',
+          nightShiftPin: configData.night_shift_pin || savedPins.nightShiftPin || '2222',
           restaurantName: configData.restaurant_name,
         });
+      } else if (savedPins.dayShiftPin || savedPins.nightShiftPin) {
+        setConfigState(prev => ({
+          ...prev,
+          dayShiftPin: savedPins.dayShiftPin || prev.dayShiftPin || '1111',
+          nightShiftPin: savedPins.nightShiftPin || prev.nightShiftPin || '2222',
+        }));
       }
 
       // Shifts
@@ -248,6 +260,26 @@ export function App() {
     if (authToken) fetchData();
   }, [authToken]);
 
+  // Live polling for tablet orders when on orders tab
+  useEffect(() => {
+    if (!authToken || activeTab !== 'orders') return;
+    const interval = setInterval(() => {
+      supabase.from('tablet_orders').select('*').order('created_at_ts', { ascending: false }).then(({ data }) => {
+        if (data) {
+          setTabletOrdersState(data.map((r: any) => ({
+            id: r.id, clientOrderId: r.client_order_id,
+            staffName: r.staff_name, customerName: r.customer_name,
+            items: r.items || [], totalAmount: r.total_amount,
+            paymentMethod: r.payment_method, shiftType: r.shift_type,
+            status: r.status, notes: r.notes,
+            orderTime: r.order_time, date: r.date, createdAt: Number(r.created_at_ts),
+          })));
+        }
+      });
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [authToken, activeTab]);
+
   const currencySymbol = selectedCurrency.split(' ')[0] || 'Br';
 
   if (!authToken) {
@@ -259,6 +291,13 @@ export function App() {
   // ─── Config Handler ────────────────────────────────────────────────────────
   const setConfig = async (newConfig: RestaurantSystemConfig) => {
     setConfigState(newConfig);
+
+    // Save PINs to localStorage immediately
+    safeLocalStorage.setItem('maraki_shift_pins', JSON.stringify({
+      dayShiftPin: newConfig.dayShiftPin || '1111',
+      nightShiftPin: newConfig.nightShiftPin || '2222',
+    }));
+
     const payload: any = {
       id: 1,
       default_juice_unit_price: newConfig.defaultJuiceUnitPrice,
@@ -274,7 +313,17 @@ export function App() {
     if (newConfig.dayWorkerSignatureUrl) payload.day_worker_signature_url = newConfig.dayWorkerSignatureUrl;
     if (newConfig.nightWorkerSignatureUrl) payload.night_worker_signature_url = newConfig.nightWorkerSignatureUrl;
 
-    await supabase.from('config').upsert(payload);
+    try {
+      const { error } = await supabase.from('config').upsert(payload);
+      if (error) {
+        console.warn('Supabase config upsert returned error, attempting fallback:', error);
+        delete payload.day_shift_pin;
+        delete payload.night_shift_pin;
+        await supabase.from('config').upsert(payload);
+      }
+    } catch (err) {
+      console.error('Config save error:', err);
+    }
   };
 
   // ─── Shift Handlers ────────────────────────────────────────────────────────
@@ -954,6 +1003,7 @@ export function App() {
                 <TabletOrdersView
                   tabletOrders={tabletOrders}
                   onVoidOrder={handleVoidTabletOrder}
+                  onRefreshOrders={fetchData}
                   currencySymbol={currencySymbol}
                 />
               </motion.div>

@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { RestaurantSystemConfig, SystemSummaryStats, FoodMenuItem } from '../types';
 import { DEFAULT_FOOD_MENU } from '../data/initialData';
 import { cleanNumberInput, cleanStringNumberInput, handleInputFocus } from '../utils/shiftUtils';
+import { safeLocalStorage } from '../utils/safeStorage';
 
 interface BudgetSettingsProps {
   config: RestaurantSystemConfig;
@@ -32,16 +33,39 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
   onSaveConfig,
   summary,
 }) => {
+  const getInitialPins = () => {
+    const savedStr = safeLocalStorage.getItem('maraki_shift_pins');
+    if (savedStr) {
+      try { return JSON.parse(savedStr); } catch {}
+    }
+    return {};
+  };
+  const initialPins = getInitialPins();
+
   const [juicePrice, setJuicePrice] = useState(config.defaultJuiceUnitPrice || 170);
   const [foodPrice, setFoodPrice] = useState(config.defaultFoodUnitPrice || 220);
   const [dayWorker, setDayWorker] = useState(config.dayShiftWorkerName);
   const [nightWorker, setNightWorker] = useState(config.nightShiftWorkerName);
-  const [dayShiftPin, setDayShiftPin] = useState(config.dayShiftPin || '1111');
-  const [nightShiftPin, setNightShiftPin] = useState(config.nightShiftPin || '2222');
+  const [dayShiftPin, setDayShiftPin] = useState(config.dayShiftPin || initialPins.dayShiftPin || '1111');
+  const [nightShiftPin, setNightShiftPin] = useState(config.nightShiftPin || initialPins.nightShiftPin || '2222');
   const [daySignatureUrl, setDaySignatureUrl] = useState<string>(config.dayWorkerSignatureUrl || '');
   const [nightSignatureUrl, setNightSignatureUrl] = useState<string>(config.nightWorkerSignatureUrl || '');
   const [restaurantName, setRestaurantName] = useState(config.restaurantName);
   const [currencySymbol, setCurrencySymbol] = useState(config.currencySymbol);
+
+  // Keep state synchronized with incoming config or local storage updates
+  useEffect(() => {
+    const savedStr = safeLocalStorage.getItem('maraki_shift_pins');
+    let saved: any = {};
+    if (savedStr) {
+      try { saved = JSON.parse(savedStr); } catch {}
+    }
+    if (config.dayShiftPin) setDayShiftPin(config.dayShiftPin);
+    else if (saved.dayShiftPin) setDayShiftPin(saved.dayShiftPin);
+
+    if (config.nightShiftPin) setNightShiftPin(config.nightShiftPin);
+    else if (saved.nightShiftPin) setNightShiftPin(saved.nightShiftPin);
+  }, [config]);
 
   // ── Full-screen Signature Modal ──────────────────────────────────────────
   const [sigModalOpen, setSigModalOpen] = useState(false);

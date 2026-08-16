@@ -7,11 +7,12 @@ import {
 } from './types';
 import { DEFAULT_RESTAURANT_CONFIG, DEFAULT_FOOD_MENU } from './data/initialData';
 import { getOperationalDate, getAutoShiftType, formatEthiopianTime } from './utils/shiftUtils';
+import { safeLocalStorage } from './utils/safeStorage';
 import { 
   ShoppingCart, CheckCircle, Trash2, Plus, Minus, Send, RefreshCw, 
   WifiOff, Sun, Moon, ChefHat, ArrowLeft, Clock, Check, Bike, 
   Layers, UtensilsCrossed, BarChart3, X, Receipt, Banknote, 
-  Smartphone, Sparkles, ChevronDown, ChevronUp, Eye, Lock, Delete
+  Smartphone, Sparkles, ChevronDown, ChevronUp, Eye, Lock, Delete, Archive
 } from 'lucide-react';
 
 type TabletShift = 'day' | 'night' | 'kitchen';
@@ -64,6 +65,7 @@ export default function TabletApp() {
   // Main mode: null = Pick Mode (Day / Night / Kitchen)
   const [shift, setShift] = useState<TabletShift | null>(null);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [summarySubTab, setSummarySubTab] = useState<'active' | 'closed'>('active');
 
   // ─── PIN Verification Modal State for Done action ─────────────────────────
   const [showPinModal, setShowPinModal] = useState(false);
@@ -100,6 +102,12 @@ export default function TabletApp() {
   // Load config, today's tablet orders, & today's kitchen orders
   const refreshAllData = useCallback(async () => {
     try {
+      const savedPinsStr = safeLocalStorage.getItem('maraki_shift_pins');
+      let savedPins: any = {};
+      if (savedPinsStr) {
+        try { savedPins = JSON.parse(savedPinsStr); } catch {}
+      }
+
       const { data: cfg } = await supabase.from('config').select('*').single();
       if (cfg) {
         setConfig({
@@ -109,10 +117,16 @@ export default function TabletApp() {
           currencySymbol: cfg.currency_symbol,
           dayShiftWorkerName: cfg.day_shift_worker_name,
           nightShiftWorkerName: cfg.night_shift_worker_name,
-          dayShiftPin: cfg.day_shift_pin || '1111',
-          nightShiftPin: cfg.night_shift_pin || '2222',
+          dayShiftPin: cfg.day_shift_pin || savedPins.dayShiftPin || '1111',
+          nightShiftPin: cfg.night_shift_pin || savedPins.nightShiftPin || '2222',
           restaurantName: cfg.restaurant_name,
         });
+      } else if (savedPins.dayShiftPin || savedPins.nightShiftPin) {
+        setConfig(prev => ({
+          ...prev,
+          dayShiftPin: savedPins.dayShiftPin || '1111',
+          nightShiftPin: savedPins.nightShiftPin || '2222',
+        }));
       }
 
       // Load today's tablet orders
@@ -264,6 +278,7 @@ export default function TabletApp() {
     if (!cart.length || !shift) return;
     setIsSubmitting(true);
     const now = new Date();
+    const opDate = getOperationalDate(now);
     const id = 'to-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
     const shiftRecord = SHIFTS.find(s => s.id === shift)!;
     const order: TabletOrder = {
@@ -278,7 +293,7 @@ export default function TabletApp() {
       status: 'active',
       notes: notes.trim() ? (tip > 0 ? `${notes.trim()} (Tip: ${tip} Br)` : notes.trim()) : (tip > 0 ? `Tip: ${tip} Br` : undefined),
       orderTime: now.toISOString(),
-      date: now.toISOString().split('T')[0],
+      date: opDate,
       createdAt: now.getTime(),
     };
 
@@ -322,22 +337,32 @@ export default function TabletApp() {
   };
 
   // ─── Shift End-of-Day Financial Calculations ───────────────────────────────
+  // Active unclosed orders for current shift
   const shiftOrders = useMemo(() => {
     if (!shift || shift === 'kitchen') return [];
-    return todayTabletOrders.filter(o => o.shiftType === shift && o.status !== 'voided');
+    return todayTabletOrders.filter(o => o.shiftType === shift && o.status === 'active');
   }, [todayTabletOrders, shift]);
 
+  // Closed past orders for current shift (history)
+  const shiftClosedOrders = useMemo(() => {
+    if (!shift || shift === 'kitchen') return [];
+    return todayTabletOrders.filter(o => o.shiftType === shift && o.status === 'closed');
+  }, [todayTabletOrders, shift]);
+
+  const displayedOrdersForSummary = summarySubTab === 'active' ? shiftOrders : shiftClosedOrders;
+
   const shiftStats = useMemo(() => {
-    const totalRev = shiftOrders.reduce((sum, o) => sum + o.totalAmount, 0);
-    const cashTotal = shiftOrders.filter(o => o.paymentMethod === 'cash').reduce((sum, o) => sum + o.totalAmount, 0);
-    const transferTotal = shiftOrders.filter(o => o.paymentMethod === 'transfer').reduce((sum, o) => sum + o.totalAmount, 0);
+    const targetOrders = displayedOrdersForSummary;
+    const totalRev = targetOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+    const cashTotal = targetOrders.filter(o => o.paymentMethod === 'cash').reduce((sum, o) => sum + o.totalAmount, 0);
+    const transferTotal = targetOrders.filter(o => o.paymentMethod === 'transfer').reduce((sum, o) => sum + o.totalAmount, 0);
     
     let tipTotal = 0;
     let juiceCount = 0;
     let foodCount = 0;
     const itemMap: Record<string, { name: string; category: string; quantity: number; totalRevenue: number; unitPrice: number }> = {};
 
-    shiftOrders.forEach(o => {
+    targetOrders.forEach(o => {
       // Tip parse
       if (o.notes) {
         const match = o.notes.match(/Tip:\s*(\d+(\.\d+)?)/i);
@@ -372,17 +397,21 @@ export default function TabletApp() {
       tipTotal,
       juiceCount,
       foodCount,
-      orderCount: shiftOrders.length,
+      orderCount: targetOrders.length,
       itemBreakdown,
     };
-  }, [shiftOrders]);
+  }, [displayedOrdersForSummary]);
 
   // General Day / Night stats for Home Cards
-  const dayShiftOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'day' && o.status !== 'voided'), [todayTabletOrders]);
-  const dayShiftTotalRev = useMemo(() => dayShiftOrders.reduce((s, o) => s + o.totalAmount, 0), [dayShiftOrders]);
+  const dayActiveOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'day' && o.status === 'active'), [todayTabletOrders]);
+  const dayClosedOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'day' && o.status === 'closed'), [todayTabletOrders]);
+  const dayShiftTotalRev = useMemo(() => dayActiveOrders.reduce((s, o) => s + o.totalAmount, 0), [dayActiveOrders]);
+  const dayClosedTotalRev = useMemo(() => dayClosedOrders.reduce((s, o) => s + o.totalAmount, 0), [dayClosedOrders]);
 
-  const nightShiftOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'night' && o.status !== 'voided'), [todayTabletOrders]);
-  const nightShiftTotalRev = useMemo(() => nightShiftOrders.reduce((s, o) => s + o.totalAmount, 0), [nightShiftOrders]);
+  const nightActiveOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'night' && o.status === 'active'), [todayTabletOrders]);
+  const nightClosedOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'night' && o.status === 'closed'), [todayTabletOrders]);
+  const nightShiftTotalRev = useMemo(() => nightActiveOrders.reduce((s, o) => s + o.totalAmount, 0), [nightActiveOrders]);
+  const nightClosedTotalRev = useMemo(() => nightClosedOrders.reduce((s, o) => s + o.totalAmount, 0), [nightClosedOrders]);
 
   // ─── PIN Validation for Done Action ─────────────────────────────────────────
   const handleKeypadPress = (digit: string) => {
@@ -406,10 +435,16 @@ export default function TabletApp() {
     setPinError(false);
   };
 
-  const validateEnteredPin = (pinToTest: string) => {
+  const validateEnteredPin = async (pinToTest: string) => {
+    const savedPinsStr = safeLocalStorage.getItem('maraki_shift_pins');
+    let savedPins: any = {};
+    if (savedPinsStr) {
+      try { savedPins = JSON.parse(savedPinsStr); } catch {}
+    }
+
     const configuredPin = shift === 'day' 
-      ? (config.dayShiftPin || '1111') 
-      : (config.nightShiftPin || '2222');
+      ? (savedPins.dayShiftPin || config.dayShiftPin || '1111') 
+      : (savedPins.nightShiftPin || config.nightShiftPin || '2222');
 
     const validPins = [
       configuredPin,
@@ -422,12 +457,31 @@ export default function TabletApp() {
     if (validPins.includes(pinToTest)) {
       // PIN is correct!
       setPinSuccessAnim(true);
+
+      // Close all current active orders for this shift
+      const activeIds = shiftOrders.map(o => o.id);
+      if (activeIds.length > 0) {
+        setTodayTabletOrders(prev => prev.map(o => 
+          activeIds.includes(o.id) ? { ...o, status: 'closed' } : o
+        ));
+
+        try {
+          await supabase
+            .from('tablet_orders')
+            .update({ status: 'closed' })
+            .in('id', activeIds);
+        } catch (e) {
+          console.error('Failed to mark orders as closed in Supabase:', e);
+        }
+      }
+
       setTimeout(() => {
         setPinSuccessAnim(false);
         setShowPinModal(false);
         setShowSummaryModal(false);
         setShift(null); // Return to home screen
         setEnteredPin('');
+        refreshAllData();
       }, 1000);
     } else {
       // Incorrect PIN
@@ -543,14 +597,26 @@ export default function TabletApp() {
                     <div className="text-white font-black text-2xl sm:text-3xl leading-tight">{s.amharic}</div>
                     {/* Live Badge */}
                     <div className="bg-black/30 text-white font-black text-xs sm:text-sm px-3 py-1 rounded-full border border-white/15">
-                      {isDay && `ብር ${dayShiftTotalRev.toLocaleString()}`}
-                      {isNight && `ብር ${nightShiftTotalRev.toLocaleString()}`}
+                      {isDay && (dayActiveOrders.length > 0 ? `ብር ${dayShiftTotalRev.toLocaleString()}` : (dayClosedOrders.length > 0 ? `የተዘጋ ✅` : `0 Br`))}
+                      {isNight && (nightActiveOrders.length > 0 ? `ብር ${nightShiftTotalRev.toLocaleString()}` : (nightClosedOrders.length > 0 ? `የተዘጋ ✅` : `0 Br`))}
                       {isKitchen && `${kitchenOrders.length} ዕቃዎች`}
                     </div>
                   </div>
                   <div className="text-white/75 text-xs sm:text-sm font-medium mt-1">
-                    {isDay && `የዛሬ ሽያጭ: ${dayShiftOrders.length} ትዕዛዞች ተመዝግበዋል`}
-                    {isNight && `የዛሬ ሽያጭ: ${nightShiftOrders.length} ትዕዛዞች ተመዝግበዋል`}
+                    {isDay && (
+                      dayActiveOrders.length > 0
+                        ? `አሁን ያለ: ${dayActiveOrders.length} ትዕዛዞች • ብር ${dayShiftTotalRev.toLocaleString()}`
+                        : (dayClosedOrders.length > 0
+                            ? `የቀኑ ሸፍት ተዘግቷል (${dayClosedOrders.length} ትዕዛዞች • ብር ${dayClosedTotalRev.toLocaleString()})`
+                            : `አዲስ ሸፍት ጀምር`)
+                    )}
+                    {isNight && (
+                      nightActiveOrders.length > 0
+                        ? `አሁን ያለ: ${nightActiveOrders.length} ትዕዛዞች • ብር ${nightShiftTotalRev.toLocaleString()}`
+                        : (nightClosedOrders.length > 0
+                            ? `የቀኑ ሸፍት ተዘግቷል (${nightClosedOrders.length} ትዕዛዞች • ብር ${nightClosedTotalRev.toLocaleString()})`
+                            : `አዲስ ሸፍት ጀምር`)
+                    )}
                     {isKitchen && `የተሰጡ ምግቦች መዝገብ`}
                   </div>
                 </div>
@@ -1244,6 +1310,33 @@ export default function TabletApp() {
 
               {/* Modal Body */}
               <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+                
+                {/* Active vs Closed Sub-tab Switcher */}
+                <div className="flex bg-[#f7f5f0] p-1.5 rounded-2xl border border-[#0B1D2C]/10 shadow-xs">
+                  <button
+                    onClick={() => setSummarySubTab('active')}
+                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      summarySubTab === 'active'
+                        ? 'bg-[#0B1D2C] text-white shadow-md'
+                        : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C]'
+                    }`}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>🟢 አሁን ያለው ሸፍት ({shiftOrders.length} ትዕዛዞች)</span>
+                  </button>
+
+                  <button
+                    onClick={() => setSummarySubTab('closed')}
+                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      summarySubTab === 'closed'
+                        ? 'bg-[#0B1D2C] text-white shadow-md'
+                        : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C]'
+                    }`}
+                  >
+                    <Archive className="w-4 h-4 text-amber-500" />
+                    <span>📚 የቀደሙ የተዘጉ መዛግብት ({shiftClosedOrders.length} ትዕዛዞች)</span>
+                  </button>
+                </div>
                 
                 {/* 6 Key Financial Metric Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
