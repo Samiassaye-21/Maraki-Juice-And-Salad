@@ -83,14 +83,14 @@ export default function TabletApp() {
   const [unpaidPendingList, setUnpaidPendingList] = useState<PendingPaymentItem[]>([]);
   const [lastClosedShift, setLastClosedShift] = useState<any | null>(null);
 
-  // Cups & Containers Inventory Counts
-  const [juiceOpening, setJuiceOpening] = useState<number>(120);
-  const [juiceAdded, setJuiceAdded] = useState<number>(0);
-  const [juiceLeftover, setJuiceLeftover] = useState<number>(120);
+  // Cups & Containers Inventory Counts (Empty defaults - no auto-fill)
+  const [juiceOpening, setJuiceOpening] = useState<number | string>(0);
+  const [juiceAdded, setJuiceAdded] = useState<string>('');
+  const [juiceLeftover, setJuiceLeftover] = useState<string>('');
 
-  const [foodOpening, setFoodOpening] = useState<number>(85);
-  const [foodAdded, setFoodAdded] = useState<number>(0);
-  const [foodLeftover, setFoodLeftover] = useState<number>(85);
+  const [foodOpening, setFoodOpening] = useState<number | string>(0);
+  const [foodAdded, setFoodAdded] = useState<string>('');
+  const [foodLeftover, setFoodLeftover] = useState<string>('');
 
   // Shift Expenses
   const [expenseItems, setExpenseItems] = useState<DailyExpenseItem[]>([]);
@@ -640,12 +640,20 @@ export default function TabletApp() {
   }, [unpaidPendingList, selectedRecoveredIds, customRecoveredAmount]);
 
   // Cups & Takeaways Inventory Totals
-  const totalJuiceInStock = juiceOpening + juiceAdded;
-  const calculatedJuiceSold = Math.max(0, totalJuiceInStock - juiceLeftover);
+  const numJuiceOpening = Number(juiceOpening) || 0;
+  const numJuiceAdded = Number(juiceAdded) || 0;
+  const totalJuiceInStock = numJuiceOpening + numJuiceAdded;
+  const hasJuiceLeftoverInput = String(juiceLeftover).trim() !== '';
+  const numJuiceLeftover = hasJuiceLeftoverInput ? (Number(juiceLeftover) || 0) : 0;
+  const calculatedJuiceSold = hasJuiceLeftoverInput ? Math.max(0, totalJuiceInStock - numJuiceLeftover) : 0;
   const calculatedJuiceRev = calculatedJuiceSold * (config.defaultJuiceUnitPrice || 170);
 
-  const totalFoodInStock = foodOpening + foodAdded;
-  const calculatedFoodSold = Math.max(0, totalFoodInStock - foodLeftover);
+  const numFoodOpening = Number(foodOpening) || 0;
+  const numFoodAdded = Number(foodAdded) || 0;
+  const totalFoodInStock = numFoodOpening + numFoodAdded;
+  const hasFoodLeftoverInput = String(foodLeftover).trim() !== '';
+  const numFoodLeftover = hasFoodLeftoverInput ? (Number(foodLeftover) || 0) : 0;
+  const calculatedFoodSold = hasFoodLeftoverInput ? Math.max(0, totalFoodInStock - numFoodLeftover) : 0;
   const calculatedFoodRev = calculatedFoodSold * (config.defaultFoodUnitPrice || 220);
 
   // Final Net Cash Handover Due to Owner:
@@ -766,15 +774,15 @@ export default function TabletApp() {
         shiftType: shift as 'day' | 'night',
         workerName,
         juiceCups: {
-          openingCount: juiceOpening,
-          addedCount: juiceAdded,
-          remainingCount: juiceLeftover,
+          openingCount: Number(juiceOpening) || 0,
+          addedCount: Number(juiceAdded) || 0,
+          remainingCount: Number(juiceLeftover) || 0,
           unitPrice: config.defaultJuiceUnitPrice || 170,
         },
         foodTakeaways: {
-          openingCount: foodOpening,
-          addedCount: foodAdded,
-          remainingCount: foodLeftover,
+          openingCount: Number(foodOpening) || 0,
+          addedCount: Number(foodAdded) || 0,
+          remainingCount: Number(foodLeftover) || 0,
           unitPrice: config.defaultFoodUnitPrice || 220,
         },
         juiceCupsSold: Math.max(calculatedJuiceSold, shiftStats.juiceCount),
@@ -2261,8 +2269,9 @@ export default function TabletApp() {
                           <input
                             type="number"
                             min="0"
+                            placeholder="0"
                             value={juiceOpening}
-                            onChange={e => setJuiceOpening(Math.max(0, parseInt(e.target.value) || 0))}
+                            onChange={e => setJuiceOpening(e.target.value)}
                             className="w-full bg-white border-2 border-[#0B1D2C]/20 rounded-xl px-3 py-2 text-xl font-black text-[#0B1D2C] outline-none focus:border-[#0B1D2C]"
                           />
                           <p className="text-[11px] text-[#0B1D2C]/40">ከቀደመው ሸፍት የቀረ</p>
@@ -2274,8 +2283,9 @@ export default function TabletApp() {
                           <input
                             type="number"
                             min="0"
+                            placeholder="0"
                             value={juiceAdded}
-                            onChange={e => setJuiceAdded(Math.max(0, parseInt(e.target.value) || 0))}
+                            onChange={e => setJuiceAdded(e.target.value)}
                             className="w-full bg-white border-2 border-[#0B1D2C]/20 rounded-xl px-3 py-2 text-xl font-black text-[#0B1D2C] outline-none focus:border-[#0B1D2C]"
                           />
                           <p className="text-[11px] text-[#0B1D2C]/40">በዚህ ሸፍት የገባ</p>
@@ -2287,8 +2297,9 @@ export default function TabletApp() {
                           <input
                             type="number"
                             min="0"
+                            placeholder="የቀረውን ኮፕ ያስገቡ"
                             value={juiceLeftover}
-                            onChange={e => setJuiceLeftover(Math.max(0, parseInt(e.target.value) || 0))}
+                            onChange={e => setJuiceLeftover(e.target.value)}
                             className="w-full bg-white border-2 border-amber-500 rounded-xl px-3 py-2 text-2xl font-black text-amber-900 outline-none focus:ring-4 focus:ring-amber-200"
                           />
                           <p className="text-[11px] text-amber-800 font-bold">አሁን በቆጠራ የቀረ</p>
@@ -2304,22 +2315,26 @@ export default function TabletApp() {
                           <div>
                             <div className="text-xs text-white/70 font-bold">በቆጠራ የተሸጠ ኮፕ (Calculated Sold)</div>
                             <div className="text-xl font-black text-emerald-300">
-                              {calculatedJuiceSold} ኮፖች • ብር {calculatedJuiceRev.toLocaleString()}
+                              {hasJuiceLeftoverInput ? `${calculatedJuiceSold} ኮፖች • ብር ${calculatedJuiceRev.toLocaleString()}` : '— (የቀረውን ቆጠራ ያስገቡ)'}
                             </div>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-2">
-                          {calculatedJuiceSold === shiftStats.juiceCount ? (
-                            <span className="bg-emerald-500/30 border border-emerald-400 text-emerald-200 text-xs font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5">
-                              <CheckCircle className="w-4 h-4" />
-                              <span>ከታብሌት ትዕዛዝ ጋር ይስማማል ({shiftStats.juiceCount} ኮፕ)</span>
-                            </span>
+                          {hasJuiceLeftoverInput ? (
+                            calculatedJuiceSold === shiftStats.juiceCount ? (
+                              <span className="bg-emerald-500/30 border border-emerald-400 text-emerald-200 text-xs font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                                <CheckCircle className="w-4 h-4" />
+                                <span>ከታብሌት ትዕዛዝ ጋር ይስማማል ({shiftStats.juiceCount} ኮፕ)</span>
+                              </span>
+                            ) : (
+                              <span className="bg-amber-500/30 border border-amber-400 text-amber-200 text-xs font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                                <AlertCircle className="w-4 h-4" />
+                                <span>ልዩነት: ታብሌት ({shiftStats.juiceCount}) vs ቆጠራ ({calculatedJuiceSold})</span>
+                              </span>
+                            )
                           ) : (
-                            <span className="bg-amber-500/30 border border-amber-400 text-amber-200 text-xs font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5">
-                              <AlertCircle className="w-4 h-4" />
-                              <span>ልዩነት: ታብሌት ({shiftStats.juiceCount}) vs ቆጠራ ({calculatedJuiceSold})</span>
-                            </span>
+                            <span className="text-xs font-semibold text-white/60">ቆጠራው ሲገባ ይሰላል</span>
                           )}
                         </div>
                       </div>
@@ -2345,8 +2360,9 @@ export default function TabletApp() {
                           <input
                             type="number"
                             min="0"
+                            placeholder="0"
                             value={foodOpening}
-                            onChange={e => setFoodOpening(Math.max(0, parseInt(e.target.value) || 0))}
+                            onChange={e => setFoodOpening(e.target.value)}
                             className="w-full bg-white border-2 border-[#0B1D2C]/20 rounded-xl px-3 py-2 text-xl font-black text-[#0B1D2C] outline-none focus:border-[#0B1D2C]"
                           />
                         </div>
@@ -2356,8 +2372,9 @@ export default function TabletApp() {
                           <input
                             type="number"
                             min="0"
+                            placeholder="0"
                             value={foodAdded}
-                            onChange={e => setFoodAdded(Math.max(0, parseInt(e.target.value) || 0))}
+                            onChange={e => setFoodAdded(e.target.value)}
                             className="w-full bg-white border-2 border-[#0B1D2C]/20 rounded-xl px-3 py-2 text-xl font-black text-[#0B1D2C] outline-none focus:border-[#0B1D2C]"
                           />
                         </div>
@@ -2367,8 +2384,9 @@ export default function TabletApp() {
                           <input
                             type="number"
                             min="0"
+                            placeholder="የቀረውን ማሸጊያ ያስገቡ"
                             value={foodLeftover}
-                            onChange={e => setFoodLeftover(Math.max(0, parseInt(e.target.value) || 0))}
+                            onChange={e => setFoodLeftover(e.target.value)}
                             className="w-full bg-white border-2 border-indigo-500 rounded-xl px-3 py-2 text-2xl font-black text-indigo-900 outline-none focus:ring-4 focus:ring-indigo-200"
                           />
                         </div>
