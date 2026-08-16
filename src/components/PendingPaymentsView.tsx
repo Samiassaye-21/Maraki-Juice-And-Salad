@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { 
   Clock, 
   Plus, 
@@ -14,7 +14,10 @@ import {
   ChevronDown,
   ChevronUp,
   Utensils,
-  CupSoda
+  CupSoda,
+  AlertTriangle,
+  Sparkles,
+  Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PendingPaymentItem, ShiftType, RestaurantSystemConfig } from '../types';
@@ -27,6 +30,7 @@ interface PendingPaymentsViewProps {
   onPartialSettlePendingPayment?: (id: string, amountPaid: number, cupsPaid?: number, boxesPaid?: number) => void;
   onSettlePendingPayment: (id: string) => void;
   onDeletePendingPayment: (id: string) => void;
+  onClearAllPendingPayments?: () => void;
   currencySymbol: string;
   config?: RestaurantSystemConfig;
 }
@@ -38,16 +42,17 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
   onPartialSettlePendingPayment,
   onSettlePendingPayment,
   onDeletePendingPayment,
+  onClearAllPendingPayments,
   currencySymbol,
   config,
 }) => {
   const defaultJuicePrice = config?.defaultJuiceUnitPrice || 170;
   const defaultFoodPrice = config?.defaultFoodUnitPrice || 220;
 
-  const [filterShift, setFilterShift] = useState<'all' | 'day' | 'night'>('all');
+  const [activeShiftTab, setActiveShiftTab] = useState<'both' | 'day' | 'night'>('both');
   const [filterStatus, setFilterStatus] = useState<'unpaid' | 'paid' | 'all'>('unpaid');
-  const [viewMode, setViewMode] = useState<'individual' | 'grouped'>('individual');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // New Pending Form State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -67,6 +72,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
   const [partialCupsPaid, setPartialCupsPaid] = useState<number>(0);
   const [partialBoxesPaid, setPartialBoxesPaid] = useState<number>(0);
   const [partialAmountPaid, setPartialAmountPaid] = useState<string>('');
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
 
   const handleJuiceCupsChange = (cups: number) => {
     const validCups = Math.max(0, cups);
@@ -102,63 +108,38 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
     if (descParts.length > 0) setDescription(descParts.join(' + '));
   };
 
-  // Day & Night shift calculations
-  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  // Day & Night Shift metrics
+  const dayItems = pendingPayments.filter(p => p.shiftType === 'day');
+  const dayUnpaid = dayItems.filter(p => !p.isPaid);
+  const dayUnpaidTotal = dayUnpaid.reduce((sum, p) => sum + p.amount, 0);
+  const dayCups = dayUnpaid.reduce((sum, p) => sum + (p.juiceCupsCount || 0), 0);
+  const dayBoxes = dayUnpaid.reduce((sum, p) => sum + (p.foodTakeawaysCount || 0), 0);
 
-  const dayShiftUnpaid = pendingPayments.filter((p) => !p.isPaid && p.shiftType === 'day');
-  const dayShiftTotalAmount = dayShiftUnpaid.reduce((sum, p) => sum + p.amount, 0);
-  const dayShiftCups = dayShiftUnpaid.reduce((sum, p) => sum + (p.juiceCupsCount || 0), 0);
-  const dayShiftBoxes = dayShiftUnpaid.reduce((sum, p) => sum + (p.foodTakeawaysCount || 0), 0);
+  const nightItems = pendingPayments.filter(p => p.shiftType === 'night');
+  const nightUnpaid = nightItems.filter(p => !p.isPaid);
+  const nightUnpaidTotal = nightUnpaid.reduce((sum, p) => sum + p.amount, 0);
+  const nightCups = nightUnpaid.reduce((sum, p) => sum + (p.juiceCupsCount || 0), 0);
+  const nightBoxes = nightUnpaid.reduce((sum, p) => sum + (p.foodTakeawaysCount || 0), 0);
 
-  const nightShiftUnpaid = pendingPayments.filter((p) => !p.isPaid && p.shiftType === 'night');
-  const nightShiftTotalAmount = nightShiftUnpaid.reduce((sum, p) => sum + p.amount, 0);
-  const nightShiftCups = nightShiftUnpaid.reduce((sum, p) => sum + (p.juiceCupsCount || 0), 0);
-  const nightShiftBoxes = nightShiftUnpaid.reduce((sum, p) => sum + (p.foodTakeawaysCount || 0), 0);
+  const totalOutstanding = dayUnpaidTotal + nightUnpaidTotal;
 
-  const filteredItems = pendingPayments.filter((item) => {
-    if (filterShift !== 'all' && item.shiftType !== filterShift) return false;
-    if (filterStatus === 'unpaid' && item.isPaid) return false;
-    if (filterStatus === 'paid' && !item.isPaid) return false;
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      const matchName = item.customerName?.toLowerCase().includes(term);
-      const matchDesc = item.description.toLowerCase().includes(term);
-      if (!matchName && !matchDesc) return false;
-    }
-    return true;
-  });
-
-  const totalOutstanding = pendingPayments
-    .filter((p) => !p.isPaid)
-    .reduce((sum, p) => sum + p.amount, 0);
-
-  const customerGroups = useMemo(() => {
-    const groups: { [name: string]: { customerName: string; items: PendingPaymentItem[]; totalAmount: number; unpaidCount: number; paidCount: number; unpaidAmount: number } } = {};
-    
-    filteredItems.forEach(item => {
-      const nameKey = (item.customerName || 'Unnamed Customer').trim().toLowerCase();
-      if (!groups[nameKey]) {
-        groups[nameKey] = {
-          customerName: item.customerName || 'Unnamed Customer',
-          items: [],
-          totalAmount: 0,
-          unpaidCount: 0,
-          paidCount: 0,
-          unpaidAmount: 0,
-        };
+  // Filter function for items
+  const filterShiftItems = (items: PendingPaymentItem[]) => {
+    return items.filter((item) => {
+      if (filterStatus === 'unpaid' && item.isPaid) return false;
+      if (filterStatus === 'paid' && !item.isPaid) return false;
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        const matchName = item.customerName?.toLowerCase().includes(term);
+        const matchDesc = item.description.toLowerCase().includes(term);
+        if (!matchName && !matchDesc) return false;
       }
-      groups[nameKey].items.push(item);
-      groups[nameKey].totalAmount += item.amount;
-      if (item.isPaid) {
-        groups[nameKey].paidCount += 1;
-      } else {
-        groups[nameKey].unpaidCount += 1;
-        groups[nameKey].unpaidAmount += item.amount;
-      }
+      return true;
     });
+  };
 
-    return Object.values(groups).sort((a, b) => b.unpaidAmount - a.unpaidAmount || b.totalAmount - a.totalAmount);
-  }, [filteredItems]);
+  const filteredDayItems = filterShiftItems(dayItems);
+  const filteredNightItems = filterShiftItems(nightItems);
 
   const handleSubmitNewPending = (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,575 +158,736 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
 
     setCustomerName('');
     setDescription('');
-    setJuiceCupsCount(0);
+    setJuiceCupsCount(1);
     setFoodTakeawaysCount(0);
-    setAmount('');
+    setAmount((1 * defaultJuicePrice).toString());
     setIsFormOpen(false);
   };
 
-  const inputClasses = "w-full px-4 py-2.5 rounded-full border border-[#0B1D2C]/30 bg-white text-[#0B1D2C] text-sm font-bold focus:outline-none focus:border-[#0B1D2C] focus:ring-4 focus:ring-[#0B1D2C]/40 transition-all placeholder:text-[#0B1D2C]/50 shadow-xs";
+  const inputClasses = "w-full px-4 py-2.5 rounded-full border border-[#0B1D2C]/30 bg-white text-[#0B1D2C] text-sm font-bold focus:outline-none focus:border-[#0B1D2C] focus:ring-4 focus:ring-[#0B1D2C]/20 transition-all placeholder:text-[#0B1D2C]/40 shadow-xs";
+
+  // Render individual item card
+  const renderItemCard = (item: PendingPaymentItem) => {
+    const isExpanded = expandedItemId === item.id;
+    return (
+      <motion.div 
+        key={item.id}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white border-2 border-[#0B1D2C]/20 rounded-3xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all text-[#0B1D2C]"
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start space-x-4">
+            <div className="p-3.5 rounded-full bg-[#f7f5f0] text-[#0B1D2C] border border-[#0B1D2C]/30 shrink-0 shadow-xs">
+              <User className="w-6 h-6 text-[#0B1D2C]" />
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center flex-wrap gap-2">
+                <h4 className="text-lg font-black text-[#0B1D2C]">
+                  {item.customerName || 'Customer Credit'}
+                </h4>
+                
+                <span className={`px-3 py-0.5 rounded-full text-xs font-extrabold flex items-center space-x-1 border ${
+                  item.shiftType === 'day' 
+                    ? 'bg-amber-50 text-amber-900 border-amber-300' 
+                    : 'bg-indigo-50 text-indigo-900 border-indigo-300'
+                }`}>
+                  {item.shiftType === 'day' ? <Sun className="w-3.5 h-3.5 mr-0.5 text-amber-700" /> : <Moon className="w-3.5 h-3.5 mr-0.5 text-indigo-700" />}
+                  <span>{item.shiftType === 'day' ? '☀️ DAY SHIFT' : '🌙 NIGHT SHIFT'}</span>
+                </span>
+
+                {item.isPaid ? (
+                  <span className="bg-[#0B1D2C] text-white px-3 py-0.5 rounded-full text-xs font-black shadow-xs">
+                    ✓ PAID & SETTLED
+                  </span>
+                ) : (
+                  <span className="bg-rose-50 text-rose-700 border border-rose-200 px-3 py-0.5 rounded-full text-xs font-black shadow-xs">
+                    UNPAID
+                  </span>
+                )}
+              </div>
+
+              {/* Quantities Badges */}
+              <div className="flex items-center space-x-2 text-xs font-extrabold pt-0.5 flex-wrap gap-y-1">
+                {item.juiceCupsCount > 0 && (
+                  <span className="bg-[#f7f5f0] text-[#0B1D2C] font-extrabold px-3 py-1 rounded-full border border-[#0B1D2C]/30 flex items-center space-x-1 shadow-xs">
+                    <CupSoda className="w-3.5 h-3.5 text-[#0B1D2C]" />
+                    <span>{item.juiceCupsCount} Juice Cups</span>
+                  </span>
+                )}
+                {item.foodTakeawaysCount > 0 && (
+                  <span className="bg-[#f7f5f0] text-[#0B1D2C] font-extrabold px-3 py-1 rounded-full border border-[#0B1D2C]/30 flex items-center space-x-1 shadow-xs">
+                    <Utensils className="w-3.5 h-3.5 text-[#0B1D2C]" />
+                    <span>{item.foodTakeawaysCount} Food Boxes</span>
+                  </span>
+                )}
+                {item.juiceCupsCount === 0 && item.foodTakeawaysCount === 0 && (
+                  <span className="text-[#0B1D2C]/80 font-bold">{item.description}</span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-[#0B1D2C]/80 pt-0.5">
+                <span>📅 Date: {item.date}</span>
+                {item.isPaid && item.paidDate && (
+                  <span className="text-emerald-800 font-extrabold">• Cash Settled on {item.paidDate}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3 self-end sm:self-center">
+            <div className="bg-[#0B1D2C] text-white px-4 py-2.5 rounded-2xl shadow-sm text-right min-w-[130px]">
+              <span className="text-white/80 text-[10px] font-extrabold uppercase tracking-wider block mb-0.5">
+                Credit Amount
+              </span>
+              <span className="text-xl sm:text-2xl font-black text-white block">
+                {formatCurrency(item.amount, currencySymbol)}
+              </span>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {/* Expand Details */}
+              <button
+                onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
+                className="px-3 py-2 bg-[#f7f5f0] border border-[#0B1D2C]/30 text-[#0B1D2C] hover:bg-[#0B1D2C] hover:text-white font-extrabold text-xs rounded-full transition-all flex items-center space-x-1 cursor-pointer shadow-xs"
+                title="Click to view item details"
+              >
+                <span>{isExpanded ? 'Hide' : 'Details'}</span>
+                {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+
+              {!item.isPaid ? (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => {
+                      setPartialItem(item);
+                      setPartialCupsPaid(0);
+                      setPartialBoxesPaid(0);
+                      setPartialAmountPaid('');
+                    }}
+                    className="px-3.5 py-2 bg-[#f7f5f0] border border-[#0B1D2C]/30 text-[#0B1D2C] hover:bg-[#0B1D2C] hover:text-white font-extrabold text-xs rounded-full transition-all flex items-center space-x-1 cursor-pointer shadow-xs"
+                    title="Pay Partial / Deduct Cups"
+                  >
+                    <span>Deduct</span>
+                  </button>
+                  <button
+                    onClick={() => onSettlePendingPayment(item.id)}
+                    className="px-4 py-2 bg-[#0B1D2C] hover:bg-[#081521] text-white font-black text-xs rounded-full shadow-md transition-all flex items-center space-x-1 cursor-pointer active:scale-95"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                    <span>Full Pay</span>
+                  </button>
+                </div>
+              ) : (
+                <span className="text-xs font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-full flex items-center space-x-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Settled</span>
+                </span>
+              )}
+
+              <button
+                onClick={() => setEditingItem(JSON.parse(JSON.stringify(item)))}
+                className="p-2 text-[#0B1D2C] hover:bg-[#f7f5f0] border border-[#0B1D2C]/20 rounded-full transition-all cursor-pointer shadow-xs"
+                title="Edit"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                onClick={() => onDeletePendingPayment(item.id)}
+                className="p-2 text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-full transition-all cursor-pointer shadow-xs"
+                title="Delete"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Itemized Dish Details */}
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden mt-4 pt-3 border-t border-[#0B1D2C]/20"
+            >
+              <div className="bg-[#f7f5f0] p-4 rounded-2xl border border-[#0B1D2C]/20 space-y-2">
+                <div className="text-xs font-black text-[#0B1D2C] uppercase tracking-wider flex items-center space-x-1">
+                  <Utensils className="w-4 h-4 text-[#0B1D2C]" />
+                  <span>Itemized Dish & Drink Breakdown:</span>
+                </div>
+
+                {item.itemizedBreakdown && Object.keys(item.itemizedBreakdown).length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    {Object.entries(item.itemizedBreakdown).map(([dishName, count]) => (
+                      <div key={dishName} className="flex items-center justify-between text-xs font-extrabold bg-white px-3.5 py-2 rounded-xl border border-[#0B1D2C]/20 shadow-xs">
+                        <span className="text-[#0B1D2C]">{dishName}</span>
+                        <span className="font-black text-white bg-[#0B1D2C] px-2.5 py-0.5 rounded-full text-xs">
+                          x{count}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs font-bold text-[#0B1D2C] bg-white p-3 rounded-xl border border-[#0B1D2C]/20">
+                    <span className="font-black text-[#0B1D2C]">Description:</span> {item.description}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    );
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 font-sans text-[#0B1D2C]">
       
-      {/* HEADER CARD (#0B1D2C Hero Styling with White Accent) */}
+      {/* ─── HERO HEADER CARD (#0B1D2C Styling) ──────────────────────────────── */}
       <div className="bg-[#0B1D2C] border border-[#0B1D2C]/40 rounded-3xl shadow-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 text-white">
         <div className="flex items-center space-x-3.5">
           <div className="p-3.5 rounded-full bg-[#162E44] text-white font-bold border border-white/30">
             <Clock className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-black text-white">
+            <h2 className="text-xl sm:text-2xl font-black text-white">
               Customer Pending Payments
             </h2>
             <p className="text-sm font-bold text-white/90 mt-0.5">
-              Track customer unpaid credit ledgers by shift worker
+              Grouped by Shift (☀️ Day & 🌙 Night)
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4 w-full sm:w-auto">
-          <div className="flex flex-col items-end">
-            <span className="text-xs font-black uppercase tracking-wider text-white">
-              Outstanding Unpaid
+        <div className="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-end flex-wrap gap-2">
+          <div className="flex flex-col items-start sm:items-end">
+            <span className="text-[10px] font-black uppercase tracking-wider text-white/80">
+              Total Outstanding
             </span>
             <span className="text-2xl sm:text-3xl font-black text-white">
               {formatCurrency(totalOutstanding, currencySymbol)}
             </span>
           </div>
-          <button
-            onClick={() => setIsFormOpen(!isFormOpen)}
-            className="px-5 py-2.5 bg-white text-[#0B1D2C] hover:bg-[#f7f5f0] font-black rounded-full shadow-md transition-all flex items-center space-x-2 shrink-0 cursor-pointer text-sm active:scale-95"
-          >
-            <Plus className="w-5 h-5 text-[#0B1D2C]" />
-            <span>Add Record</span>
-          </button>
+
+          <div className="flex items-center gap-2">
+            {pendingPayments.length > 0 && onClearAllPendingPayments && (
+              <button
+                onClick={() => setShowClearConfirm(true)}
+                className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-full shadow-md transition-all flex items-center space-x-1.5 cursor-pointer text-xs active:scale-95"
+                title="Clear all pending records"
+              >
+                <Trash2 className="w-4 h-4 text-white" />
+                <span>Clear All</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => setIsFormOpen(!isFormOpen)}
+              className="px-5 py-2.5 bg-white text-[#0B1D2C] hover:bg-[#f7f5f0] font-black rounded-full shadow-md transition-all flex items-center space-x-2 shrink-0 cursor-pointer text-sm active:scale-95"
+            >
+              <Plus className="w-5 h-5 text-[#0B1D2C]" />
+              <span>Add Record</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* SHIFT SUMMARY CARDS (DAY VS NIGHT) */}
+      {/* ─── TWO SHIFT SUMMARY OVERVIEW CARDS (DAY VS NIGHT) ────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* DAY SHIFT CARD */}
-        <div className="bg-white border-2 border-[#0B1D2C]/20 rounded-3xl p-5 shadow-sm flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-[#f7f5f0] text-[#0B1D2C] rounded-full border border-[#0B1D2C]/20">
-              <Sun className="w-5 h-5 text-[#0B1D2C]" />
+        {/* DAY SHIFT OVERVIEW CARD */}
+        <div 
+          onClick={() => setActiveShiftTab('day')}
+          className={`bg-white border-2 rounded-3xl p-5 shadow-sm flex items-center justify-between transition-all cursor-pointer hover:border-[#0B1D2C] ${
+            activeShiftTab === 'day' ? 'border-[#0B1D2C] ring-4 ring-[#0B1D2C]/10' : 'border-[#0B1D2C]/20'
+          }`}
+        >
+          <div className="flex items-center space-x-3.5">
+            <div className="p-3.5 bg-amber-50 text-amber-800 rounded-full border border-amber-200">
+              <Sun className="w-6 h-6 text-amber-700" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-xs font-black uppercase tracking-wider text-[#0B1D2C]">Day Shift Pending</span>
-                <span className="bg-[#0B1D2C] text-white font-extrabold text-[10px] px-2.5 py-0.5 rounded-full">{dayShiftUnpaid.length} Unpaid</span>
+                <span className="text-sm font-black uppercase tracking-wider text-[#0B1D2C]">☀️ Day Shift Pending</span>
+                <span className="bg-[#0B1D2C] text-white font-black text-xs px-2.5 py-0.5 rounded-full">{dayUnpaid.length} Unpaid</span>
               </div>
               <div className="text-xs font-bold text-[#0B1D2C]/80 mt-1 flex items-center space-x-2">
-                <span>🥤 {dayShiftCups} Cups</span>
+                <span>🥤 {dayCups} Cups</span>
                 <span>•</span>
-                <span>📦 {dayShiftBoxes} Food Boxes</span>
+                <span>📦 {dayBoxes} Food Boxes</span>
               </div>
             </div>
           </div>
           <div className="text-right">
-            <span className="text-[10px] uppercase font-black text-[#0B1D2C]/70 block">Pending Total</span>
-            <span className="text-lg font-black text-[#0B1D2C]">{formatCurrency(dayShiftTotalAmount, currencySymbol)}</span>
+            <span className="text-[10px] uppercase font-black text-[#0B1D2C]/70 block">Unpaid Total</span>
+            <span className="text-xl font-black text-[#0B1D2C]">{formatCurrency(dayUnpaidTotal, currencySymbol)}</span>
           </div>
         </div>
 
-        {/* NIGHT SHIFT CARD */}
-        <div className="bg-white border-2 border-[#0B1D2C]/20 rounded-3xl p-5 shadow-sm flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-[#0B1D2C] text-white rounded-full">
-              <Moon className="w-5 h-5 text-white" />
+        {/* NIGHT SHIFT OVERVIEW CARD */}
+        <div 
+          onClick={() => setActiveShiftTab('night')}
+          className={`bg-white border-2 rounded-3xl p-5 shadow-sm flex items-center justify-between transition-all cursor-pointer hover:border-[#0B1D2C] ${
+            activeShiftTab === 'night' ? 'border-[#0B1D2C] ring-4 ring-[#0B1D2C]/10' : 'border-[#0B1D2C]/20'
+          }`}
+        >
+          <div className="flex items-center space-x-3.5">
+            <div className="p-3.5 bg-indigo-50 text-indigo-800 rounded-full border border-indigo-200">
+              <Moon className="w-6 h-6 text-indigo-700" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-xs font-black uppercase tracking-wider text-[#0B1D2C]">Night Shift Pending</span>
-                <span className="bg-[#0B1D2C] text-white font-extrabold text-[10px] px-2.5 py-0.5 rounded-full">{nightShiftUnpaid.length} Unpaid</span>
+                <span className="text-sm font-black uppercase tracking-wider text-[#0B1D2C]">🌙 Night Shift Pending</span>
+                <span className="bg-[#0B1D2C] text-white font-black text-xs px-2.5 py-0.5 rounded-full">{nightUnpaid.length} Unpaid</span>
               </div>
               <div className="text-xs font-bold text-[#0B1D2C]/80 mt-1 flex items-center space-x-2">
-                <span>🥤 {nightShiftCups} Cups</span>
+                <span>🥤 {nightCups} Cups</span>
                 <span>•</span>
-                <span>📦 {nightShiftBoxes} Food Boxes</span>
+                <span>📦 {nightBoxes} Food Boxes</span>
               </div>
             </div>
           </div>
           <div className="text-right">
-            <span className="text-[10px] uppercase font-black text-[#0B1D2C]/70 block">Pending Total</span>
-            <span className="text-lg font-black text-[#0B1D2C]">{formatCurrency(nightShiftTotalAmount, currencySymbol)}</span>
+            <span className="text-[10px] uppercase font-black text-[#0B1D2C]/70 block">Unpaid Total</span>
+            <span className="text-xl font-black text-[#0B1D2C]">{formatCurrency(nightUnpaidTotal, currencySymbol)}</span>
           </div>
         </div>
       </div>
 
-      {/* NEW PENDING PAYMENT FORM */}
+      {/* ─── ADD NEW PENDING PAYMENT ACCORDION FORM ─────────────────────────── */}
       <AnimatePresence>
         {isFormOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0, y: -20 }}
-            animate={{ opacity: 1, height: 'auto', y: 0 }}
-            exit={{ opacity: 0, height: 0, y: -20 }}
-            className="overflow-hidden"
+          <motion.form
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            onSubmit={handleSubmitNewPending}
+            className="overflow-hidden bg-white border-2 border-[#0B1D2C] rounded-3xl p-6 shadow-xl space-y-4 text-[#0B1D2C]"
           >
-            <div className="bg-white border-2 border-[#0B1D2C]/20 rounded-3xl p-5 sm:p-6 shadow-md mb-6 text-[#0B1D2C]">
-              <h3 className="text-base font-black text-[#0B1D2C] mb-5 flex items-center space-x-2">
+            <div className="flex items-center justify-between border-b border-[#0B1D2C]/20 pb-3">
+              <div className="flex items-center space-x-2">
                 <Plus className="w-5 h-5 text-[#0B1D2C]" />
-                <span>Record New Customer Pending Credit</span>
-              </h3>
+                <h3 className="text-lg font-black text-[#0B1D2C]">Record New Customer Credit</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsFormOpen(false)}
+                className="p-1.5 text-[#0B1D2C]/70 hover:text-[#0B1D2C] hover:bg-[#f7f5f0] rounded-full transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-              <form onSubmit={handleSubmitNewPending} className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Shift Worker</label>
-                    <select
-                      value={shiftType}
-                      onChange={(e) => setShiftType(e.target.value as ShiftType)}
-                      className={inputClasses}
-                    >
-                      <option value="day">Day Shift</option>
-                      <option value="night">Night Shift</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Customer Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="e.g. Abebe (Regular)"
-                      className={inputClasses}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Amount ({currencySymbol})</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={amount}
-                      onFocus={handleInputFocus}
-                      onChange={(e) => setAmount(cleanStringNumberInput(e))}
-                      placeholder="0.00"
-                      className={inputClasses}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Description</label>
-                    <input
-                      type="text"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="e.g. 3 Mango Juices + 1 Lunch"
-                      className={inputClasses}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Juice Cups Count</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={juiceCupsCount}
-                      onFocus={handleInputFocus}
-                      onChange={(e) => handleJuiceCupsChange(cleanNumberInput(e))}
-                      className={inputClasses}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Select Food Dish</label>
-                    <select
-                      value={selectedFoodItemId}
-                      onChange={(e) => handleSelectFoodItem(e.target.value)}
-                      className={inputClasses}
-                    >
-                      <option value="">-- Standard Takeaway Container --</option>
-                      {(config?.foodMenu || []).map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.name} ({item.price} ETB)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Takeaway Containers</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={foodTakeawaysCount}
-                      onFocus={handleInputFocus}
-                      onChange={(e) => handleFoodBoxesChange(cleanNumberInput(e))}
-                      className={inputClasses}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-extrabold text-[#0B1D2C] uppercase tracking-wide mb-1">
+                  Select Shift Group
+                </label>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setIsFormOpen(false)}
-                    className="px-5 py-2.5 bg-white border-2 border-[#0B1D2C] text-[#0B1D2C] hover:bg-slate-100 font-extrabold text-xs rounded-full transition-colors cursor-pointer"
+                    onClick={() => setShiftType('day')}
+                    className={`py-2.5 px-3 rounded-full text-xs font-black flex items-center justify-center gap-1.5 border-2 transition-all cursor-pointer ${
+                      shiftType === 'day' 
+                        ? 'bg-[#0B1D2C] text-white border-[#0B1D2C] shadow-sm' 
+                        : 'bg-[#f7f5f0] text-[#0B1D2C] border-[#0B1D2C]/20'
+                    }`}
                   >
-                    Cancel
+                    <Sun className="w-4 h-4" />
+                    <span>☀️ Day Shift</span>
                   </button>
                   <button
-                    type="submit"
-                    className="px-6 py-2.5 bg-[#0B1D2C] hover:bg-[#081521] text-white font-black text-xs rounded-full shadow-md transition-colors cursor-pointer active:scale-95"
+                    type="button"
+                    onClick={() => setShiftType('night')}
+                    className={`py-2.5 px-3 rounded-full text-xs font-black flex items-center justify-center gap-1.5 border-2 transition-all cursor-pointer ${
+                      shiftType === 'night' 
+                        ? 'bg-[#0B1D2C] text-white border-[#0B1D2C] shadow-sm' 
+                        : 'bg-[#f7f5f0] text-[#0B1D2C] border-[#0B1D2C]/20'
+                    }`}
                   >
-                    Save Pending Credit Item
+                    <Moon className="w-4 h-4" />
+                    <span>🌙 Night Shift</span>
                   </button>
                 </div>
-              </form>
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-[#0B1D2C] uppercase tracking-wide mb-1">
+                  Customer Name / Identifier
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Abebe, Regular Customer, Office Staff"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className={inputClasses}
+                  required
+                />
+              </div>
             </div>
-          </motion.div>
+
+            {/* Quick Dish Selection */}
+            {config?.foodMenu && config.foodMenu.length > 0 && (
+              <div>
+                <label className="block text-xs font-extrabold text-[#0B1D2C] uppercase tracking-wide mb-1.5">
+                  Select Food Dish (Optional):
+                </label>
+                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                  {config.foodMenu.filter(f => f.available !== false).map((menuItem) => (
+                    <button
+                      key={menuItem.id}
+                      type="button"
+                      onClick={() => handleSelectFoodItem(menuItem.id)}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap border transition-all cursor-pointer shrink-0 ${
+                        selectedFoodItemId === menuItem.id
+                          ? 'bg-[#0B1D2C] text-white border-[#0B1D2C] shadow-xs'
+                          : 'bg-[#f7f5f0] text-[#0B1D2C] border-[#0B1D2C]/20 hover:bg-[#0B1D2C]/10'
+                      }`}
+                    >
+                      <span>{menuItem.name} ({menuItem.price} Br)</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-extrabold text-[#0B1D2C] uppercase tracking-wide mb-1">
+                  Juice Cups Count
+                </label>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => handleJuiceCupsChange(juiceCupsCount - 1)}
+                    className="w-10 h-10 rounded-full bg-[#f7f5f0] border-2 border-[#0B1D2C]/30 text-[#0B1D2C] font-black hover:bg-[#0B1D2C] hover:text-white cursor-pointer transition-colors"
+                  >−</button>
+                  <input
+                    type="number"
+                    min="0"
+                    value={juiceCupsCount}
+                    onFocus={handleInputFocus}
+                    onChange={(e) => handleJuiceCupsChange(cleanNumberInput(e))}
+                    className="w-full text-center font-black text-base py-2 bg-white border border-[#0B1D2C]/30 rounded-full text-[#0B1D2C]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleJuiceCupsChange(juiceCupsCount + 1)}
+                    className="w-10 h-10 rounded-full bg-[#f7f5f0] border-2 border-[#0B1D2C]/30 text-[#0B1D2C] font-black hover:bg-[#0B1D2C] hover:text-white cursor-pointer transition-colors"
+                  >+</button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-[#0B1D2C] uppercase tracking-wide mb-1">
+                  Food Takeaways Count
+                </label>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => handleFoodBoxesChange(foodTakeawaysCount - 1)}
+                    className="w-10 h-10 rounded-full bg-[#f7f5f0] border-2 border-[#0B1D2C]/30 text-[#0B1D2C] font-black hover:bg-[#0B1D2C] hover:text-white cursor-pointer transition-colors"
+                  >−</button>
+                  <input
+                    type="number"
+                    min="0"
+                    value={foodTakeawaysCount}
+                    onFocus={handleInputFocus}
+                    onChange={(e) => handleFoodBoxesChange(cleanNumberInput(e))}
+                    className="w-full text-center font-black text-base py-2 bg-white border border-[#0B1D2C]/30 rounded-full text-[#0B1D2C]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleFoodBoxesChange(foodTakeawaysCount + 1)}
+                    className="w-10 h-10 rounded-full bg-[#f7f5f0] border-2 border-[#0B1D2C]/30 text-[#0B1D2C] font-black hover:bg-[#0B1D2C] hover:text-white cursor-pointer transition-colors"
+                  >+</button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-[#0B1D2C] uppercase tracking-wide mb-1">
+                  Total Debt Amount (ETB)
+                </label>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  value={amount}
+                  onFocus={handleInputFocus}
+                  onChange={(e) => setAmount(cleanStringNumberInput(e))}
+                  className={inputClasses}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-extrabold text-[#0B1D2C] uppercase tracking-wide mb-1">
+                Description / Notes
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. 2 Avocado Juices + 1 Pasta"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className={inputClasses}
+              />
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-3 border-t border-[#0B1D2C]/20">
+              <button
+                type="button"
+                onClick={() => setIsFormOpen(false)}
+                className="px-5 py-2.5 bg-white border-2 border-[#0B1D2C] text-[#0B1D2C] font-extrabold text-xs rounded-full hover:bg-slate-100 cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2.5 bg-[#0B1D2C] hover:bg-[#081521] text-white font-black text-xs rounded-full shadow-md cursor-pointer flex items-center space-x-1.5 transition-all active:scale-95"
+              >
+                <Save className="w-4 h-4 text-white" />
+                <span>Save Pending Credit</span>
+              </button>
+            </div>
+          </motion.form>
         )}
       </AnimatePresence>
 
-      {/* FILTER BAR */}
-      <div className="bg-white border border-[#0B1D2C]/20 rounded-3xl p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-[#0B1D2C]">
-        <div className="relative w-full sm:max-w-xs">
+      {/* ─── CONTROLS BAR: SEARCH & SHIFT GROUP SELECTOR ───────────────────── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-3xl border border-[#0B1D2C]/20 shadow-xs">
+        {/* Search */}
+        <div className="relative flex-1">
           <input
             type="text"
+            placeholder="Search customer name or item..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search customer credit..."
-            className="w-full pl-10 pr-4 py-2 bg-white border border-[#0B1D2C]/30 rounded-full text-sm text-[#0B1D2C] font-bold focus:outline-none focus:border-[#0B1D2C] focus:ring-4 focus:ring-[#0B1D2C]/20 placeholder:text-[#0B1D2C]/70 shadow-xs"
+            className="w-full pl-10 pr-4 py-2 bg-[#f7f5f0] border border-[#0B1D2C]/20 rounded-full text-xs font-extrabold focus:outline-none focus:border-[#0B1D2C] text-[#0B1D2C] placeholder:text-[#0B1D2C]/50"
           />
-          <Search className="w-4 h-4 text-[#0B1D2C]/70 absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-[#0B1D2C]/70 absolute left-3.5 top-2.5" />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
-          <div className="flex bg-[#f7f5f0] p-1 rounded-full border border-[#0B1D2C]/20 text-xs font-medium">
+        {/* Group Selector: Both / Day / Night */}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="flex bg-[#f7f5f0] p-1 rounded-full border border-[#0B1D2C]/20 text-xs font-bold">
+            <button
+              onClick={() => setActiveShiftTab('both')}
+              className={`px-3.5 py-1.5 rounded-full transition-all cursor-pointer font-black flex items-center gap-1 ${
+                activeShiftTab === 'both' ? 'bg-[#0B1D2C] text-white shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Both Shifts</span>
+            </button>
+            <button
+              onClick={() => setActiveShiftTab('day')}
+              className={`px-3.5 py-1.5 rounded-full transition-all cursor-pointer font-black flex items-center gap-1 ${
+                activeShiftTab === 'day' ? 'bg-[#0B1D2C] text-white shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'
+              }`}
+            >
+              <Sun className="w-3.5 h-3.5" />
+              <span>☀️ Day Shift ({dayUnpaid.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveShiftTab('night')}
+              className={`px-3.5 py-1.5 rounded-full transition-all cursor-pointer font-black flex items-center gap-1 ${
+                activeShiftTab === 'night' ? 'bg-[#0B1D2C] text-white shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'
+              }`}
+            >
+              <Moon className="w-3.5 h-3.5" />
+              <span>🌙 Night Shift ({nightUnpaid.length})</span>
+            </button>
+          </div>
+
+          {/* Status Filter: Unpaid / Paid / All */}
+          <div className="flex bg-[#f7f5f0] p-1 rounded-full border border-[#0B1D2C]/20 text-xs font-bold">
             <button
               onClick={() => setFilterStatus('unpaid')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterStatus === 'unpaid' ? 'bg-[#0B1D2C] text-white font-bold shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-black ${
+                filterStatus === 'unpaid' ? 'bg-[#0B1D2C] text-white shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'
+              }`}
             >
               Unpaid
             </button>
             <button
               onClick={() => setFilterStatus('paid')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterStatus === 'paid' ? 'bg-[#0B1D2C] text-white font-bold shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-black ${
+                filterStatus === 'paid' ? 'bg-[#0B1D2C] text-white shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'
+              }`}
             >
               Paid
             </button>
             <button
               onClick={() => setFilterStatus('all')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterStatus === 'all' ? 'bg-[#0B1D2C] text-white font-bold shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'}`}
+              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-black ${
+                filterStatus === 'all' ? 'bg-[#0B1D2C] text-white shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'
+              }`}
             >
               All
-            </button>
-          </div>
-
-          <div className="flex bg-[#f7f5f0] p-1 rounded-full border border-[#0B1D2C]/20 text-xs font-medium">
-            <button
-              onClick={() => setFilterShift('all')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterShift === 'all' ? 'bg-[#0B1D2C] text-white shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'}`}
-            >
-              All Shifts
-            </button>
-            <button
-              onClick={() => setFilterShift('day')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterShift === 'day' ? 'bg-[#0B1D2C] text-white shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'}`}
-            >
-              Day
-            </button>
-            <button
-              onClick={() => setFilterShift('night')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${filterShift === 'night' ? 'bg-[#0B1D2C] text-white shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'}`}
-            >
-              Night
-            </button>
-          </div>
-
-          <div className="flex bg-[#f7f5f0] p-1 rounded-full border border-[#0B1D2C]/20 text-xs font-medium">
-            <button
-              onClick={() => setViewMode('individual')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${viewMode === 'individual' ? 'bg-[#0B1D2C] text-white font-bold shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'}`}
-            >
-              Single Items
-            </button>
-            <button
-              onClick={() => setViewMode('grouped')}
-              className={`px-3 py-1.5 rounded-full transition-colors cursor-pointer font-extrabold ${viewMode === 'grouped' ? 'bg-[#0B1D2C] text-white font-bold shadow-xs' : 'text-neutral-600 hover:text-[#0B1D2C]'}`}
-            >
-              Group By Customer ({customerGroups.length})
             </button>
           </div>
         </div>
       </div>
 
-      {/* PENDING ITEMS LIST */}
-      <div className="space-y-4">
-        {filteredItems.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 text-center border border-[#0B1D2C]/20 flex flex-col items-center shadow-xs">
-            <Clock className="w-12 h-12 text-[#0B1D2C]/40 mb-3" />
-            <h3 className="text-base font-extrabold text-[#0B1D2C]">No pending credit records</h3>
-            <p className="text-sm font-medium text-[#0B1D2C]/70 mt-1">Try adjusting search query or status filter</p>
-          </div>
-        ) : viewMode === 'grouped' ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-4">
-            {customerGroups.map((group) => (
-              <div key={group.customerName} className="bg-white border-2 border-[#0B1D2C]/20 rounded-3xl p-5 sm:p-6 shadow-md space-y-4 text-[#0B1D2C]">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#0B1D2C]/20 pb-4">
-                  <div className="flex items-center space-x-3.5">
-                    <div className="p-3 bg-[#f7f5f0] text-[#0B1D2C] rounded-full border border-[#0B1D2C]/30 font-bold text-lg">
-                      <User className="w-6 h-6 text-[#0B1D2C]" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-black text-[#0B1D2C] flex items-center gap-2 flex-wrap">
-                        <span>{group.customerName}</span>
-                        {group.unpaidCount > 0 ? (
-                          <span className="bg-rose-50 text-rose-700 font-extrabold border border-rose-200 text-xs px-3 py-0.5 rounded-full shadow-xs">
-                            {group.unpaidCount} Unpaid Order{group.unpaidCount > 1 ? 's' : ''}
-                          </span>
-                        ) : (
-                          <span className="bg-[#0B1D2C] text-white font-extrabold text-xs px-3 py-0.5 rounded-full shadow-xs">
-                            All Settled
-                          </span>
-                        )}
-                      </h3>
-                      <p className="text-xs font-bold text-[#0B1D2C]/80 mt-1">
-                        Total Orders: {group.items.length} ({group.unpaidCount} Unpaid, {group.paidCount} Paid)
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between sm:justify-end space-x-4">
-                    <div className="bg-[#0B1D2C] text-white px-4 py-2 rounded-2xl shadow-sm text-right min-w-[140px]">
-                      <span className="text-white/80 text-[10px] font-extrabold uppercase tracking-wider block mb-0.5">Total Unpaid Balance</span>
-                      <span className="text-xl sm:text-2xl font-black text-white block">
-                        {formatCurrency(group.unpaidAmount, currencySymbol)}
-                      </span>
-                    </div>
-
-                    {group.unpaidCount > 0 && (
-                      <button
-                        onClick={() => {
-                          const unpaidItems = group.items.filter(i => !i.isPaid);
-                          unpaidItems.forEach(i => onSettlePendingPayment(i.id));
-                        }}
-                        className="px-5 py-2.5 bg-[#0B1D2C] hover:bg-[#081521] text-white text-xs font-black rounded-full shadow-md transition-all cursor-pointer flex items-center space-x-1.5 active:scale-95 shrink-0"
-                      >
-                        <CheckCircle2 className="w-4 h-4 text-white" />
-                        <span>Settle All Debts</span>
-                      </button>
-                    )}
-                  </div>
+      {/* ─── TWO SHIFT GROUPS (DAY & NIGHT) ────────────────────────────────── */}
+      <div className="space-y-8">
+        
+        {/* 1. DAY SHIFT GROUP */}
+        {(activeShiftTab === 'both' || activeShiftTab === 'day') && (
+          <div className="space-y-4">
+            {/* Shift Group Header */}
+            <div className="flex items-center justify-between bg-amber-50/80 border-2 border-amber-200/80 px-5 py-3.5 rounded-2xl">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-amber-100 text-amber-900 rounded-full">
+                  <Sun className="w-5 h-5 text-amber-700" />
                 </div>
-
-                {/* Individual orders under this customer */}
-                <div className="space-y-2 pt-1">
-                  <p className="text-xs font-extrabold text-[#0B1D2C] uppercase tracking-wider">Order History for {group.customerName}:</p>
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    {group.items.map(item => (
-                      <div key={item.id} className={`flex items-center justify-between p-3.5 rounded-2xl border text-xs font-bold ${item.isPaid ? 'bg-[#f7f5f0] border-[#0B1D2C]/20 text-[#0B1D2C]' : 'bg-[#f7f5f0] border-[#0B1D2C]/30 text-[#0B1D2C]'}`}>
-                        <div className="space-y-0.5">
-                          <p className="font-extrabold text-sm text-[#0B1D2C]">{item.description}</p>
-                          <p className="text-[11px] font-bold text-[#0B1D2C]/80">
-                            {item.shiftType.toUpperCase()} Shift • {item.date} {item.isPaid && `• Paid on ${item.paidDate || 'today'}`}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <span className="font-black text-base text-[#0B1D2C]">{formatCurrency(item.amount, currencySymbol)}</span>
-                          {!item.isPaid ? (
-                            <button
-                              onClick={() => onSettlePendingPayment(item.id)}
-                              className="px-4 py-1.5 bg-[#0B1D2C] hover:bg-[#081521] text-white font-extrabold text-xs rounded-full shadow-xs transition-all cursor-pointer"
-                            >
-                              Settle
-                            </button>
-                          ) : (
-                            <span className="text-[10px] font-extrabold text-white bg-[#0B1D2C] px-3 py-1 rounded-full shadow-xs">PAID</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div>
+                  <h3 className="font-black text-base text-amber-950 flex items-center gap-2">
+                    <span>☀️ Day Shift Pending</span>
+                    <span className="text-xs bg-amber-200/80 text-amber-900 px-2.5 py-0.5 rounded-full font-black">
+                      {filteredDayItems.length} Record{filteredDayItems.length !== 1 ? 's' : ''}
+                    </span>
+                  </h3>
+                  <p className="text-xs font-bold text-amber-800/80">
+                    Day worker pending customer balances
+                  </p>
                 </div>
               </div>
-            ))}
-          </motion.div>
-        ) : (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-4">
-            {filteredItems.map((item, index) => {
-              const isExpanded = expandedItemId === item.id;
-              return (
-                <motion.div 
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.04 }}
-                  className="bg-white border-2 border-[#0B1D2C]/20 rounded-3xl p-5 sm:p-6 shadow-md hover:shadow-lg transition-all text-[#0B1D2C]"
-                >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-start space-x-4">
-                      <div className="p-3 rounded-full bg-[#f7f5f0] text-[#0B1D2C] border border-[#0B1D2C]/30 shrink-0">
-                        <User className="w-6 h-6 text-[#0B1D2C]" />
-                      </div>
 
-                      <div className="space-y-1.5">
-                        <div className="flex items-center flex-wrap gap-2">
-                          <h4 className="text-lg font-black text-[#0B1D2C]">
-                            {item.customerName || 'Customer Credit'}
-                          </h4>
-                          
-                          <span className="px-3 py-0.5 rounded-full text-xs font-extrabold flex items-center space-x-1 bg-[#f7f5f0] text-[#0B1D2C] border border-[#0B1D2C]/30">
-                            {item.shiftType === 'day' ? <Sun className="w-3.5 h-3.5 mr-0.5 inline text-[#0B1D2C]" /> : <Moon className="w-3.5 h-3.5 mr-0.5 inline text-[#0B1D2C]" />}
-                            <span>{item.shiftType.toUpperCase()} SHIFT</span>
-                          </span>
+              <div className="text-right">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-800/80 block">
+                  Day Total Unpaid
+                </span>
+                <span className="text-lg sm:text-xl font-black text-amber-950">
+                  {formatCurrency(dayUnpaidTotal, currencySymbol)}
+                </span>
+              </div>
+            </div>
 
-                          {item.isPaid ? (
-                            <span className="bg-[#0B1D2C] text-white px-3 py-0.5 rounded-full text-xs font-extrabold shadow-xs">
-                              PAID & SETTLED
-                            </span>
-                          ) : (
-                            <span className="bg-rose-50 text-rose-700 border border-rose-200 px-3 py-0.5 rounded-full text-xs font-extrabold shadow-xs">
-                              UNPAID CREDIT
-                            </span>
-                          )}
-                        </div>
-
-                        {/* QUANTITIES SUMMARY PILLS */}
-                        <div className="flex items-center space-x-2 text-xs font-extrabold pt-0.5 flex-wrap gap-y-1">
-                          {item.juiceCupsCount > 0 && (
-                            <span className="bg-[#f7f5f0] text-[#0B1D2C] font-extrabold px-3 py-1 rounded-full border border-[#0B1D2C]/30 flex items-center space-x-1 shadow-xs">
-                              <CupSoda className="w-3.5 h-3.5 text-[#0B1D2C]" />
-                              <span>{item.juiceCupsCount} Juice Cups</span>
-                            </span>
-                          )}
-                          {item.foodTakeawaysCount > 0 && (
-                            <span className="bg-[#f7f5f0] text-[#0B1D2C] font-extrabold px-3 py-1 rounded-full border border-[#0B1D2C]/30 flex items-center space-x-1 shadow-xs">
-                              <Utensils className="w-3.5 h-3.5 text-[#0B1D2C]" />
-                              <span>{item.foodTakeawaysCount} Food Boxes</span>
-                            </span>
-                          )}
-                          {item.juiceCupsCount === 0 && item.foodTakeawaysCount === 0 && (
-                            <span className="text-[#0B1D2C]/80 font-bold">Standard Credit Record</span>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-[#0B1D2C]/80 pt-0.5">
-                          <span>Date: {item.date}</span>
-                          {item.isPaid && item.paidDate && (
-                            <span className="text-[#0B1D2C] font-extrabold">• Cash Collected on {item.paidDate}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-3 self-end sm:self-center">
-                      <div className="bg-[#0B1D2C] text-white px-4 py-2 rounded-2xl shadow-sm text-right min-w-[130px]">
-                        <span className="text-white/80 text-[10px] font-extrabold uppercase tracking-wider block mb-0.5">
-                          Credit Amount
-                        </span>
-                        <span className="text-xl sm:text-2xl font-black text-white block">
-                          {formatCurrency(item.amount, currencySymbol)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        {/* TOGGLE EXPAND DETAILS BUTTON */}
-                        <button
-                          onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
-                          className="px-3.5 py-2 bg-[#f7f5f0] border border-[#0B1D2C]/30 text-[#0B1D2C] hover:bg-[#0B1D2C] hover:text-white font-extrabold text-xs rounded-full transition-all flex items-center space-x-1 cursor-pointer shadow-xs"
-                          title="Click to view food details"
-                        >
-                          <span>{isExpanded ? 'Hide Details' : 'Food Details'}</span>
-                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                        </button>
-
-                        {!item.isPaid ? (
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => {
-                                setPartialItem(item);
-                                setPartialCupsPaid(0);
-                                setPartialBoxesPaid(0);
-                                setPartialAmountPaid('');
-                              }}
-                              className="px-3.5 py-2 bg-[#f7f5f0] border border-[#0B1D2C]/30 text-[#0B1D2C] hover:bg-[#0B1D2C] hover:text-white font-extrabold text-xs rounded-full transition-all flex items-center space-x-1 cursor-pointer shadow-xs"
-                              title="Pay Partial / Deduct Cups"
-                            >
-                              <span>Deduct Paid</span>
-                            </button>
-                            <button
-                              onClick={() => onSettlePendingPayment(item.id)}
-                              className="px-4 py-2 bg-[#0B1D2C] hover:bg-[#081521] text-white font-black text-xs rounded-full shadow-md transition-all flex items-center space-x-1 cursor-pointer active:scale-95"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                              <span>Full Pay</span>
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-xs font-extrabold text-[#0B1D2C] flex items-center space-x-1 px-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-[#0B1D2C]" />
-                            <span>Settled</span>
-                          </span>
-                        )}
-
-                        <button
-                          onClick={() => setEditingItem(JSON.parse(JSON.stringify(item)))}
-                          className="p-2 text-[#0B1D2C] hover:bg-[#f7f5f0] border border-[#0B1D2C]/20 rounded-full transition-all cursor-pointer shadow-xs"
-                          title="Edit"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          onClick={() => onDeletePendingPayment(item.id)}
-                          className="p-2 text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-full transition-all cursor-pointer shadow-xs"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* EXPANDABLE DETAILED FOOD LIST */}
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden mt-4 pt-3 border-t border-[#0B1D2C]/20"
-                      >
-                        <div className="bg-[#f7f5f0] p-4 rounded-2xl border border-[#0B1D2C]/20 space-y-2">
-                          <div className="text-xs font-black text-[#0B1D2C] uppercase tracking-wider flex items-center space-x-1">
-                            <Utensils className="w-4 h-4 text-[#0B1D2C]" />
-                            <span>Itemized Dish & Drink Breakdown:</span>
-                          </div>
-
-                          {item.itemizedBreakdown && Object.keys(item.itemizedBreakdown).length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                              {Object.entries(item.itemizedBreakdown).map(([dishName, count]) => (
-                                <div key={dishName} className="flex items-center justify-between text-xs font-extrabold bg-white px-3.5 py-2 rounded-xl border border-[#0B1D2C]/20 shadow-xs">
-                                  <span className="text-[#0B1D2C]">{dishName}</span>
-                                  <span className="font-black text-white bg-[#0B1D2C] px-2.5 py-0.5 rounded-full text-xs">
-                                    x{count}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-xs font-bold text-[#0B1D2C] bg-white p-3 rounded-xl border border-[#0B1D2C]/20">
-                              <span className="font-black text-[#0B1D2C]">Note:</span> {item.description}
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
-          </motion.div>
+            {/* Day Items List */}
+            {filteredDayItems.length === 0 ? (
+              <div className="bg-white rounded-3xl p-8 text-center border border-[#0B1D2C]/20 shadow-xs">
+                <Sun className="w-10 h-10 text-amber-600/40 mx-auto mb-2" />
+                <h4 className="text-sm font-black text-[#0B1D2C]">No Day Shift pending payments</h4>
+                <p className="text-xs font-medium text-neutral-500 mt-0.5">All Day Shift customer orders are settled!</p>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {filteredDayItems.map(renderItemCard)}
+              </div>
+            )}
+          </div>
         )}
+
+        {/* 2. NIGHT SHIFT GROUP */}
+        {(activeShiftTab === 'both' || activeShiftTab === 'night') && (
+          <div className="space-y-4">
+            {/* Shift Group Header */}
+            <div className="flex items-center justify-between bg-indigo-50/80 border-2 border-indigo-200/80 px-5 py-3.5 rounded-2xl">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-indigo-100 text-indigo-900 rounded-full">
+                  <Moon className="w-5 h-5 text-indigo-700" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-indigo-950 flex items-center gap-2">
+                    <span>🌙 Night Shift Pending</span>
+                    <span className="text-xs bg-indigo-200/80 text-indigo-900 px-2.5 py-0.5 rounded-full font-black">
+                      {filteredNightItems.length} Record{filteredNightItems.length !== 1 ? 's' : ''}
+                    </span>
+                  </h3>
+                  <p className="text-xs font-bold text-indigo-800/80">
+                    Night worker pending customer balances
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-800/80 block">
+                  Night Total Unpaid
+                </span>
+                <span className="text-lg sm:text-xl font-black text-indigo-950">
+                  {formatCurrency(nightUnpaidTotal, currencySymbol)}
+                </span>
+              </div>
+            </div>
+
+            {/* Night Items List */}
+            {filteredNightItems.length === 0 ? (
+              <div className="bg-white rounded-3xl p-8 text-center border border-[#0B1D2C]/20 shadow-xs">
+                <Moon className="w-10 h-10 text-indigo-600/40 mx-auto mb-2" />
+                <h4 className="text-sm font-black text-[#0B1D2C]">No Night Shift pending payments</h4>
+                <p className="text-xs font-medium text-neutral-500 mt-0.5">All Night Shift customer orders are settled!</p>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {filteredNightItems.map(renderItemCard)}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
 
-      {/* EDIT MODAL */}
+      {/* ─── CLEAR ALL CONFIRMATION MODAL ──────────────────────────────────── */}
+      <AnimatePresence>
+        {showClearConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-[#0B1D2C]/80 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 border-2 border-rose-300 space-y-4 text-[#0B1D2C]"
+            >
+              <div className="flex items-center space-x-3 text-rose-700">
+                <div className="p-3 bg-rose-100 rounded-full">
+                  <AlertTriangle className="w-6 h-6 text-rose-700" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-[#0B1D2C]">Clear All Pending Payments?</h3>
+                  <p className="text-xs font-bold text-neutral-500">This action cannot be undone</p>
+                </div>
+              </div>
+
+              <p className="text-xs font-bold text-[#0B1D2C]/80 leading-relaxed bg-[#f7f5f0] p-4 rounded-2xl border border-[#0B1D2C]/20">
+                All customer pending payment records ({pendingPayments.length} items) across both Day & Night shifts will be permanently removed from the ledger.
+              </p>
+
+              <div className="flex items-center justify-end space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowClearConfirm(false)}
+                  className="px-5 py-2.5 bg-[#f7f5f0] text-[#0B1D2C] font-extrabold text-xs rounded-full hover:bg-stone-200 cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onClearAllPendingPayments) {
+                      onClearAllPendingPayments();
+                    }
+                    setShowClearConfirm(false);
+                  }}
+                  className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-full shadow-md cursor-pointer transition-all active:scale-95 flex items-center space-x-1.5"
+                >
+                  <Trash2 className="w-4 h-4 text-white" />
+                  <span>Yes, Clear Everything</span>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── EDIT MODAL ────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {editingItem && (
           <motion.div 
@@ -796,14 +938,14 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-extrabold text-[#0B1D2C] uppercase tracking-wide mb-1">Shift</label>
+                    <label className="block text-xs font-extrabold text-[#0B1D2C] uppercase tracking-wide mb-1">Shift Group</label>
                     <select
                       value={editingItem.shiftType}
                       onChange={(e) => setEditingItem({ ...editingItem, shiftType: e.target.value as ShiftType })}
                       className={inputClasses}
                     >
-                      <option value="day">Day Shift</option>
-                      <option value="night">Night Shift</option>
+                      <option value="day">☀️ Day Shift</option>
+                      <option value="night">🌙 Night Shift</option>
                     </select>
                   </div>
                 </div>
@@ -905,7 +1047,7 @@ export const PendingPaymentsView: React.FC<PendingPaymentsViewProps> = ({
         )}
       </AnimatePresence>
 
-      {/* PARTIAL PAYMENT DEDUCTION MODAL */}
+      {/* ─── PARTIAL PAYMENT DEDUCTION MODAL ──────────────────────────────── */}
       <AnimatePresence>
         {partialItem && (
           <motion.div

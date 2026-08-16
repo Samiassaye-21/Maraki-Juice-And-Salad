@@ -521,6 +521,14 @@ export function App() {
     await supabase.from('ledger_entries').delete().eq('reference_id', id);
   };
 
+  const handleClearAllPendingPayments = async () => {
+    setPendingPaymentsState([]);
+    const { error: delErr } = await supabase.from('pending_payments').delete().neq('id', 'clear-all-placeholder');
+    if (delErr) {
+      console.error('Failed to clear all pending payments:', delErr);
+    }
+  };
+
   // ─── Delivery Handlers ─────────────────────────────────────────────────────
   const handleAddDeliveryRecord = async (newDel: Omit<DeliveryAccountRecord, 'id' | 'isSettledWeekly'>) => {
     const item: DeliveryAccountRecord = { ...newDel, id: 'del-' + Date.now(), isSettledWeekly: false };
@@ -780,6 +788,7 @@ export function App() {
                   onPartialSettlePendingPayment={handlePartialSettlePendingPayment}
                   onSettlePendingPayment={handleSettlePendingPayment}
                   onDeletePendingPayment={handleDeletePendingPayment}
+                  onClearAllPendingPayments={handleClearAllPendingPayments}
                   currencySymbol={currencySymbol} config={config}
                 />
               </motion.div>

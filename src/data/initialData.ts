@@ -114,42 +114,7 @@ export const INITIAL_SHIFTS: ShiftRecord[] = [
   }
 ];
 
-export const INITIAL_PENDING_PAYMENTS: PendingPaymentItem[] = [
-  {
-    id: 'pend-1',
-    shiftType: 'day',
-    customerName: 'Abebe (Regular Customer)',
-    description: '3 Juices & 1 Special Beyaynetu',
-    juiceCupsCount: 3,
-    foodTakeawaysCount: 1,
-    amount: 710, // (3 * 170) + (1 * 200) = 710 ETB
-    date: today,
-    isPaid: false,
-  },
-  {
-    id: 'pend-2',
-    shiftType: 'night',
-    customerName: 'Kebenesh',
-    description: '4 Mango Juices',
-    juiceCupsCount: 4,
-    foodTakeawaysCount: 0,
-    amount: 680, // 4 * 170 = 680 ETB
-    date: today,
-    isPaid: false,
-  },
-  {
-    id: 'pend-3',
-    shiftType: 'day',
-    customerName: 'Tigist',
-    description: '2 Takeaway Food Boxes',
-    juiceCupsCount: 0,
-    foodTakeawaysCount: 2,
-    amount: 440, // 2 * 220 = 440 ETB
-    date: yesterdayDate,
-    isPaid: true,
-    paidDate: today,
-  },
-];
+export const INITIAL_PENDING_PAYMENTS: PendingPaymentItem[] = [];
 
 export const INITIAL_DELIVERY_RECORDS: DeliveryAccountRecord[] = [
   {

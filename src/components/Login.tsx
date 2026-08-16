@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Loader2 } from 'lucide-react';
+import { Lock, Loader2, Eye, EyeOff, Sparkles, Moon, ChefHat, ShieldCheck } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface LoginProps {
@@ -8,6 +8,7 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -24,84 +25,123 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         setError('Incorrect password. Please try again.');
       }
       setLoading(false);
-    }, 600); // Fake network delay for UX
+    }, 400);
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#f7f5f0] px-4 font-sans text-[#0B1D2C]">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#f7f5f0] px-4 py-8 font-sans text-[#0B1D2C] relative">
       {/* Brand / Logo */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8 mt-8 text-center flex flex-col items-center"
+        transition={{ duration: 0.4 }}
+        className="mb-8 text-center flex flex-col items-center"
       >
-        <img 
-          src="/logo.jpg" 
-          alt="Maraki Logo" 
-          className="h-24 w-24 object-contain rounded-full shadow-md mb-4 bg-white p-1 border-2 border-[#0B1D2C]/20"
-          onError={(e) => {
-             e.currentTarget.style.display = 'none';
-          }}
-        />
-        <h1 className="text-4xl font-extrabold leading-none tracking-tight text-white font-bold">Maraki</h1>
-        <p className="text-sm font-bold text-[#0B1D2C] mt-2 uppercase tracking-wider">Admin Dashboard System</p>
+        <div className="relative mb-3">
+          <img 
+            src="/logo.jpg" 
+            alt="Maraki Logo" 
+            className="h-24 w-24 object-contain rounded-full shadow-lg bg-white p-1 border-2 border-[#0B1D2C]/20"
+            onError={(e) => {
+               e.currentTarget.style.display = 'none';
+            }}
+          />
+          <div className="absolute -bottom-1 -right-1 bg-[#0B1D2C] text-white p-1.5 rounded-full shadow-md border-2 border-white">
+            <ShieldCheck className="w-4 h-4 text-white" />
+          </div>
+        </div>
+
+        <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[#0B1D2C]">
+          ማራኪ <span className="font-extrabold text-[#0B1D2C]/80">• Maraki</span>
+        </h1>
+        <p className="text-xs font-black text-[#0B1D2C]/70 uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-[#0B1D2C]" />
+          <span>Admin Dashboard System</span>
+        </p>
       </motion.div>
 
-      {/* Login Form */}
+      {/* Login Card */}
       <motion.form
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        transition={{ delay: 0.1, duration: 0.4 }}
         onSubmit={handleSubmit}
-        className="w-full max-w-[360px] flex flex-col gap-4 bg-white p-7 rounded-3xl border border-[#0B1D2C]/20 shadow-xl"
+        className="w-full max-w-[380px] flex flex-col gap-4 bg-white p-7 sm:p-8 rounded-3xl border-2 border-[#0B1D2C]/20 shadow-2xl"
       >
+        <div className="text-center pb-1">
+          <h2 className="text-lg font-black text-[#0B1D2C]">Sign In to Admin</h2>
+          <p className="text-xs text-neutral-500 font-medium mt-0.5">Enter password to manage shifts & finances</p>
+        </div>
+
         {/* Password Input */}
-        <div className="relative group">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-5">
-            <Lock className="h-5 w-5 text-[#0B1D2C] transition-colors" strokeWidth={2} />
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4.5">
+            <Lock className="h-5 w-5 text-[#0B1D2C]/70" strokeWidth={2.2} />
           </div>
           <input
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
+            placeholder="Enter password..."
             required
-            className="block w-full rounded-full bg-white border border-[#0B1D2C]/30 py-3.5 pl-14 pr-4 text-[#0B1D2C] placeholder-neutral-400 focus:outline-none focus:border-[#0B1D2C] focus:ring-4 focus:ring-[#0B1D2C]/20 transition-all text-sm font-medium shadow-xs"
+            autoFocus
+            className="block w-full rounded-full bg-white border-2 border-[#0B1D2C]/30 py-3.5 pl-12 pr-12 text-[#0B1D2C] font-bold text-sm placeholder:text-neutral-400 focus:outline-none focus:border-[#0B1D2C] focus:ring-4 focus:ring-[#0B1D2C]/15 transition-all shadow-xs"
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#0B1D2C]/60 hover:text-[#0B1D2C] cursor-pointer transition-colors"
+            title={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
         </div>
 
         {/* Error Message */}
         {error && (
-          <motion.p 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="text-center text-xs font-bold text-rose-600"
+          <motion.div 
+            initial={{ opacity: 0, y: -6 }} 
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center text-xs font-black text-rose-700 bg-rose-50 border border-rose-200 py-2.5 px-3 rounded-2xl"
           >
             {error}
-          </motion.p>
+          </motion.div>
         )}
 
         {/* Submit Button */}
         <button
           type="submit"
           disabled={loading}
-          className="flex w-full items-center justify-center rounded-full bg-[#0B1D2C] hover:bg-[#081521] py-3.5 text-base font-extrabold text-white font-bold shadow-md hover:shadow-lg disabled:opacity-70 transition-all cursor-pointer mt-2 active:scale-95"
+          className="flex w-full items-center justify-center rounded-full bg-[#0B1D2C] hover:bg-[#081521] py-4 text-sm font-black text-white shadow-lg hover:shadow-xl disabled:opacity-60 transition-all cursor-pointer mt-1 active:scale-95"
         >
-          {loading ? <Loader2 className="animate-spin w-5 h-5 text-white font-bold" /> : 'Log in'}
+          {loading ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="animate-spin w-5 h-5 text-white" />
+              <span>Verifying...</span>
+            </div>
+          ) : (
+            <span>Log In to Dashboard →</span>
+          )}
         </button>
         
         {/* Quick Portal Switchers */}
         <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-[#0B1D2C]/15">
+          <p className="text-[10px] font-black uppercase tracking-wider text-neutral-500 text-center mb-0.5">
+            Quick Worker Portals
+          </p>
           <a
             href="/shift"
-            className="text-xs font-bold py-3 px-4 rounded-full bg-white text-[#0B1D2C] border-2 border-[#0B1D2C] hover:bg-[#f7f5f0] transition-all flex items-center justify-center gap-1.5 shadow-xs active:scale-95"
+            className="text-xs font-extrabold py-3 px-4 rounded-full bg-[#f7f5f0] text-[#0B1D2C] border-2 border-[#0B1D2C]/30 hover:bg-[#0B1D2C] hover:text-white transition-all flex items-center justify-center gap-2 shadow-xs active:scale-95 group"
           >
-            <span>🌙 Mobile Shift App</span>
+            <Moon className="w-4 h-4 text-[#0B1D2C] group-hover:text-white transition-colors" />
+            <span>Mobile Shift App</span>
           </a>
           <a
             href="/kitchen"
-            className="text-xs font-bold py-3 px-4 rounded-full bg-white text-[#0B1D2C] border-2 border-[#0B1D2C] hover:bg-[#f7f5f0] transition-all flex items-center justify-center gap-1.5 shadow-xs active:scale-95"
+            className="text-xs font-extrabold py-3 px-4 rounded-full bg-[#f7f5f0] text-[#0B1D2C] border-2 border-[#0B1D2C]/30 hover:bg-[#0B1D2C] hover:text-white transition-all flex items-center justify-center gap-2 shadow-xs active:scale-95 group"
           >
-            <span>🍳 Kitchen App</span>
+            <ChefHat className="w-4 h-4 text-[#0B1D2C] group-hover:text-white transition-colors" />
+            <span>Kitchen Order App</span>
           </a>
         </div>
       </motion.form>
