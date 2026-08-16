@@ -33,6 +33,8 @@ export const DEFAULT_RESTAURANT_CONFIG: RestaurantSystemConfig = {
   currencySymbol: 'Br ETB',
   dayShiftWorkerName: 'Makeda (Day Shift)',
   nightShiftWorkerName: 'Tewodros (Night Shift)',
+  dayShiftPin: '1111',
+  nightShiftPin: '2222',
   restaurantName: 'Maraki Juice and Salad',
 };
 

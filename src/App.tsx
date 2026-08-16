@@ -120,6 +120,8 @@ export function App() {
           nightShiftWorkerName: configData.night_shift_worker_name,
           dayWorkerSignatureUrl: configData.day_worker_signature_url,
           nightWorkerSignatureUrl: configData.night_worker_signature_url,
+          dayShiftPin: configData.day_shift_pin || '1111',
+          nightShiftPin: configData.night_shift_pin || '2222',
           restaurantName: configData.restaurant_name,
         });
       }
@@ -265,6 +267,8 @@ export function App() {
       currency_symbol: newConfig.currencySymbol,
       day_shift_worker_name: newConfig.dayShiftWorkerName,
       night_shift_worker_name: newConfig.nightShiftWorkerName,
+      day_shift_pin: newConfig.dayShiftPin || '1111',
+      night_shift_pin: newConfig.nightShiftPin || '2222',
       restaurant_name: newConfig.restaurantName,
     };
     if (newConfig.dayWorkerSignatureUrl) payload.day_worker_signature_url = newConfig.dayWorkerSignatureUrl;

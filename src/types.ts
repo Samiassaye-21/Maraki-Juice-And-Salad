@@ -99,6 +99,8 @@ export interface RestaurantSystemConfig {
   nightShiftWorkerName: string;
   dayWorkerSignatureUrl?: string;    // Registered Master Signature for Day Worker
   nightWorkerSignatureUrl?: string;  // Registered Master Signature for Night Worker
+  dayShiftPin?: string;              // PIN for Day Shift on Tablet
+  nightShiftPin?: string;            // PIN for Night Shift on Tablet
   restaurantName: string;
 }
 

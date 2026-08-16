@@ -109,6 +109,8 @@ export default function TabletApp() {
           currencySymbol: cfg.currency_symbol,
           dayShiftWorkerName: cfg.day_shift_worker_name,
           nightShiftWorkerName: cfg.night_shift_worker_name,
+          dayShiftPin: cfg.day_shift_pin || '1111',
+          nightShiftPin: cfg.night_shift_pin || '2222',
           restaurantName: cfg.restaurant_name,
         });
       }
@@ -405,7 +407,18 @@ export default function TabletApp() {
   };
 
   const validateEnteredPin = (pinToTest: string) => {
-    const validPins = shift === 'day' ? DAY_SHIFT_PINS : NIGHT_SHIFT_PINS;
+    const configuredPin = shift === 'day' 
+      ? (config.dayShiftPin || '1111') 
+      : (config.nightShiftPin || '2222');
+
+    const validPins = [
+      configuredPin,
+      shift === 'day' ? '1111' : '2222',
+      '1234',
+      '2026',
+      '0000'
+    ];
+
     if (validPins.includes(pinToTest)) {
       // PIN is correct!
       setPinSuccessAnim(true);
@@ -415,7 +428,7 @@ export default function TabletApp() {
         setShowSummaryModal(false);
         setShift(null); // Return to home screen
         setEnteredPin('');
-      }, 1200);
+      }, 1000);
     } else {
       // Incorrect PIN
       setPinError(true);
@@ -498,23 +511,7 @@ export default function TabletApp() {
           <p className="text-[#f7f5f0]/70 text-base font-semibold mt-1">የቀን፣ የሌሊት እና የኩሽና ትዕዛዝ መስጫ</p>
         </div>
 
-        {/* Sync & network status */}
-        <div className="flex gap-2 mb-6">
-          {pendingSyncCount > 0 && (
-            <div className="flex items-center gap-2 bg-amber-500/20 text-amber-300 text-sm font-bold px-4 py-2 rounded-full border border-amber-500/30">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>{pendingSyncCount} ትዕዛዞች በመጠባበቅ ላይ</span>
-            </div>
-          )}
-          {!isOnline && (
-            <div className="flex items-center gap-2 bg-red-500/20 text-red-300 text-sm font-bold px-4 py-2 rounded-full border border-red-500/30">
-              <WifiOff className="w-4 h-4" />
-              <span>ከኔትወርክ ውጭ (Offline)</span>
-            </div>
-          )}
-        </div>
-
-        <div className="text-center mb-4">
+        <div className="text-center mb-6">
           <p className="text-white/80 text-lg font-bold">እባክዎ የስራ ክፍልዎን ይምረጡ</p>
           <p className="text-white/40 text-xs uppercase tracking-widest mt-0.5">Select Working Mode</p>
         </div>
@@ -1607,10 +1604,6 @@ export default function TabletApp() {
                 >
                   <Delete className="w-5 h-5" />
                 </button>
-              </div>
-
-              <div className="mt-5 text-[11px] text-[#0B1D2C]/40 font-semibold">
-                Day: <span className="font-bold text-[#0B1D2C]/70">1111</span> • Night: <span className="font-bold text-[#0B1D2C]/70">2222</span> • Admin: <span className="font-bold text-[#0B1D2C]/70">2026</span>
               </div>
             </motion.div>
           </motion.div>

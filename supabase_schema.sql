@@ -60,6 +60,10 @@ CREATE TABLE config (
   currency_symbol TEXT NOT NULL,
   day_shift_worker_name TEXT NOT NULL,
   night_shift_worker_name TEXT NOT NULL,
+  day_shift_pin TEXT DEFAULT '1111',
+  night_shift_pin TEXT DEFAULT '2222',
+  day_worker_signature_url TEXT,
+  night_worker_signature_url TEXT,
   restaurant_name TEXT NOT NULL
 );
 

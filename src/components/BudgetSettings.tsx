@@ -12,7 +12,9 @@ import {
   RotateCcw,
   Tag,
   PenTool,
-  Upload
+  Upload,
+  Lock,
+  KeyRound
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RestaurantSystemConfig, SystemSummaryStats, FoodMenuItem } from '../types';
@@ -34,6 +36,8 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
   const [foodPrice, setFoodPrice] = useState(config.defaultFoodUnitPrice || 220);
   const [dayWorker, setDayWorker] = useState(config.dayShiftWorkerName);
   const [nightWorker, setNightWorker] = useState(config.nightShiftWorkerName);
+  const [dayShiftPin, setDayShiftPin] = useState(config.dayShiftPin || '1111');
+  const [nightShiftPin, setNightShiftPin] = useState(config.nightShiftPin || '2222');
   const [daySignatureUrl, setDaySignatureUrl] = useState<string>(config.dayWorkerSignatureUrl || '');
   const [nightSignatureUrl, setNightSignatureUrl] = useState<string>(config.nightWorkerSignatureUrl || '');
   const [restaurantName, setRestaurantName] = useState(config.restaurantName);
@@ -195,8 +199,10 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       defaultJuiceUnitPrice: juicePrice,
       defaultFoodUnitPrice: foodPrice,
       foodMenu,
-      dayShiftWorkerName: dayWorker.trim() || 'Day Worker',
-      nightShiftWorkerName: nightWorker.trim() || 'Night Worker',
+      dayShiftWorkerName: dayWorker.trim(),
+      nightShiftWorkerName: nightWorker.trim(),
+      dayShiftPin: dayShiftPin.trim() || '1111',
+      nightShiftPin: nightShiftPin.trim() || '2222',
       dayWorkerSignatureUrl: daySignatureUrl || undefined,
       nightWorkerSignatureUrl: nightSignatureUrl || undefined,
       restaurantName: restaurantName.trim() || 'Maraki Juice and Salad',
@@ -602,6 +608,69 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* TABLET & SHIFT SECURITY PINS */}
+        <div className="border-t border-[#0B1D2C]/15 pt-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-extrabold text-[#0B1D2C] flex items-center space-x-2.5">
+              <Lock className="w-5 h-5 text-[#0B1D2C]" />
+              <span>Tablet & Shift Security PINs (የይለፍ ቃሎች)</span>
+            </h3>
+            <span className="text-xs bg-[#f7f5f0] text-[#0B1D2C] font-bold px-3 py-1 rounded-full border border-[#0B1D2C]/20">
+              Change Anytime
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Day Shift PIN */}
+            <div className="bg-[#f7f5f0] p-4 rounded-3xl border border-[#0B1D2C]/20 space-y-2">
+              <label className="text-sm font-extrabold text-[#0B1D2C] flex items-center justify-between">
+                <span className="flex items-center space-x-2">
+                  <KeyRound className="w-4 h-4 text-amber-600" />
+                  <span>Day Shift PIN (የቀን ሸፍት ፒን)</span>
+                </span>
+                <span className="text-xs text-amber-700 bg-amber-100 font-black px-2.5 py-0.5 rounded-full">
+                  Day Mode
+                </span>
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                value={dayShiftPin}
+                onChange={(e) => setDayShiftPin(e.target.value.replace(/\D/g, ''))}
+                placeholder="1111"
+                className={`${inputClasses} font-mono font-black tracking-widest text-base text-center`}
+              />
+              <p className="text-xs text-neutral-600 font-medium">
+                Used by the Day Shift worker to finalize & close their shift on the tablet.
+              </p>
+            </div>
+
+            {/* Night Shift PIN */}
+            <div className="bg-[#f7f5f0] p-4 rounded-3xl border border-[#0B1D2C]/20 space-y-2">
+              <label className="text-sm font-extrabold text-[#0B1D2C] flex items-center justify-between">
+                <span className="flex items-center space-x-2">
+                  <KeyRound className="w-4 h-4 text-indigo-600" />
+                  <span>Night Shift PIN (የሌሊት ሸፍት ፒን)</span>
+                </span>
+                <span className="text-xs text-indigo-700 bg-indigo-100 font-black px-2.5 py-0.5 rounded-full">
+                  Night Mode
+                </span>
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                value={nightShiftPin}
+                onChange={(e) => setNightShiftPin(e.target.value.replace(/\D/g, ''))}
+                placeholder="2222"
+                className={`${inputClasses} font-mono font-black tracking-widest text-base text-center`}
+              />
+              <p className="text-xs text-neutral-600 font-medium">
+                Used by the Night Shift worker to finalize & close their shift on the tablet.
+              </p>
             </div>
           </div>
         </div>
