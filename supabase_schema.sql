@@ -147,3 +147,24 @@ ALTER TABLE kitchen_orders DISABLE ROW LEVEL SECURITY;
 -- Allow public access policy (in case RLS remains enabled in Supabase)
 DROP POLICY IF EXISTS "Allow public access to kitchen_orders" ON kitchen_orders;
 CREATE POLICY "Allow public access to kitchen_orders" ON kitchen_orders FOR ALL USING (true) WITH CHECK (true);
+
+-- 9. Tablet Orders Table (In-Store Kiosk Order Entry)
+CREATE TABLE IF NOT EXISTS tablet_orders (
+  id TEXT PRIMARY KEY,
+  client_order_id TEXT UNIQUE NOT NULL,    -- Idempotency key (tablet-generated)
+  staff_name TEXT NOT NULL,
+  customer_name TEXT,
+  items JSONB NOT NULL,                    -- Array of {menuItemId, name, category, quantity, unitPrice, totalPrice, notes}
+  total_amount INTEGER NOT NULL,
+  payment_method TEXT NOT NULL DEFAULT 'cash',  -- 'cash' | 'transfer'
+  shift_type TEXT NOT NULL,               -- 'day' | 'night'
+  status TEXT NOT NULL DEFAULT 'active',  -- 'active' | 'voided'
+  notes TEXT,
+  order_time TEXT NOT NULL,               -- ISO timestamp
+  date TEXT NOT NULL,                     -- YYYY-MM-DD
+  created_at_ts BIGINT NOT NULL
+);
+ALTER TABLE tablet_orders DISABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public access to tablet_orders" ON tablet_orders;
+CREATE POLICY "Allow public access to tablet_orders" ON tablet_orders FOR ALL USING (true) WITH CHECK (true);
+

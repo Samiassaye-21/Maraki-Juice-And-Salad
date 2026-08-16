@@ -12,6 +12,7 @@ import { OtherExpensesView, OtherExpenseItem } from './components/OtherExpensesV
 import Login from './components/Login';
 import { SupabaseMigration } from './components/SupabaseMigration';
 import { KitchenCheckView } from './components/KitchenCheckView';
+import { TabletOrdersView } from './components/TabletOrdersView';
 import { supabase } from './lib/supabaseClient';
 import { 
   DEFAULT_RESTAURANT_CONFIG, 
@@ -29,6 +30,7 @@ import {
   PurchaseTrip,
   LedgerEntry,
   KitchenOrder,
+  TabletOrder,
 } from './types';
 import { calculateSystemSummary, getAutoShiftType, buildShiftLedgerEntries, extractSignatureFromNotes } from './utils/shiftUtils';
 
@@ -67,6 +69,7 @@ export function App() {
   const [ledgerEntries, setLedgerEntriesState] = useState<LedgerEntry[]>([]);
   const [otherExpenses, setOtherExpensesState] = useState<OtherExpenseItem[]>([]);
   const [kitchenOrders, setKitchenOrdersState] = useState<KitchenOrder[]>([]);
+  const [tabletOrders, setTabletOrdersState] = useState<TabletOrder[]>([]);
 
   // Load token from safeSessionStorage on mount (resets on tab close)
   useEffect(() => {
@@ -216,6 +219,19 @@ export function App() {
           date: r.date,
           notes: r.notes,
           createdAt: Number(r.created_at_ts),
+        })));
+      }
+
+      // Tablet Orders
+      const { data: tabletData } = await supabase.from('tablet_orders').select('*').order('created_at_ts', { ascending: false });
+      if (tabletData) {
+        setTabletOrdersState(tabletData.map((r: any) => ({
+          id: r.id, clientOrderId: r.client_order_id,
+          staffName: r.staff_name, customerName: r.customer_name,
+          items: r.items || [], totalAmount: r.total_amount,
+          paymentMethod: r.payment_method, shiftType: r.shift_type,
+          status: r.status, notes: r.notes,
+          orderTime: r.order_time, date: r.date, createdAt: Number(r.created_at_ts),
         })));
       }
 
@@ -789,6 +805,11 @@ export function App() {
     }
   };
 
+  const handleVoidTabletOrder = async (id: string) => {
+    setTabletOrdersState(prev => prev.map(o => o.id === id ? { ...o, status: 'voided' } : o));
+    await supabase.from('tablet_orders').update({ status: 'voided' }).eq('id', id);
+  };
+
   return (
     <div className="min-h-screen bg-[#f7f5f0] text-[#0B1D2C] font-sans flex flex-col antialiased transition-colors duration-300">
       
@@ -920,6 +941,16 @@ export function App() {
                   shifts={shifts}
                   currencySymbol={currencySymbol}
                   onClearKitchenOrders={handleClearKitchenOrders}
+                />
+              </motion.div>
+            )}
+
+            {activeTab === 'orders' && (
+              <motion.div key="orders" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25, ease: 'easeOut' }}>
+                <TabletOrdersView
+                  tabletOrders={tabletOrders}
+                  onVoidOrder={handleVoidTabletOrder}
+                  currencySymbol={currencySymbol}
                 />
               </motion.div>
             )}

@@ -23,7 +23,7 @@ import {
 import { ShiftType, RestaurantSystemConfig, SystemSummaryStats } from '../types';
 import { getEthiopianMonthYear } from '../utils/shiftUtils';
 
-export type MainTab = 'calculator' | 'pending' | 'delivery' | 'purchases' | 'expenses' | 'account' | 'history' | 'kitchen' | 'settings';
+export type MainTab = 'calculator' | 'pending' | 'delivery' | 'purchases' | 'expenses' | 'account' | 'history' | 'kitchen' | 'orders' | 'settings';
 
 interface HeaderProps {
   activeTab: MainTab;
@@ -88,6 +88,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'account', label: 'Account & Balance', icon: BarChart3 },
     { id: 'history', label: 'Shift History', icon: Receipt },
     { id: 'kitchen', label: 'Kitchen Check', icon: ChefHat },
+    { id: 'orders', label: 'Tablet Orders', icon: Smartphone },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 

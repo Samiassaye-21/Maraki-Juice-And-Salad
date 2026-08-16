@@ -172,8 +172,6 @@ export interface LedgerEntry {
   createdAt: number;          // timestamp for ordering
 }
 
-// ─── Kitchen Order Portal ────────────────────────────────────────────────────
-
 export type KitchenTaker = 'day_shift' | 'night_shift' | 'beu_delivery';
 
 export interface KitchenOrder {
@@ -188,3 +186,34 @@ export interface KitchenOrder {
   notes?: string;
   createdAt: number;          // unix ms timestamp
 }
+
+// ─── Tablet Order System ─────────────────────────────────────────────────────
+
+export type TabletPaymentMethod = 'cash' | 'transfer';
+
+export interface TabletOrderItem {
+  menuItemId: string;
+  name: string;
+  category: 'juice' | 'food';
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  notes?: string;
+}
+
+export interface TabletOrder {
+  id: string;
+  clientOrderId: string;       // Idempotency key (same as id at creation)
+  staffName: string;
+  customerName?: string;
+  items: TabletOrderItem[];
+  totalAmount: number;
+  paymentMethod: TabletPaymentMethod;
+  shiftType: ShiftType;        // 'day' | 'night'
+  status: 'active' | 'voided';
+  notes?: string;
+  orderTime: string;           // ISO timestamp
+  date: string;                // YYYY-MM-DD
+  createdAt: number;           // unix ms
+}
+
