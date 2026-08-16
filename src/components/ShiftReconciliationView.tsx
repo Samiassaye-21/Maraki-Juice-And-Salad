@@ -871,7 +871,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                   <TrendingDown className="w-5 h-5 text-[#0B1D2C]" />
                   <span className="text-sm font-extrabold text-[#0B1D2C]">1. Digital Transfers</span>
                 </div>
-                <div className="p-2 bg-[#f7f5f0] text-[#0B1D2C] rounded-full border border-[#0B1D2C]/20 group-hover:bg-[#0B1D2C] group-hover:text-[#0B1D2C] transition-colors shadow-xs">
+                <div className="p-2 bg-[#f7f5f0] text-[#0B1D2C] rounded-full border border-[#0B1D2C]/20 group-hover:bg-[#0B1D2C] group-hover:text-white transition-colors shadow-xs">
                   <Calculator size={18} />
                 </div>
               </div>
@@ -895,7 +895,7 @@ export const ShiftReconciliationView: React.FC<ShiftReconciliationViewProps> = (
                   <Receipt className="w-5 h-5 text-[#0B1D2C]" />
                   <span className="text-sm font-extrabold text-[#0B1D2C]">2. Daily Cooking Expenses</span>
                 </div>
-                <div className="p-2 bg-[#f7f5f0] text-[#0B1D2C] rounded-full border border-[#0B1D2C]/20 group-hover:bg-[#0B1D2C] group-hover:text-[#0B1D2C] transition-colors shadow-xs">
+                <div className="p-2 bg-[#f7f5f0] text-[#0B1D2C] rounded-full border border-[#0B1D2C]/20 group-hover:bg-[#0B1D2C] group-hover:text-white transition-colors shadow-xs">
                   <Calculator size={18} />
                 </div>
               </div>

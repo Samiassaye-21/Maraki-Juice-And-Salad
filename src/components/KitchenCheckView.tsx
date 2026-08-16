@@ -268,19 +268,19 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
         <div className="bg-[#0B1D2C] border border-[#0B1D2C]/40 text-white p-5 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[130px]">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-wider text-white font-bold">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-white/80">
                 Chef Logged Items
               </p>
-              <h3 className="text-3xl sm:text-4xl font-black text-white font-bold mt-1">
-                {grandChefTotalItems} <span className="text-sm font-normal text-white font-bold">items</span>
+              <h3 className="text-3xl sm:text-4xl font-black text-white mt-1">
+                {grandChefTotalItems} <span className="text-sm font-normal text-white/80">items</span>
               </h3>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#0B1D2C] border border-[#0B1D2C]/40 flex items-center justify-center text-[#0B1D2C]">
+            <div className="w-10 h-10 rounded-full bg-[#162E44] border border-white/20 flex items-center justify-center text-white">
               <ShoppingBag className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-xs text-white font-bold mt-2 font-medium flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-[#0B1D2C]" />
+          <p className="text-xs text-white/90 mt-2 font-medium flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-white" />
             Recorded by kitchen staff for {selectedDate}
           </p>
         </div>
@@ -292,7 +292,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
               <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
                 Worker Shift Sales
               </p>
-              <h3 className="text-3xl sm:text-4xl font-black text-white font-bold mt-1">
+              <h3 className="text-3xl sm:text-4xl font-black text-[#0B1D2C] mt-1">
                 {workerTotalItems} <span className="text-sm font-normal text-neutral-500">items</span>
               </h3>
             </div>
@@ -511,7 +511,7 @@ export const KitchenCheckView: React.FC<KitchenCheckViewProps> = ({
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="font-extrabold text-[#0B1D2C] text-xs bg-[#0B1D2C] px-3 py-1 rounded-full shadow-xs">
+                    <span className="font-black text-white text-xs bg-[#0B1D2C] px-3 py-1 rounded-full shadow-xs">
                       ×{order.quantity}
                     </span>
                     <span className="text-neutral-600 text-xs font-medium bg-[#f7f5f0] px-3 py-1 rounded-full border border-[#0B1D2C]/20 flex items-center gap-1">

@@ -16,12 +16,12 @@ interface MarketPurchasesViewProps {
 }
 
 const categoryColors: Record<MaterialCategory, string> = {
-  fruits:    'bg-[#0B1D2C]/40 text-[#0B1D2C] border border-[#0B1D2C]',
-  dairy:     'bg-[#0B1D2C]/40 text-[#0B1D2C] border border-[#0B1D2C]',
-  kitchen:   'bg-[#0B1D2C]/40 text-[#0B1D2C] border border-[#0B1D2C]',
-  packaging: 'bg-[#0B1D2C]/40 text-[#0B1D2C] border border-[#0B1D2C]',
-  equipment: 'bg-[#0B1D2C]/40 text-[#0B1D2C] border border-[#0B1D2C]',
-  other:     'bg-[#0B1D2C]/40 text-[#0B1D2C] border border-[#0B1D2C]',
+  fruits:    'bg-[#f7f5f0] text-[#0B1D2C] border border-[#0B1D2C]/30 font-extrabold',
+  dairy:     'bg-[#f7f5f0] text-[#0B1D2C] border border-[#0B1D2C]/30 font-extrabold',
+  kitchen:   'bg-[#f7f5f0] text-[#0B1D2C] border border-[#0B1D2C]/30 font-extrabold',
+  packaging: 'bg-[#f7f5f0] text-[#0B1D2C] border border-[#0B1D2C]/30 font-extrabold',
+  equipment: 'bg-[#f7f5f0] text-[#0B1D2C] border border-[#0B1D2C]/30 font-extrabold',
+  other:     'bg-[#f7f5f0] text-[#0B1D2C] border border-[#0B1D2C]/30 font-extrabold',
 };
 
 const categoryLabels: Record<MaterialCategory, string> = {

@@ -182,13 +182,13 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
           onClick={() => setQuantity((q) => q + 1)}
           className="w-20 h-20 rounded-full bg-[#0B1D2C] hover:bg-[#081521] flex items-center justify-center active:scale-90 transition-all cursor-pointer shadow-md"
         >
-          <Plus className="w-10 h-10 text-[#0B1D2C]" strokeWidth={2.5} />
+          <Plus className="w-10 h-10 text-white" strokeWidth={2.5} />
         </button>
       </div>
 
       <button
         onClick={() => setStep('taker')}
-        className="w-full max-w-xs h-16 rounded-full bg-[#0B1D2C] hover:bg-[#081521] active:scale-95 text-[#0B1D2C] text-2xl font-extrabold transition-all cursor-pointer shadow-lg"
+        className="w-full max-w-xs h-16 rounded-full bg-[#0B1D2C] hover:bg-[#081521] active:scale-95 text-white text-2xl font-black transition-all cursor-pointer shadow-lg flex items-center justify-center"
       >
         {/* Amharic: "Next" */}
         ቀጣይ →
@@ -267,13 +267,13 @@ const KitchenOrderEntry: React.FC<KitchenOrderEntryProps> = ({ foodMenu }) => {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full max-w-sm h-20 rounded-full bg-[#0B1D2C] hover:bg-[#0B1D2C]/90 active:scale-95 text-[#0B1D2C] text-2xl font-bold transition-all cursor-pointer shadow-lg flex items-center justify-center gap-3 disabled:opacity-60"
+          className="w-full max-w-sm h-20 rounded-full bg-[#0B1D2C] hover:bg-[#081521] active:scale-95 text-white text-2xl font-black transition-all cursor-pointer shadow-lg flex items-center justify-center gap-3 disabled:opacity-60"
         >
           {saving ? (
-            <div className="w-8 h-8 border-4 border-[#0B1D2C]/40 border-t-[#0B1D2C] rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-white/40 border-t-white rounded-full animate-spin" />
           ) : (
             <>
-              <Check className="w-8 h-8 text-[#0B1D2C]" strokeWidth={3} />
+              <Check className="w-8 h-8 text-white" strokeWidth={3} />
               {/* Amharic: "Save" */}
               አስቀምጥ
             </>

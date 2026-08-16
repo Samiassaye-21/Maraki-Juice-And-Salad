@@ -375,9 +375,9 @@ export const ShiftEntryView: React.FC<ShiftEntryViewProps> = ({ config }) => {
               initial={{ scale: 0 }}
               animate={{ scale: [0, 1.2, 1] }}
               transition={{ duration: 0.4 }}
-              className="w-24 h-24 rounded-full bg-[#0B1D2C] flex items-center justify-center text-[#0B1D2C] mb-4 shadow-2xl"
+              className="w-24 h-24 rounded-full bg-emerald-500 flex items-center justify-center text-white mb-4 shadow-2xl"
             >
-              <CheckCircle2 className="w-16 h-16" strokeWidth={3} />
+              <CheckCircle2 className="w-16 h-16 text-white" strokeWidth={3} />
             </motion.div>
             <h2 className="text-3xl font-extrabold text-white">የሸፍት ገቢ ለአስተዳዳሪው ተልኳል!</h2>
             <p className="text-neutral-300 text-base font-medium mt-2 max-w-xs">

@@ -143,68 +143,95 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           </button>
         </div>
 
-        {/* Display Screen (#0B1D2C with #0B1D2C Digits) */}
+        {/* Display Screen (Navy Background with Bright White Digits) */}
         <div className="bg-[#0B1D2C] rounded-2xl h-28 flex items-end justify-end p-5 shadow-inner border border-[#0B1D2C]/40">
-          <span className="text-[#0B1D2C] text-[54px] leading-none font-mono tracking-tighter font-extrabold overflow-hidden">
+          <span className="text-white text-[54px] leading-none font-mono tracking-tighter font-black overflow-hidden select-all">
             {display}
           </span>
         </div>
 
         {/* Button Grid */}
         <div className="grid grid-cols-4 gap-3">
-          {/* Row 1 (Operators - #0B1D2C with #0B1D2C text) */}
-          {['*', '/', '-', '+'].map((op) => (
-            <button 
-              key={op} onClick={() => handleOperator(op)}
-              className="h-[60px] bg-[#0B1D2C] hover:bg-[#081521] rounded-full text-[#0B1D2C] text-3xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
-            >
-              {op}
-            </button>
-          ))}
+          {/* Row 1: Clear & Top Operators */}
+          <button 
+            onClick={handleClear}
+            className="col-span-2 h-[56px] bg-rose-50 hover:bg-rose-100 rounded-full text-rose-700 border-2 border-rose-300 text-xl font-black flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
+          >
+            Clear (C)
+          </button>
+          <button 
+            onClick={() => handleOperator('/')}
+            className="h-[56px] bg-[#0B1D2C] hover:bg-[#081521] rounded-full text-white text-2xl font-black flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
+          >
+            ÷
+          </button>
+          <button 
+            onClick={() => handleOperator('*')}
+            className="h-[56px] bg-[#0B1D2C] hover:bg-[#081521] rounded-full text-white text-2xl font-black flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
+          >
+            ×
+          </button>
 
-          {/* Row 2 (Numbers 9,8,7,6) */}
-          {['9', '8', '7', '6'].map((num) => (
+          {/* Row 2: 7, 8, 9, - */}
+          {['7', '8', '9'].map((num) => (
             <button 
               key={num} onClick={() => handleDigit(num)}
-              className="h-[60px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#0B1D2C] text-3xl font-extrabold flex items-center justify-center border-2 border-[#0B1D2C] cursor-pointer transition-all active:scale-95 shadow-xs"
+              className="h-[56px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#0B1D2C] text-2xl font-black flex items-center justify-center border-2 border-[#0B1D2C] cursor-pointer transition-all active:scale-95 shadow-xs"
             >
               {num}
             </button>
           ))}
+          <button 
+            onClick={() => handleOperator('-')}
+            className="h-[56px] bg-[#0B1D2C] hover:bg-[#081521] rounded-full text-white text-2xl font-black flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
+          >
+            −
+          </button>
 
-          {/* Row 3 (Numbers 5,4,3,2) */}
-          {['5', '4', '3', '2'].map((num) => (
+          {/* Row 3: 4, 5, 6, + */}
+          {['4', '5', '6'].map((num) => (
             <button 
               key={num} onClick={() => handleDigit(num)}
-              className="h-[60px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#0B1D2C] text-3xl font-extrabold flex items-center justify-center border-2 border-[#0B1D2C] cursor-pointer transition-all active:scale-95 shadow-xs"
+              className="h-[56px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#0B1D2C] text-2xl font-black flex items-center justify-center border-2 border-[#0B1D2C] cursor-pointer transition-all active:scale-95 shadow-xs"
             >
               {num}
             </button>
           ))}
+          <button 
+            onClick={() => handleOperator('+')}
+            className="h-[56px] bg-[#0B1D2C] hover:bg-[#081521] rounded-full text-white text-2xl font-black flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
+          >
+            +
+          </button>
 
-          {/* Row 4 (Numbers 1,0,. and Equal) */}
-          {['1', '0', '.'].map((num) => (
+          {/* Row 4: 1, 2, 3, = */}
+          {['1', '2', '3'].map((num) => (
             <button 
-              key={num} onClick={num === '.' ? handleDot : () => handleDigit(num)}
-              className="h-[60px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#0B1D2C] text-3xl font-extrabold flex items-center justify-center border-2 border-[#0B1D2C] cursor-pointer transition-all active:scale-95 shadow-xs"
+              key={num} onClick={() => handleDigit(num)}
+              className="h-[56px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#0B1D2C] text-2xl font-black flex items-center justify-center border-2 border-[#0B1D2C] cursor-pointer transition-all active:scale-95 shadow-xs"
             >
               {num}
             </button>
           ))}
-          
           <button 
             onClick={handleEqual}
-            className="h-[60px] bg-[#0B1D2C] hover:bg-[#081521] rounded-full text-[#0B1D2C] text-4xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-md"
+            className="row-span-2 h-auto bg-[#0B1D2C] hover:bg-[#081521] rounded-3xl text-white text-3xl font-black flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-md"
           >
             =
           </button>
 
-          {/* Row 5 (Clear button) */}
+          {/* Row 5: 0, . */}
           <button 
-            onClick={handleClear}
-            className="col-span-1 h-[60px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#0B1D2C] border-2 border-[#0B1D2C] text-2xl font-extrabold flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-xs"
+            onClick={() => handleDigit('0')}
+            className="col-span-2 h-[56px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#0B1D2C] text-2xl font-black flex items-center justify-center border-2 border-[#0B1D2C] cursor-pointer transition-all active:scale-95 shadow-xs"
           >
-            C
+            0
+          </button>
+          <button 
+            onClick={handleDot}
+            className="h-[56px] bg-white hover:bg-[#f7f5f0] rounded-full text-[#0B1D2C] text-3xl font-black flex items-center justify-center border-2 border-[#0B1D2C] cursor-pointer transition-all active:scale-95 shadow-xs"
+          >
+            .
           </button>
         </div>
       </motion.div>
