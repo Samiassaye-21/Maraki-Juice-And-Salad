@@ -1,13 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from './lib/supabaseClient';
-import { FoodMenuItem, TabletOrder, TabletOrderItem, TabletPaymentMethod, RestaurantSystemConfig, KitchenOrder, KitchenTaker } from './types';
+import { 
+  FoodMenuItem, TabletOrder, TabletOrderItem, TabletPaymentMethod, 
+  RestaurantSystemConfig, KitchenOrder, KitchenTaker 
+} from './types';
 import { DEFAULT_RESTAURANT_CONFIG, DEFAULT_FOOD_MENU } from './data/initialData';
 import { getOperationalDate, getAutoShiftType, formatEthiopianTime } from './utils/shiftUtils';
 import { 
   ShoppingCart, CheckCircle, Trash2, Plus, Minus, Send, RefreshCw, 
   WifiOff, Sun, Moon, ChefHat, ArrowLeft, Clock, Check, Bike, 
-  Layers, UtensilsCrossed 
+  Layers, UtensilsCrossed, BarChart3, X, Receipt, Banknote, 
+  Smartphone, Sparkles, ChevronDown, ChevronUp, Eye
 } from 'lucide-react';
 
 type TabletShift = 'day' | 'night' | 'kitchen';
@@ -55,6 +59,7 @@ export default function TabletApp() {
 
   // Main mode: null = Pick Mode (Day / Night / Kitchen)
   const [shift, setShift] = useState<TabletShift | null>(null);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
 
   // ─── Shift Customer Order State (Day / Night) ──────────────────────────────
   const [customerName, setCustomerName] = useState('');
@@ -67,8 +72,10 @@ export default function TabletApp() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successData, setSuccessData] = useState({ total: 0, tip: 0, method: 'cash' as TabletPaymentMethod });
 
+  // ─── Today's Orders from Tablet ────────────────────────────────────────────
+  const [todayTabletOrders, setTodayTabletOrders] = useState<TabletOrder[]>([]);
+
   // ─── Kitchen Order Entry State (Kitchen Mode) ──────────────────────────────
-  // Step 1: 'taker' (who receives?) | Step 2: 'food' (choose food & quantity)
   const [kitchenStep, setKitchenStep] = useState<'taker' | 'food'>('taker');
   const [kitchenTaker, setKitchenTaker] = useState<KitchenTaker | null>(null);
   const [kitchenCategory, setKitchenCategory] = useState<string>('all');
@@ -80,9 +87,9 @@ export default function TabletApp() {
 
   const todayStr = getOperationalDate();
 
-  // Load config & today's kitchen orders
-  useEffect(() => {
-    async function loadData() {
+  // Load config, today's tablet orders, & today's kitchen orders
+  const refreshAllData = useCallback(async () => {
+    try {
       const { data: cfg } = await supabase.from('config').select('*').single();
       if (cfg) {
         setConfig({
@@ -94,6 +101,31 @@ export default function TabletApp() {
           nightShiftWorkerName: cfg.night_shift_worker_name,
           restaurantName: cfg.restaurant_name,
         });
+      }
+
+      // Load today's tablet orders
+      const { data: tOrders } = await supabase
+        .from('tablet_orders')
+        .select('*')
+        .eq('date', todayStr)
+        .order('created_at_ts', { ascending: false });
+
+      if (tOrders) {
+        setTodayTabletOrders(tOrders.map((r: any) => ({
+          id: r.id,
+          clientOrderId: r.client_order_id,
+          staffName: r.staff_name,
+          customerName: r.customer_name,
+          items: r.items || [],
+          totalAmount: r.total_amount,
+          paymentMethod: r.payment_method,
+          shiftType: r.shift_type,
+          status: r.status,
+          notes: r.notes,
+          orderTime: r.order_time,
+          date: r.date,
+          createdAt: Number(r.created_at_ts),
+        })));
       }
 
       // Load today's kitchen orders
@@ -117,15 +149,19 @@ export default function TabletApp() {
           createdAt: Number(r.created_at_ts),
         })));
       }
+    } catch (e) {
+      console.error('Error refreshing tablet data:', e);
     }
+  }, [todayStr]);
 
-    loadData();
+  useEffect(() => {
+    refreshAllData();
 
     const stored = localStorage.getItem('maraki_tablet_pending');
     if (stored) {
       try { setPendingSyncCount(JSON.parse(stored).length); } catch {}
     }
-  }, [todayStr]);
+  }, [refreshAllData]);
 
   // Online / Offline & Sync
   const retryPendingSync = useCallback(async () => {
@@ -154,7 +190,8 @@ export default function TabletApp() {
     }
     localStorage.setItem('maraki_tablet_pending', JSON.stringify(remaining));
     setPendingSyncCount(remaining.length);
-  }, []);
+    if (remaining.length === 0) refreshAllData();
+  }, [refreshAllData]);
 
   useEffect(() => {
     const goOnline = () => { setIsOnline(true); retryPendingSync(); };
@@ -233,6 +270,9 @@ export default function TabletApp() {
       createdAt: now.getTime(),
     };
 
+    // Optimistic UI update
+    setTodayTabletOrders(prev => [order, ...prev]);
+
     const payload = {
       id: order.id,
       client_order_id: order.clientOrderId,
@@ -266,8 +306,71 @@ export default function TabletApp() {
       setNotes('');
       setPaymentMethod('cash');
       setTransferAmount('');
-    }, 2500);
+    }, 2400);
   };
+
+  // ─── Shift End-of-Day Financial Calculations ───────────────────────────────
+  const shiftOrders = useMemo(() => {
+    if (!shift || shift === 'kitchen') return [];
+    return todayTabletOrders.filter(o => o.shiftType === shift && o.status !== 'voided');
+  }, [todayTabletOrders, shift]);
+
+  const shiftStats = useMemo(() => {
+    const totalRev = shiftOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+    const cashTotal = shiftOrders.filter(o => o.paymentMethod === 'cash').reduce((sum, o) => sum + o.totalAmount, 0);
+    const transferTotal = shiftOrders.filter(o => o.paymentMethod === 'transfer').reduce((sum, o) => sum + o.totalAmount, 0);
+    
+    let tipTotal = 0;
+    let juiceCount = 0;
+    let foodCount = 0;
+    const itemMap: Record<string, { name: string; category: string; quantity: number; totalRevenue: number; unitPrice: number }> = {};
+
+    shiftOrders.forEach(o => {
+      // Tip parse
+      if (o.notes) {
+        const match = o.notes.match(/Tip:\s*(\d+(\.\d+)?)/i);
+        if (match) tipTotal += parseFloat(match[1]);
+      }
+
+      (o.items || []).forEach(it => {
+        if (it.category === 'juice') juiceCount += it.quantity;
+        else foodCount += it.quantity;
+
+        const key = it.menuItemId || it.name;
+        if (!itemMap[key]) {
+          itemMap[key] = {
+            name: it.name,
+            category: it.category,
+            quantity: 0,
+            totalRevenue: 0,
+            unitPrice: it.unitPrice,
+          };
+        }
+        itemMap[key].quantity += it.quantity;
+        itemMap[key].totalRevenue += it.totalPrice;
+      });
+    });
+
+    const itemBreakdown = Object.values(itemMap).sort((a, b) => b.quantity - a.quantity);
+
+    return {
+      totalRev,
+      cashTotal,
+      transferTotal,
+      tipTotal,
+      juiceCount,
+      foodCount,
+      orderCount: shiftOrders.length,
+      itemBreakdown,
+    };
+  }, [shiftOrders]);
+
+  // General Day / Night stats for Home Cards
+  const dayShiftOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'day' && o.status !== 'voided'), [todayTabletOrders]);
+  const dayShiftTotalRev = useMemo(() => dayShiftOrders.reduce((s, o) => s + o.totalAmount, 0), [dayShiftOrders]);
+
+  const nightShiftOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'night' && o.status !== 'voided'), [todayTabletOrders]);
+  const nightShiftTotalRev = useMemo(() => nightShiftOrders.reduce((s, o) => s + o.totalAmount, 0), [nightShiftOrders]);
 
   // ─── Kitchen Order Handlers ────────────────────────────────────────────────
   const handleSaveKitchenOrder = async (food: FoodMenuItem, qty: number) => {
@@ -312,7 +415,7 @@ export default function TabletApp() {
     setKitchenSelectedFood(null);
     setKitchenQuantity(1);
     setKitchenSuccessAnim(true);
-    setTimeout(() => setKitchenSuccessAnim(false), 1400);
+    setTimeout(() => setKitchenSuccessAnim(false), 1300);
   };
 
   const handleDeleteKitchenOrder = async (id: string) => {
@@ -339,7 +442,7 @@ export default function TabletApp() {
             onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} 
           />
           <h1 className="text-4xl font-black text-white tracking-tight">ማራኪ • MARAKI</h1>
-          <p className="text-[#f7f5f0]/60 text-base font-semibold mt-1">የቀን፣ የሌሊት እና የኩሽና ትዕዛዝ መስጫ</p>
+          <p className="text-[#f7f5f0]/70 text-base font-semibold mt-1">የቀን፣ የሌሊት እና የኩሽና ትዕዛዝ መስጫ</p>
         </div>
 
         {/* Sync & network status */}
@@ -359,34 +462,52 @@ export default function TabletApp() {
         </div>
 
         <div className="text-center mb-4">
-          <p className="text-white/70 text-lg font-bold">እባክዎ የስራ ክፍልዎን ይምረጡ</p>
+          <p className="text-white/80 text-lg font-bold">እባክዎ የስራ ክፍልዎን ይምረጡ</p>
           <p className="text-white/40 text-xs uppercase tracking-widest mt-0.5">Select Working Mode</p>
         </div>
 
-        {/* 3 Large Action Cards */}
-        <div className="flex flex-col gap-4 w-full max-w-md">
-          {SHIFTS.map(s => (
-            <button
-              key={s.id}
-              onClick={() => {
-                setShift(s.id);
-                if (s.id === 'kitchen') {
-                  setKitchenStep('taker');
-                  setKitchenTaker(null);
-                }
-              }}
-              className={`${s.btnBg} rounded-3xl p-5 sm:p-6 flex items-center gap-5 shadow-2xl active:scale-95 transition-all text-left border-2 border-white/10`}
-            >
-              <div className="text-white bg-black/20 p-3 rounded-2xl shrink-0 shadow-inner">
-                {s.icon}
-              </div>
-              <div className="flex-1">
-                <div className="text-white font-black text-2xl sm:text-3xl leading-tight">{s.amharic}</div>
-                <div className="text-white/70 text-xs sm:text-sm font-medium mt-0.5">{s.english}</div>
-              </div>
-              <div className="text-white/50 text-2xl font-black">→</div>
-            </button>
-          ))}
+        {/* 3 Large Action Cards with Today's Live Running Totals */}
+        <div className="flex flex-col gap-4 w-full max-w-lg">
+          {SHIFTS.map(s => {
+            const isDay = s.id === 'day';
+            const isNight = s.id === 'night';
+            const isKitchen = s.id === 'kitchen';
+
+            return (
+              <button
+                key={s.id}
+                onClick={() => {
+                  setShift(s.id);
+                  if (s.id === 'kitchen') {
+                    setKitchenStep('taker');
+                    setKitchenTaker(null);
+                  }
+                }}
+                className={`${s.btnBg} rounded-3xl p-5 sm:p-6 flex items-center gap-5 shadow-2xl active:scale-95 transition-all text-left border-2 border-white/10`}
+              >
+                <div className="text-white bg-black/20 p-3.5 rounded-2xl shrink-0 shadow-inner">
+                  {s.icon}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <div className="text-white font-black text-2xl sm:text-3xl leading-tight">{s.amharic}</div>
+                    {/* Live Badge */}
+                    <div className="bg-black/30 text-white font-black text-xs sm:text-sm px-3 py-1 rounded-full border border-white/15">
+                      {isDay && `ብር ${dayShiftTotalRev.toLocaleString()}`}
+                      {isNight && `ብር ${nightShiftTotalRev.toLocaleString()}`}
+                      {isKitchen && `${kitchenOrders.length} ዕቃዎች`}
+                    </div>
+                  </div>
+                  <div className="text-white/75 text-xs sm:text-sm font-medium mt-1">
+                    {isDay && `የዛሬ ሽያጭ: ${dayShiftOrders.length} ትዕዛዞች ተመዝግበዋል`}
+                    {isNight && `የዛሬ ሽያጭ: ${nightShiftOrders.length} ትዕዛዞች ተመዝግበዋል`}
+                    {isKitchen && `የተሰጡ ምግቦች መዝገብ`}
+                  </div>
+                </div>
+                <div className="text-white/50 text-2xl font-black">→</div>
+              </button>
+            );
+          })}
         </div>
       </div>
     );
@@ -755,24 +876,38 @@ export default function TabletApp() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f5f0] flex flex-col font-sans select-none">
+    <div className="min-h-screen bg-[#f7f5f0] flex flex-col font-sans select-none relative">
       
-      {/* Top Bar */}
+      {/* ── Top Bar ── */}
       <div className={`${selectedShift!.color} text-white px-4 py-3 flex items-center justify-between shadow-lg sticky top-0 z-40`}>
-        <button 
-          onClick={() => setShift(null)} 
-          className="flex items-center gap-2 text-white/90 hover:text-white active:scale-95 transition-all"
-        >
-          <div className="p-1.5 rounded-xl bg-black/20">
-            <ArrowLeft className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="font-black text-base leading-tight">{selectedShift!.amharic}</div>
-            <div className="text-white/70 text-xs">{selectedShift!.english}</div>
-          </div>
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setShift(null)} 
+            className="flex items-center gap-2 text-white/90 hover:text-white active:scale-95 transition-all"
+          >
+            <div className="p-1.5 rounded-xl bg-black/20">
+              <ArrowLeft className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-black text-base leading-tight">{selectedShift!.amharic}</div>
+              <div className="text-white/70 text-xs">{selectedShift!.english}</div>
+            </div>
+          </button>
+        </div>
 
-        <div className="flex items-center gap-2">
+        {/* Live Metrics & Summary Modal Trigger */}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setShowSummaryModal(true)}
+            className="flex items-center gap-2 bg-black/30 hover:bg-black/40 text-white font-black text-xs sm:text-sm px-3.5 py-2 rounded-2xl transition-all shadow-sm border border-white/20 active:scale-95 cursor-pointer"
+          >
+            <BarChart3 className="w-4 h-4 text-amber-300" />
+            <span>የቀኑ ማጠቃለያ</span>
+            <span className="bg-white text-[#0B1D2C] px-2 py-0.5 rounded-lg text-xs font-black">
+              ብር {shiftStats.totalRev.toLocaleString()}
+            </span>
+          </button>
+
           {pendingSyncCount > 0 && (
             <div className="flex items-center gap-1.5 bg-black/25 text-white text-xs font-bold px-3 py-1.5 rounded-full">
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -1017,6 +1152,286 @@ export default function TabletApp() {
           </div>
         </div>
       </div>
+
+      {/* ─── 4. FULL SHIFT END-OF-DAY SUMMARY MODAL ───────────────────────── */}
+      <AnimatePresence>
+        {showSummaryModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 select-none overflow-y-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.92, y: 20 }}
+              className="bg-[#f7f5f0] w-full max-w-4xl max-h-[92vh] rounded-3xl shadow-2xl border-2 border-white/20 flex flex-col overflow-hidden text-[#0B1D2C]"
+            >
+              {/* Modal Header */}
+              <div className={`${selectedShift!.color} text-white px-6 py-5 flex items-center justify-between shadow-md shrink-0`}>
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-black/20 rounded-2xl">
+                    <BarChart3 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-black">
+                      {selectedShift!.amharic} • የቀኑ ማጠቃለያ
+                    </h2>
+                    <p className="text-white/70 text-xs sm:text-sm font-semibold">
+                      End-of-Shift Sales & Money Summary (ቀን: {todayStr})
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowSummaryModal(false)}
+                  className="w-10 h-10 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+                
+                {/* 6 Key Financial Metric Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  
+                  {/* Total Money */}
+                  <div className="bg-[#0B1D2C] text-white rounded-2xl p-4 shadow-md flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-white/70">ጠቅላላ ገቢ</span>
+                      <Banknote className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black text-emerald-300">
+                      ብር {shiftStats.totalRev.toLocaleString()}
+                    </div>
+                    <div className="text-[10px] text-white/50 mt-1 font-semibold">Total Revenue</div>
+                  </div>
+
+                  {/* Cash */}
+                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#0B1D2C]/10 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-[#0B1D2C]/60">ጥሬ ገንዘብ</span>
+                      <span className="text-base">💵</span>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black text-[#0B1D2C]">
+                      ብር {shiftStats.cashTotal.toLocaleString()}
+                    </div>
+                    <div className="text-[10px] text-[#0B1D2C]/40 mt-1 font-semibold">Physical Cash</div>
+                  </div>
+
+                  {/* Transfer */}
+                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#0B1D2C]/10 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-[#0B1D2C]/60">ዝውውር</span>
+                      <Smartphone className="w-4 h-4 text-indigo-600" />
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black text-indigo-700">
+                      ብር {shiftStats.transferTotal.toLocaleString()}
+                    </div>
+                    <div className="text-[10px] text-[#0B1D2C]/40 mt-1 font-semibold">Telebirr / CBE</div>
+                  </div>
+
+                  {/* Tip */}
+                  <div className="bg-emerald-50 rounded-2xl p-4 shadow-sm border border-emerald-300 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-emerald-800">ጠቃሚ (Tips)</span>
+                      <Sparkles className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black text-emerald-800">
+                      ብር {shiftStats.tipTotal.toLocaleString()}
+                    </div>
+                    <div className="text-[10px] text-emerald-600 mt-1 font-semibold">Tips Collected</div>
+                  </div>
+
+                  {/* Juice Count */}
+                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#0B1D2C]/10 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-[#0B1D2C]/60">ጭማቂ</span>
+                      <span className="text-base">🥤</span>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black text-[#0B1D2C]">
+                      {shiftStats.juiceCount}
+                    </div>
+                    <div className="text-[10px] text-[#0B1D2C]/40 mt-1 font-semibold">Juice Cups</div>
+                  </div>
+
+                  {/* Food Count */}
+                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#0B1D2C]/10 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-[#0B1D2C]/60">ምግብ</span>
+                      <span className="text-base">🍽️</span>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black text-[#0B1D2C]">
+                      {shiftStats.foodCount}
+                    </div>
+                    <div className="text-[10px] text-[#0B1D2C]/40 mt-1 font-semibold">Food Portions</div>
+                  </div>
+                </div>
+
+                {/* Section 1: Itemized Sales Breakdown Table */}
+                <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-[#0B1D2C]/10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Receipt className="w-5 h-5 text-[#0B1D2C]" />
+                      <h3 className="text-lg font-black text-[#0B1D2C]">የምግቦች እና ጭማቂዎች ዝርዝር ድምር</h3>
+                    </div>
+                    <span className="text-xs font-bold bg-[#f7f5f0] text-[#0B1D2C] px-3 py-1 rounded-full">
+                      {shiftStats.itemBreakdown.length} ዓይነቶች ተሽጠዋል
+                    </span>
+                  </div>
+
+                  {shiftStats.itemBreakdown.length === 0 ? (
+                    <p className="text-center py-6 text-sm text-[#0B1D2C]/40 font-semibold">
+                      በዚህ ሸፍት እስካሁን ምንም ትዕዛዝ አልተመዘገበም (No items sold yet)
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-[#0B1D2C]/10 text-xs text-[#0B1D2C]/50 uppercase font-black">
+                            <th className="pb-3 pl-2">እቃ / ምግብ</th>
+                            <th className="pb-3 text-center">ዓይነት</th>
+                            <th className="pb-3 text-center">ብዛት</th>
+                            <th className="pb-3 text-right">ነጠላ ዋጋ</th>
+                            <th className="pb-3 text-right pr-2">ጠቅላላ ዋጋ</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#0B1D2C]/5">
+                          {shiftStats.itemBreakdown.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-[#f7f5f0]/80 transition-colors">
+                              <td className="py-3 pl-2 font-black text-[#0B1D2C] flex items-center gap-2">
+                                <span>{item.category === 'juice' ? '🥤' : '🍽️'}</span>
+                                <span>{item.name}</span>
+                              </td>
+                              <td className="py-3 text-center text-xs font-bold text-[#0B1D2C]/60">
+                                {item.category === 'juice' ? 'ጭማቂ' : 'ምግብ'}
+                              </td>
+                              <td className="py-3 text-center">
+                                <span className="inline-block bg-[#0B1D2C] text-white text-xs font-black px-2.5 py-0.5 rounded-full">
+                                  {item.quantity}
+                                </span>
+                              </td>
+                              <td className="py-3 text-right text-xs font-bold text-[#0B1D2C]/60">
+                                ብር {item.unitPrice.toLocaleString()}
+                              </td>
+                              <td className="py-3 text-right pr-2 font-black text-[#0B1D2C]">
+                                ብር {item.totalRevenue.toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t-2 border-[#0B1D2C] font-black text-base">
+                            <td className="pt-4 pl-2">ጠቅላላ ድምር (Total)</td>
+                            <td className="pt-4 text-center"></td>
+                            <td className="pt-4 text-center text-[#0B1D2C]">
+                              {shiftStats.juiceCount + shiftStats.foodCount} ዕቃዎች
+                            </td>
+                            <td className="pt-4 text-right"></td>
+                            <td className="pt-4 text-right pr-2 text-emerald-700 text-lg">
+                              ብር {shiftStats.totalRev.toLocaleString()}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 2: Full Log of All Orders Submitted Today */}
+                <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-[#0B1D2C]/10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-[#0B1D2C]" />
+                      <h3 className="text-lg font-black text-[#0B1D2C]">የሁሉም ትዕዛዞች ታሪክ ({shiftOrders.length} ትዕዛዞች)</h3>
+                    </div>
+                  </div>
+
+                  {shiftOrders.length === 0 ? (
+                    <p className="text-center py-6 text-sm text-[#0B1D2C]/40 font-semibold">
+                      ምንም ትዕዛዝ አልተገኘም
+                    </p>
+                  ) : (
+                    <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                      {shiftOrders.map((ord, i) => (
+                        <div 
+                          key={ord.id}
+                          className="bg-[#f7f5f0] p-4 rounded-2xl border border-[#0B1D2C]/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black bg-[#0B1D2C] text-white px-2 py-0.5 rounded-md">
+                                #{shiftOrders.length - i}
+                              </span>
+                              <span className="font-black text-sm text-[#0B1D2C]">
+                                {ord.customerName ? ord.customerName : 'የቀጥታ ደንበኛ'}
+                              </span>
+                              <span className="text-xs text-[#0B1D2C]/40 font-semibold">
+                                ({formatEthiopianTime(ord.orderTime)})
+                              </span>
+                            </div>
+                            
+                            <div className="text-xs font-medium text-[#0B1D2C]/70 mt-1 flex flex-wrap gap-1">
+                              {(ord.items || []).map((it, idx) => (
+                                <span key={idx} className="bg-white px-2 py-0.5 rounded-md border border-[#0B1D2C]/10 font-bold">
+                                  {it.name} × {it.quantity}
+                                </span>
+                              ))}
+                            </div>
+
+                            {ord.notes && (
+                              <div className="text-[11px] text-indigo-700 font-semibold mt-1">
+                                💬 {ord.notes}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#0B1D2C]/10">
+                            <span className={`text-xs font-black px-2.5 py-1 rounded-xl ${
+                              ord.paymentMethod === 'cash' 
+                                ? 'bg-emerald-100 text-emerald-800' 
+                                : 'bg-indigo-100 text-indigo-800'
+                            }`}>
+                              {ord.paymentMethod === 'cash' ? '💵 ጥሬ ገንዘብ' : '📲 ዝውውር'}
+                            </span>
+                            <div className="text-base font-black text-[#0B1D2C]">
+                              ብር {ord.totalAmount.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 bg-white border-t border-[#0B1D2C]/10 flex items-center justify-between shrink-0">
+                <button
+                  onClick={refreshAllData}
+                  className="flex items-center gap-1.5 text-xs font-black bg-[#f7f5f0] text-[#0B1D2C] hover:bg-[#0B1D2C] hover:text-white px-4 py-2.5 rounded-xl border border-[#0B1D2C]/20 transition-all cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>መረጃ አድስ (Refresh)</span>
+                </button>
+
+                <button
+                  onClick={() => setShowSummaryModal(false)}
+                  className="px-6 py-2.5 rounded-xl bg-[#0B1D2C] hover:bg-[#162E44] text-white font-black text-sm shadow-md transition-all cursor-pointer"
+                >
+                  ዝጋ (Done)
+                </button>
+              </div>
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
