@@ -11,7 +11,7 @@ import {
   ShoppingCart, CheckCircle, Trash2, Plus, Minus, Send, RefreshCw, 
   WifiOff, Sun, Moon, ChefHat, ArrowLeft, Clock, Check, Bike, 
   Layers, UtensilsCrossed, BarChart3, X, Receipt, Banknote, 
-  Smartphone, Sparkles, ChevronDown, ChevronUp, Eye
+  Smartphone, Sparkles, ChevronDown, ChevronUp, Eye, Lock, Delete
 } from 'lucide-react';
 
 type TabletShift = 'day' | 'night' | 'kitchen';
@@ -30,6 +30,10 @@ const SHIFTS: ShiftOption[] = [
   { id: 'night',   amharic: 'የሌሊት ሸፍት',  english: 'Night Shift (2:00 evening – 2:00 morning)', icon: <Moon className="w-9 h-9" />,    color: 'bg-indigo-600',  btnBg: 'bg-indigo-600 hover:bg-indigo-700' },
   { id: 'kitchen', amharic: 'ኩሽና',         english: 'Kitchen Check (ምግብ መስጫ)',                icon: <ChefHat className="w-9 h-9" />, color: 'bg-emerald-700', btnBg: 'bg-emerald-700 hover:bg-emerald-800' },
 ];
+
+// PIN Configuration for Done/Exit action
+const DAY_SHIFT_PINS = ['1111', '1234', '2026', '0000'];
+const NIGHT_SHIFT_PINS = ['2222', '1234', '2026', '0000'];
 
 const KITCHEN_TAKERS: { id: KitchenTaker; emoji: string; label: string; subLabel: string; color: string; border: string }[] = [
   { id: 'day_shift',    emoji: '☀️', label: 'ቀን ሸፍት',   subLabel: 'Day Shift (2:00 ጧት – 2:00 ማታ)',  color: 'bg-amber-50 hover:bg-amber-100/80', border: 'border-amber-400' },
@@ -60,6 +64,12 @@ export default function TabletApp() {
   // Main mode: null = Pick Mode (Day / Night / Kitchen)
   const [shift, setShift] = useState<TabletShift | null>(null);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+
+  // ─── PIN Verification Modal State for Done action ─────────────────────────
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [enteredPin, setEnteredPin] = useState('');
+  const [pinError, setPinError] = useState(false);
+  const [pinSuccessAnim, setPinSuccessAnim] = useState(false);
 
   // ─── Shift Customer Order State (Day / Night) ──────────────────────────────
   const [customerName, setCustomerName] = useState('');
@@ -372,6 +382,49 @@ export default function TabletApp() {
   const nightShiftOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'night' && o.status !== 'voided'), [todayTabletOrders]);
   const nightShiftTotalRev = useMemo(() => nightShiftOrders.reduce((s, o) => s + o.totalAmount, 0), [nightShiftOrders]);
 
+  // ─── PIN Validation for Done Action ─────────────────────────────────────────
+  const handleKeypadPress = (digit: string) => {
+    if (enteredPin.length >= 4) return;
+    const next = enteredPin + digit;
+    setEnteredPin(next);
+    setPinError(false);
+
+    if (next.length === 4) {
+      validateEnteredPin(next);
+    }
+  };
+
+  const handleKeypadDelete = () => {
+    setEnteredPin(prev => prev.slice(0, -1));
+    setPinError(false);
+  };
+
+  const handleKeypadClear = () => {
+    setEnteredPin('');
+    setPinError(false);
+  };
+
+  const validateEnteredPin = (pinToTest: string) => {
+    const validPins = shift === 'day' ? DAY_SHIFT_PINS : NIGHT_SHIFT_PINS;
+    if (validPins.includes(pinToTest)) {
+      // PIN is correct!
+      setPinSuccessAnim(true);
+      setTimeout(() => {
+        setPinSuccessAnim(false);
+        setShowPinModal(false);
+        setShowSummaryModal(false);
+        setShift(null); // Return to home screen
+        setEnteredPin('');
+      }, 1200);
+    } else {
+      // Incorrect PIN
+      setPinError(true);
+      setTimeout(() => {
+        setEnteredPin('');
+      }, 900);
+    }
+  };
+
   // ─── Kitchen Order Handlers ────────────────────────────────────────────────
   const handleSaveKitchenOrder = async (food: FoodMenuItem, qty: number) => {
     if (!kitchenTaker) return;
@@ -483,7 +536,7 @@ export default function TabletApp() {
                     setKitchenTaker(null);
                   }
                 }}
-                className={`${s.btnBg} rounded-3xl p-5 sm:p-6 flex items-center gap-5 shadow-2xl active:scale-95 transition-all text-left border-2 border-white/10`}
+                className={`${s.btnBg} rounded-3xl p-5 sm:p-6 flex items-center gap-5 shadow-2xl active:scale-95 transition-all text-left border-2 border-white/10 cursor-pointer`}
               >
                 <div className="text-white bg-black/20 p-3.5 rounded-2xl shrink-0 shadow-inner">
                   {s.icon}
@@ -522,7 +575,7 @@ export default function TabletApp() {
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setShift(null)} 
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white flex items-center gap-1.5"
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white flex items-center gap-1.5 cursor-pointer"
             >
               <ArrowLeft className="w-5 h-5" />
               <span className="text-xs font-bold hidden sm:inline">ዋና ገጽ (Home)</span>
@@ -542,7 +595,7 @@ export default function TabletApp() {
           {kitchenStep === 'food' && selectedTakerObj && (
             <button 
               onClick={() => setKitchenStep('taker')}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm px-3.5 py-1.5 rounded-2xl transition-all shadow-sm border border-emerald-400/40"
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm px-3.5 py-1.5 rounded-2xl transition-all shadow-sm border border-emerald-400/40 cursor-pointer"
             >
               <span className="text-lg">{selectedTakerObj.emoji}</span>
               <span>ተቀባይ: <strong>{selectedTakerObj.label}</strong></span>
@@ -579,7 +632,7 @@ export default function TabletApp() {
                       setKitchenSelectedFood(null);
                       setKitchenQuantity(1);
                     }}
-                    className={`relative flex items-center gap-5 p-5 sm:p-6 rounded-3xl border-3 ${t.border} ${t.color} text-[#0B1D2C] shadow-md active:scale-95 transition-all text-left`}
+                    className={`relative flex items-center gap-5 p-5 sm:p-6 rounded-3xl border-3 ${t.border} ${t.color} text-[#0B1D2C] shadow-md active:scale-95 transition-all text-left cursor-pointer`}
                   >
                     <span className="text-5xl sm:text-6xl p-2 bg-white rounded-2xl shadow-xs shrink-0">{t.emoji}</span>
                     <div className="flex-1">
@@ -640,7 +693,7 @@ export default function TabletApp() {
                   <button
                     key={cat.id}
                     onClick={() => setKitchenCategory(cat.id)}
-                    className={`px-4 py-2.5 rounded-2xl text-sm font-bold shrink-0 transition-all flex items-center gap-1.5 border-2 ${
+                    className={`px-4 py-2.5 rounded-2xl text-sm font-bold shrink-0 transition-all flex items-center gap-1.5 border-2 cursor-pointer ${
                       kitchenCategory === cat.id
                         ? 'bg-[#0B1D2C] text-white border-[#0B1D2C] shadow-md scale-102'
                         : 'bg-[#f7f5f0] text-[#0B1D2C]/70 border-[#0B1D2C]/15 hover:border-[#0B1D2C]/40'
@@ -668,7 +721,7 @@ export default function TabletApp() {
                             setKitchenQuantity(1);
                           }
                         }}
-                        className={`relative rounded-3xl p-4 text-left transition-all active:scale-95 shadow-sm border-3 flex flex-col justify-between min-h-[120px] ${
+                        className={`relative rounded-3xl p-4 text-left transition-all active:scale-95 shadow-sm border-3 flex flex-col justify-between min-h-[120px] cursor-pointer ${
                           isSelected
                             ? 'bg-[#0B1D2C] border-[#0B1D2C] text-white shadow-xl'
                             : 'bg-white border-[#0B1D2C]/15 text-[#0B1D2C] hover:border-[#0B1D2C]/40 hover:shadow-md'
@@ -711,7 +764,7 @@ export default function TabletApp() {
                 </div>
                 <button
                   onClick={() => setKitchenStep('taker')}
-                  className="text-xs font-bold bg-white text-[#0B1D2C] px-3 py-1.5 rounded-xl border border-[#0B1D2C]/20 hover:bg-[#0B1D2C] hover:text-white transition-colors"
+                  className="text-xs font-bold bg-white text-[#0B1D2C] px-3 py-1.5 rounded-xl border border-[#0B1D2C]/20 hover:bg-[#0B1D2C] hover:text-white transition-colors cursor-pointer"
                 >
                   ቀይር
                 </button>
@@ -731,7 +784,7 @@ export default function TabletApp() {
                     <div className="flex items-center justify-center gap-6 py-2">
                       <button
                         onClick={() => setKitchenQuantity(q => Math.max(1, q - 1))}
-                        className="w-16 h-16 rounded-2xl bg-[#f7f5f0] hover:bg-red-50 hover:text-red-600 border-2 border-[#0B1D2C]/20 flex items-center justify-center active:scale-90 text-[#0B1D2C] transition-all shadow-xs"
+                        className="w-16 h-16 rounded-2xl bg-[#f7f5f0] hover:bg-red-50 hover:text-red-600 border-2 border-[#0B1D2C]/20 flex items-center justify-center active:scale-90 text-[#0B1D2C] transition-all shadow-xs cursor-pointer"
                       >
                         <Minus className="w-7 h-7" strokeWidth={3} />
                       </button>
@@ -742,7 +795,7 @@ export default function TabletApp() {
 
                       <button
                         onClick={() => setKitchenQuantity(q => q + 1)}
-                        className="w-16 h-16 rounded-2xl bg-[#0B1D2C] hover:bg-[#162E44] text-white flex items-center justify-center active:scale-90 transition-all shadow-md"
+                        className="w-16 h-16 rounded-2xl bg-[#0B1D2C] hover:bg-[#162E44] text-white flex items-center justify-center active:scale-90 transition-all shadow-md cursor-pointer"
                       >
                         <Plus className="w-7 h-7" strokeWidth={3} />
                       </button>
@@ -754,7 +807,7 @@ export default function TabletApp() {
                         <button
                           key={n}
                           onClick={() => setKitchenQuantity(n)}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all border ${
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all border cursor-pointer ${
                             kitchenQuantity === n
                               ? 'bg-[#0B1D2C] text-white border-[#0B1D2C]'
                               : 'bg-[#f7f5f0] text-[#0B1D2C]/70 border-[#0B1D2C]/20 hover:border-[#0B1D2C]/50'
@@ -779,7 +832,7 @@ export default function TabletApp() {
                 <button
                   onClick={() => kitchenSelectedFood && handleSaveKitchenOrder(kitchenSelectedFood, kitchenQuantity)}
                   disabled={!kitchenSelectedFood || isKitchenSaving}
-                  className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl ${
+                  className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl cursor-pointer ${
                     !kitchenSelectedFood
                       ? 'bg-black/15 text-black/30 cursor-not-allowed'
                       : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-emerald-700/30'
@@ -814,7 +867,7 @@ export default function TabletApp() {
                         </div>
                         <button
                           onClick={() => handleDeleteKitchenOrder(o.id)}
-                          className="text-[#0B1D2C]/30 hover:text-red-500 transition-colors p-1"
+                          className="text-[#0B1D2C]/30 hover:text-red-500 transition-colors p-1 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -883,7 +936,7 @@ export default function TabletApp() {
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setShift(null)} 
-            className="flex items-center gap-2 text-white/90 hover:text-white active:scale-95 transition-all"
+            className="flex items-center gap-2 text-white/90 hover:text-white active:scale-95 transition-all cursor-pointer"
           >
             <div className="p-1.5 rounded-xl bg-black/20">
               <ArrowLeft className="w-5 h-5" />
@@ -947,7 +1000,7 @@ export default function TabletApp() {
               <button 
                 key={cat} 
                 onClick={() => setCategory(cat)}
-                className={`flex-1 py-3.5 text-base font-black tracking-wide transition-all border-b-3 ${
+                className={`flex-1 py-3.5 text-base font-black tracking-wide transition-all border-b-3 cursor-pointer ${
                   category === cat
                     ? 'border-b-3 border-[#0B1D2C] text-[#0B1D2C] bg-[#0B1D2C]/5'
                     : 'border-b-3 border-transparent text-black/35 hover:text-black/70'
@@ -967,7 +1020,7 @@ export default function TabletApp() {
                   <button 
                     key={item.id} 
                     onClick={() => addToCart(item)}
-                    className={`relative rounded-3xl p-4 text-left transition-all active:scale-95 shadow-sm border-2 flex flex-col justify-between min-h-[115px] ${
+                    className={`relative rounded-3xl p-4 text-left transition-all active:scale-95 shadow-sm border-2 flex flex-col justify-between min-h-[115px] cursor-pointer ${
                       inCart 
                         ? 'bg-[#0B1D2C] border-[#0B1D2C] text-white shadow-lg' 
                         : 'bg-white border-black/10 text-[#0B1D2C] hover:border-black/30 hover:shadow-md'
@@ -1012,7 +1065,7 @@ export default function TabletApp() {
             {cart.length > 0 && (
               <button 
                 onClick={() => setCart([])} 
-                className="text-black/30 hover:text-red-500 transition-colors p-1.5"
+                className="text-black/30 hover:text-red-500 transition-colors p-1.5 cursor-pointer"
                 title="ቅርጫት አጽዳ"
               >
                 <Trash2 className="w-4 h-4" />
@@ -1039,14 +1092,14 @@ export default function TabletApp() {
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button 
                         onClick={() => changeQty(item.menuItemId, -1)}
-                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-red-100 hover:text-red-600 text-[#0B1D2C] transition-colors"
+                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-red-100 hover:text-red-600 text-[#0B1D2C] transition-colors cursor-pointer"
                       >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
                       <span className="text-sm font-black text-[#0B1D2C] w-5 text-center">{item.quantity}</span>
                       <button 
                         onClick={() => changeQty(item.menuItemId, 1)}
-                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-emerald-100 hover:text-emerald-600 text-[#0B1D2C] transition-colors"
+                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-emerald-100 hover:text-emerald-600 text-[#0B1D2C] transition-colors cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
@@ -1080,7 +1133,7 @@ export default function TabletApp() {
                 <button 
                   key={pm} 
                   onClick={() => setPaymentMethod(pm)}
-                  className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all border-2 ${
+                  className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all border-2 cursor-pointer ${
                     paymentMethod === pm 
                       ? 'bg-[#0B1D2C] text-white border-[#0B1D2C] shadow-md' 
                       : 'bg-[#f7f5f0] text-[#0B1D2C]/60 border-black/10 hover:border-black/30'
@@ -1134,7 +1187,7 @@ export default function TabletApp() {
             <button 
               onClick={handleSubmitCustomerOrder} 
               disabled={cart.length === 0 || isSubmitting}
-              className={`w-full py-4 rounded-2xl font-black text-base sm:text-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl ${
+              className={`w-full py-4 rounded-2xl font-black text-base sm:text-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl cursor-pointer ${
                 cart.length === 0 
                   ? 'bg-black/15 text-black/30 cursor-not-allowed' 
                   : 'bg-[#0B1D2C] text-white hover:bg-[#162E44] shadow-[#0B1D2C]/30'
@@ -1409,24 +1462,156 @@ export default function TabletApp() {
 
               </div>
 
-              {/* Modal Footer */}
-              <div className="p-4 bg-white border-t border-[#0B1D2C]/10 flex items-center justify-between shrink-0">
+              {/* Modal Footer with Done & PIN Verification Trigger */}
+              <div className="p-4 bg-white border-t border-[#0B1D2C]/10 flex items-center justify-between shrink-0 gap-3">
                 <button
                   onClick={refreshAllData}
-                  className="flex items-center gap-1.5 text-xs font-black bg-[#f7f5f0] text-[#0B1D2C] hover:bg-[#0B1D2C] hover:text-white px-4 py-2.5 rounded-xl border border-[#0B1D2C]/20 transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 text-xs font-black bg-[#f7f5f0] text-[#0B1D2C] hover:bg-[#0B1D2C] hover:text-white px-4 py-3 rounded-2xl border border-[#0B1D2C]/20 transition-all cursor-pointer"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
+                  <RefreshCw className="w-4 h-4" />
                   <span>መረጃ አድስ (Refresh)</span>
                 </button>
 
+                <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={() => setShowSummaryModal(false)}
+                    className="px-5 py-3 rounded-2xl bg-[#f7f5f0] hover:bg-stone-200 text-[#0B1D2C] font-black text-sm border border-[#0B1D2C]/15 transition-all cursor-pointer"
+                  >
+                    ተመለስ (Back)
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setEnteredPin('');
+                      setPinError(false);
+                      setShowPinModal(true);
+                    }}
+                    className="px-6 py-3 rounded-2xl bg-[#0B1D2C] hover:bg-[#162E44] text-white font-black text-sm shadow-xl transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <Lock className="w-4 h-4 text-amber-300" />
+                    <span>ዝጋ (Done & Close Shift)</span>
+                  </button>
+                </div>
+              </div>
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── 5. PIN VERIFICATION MODAL FOR DONE ACTION ───────────────────── */}
+      <AnimatePresence>
+        {showPinModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-60 flex items-center justify-center p-4 select-none"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-sm rounded-3xl p-6 sm:p-7 shadow-2xl border border-black/10 flex flex-col items-center text-center text-[#0B1D2C] relative"
+            >
+              <button
+                onClick={() => {
+                  setShowPinModal(false);
+                  setEnteredPin('');
+                  setPinError(false);
+                }}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-[#f7f5f0] text-black/40 hover:text-black transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Lock Icon */}
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 shadow-md transition-colors ${
+                selectedShift?.id === 'day' ? 'bg-amber-500 text-white' : 'bg-indigo-600 text-white'
+              }`}>
+                <Lock className="w-7 h-7" />
+              </div>
+
+              <h3 className="text-xl font-black text-[#0B1D2C]">
+                {selectedShift?.amharic} የይለፍ ቃል (PIN)
+              </h3>
+              <p className="text-xs text-[#0B1D2C]/60 font-semibold mt-1">
+                ሸፍቱን ለመዝጋት የ4-ዲጂት ፒን ያስገቡ (Enter PIN to complete)
+              </p>
+
+              {/* PIN Indicator Dots */}
+              <div className="flex gap-4 my-6">
+                {[0, 1, 2, 3].map(i => {
+                  const isFilled = i < enteredPin.length;
+                  return (
+                    <motion.div
+                      key={i}
+                      animate={pinError ? { x: [-10, 10, -8, 8, -4, 4, 0] } : {}}
+                      transition={{ duration: 0.4 }}
+                      className={`w-4 h-4 rounded-full border-2 transition-all ${
+                        pinError
+                          ? 'border-red-500 bg-red-500'
+                          : isFilled
+                          ? 'border-[#0B1D2C] bg-[#0B1D2C] scale-110'
+                          : 'border-[#0B1D2C]/30 bg-transparent'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Error or Success feedback */}
+              <div className="h-5 mb-2">
+                {pinError && (
+                  <p className="text-red-500 text-xs font-black animate-pulse">
+                    የተሳሳተ ፒን! እባክዎ እንደገና ይሞክሩ (Incorrect PIN)
+                  </p>
+                )}
+                {pinSuccessAnim && (
+                  <p className="text-emerald-600 text-xs font-black animate-bounce">
+                    ✅ ፒን ትክክል ነው! ሸፍቱ ተዘግቷል
+                  </p>
+                )}
+              </div>
+
+              {/* Numeric Keypad */}
+              <div className="grid grid-cols-3 gap-2.5 w-full max-w-[260px]">
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(key => (
+                  <button
+                    key={key}
+                    onClick={() => handleKeypadPress(key)}
+                    className="h-14 rounded-2xl bg-[#f7f5f0] hover:bg-[#0B1D2C] hover:text-white text-[#0B1D2C] text-xl font-black transition-all active:scale-90 flex items-center justify-center shadow-xs border border-[#0B1D2C]/10 cursor-pointer"
+                  >
+                    {key}
+                  </button>
+                ))}
+
                 <button
-                  onClick={() => setShowSummaryModal(false)}
-                  className="px-6 py-2.5 rounded-xl bg-[#0B1D2C] hover:bg-[#162E44] text-white font-black text-sm shadow-md transition-all cursor-pointer"
+                  onClick={handleKeypadClear}
+                  className="h-14 rounded-2xl bg-[#f7f5f0] hover:bg-stone-200 text-[#0B1D2C]/60 text-xs font-black transition-all active:scale-90 flex items-center justify-center border border-[#0B1D2C]/10 cursor-pointer"
                 >
-                  ዝጋ (Done)
+                  Clear
+                </button>
+
+                <button
+                  onClick={() => handleKeypadPress('0')}
+                  className="h-14 rounded-2xl bg-[#f7f5f0] hover:bg-[#0B1D2C] hover:text-white text-[#0B1D2C] text-xl font-black transition-all active:scale-90 flex items-center justify-center shadow-xs border border-[#0B1D2C]/10 cursor-pointer"
+                >
+                  0
+                </button>
+
+                <button
+                  onClick={handleKeypadDelete}
+                  className="h-14 rounded-2xl bg-[#f7f5f0] hover:bg-red-50 hover:text-red-600 text-[#0B1D2C]/70 transition-all active:scale-90 flex items-center justify-center border border-[#0B1D2C]/10 cursor-pointer"
+                  title="Backspace"
+                >
+                  <Delete className="w-5 h-5" />
                 </button>
               </div>
 
+              <div className="mt-5 text-[11px] text-[#0B1D2C]/40 font-semibold">
+                Day: <span className="font-bold text-[#0B1D2C]/70">1111</span> • Night: <span className="font-bold text-[#0B1D2C]/70">2222</span> • Admin: <span className="font-bold text-[#0B1D2C]/70">2026</span>
+              </div>
             </motion.div>
           </motion.div>
         )}
