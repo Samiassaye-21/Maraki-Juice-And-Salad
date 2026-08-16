@@ -292,6 +292,59 @@ export function App() {
         });
         if (ledErr) console.error('Failed to save ledger entry:', ledErr);
       }
+
+      if (newShift.recoveredPendingAmount > 0) {
+        await autoDeductRecoveredPendingAmount(
+          newShift.recoveredPendingAmount,
+          newShift.shiftType,
+          newShift.id,
+          newShift.date
+        );
+      }
+
+      await fetchData();
+    }
+  };
+
+  const autoDeductRecoveredPendingAmount = async (
+    recoveredAmount: number,
+    shiftType: ShiftType,
+    shiftId: string,
+    shiftDate: string
+  ) => {
+    if (recoveredAmount <= 0) return;
+
+    // Get current unpaid pending payments
+    const unpaidItems = pendingPayments
+      .filter((p) => !p.isPaid)
+      .sort((a, b) => {
+        if (a.shiftType === shiftType && b.shiftType !== shiftType) return -1;
+        if (a.shiftType !== shiftType && b.shiftType === shiftType) return 1;
+        return a.createdAt - b.createdAt;
+      });
+
+    let remainingToDeduct = recoveredAmount;
+
+    for (const item of unpaidItems) {
+      if (remainingToDeduct <= 0) break;
+
+      if (item.amount <= remainingToDeduct) {
+        remainingToDeduct -= item.amount;
+        await supabase
+          .from('pending_payments')
+          .update({ is_paid: true, paid_date: shiftDate, settled_shift_id: shiftId })
+          .eq('id', item.id);
+      } else {
+        const newAmt = item.amount - remainingToDeduct;
+        remainingToDeduct = 0;
+        await supabase
+          .from('pending_payments')
+          .update({
+            amount: newAmt,
+            description: `${item.description} (Deducted ${recoveredAmount} Br on ${shiftDate})`,
+          })
+          .eq('id', item.id);
+      }
     }
   };
 
@@ -319,7 +372,7 @@ export function App() {
         });
       }
 
-      // Add pending payment record if credit given
+      // Add pending payment record if new credit was given during this shift (+)
       if (approvedShift.newPendingPaymentsAmount > 0) {
         await supabase.from('pending_payments').insert({
           id: `pp-appr-${Date.now()}`,
@@ -332,6 +385,16 @@ export function App() {
           date: approvedShift.date,
           is_paid: false,
         });
+      }
+
+      // Deduct from pending payments if debts were recovered in cash during this shift (-)
+      if (approvedShift.recoveredPendingAmount > 0) {
+        await autoDeductRecoveredPendingAmount(
+          approvedShift.recoveredPendingAmount,
+          approvedShift.shiftType,
+          approvedShift.id,
+          approvedShift.date
+        );
       }
 
       // Add delivery record if delivery credit
