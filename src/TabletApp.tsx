@@ -272,13 +272,6 @@ export default function TabletApp() {
     }
   }, [refreshAllData]);
 
-  // Guard: Never show unsettled open tab modal if there are 0 unsettled orders
-  useEffect(() => {
-    if (showUnsettledModal && unsettledPayLaterOrders.length === 0) {
-      setShowUnsettledModal(false);
-    }
-  }, [showUnsettledModal, unsettledPayLaterOrders]);
-
   // Online / Offline & Sync
   const retryPendingSync = useCallback(async () => {
     const stored = localStorage.getItem('maraki_tablet_pending');
