@@ -3,16 +3,18 @@ import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from './lib/supabaseClient';
 import { 
   FoodMenuItem, TabletOrder, TabletOrderItem, TabletPaymentMethod, 
-  RestaurantSystemConfig, KitchenOrder, KitchenTaker 
+  RestaurantSystemConfig, KitchenOrder, KitchenTaker,
+  PendingPaymentItem, DailyExpenseItem, ShiftRecord, InventoryItemState
 } from './types';
 import { DEFAULT_RESTAURANT_CONFIG, DEFAULT_FOOD_MENU } from './data/initialData';
-import { getOperationalDate, getAutoShiftType, formatEthiopianTime } from './utils/shiftUtils';
+import { getOperationalDate, getAutoShiftType, formatEthiopianTime, buildShiftLedgerEntries } from './utils/shiftUtils';
 import { safeLocalStorage } from './utils/safeStorage';
 import { 
   ShoppingCart, CheckCircle, Trash2, Plus, Minus, Send, RefreshCw, 
   WifiOff, Sun, Moon, ChefHat, ArrowLeft, Clock, Check, Bike, 
   Layers, UtensilsCrossed, BarChart3, X, Receipt, Banknote, 
-  Smartphone, Sparkles, ChevronDown, ChevronUp, Eye, Lock, Delete, Archive
+  Smartphone, Sparkles, ChevronDown, ChevronUp, Eye, Lock, Delete, Archive,
+  AlertCircle, AlertTriangle, Truck, Package, DollarSign, TrendingDown, TrendingUp, Calendar, Tag, ShieldCheck
 } from 'lucide-react';
 
 type TabletShift = 'day' | 'night' | 'kitchen';
@@ -31,10 +33,6 @@ const SHIFTS: ShiftOption[] = [
   { id: 'night',   amharic: 'የሌሊት ሸፍት',  english: 'Night Shift (2:00 evening – 2:00 morning)', icon: <Moon className="w-9 h-9" />,    color: 'bg-indigo-600',  btnBg: 'bg-indigo-600 hover:bg-indigo-700' },
   { id: 'kitchen', amharic: 'ኩሽና',         english: 'Kitchen Check (ምግብ መስጫ)',                icon: <ChefHat className="w-9 h-9" />, color: 'bg-emerald-700', btnBg: 'bg-emerald-700 hover:bg-emerald-800' },
 ];
-
-// PIN Configuration for Done/Exit action
-const DAY_SHIFT_PINS = ['1111', '1234', '2026', '0000'];
-const NIGHT_SHIFT_PINS = ['2222', '1234', '2026', '0000'];
 
 const KITCHEN_TAKERS: { id: KitchenTaker; emoji: string; label: string; subLabel: string; color: string; border: string }[] = [
   { id: 'day_shift',    emoji: '☀️', label: 'ቀን ሸፍት',   subLabel: 'Day Shift (2:00 ጧት – 2:00 ማታ)',  color: 'bg-amber-50 hover:bg-amber-100/80', border: 'border-amber-400' },
@@ -57,6 +55,17 @@ const CATEGORY_EMOJI: Record<string, string> = {
   traditional: '🥘',
 };
 
+const COMMON_EXPENSES = [
+  { title: 'አቮካዶ (Avocado)', category: 'fruits_juice' as const },
+  { title: 'ማንጎ (Mango)', category: 'fruits_juice' as const },
+  { title: 'ስኳር (Sugar)', category: 'cooking_ingredients' as const },
+  { title: 'ሎሚ (Lemon)', category: 'fruits_juice' as const },
+  { title: 'ወተት (Milk)', category: 'cooking_ingredients' as const },
+  { title: 'የገበያ አትክልት (Vegetables)', category: 'cooking_ingredients' as const },
+  { title: 'የማጠቢያ ሳሙና (Soap/Cleaning)', category: 'other_expense' as const },
+  { title: 'ጋዝ መሙላት (Gas/Utility)', category: 'utilities_gas' as const },
+];
+
 export default function TabletApp() {
   const [config, setConfig] = useState<RestaurantSystemConfig>(DEFAULT_RESTAURANT_CONFIG);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -67,11 +76,44 @@ export default function TabletApp() {
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [summarySubTab, setSummarySubTab] = useState<'active' | 'closed'>('active');
 
+  // ─── Shift Reconciliation Multi-Step Tabs ─────────────────────────────────
+  const [reconcileTab, setReconcileTab] = useState<'sales' | 'inventory' | 'expenses' | 'recover_pending' | 'net_cash'>('sales');
+  
+  // Database-backed historical records
+  const [unpaidPendingList, setUnpaidPendingList] = useState<PendingPaymentItem[]>([]);
+  const [lastClosedShift, setLastClosedShift] = useState<any | null>(null);
+
+  // Cups & Containers Inventory Counts
+  const [juiceOpening, setJuiceOpening] = useState<number>(120);
+  const [juiceAdded, setJuiceAdded] = useState<number>(0);
+  const [juiceLeftover, setJuiceLeftover] = useState<number>(120);
+
+  const [foodOpening, setFoodOpening] = useState<number>(85);
+  const [foodAdded, setFoodAdded] = useState<number>(0);
+  const [foodLeftover, setFoodLeftover] = useState<number>(85);
+
+  // Shift Expenses
+  const [expenseItems, setExpenseItems] = useState<DailyExpenseItem[]>([]);
+  const [newExpTitle, setNewExpTitle] = useState('');
+  const [newExpAmount, setNewExpAmount] = useState('');
+  const [newExpCategory, setNewExpCategory] = useState<DailyExpenseItem['category']>('fruits_juice');
+
+  // Recovered Pending Debts (Cash collected today from past customers)
+  const [selectedRecoveredIds, setSelectedRecoveredIds] = useState<string[]>([]);
+  const [customRecoveredAmount, setCustomRecoveredAmount] = useState<string>('');
+
+  // Shift closing notes
+  const [shiftNotes, setShiftNotes] = useState('');
+
   // ─── PIN Verification Modal State for Done action ─────────────────────────
   const [showPinModal, setShowPinModal] = useState(false);
   const [enteredPin, setEnteredPin] = useState('');
   const [pinError, setPinError] = useState(false);
   const [pinSuccessAnim, setPinSuccessAnim] = useState(false);
+
+  // ─── Open Tabs / Unsettled Pay Later Orders Modal ─────────────────────────
+  const [showUnsettledModal, setShowUnsettledModal] = useState(false);
+  const [settleFeedbackMsg, setSettleFeedbackMsg] = useState<string | null>(null);
 
   // ─── Shift Customer Order State (Day / Night) ──────────────────────────────
   const [customerName, setCustomerName] = useState('');
@@ -152,6 +194,47 @@ export default function TabletApp() {
           date: r.date,
           createdAt: Number(r.created_at_ts),
         })));
+      }
+
+      // Load unpaid pending payments (for recovery on tablet)
+      const { data: ppData } = await supabase
+        .from('pending_payments')
+        .select('*')
+        .eq('is_paid', false)
+        .order('date', { ascending: false });
+
+      if (ppData) {
+        setUnpaidPendingList(ppData.map((p: any) => ({
+          id: p.id,
+          shiftType: p.shift_type,
+          customerName: p.customer_name,
+          description: p.description,
+          juiceCupsCount: p.juice_cups_count,
+          foodTakeawaysCount: p.food_takeaways_count,
+          itemizedBreakdown: p.itemized_breakdown,
+          amount: p.amount,
+          date: p.date,
+          isPaid: p.is_paid,
+          paidDate: p.paid_date,
+        })));
+      }
+
+      // Load most recent closed shift to get opening stock
+      const { data: lastShiftData } = await supabase
+        .from('shifts')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(1);
+
+      if (lastShiftData && lastShiftData.length > 0) {
+        const ls = lastShiftData[0];
+        setLastClosedShift(ls);
+        if (ls.juice_cups?.remaining_count !== undefined) {
+          setJuiceOpening(ls.juice_cups.remaining_count);
+        }
+        if (ls.food_takeaways?.remaining_count !== undefined) {
+          setFoodOpening(ls.food_takeaways.remaining_count);
+        }
       }
 
       // Load today's kitchen orders
@@ -281,14 +364,20 @@ export default function TabletApp() {
     const opDate = getOperationalDate(now);
     const id = 'to-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
     const shiftRecord = SHIFTS.find(s => s.id === shift)!;
+    const finalCustName = customerName.trim() || (
+      paymentMethod === 'pay_later' 
+        ? 'ክፍት ጠረጴዛ (Open Table)' 
+        : (paymentMethod === 'pending' ? 'አዳሪ ደንበኛ (Credit Customer)' : (paymentMethod === 'beu' ? 'BeU Delivery' : undefined))
+    );
     const order: TabletOrder = {
       id,
       clientOrderId: id,
       staffName: shiftRecord.amharic,
-      customerName: customerName.trim() || undefined,
+      customerName: finalCustName,
       items: cart,
       totalAmount: cartTotal,
       paymentMethod,
+      originalPaymentMethod: paymentMethod,
       shiftType: shift as 'day' | 'night',
       status: 'active',
       notes: notes.trim() ? (tip > 0 ? `${notes.trim()} (Tip: ${tip} Br)` : notes.trim()) : (tip > 0 ? `Tip: ${tip} Br` : undefined),
@@ -308,6 +397,7 @@ export default function TabletApp() {
       items: order.items,
       total_amount: order.totalAmount,
       payment_method: order.paymentMethod,
+      original_payment_method: order.originalPaymentMethod || order.paymentMethod,
       shift_type: shift,
       status: order.status,
       notes: order.notes || null,
@@ -319,6 +409,47 @@ export default function TabletApp() {
     if (isOnline) {
       const { error } = await supabase.from('tablet_orders').insert(payload);
       if (error && error.code !== '23505') savePending(order);
+
+      // If pending payment (አዳሪ), also insert into pending_payments table for system ledger
+      if (paymentMethod === 'pending') {
+        try {
+          const ppPayload = {
+            id: 'pp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+            shift_type: shift,
+            customer_name: finalCustName || 'አዳሪ ደንበኛ',
+            description: cart.map(i => `${i.name} ×${i.quantity}`).join(', '),
+            juice_cups_count: cart.filter(i => i.category === 'juice').reduce((s, i) => s + i.quantity, 0),
+            food_takeaways_count: cart.filter(i => i.category !== 'juice').reduce((s, i) => s + i.quantity, 0),
+            itemized_breakdown: cart.reduce((acc, i) => ({ ...acc, [i.name]: i.quantity }), {}),
+            amount: cartTotal,
+            date: opDate,
+            is_paid: false,
+          };
+          await supabase.from('pending_payments').insert(ppPayload);
+        } catch (err) {
+          console.error('Failed to log pending payment to Supabase:', err);
+        }
+      }
+
+      // If BeU delivery order, also insert into delivery_records table
+      if (paymentMethod === 'beu') {
+        try {
+          const delPayload = {
+            id: 'del-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+            delivery_rider_name: 'BeU Delivery',
+            description: cart.map(i => `${i.name} ×${i.quantity}`).join(', '),
+            juice_cups_count: cart.filter(i => i.category === 'juice').reduce((s, i) => s + i.quantity, 0),
+            food_takeaways_count: cart.filter(i => i.category !== 'juice').reduce((s, i) => s + i.quantity, 0),
+            amount: cartTotal,
+            date: opDate,
+            shift_type: shift,
+            is_settled_weekly: false,
+          };
+          await supabase.from('delivery_records').insert(delPayload);
+        } catch (err) {
+          console.error('Failed to log delivery record to Supabase:', err);
+        }
+      }
     } else {
       savePending(order);
     }
@@ -336,12 +467,106 @@ export default function TabletApp() {
     }, 2400);
   };
 
+  // ─── Pay Later / Open Tab Settlement Handlers ──────────────────────────────
+  const handleOpenReconcileModal = (targetShift?: 'day' | 'night') => {
+    const chosenShift = targetShift || shift;
+    if (!chosenShift || chosenShift === 'kitchen') return;
+    if (targetShift && targetShift !== shift) {
+      setShift(targetShift);
+    }
+
+    // Check if there are any unsettled pay_later orders for this shift
+    const openOrders = todayTabletOrders.filter(
+      o => o.shiftType === chosenShift && o.status === 'active' && o.paymentMethod === 'pay_later'
+    );
+
+    if (openOrders.length > 0) {
+      // BLOCK and display the alert / open tab resolution modal FIRST before the form opens!
+      setShowUnsettledModal(true);
+      setSettleFeedbackMsg(`⛔ ሸፍቱን ከመዝጋትዎ በፊት ያልተጠናቀቁ ${openOrders.length} ክፍት ትዕዛዞችን ማስተካከል አለብዎት!`);
+      return;
+    }
+
+    // If all tabs are resolved, proceed straight to the 5-step reconciliation form
+    setShowSummaryModal(true);
+  };
+
+  const handleSettlePayLaterOrder = async (order: TabletOrder, newMethod: 'cash' | 'transfer' | 'pending') => {
+    // 1. Optimistic update in UI
+    setTodayTabletOrders(prev =>
+      prev.map(o => o.id === order.id ? { ...o, paymentMethod: newMethod } : o)
+    );
+
+    const methodLabels: Record<string, string> = {
+      cash: '💵 በጥሬ ገንዘብ ተከፈለ',
+      transfer: '📲 በዝውውር ተከፈለ',
+      pending: '⏳ ወደ አዳሪ (ዕዳ) ተቀየረ',
+    };
+    setSettleFeedbackMsg(`${order.customerName || 'ትዕዛዙ'} ${methodLabels[newMethod]}`);
+    setTimeout(() => setSettleFeedbackMsg(null), 2500);
+
+    // 2. Update in Supabase
+    try {
+      await supabase
+        .from('tablet_orders')
+        .update({ payment_method: newMethod })
+        .eq('id', order.id);
+
+      // If converted to pending/Adari, also insert into pending_payments table
+      if (newMethod === 'pending') {
+        const ppPayload = {
+          id: 'pp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+          shift_type: order.shiftType,
+          customer_name: order.customerName || 'አዳሪ ደንበኛ',
+          description: (order.items || []).map(i => `${i.name} ×${i.quantity}`).join(', '),
+          juice_cups_count: (order.items || []).filter(i => i.category === 'juice').reduce((s, i) => s + i.quantity, 0),
+          food_takeaways_count: (order.items || []).filter(i => i.category !== 'juice').reduce((s, i) => s + i.quantity, 0),
+          itemized_breakdown: (order.items || []).reduce((acc, i) => ({ ...acc, [i.name]: i.quantity }), {}),
+          amount: order.totalAmount,
+          date: order.date,
+          is_paid: false,
+        };
+        await supabase.from('pending_payments').insert(ppPayload);
+        refreshAllData();
+      }
+    } catch (err) {
+      console.error('Failed to update settled order in Supabase:', err);
+    }
+  };
+
+  const handleVoidPayLaterOrder = async (orderId: string) => {
+    setTodayTabletOrders(prev => prev.filter(o => o.id !== orderId));
+    try {
+      await supabase.from('tablet_orders').update({ status: 'voided' }).eq('id', orderId);
+    } catch (err) {
+      console.error('Failed to void order in Supabase:', err);
+    }
+  };
+
   // ─── Shift End-of-Day Financial Calculations ───────────────────────────────
-  // Active unclosed orders for current shift
+  // ALL non-voided orders for current shift (active + closed)
   const shiftOrders = useMemo(() => {
+    if (!shift || shift === 'kitchen') return [];
+    return todayTabletOrders.filter(o => o.shiftType === shift && o.status !== 'voided');
+  }, [todayTabletOrders, shift]);
+
+  // Only active orders (not yet closed) for current shift
+  const shiftActiveOrders = useMemo(() => {
     if (!shift || shift === 'kitchen') return [];
     return todayTabletOrders.filter(o => o.shiftType === shift && o.status === 'active');
   }, [todayTabletOrders, shift]);
+
+  // Unsettled Pay Later Orders (still waiting for payment during this shift)
+  const unsettledPayLaterOrders = useMemo(() => {
+    return shiftActiveOrders.filter(o => o.paymentMethod === 'pay_later');
+  }, [shiftActiveOrders]);
+
+  // All Pay Later Orders created during this shift (unsettled + settled)
+  const shiftPayLaterOrders = useMemo(() => {
+    return shiftActiveOrders.filter(
+      o => o.paymentMethod === 'pay_later' || o.originalPaymentMethod === 'pay_later'
+    );
+  }, [shiftActiveOrders]);
 
   // Closed past orders for current shift (history)
   const shiftClosedOrders = useMemo(() => {
@@ -349,13 +574,18 @@ export default function TabletApp() {
     return todayTabletOrders.filter(o => o.shiftType === shift && o.status === 'closed');
   }, [todayTabletOrders, shift]);
 
-  const displayedOrdersForSummary = summarySubTab === 'active' ? shiftOrders : shiftClosedOrders;
+  // Summary tab toggles between active and closed orders
+  const displayedOrdersForSummary = summarySubTab === 'active' ? shiftActiveOrders : shiftClosedOrders;
 
+  // Stats always computed from ALL non-voided orders regardless of sub-tab
   const shiftStats = useMemo(() => {
-    const targetOrders = displayedOrdersForSummary;
+    const targetOrders = shiftOrders; // ALL non-voided orders for this shift
     const totalRev = targetOrders.reduce((sum, o) => sum + o.totalAmount, 0);
     const cashTotal = targetOrders.filter(o => o.paymentMethod === 'cash').reduce((sum, o) => sum + o.totalAmount, 0);
     const transferTotal = targetOrders.filter(o => o.paymentMethod === 'transfer').reduce((sum, o) => sum + o.totalAmount, 0);
+    const pendingTotal = targetOrders.filter(o => o.paymentMethod === 'pending').reduce((sum, o) => sum + o.totalAmount, 0);
+    const beuTotal = targetOrders.filter(o => o.paymentMethod === 'beu').reduce((sum, o) => sum + o.totalAmount, 0);
+    const payLaterTotal = targetOrders.filter(o => o.paymentMethod === 'pay_later').reduce((sum, o) => sum + o.totalAmount, 0);
     
     let tipTotal = 0;
     let juiceCount = 0;
@@ -363,25 +593,16 @@ export default function TabletApp() {
     const itemMap: Record<string, { name: string; category: string; quantity: number; totalRevenue: number; unitPrice: number }> = {};
 
     targetOrders.forEach(o => {
-      // Tip parse
       if (o.notes) {
         const match = o.notes.match(/Tip:\s*(\d+(\.\d+)?)/i);
         if (match) tipTotal += parseFloat(match[1]);
       }
-
       (o.items || []).forEach(it => {
         if (it.category === 'juice') juiceCount += it.quantity;
         else foodCount += it.quantity;
-
         const key = it.menuItemId || it.name;
         if (!itemMap[key]) {
-          itemMap[key] = {
-            name: it.name,
-            category: it.category,
-            quantity: 0,
-            totalRevenue: 0,
-            unitPrice: it.unitPrice,
-          };
+          itemMap[key] = { name: it.name, category: it.category, quantity: 0, totalRevenue: 0, unitPrice: it.unitPrice };
         }
         itemMap[key].quantity += it.quantity;
         itemMap[key].totalRevenue += it.totalPrice;
@@ -389,31 +610,101 @@ export default function TabletApp() {
     });
 
     const itemBreakdown = Object.values(itemMap).sort((a, b) => b.quantity - a.quantity);
-
-    return {
-      totalRev,
-      cashTotal,
-      transferTotal,
-      tipTotal,
-      juiceCount,
-      foodCount,
-      orderCount: targetOrders.length,
-      itemBreakdown,
+    return { 
+      totalRev, 
+      cashTotal, 
+      transferTotal, 
+      pendingTotal, 
+      beuTotal, 
+      payLaterTotal,
+      tipTotal, 
+      juiceCount, 
+      foodCount, 
+      orderCount: targetOrders.length, 
+      itemBreakdown 
     };
-  }, [displayedOrdersForSummary]);
+  }, [shiftOrders]);
+
+  // Daily Expenses Calculation
+  const totalDailyExpenses = useMemo(() => {
+    return expenseItems.reduce((sum, e) => sum + e.amount, 0);
+  }, [expenseItems]);
+
+  // Recovered Pending Payments Calculation
+  const totalRecoveredPending = useMemo(() => {
+    const fromSelected = unpaidPendingList
+      .filter(p => selectedRecoveredIds.includes(p.id))
+      .reduce((sum, p) => sum + p.amount, 0);
+    const fromCustom = parseFloat(customRecoveredAmount) || 0;
+    return fromSelected + fromCustom;
+  }, [unpaidPendingList, selectedRecoveredIds, customRecoveredAmount]);
+
+  // Cups & Takeaways Inventory Totals
+  const totalJuiceInStock = juiceOpening + juiceAdded;
+  const calculatedJuiceSold = Math.max(0, totalJuiceInStock - juiceLeftover);
+  const calculatedJuiceRev = calculatedJuiceSold * (config.defaultJuiceUnitPrice || 170);
+
+  const totalFoodInStock = foodOpening + foodAdded;
+  const calculatedFoodSold = Math.max(0, totalFoodInStock - foodLeftover);
+  const calculatedFoodRev = calculatedFoodSold * (config.defaultFoodUnitPrice || 220);
+
+  // Final Net Cash Handover Due to Owner:
+  // Cash Sales + Recovered Pending Cash - Daily Shift Expenses Paid
+  const netCashDueToOwner = useMemo(() => {
+    return Math.max(0, shiftStats.cashTotal + totalRecoveredPending - totalDailyExpenses);
+  }, [shiftStats.cashTotal, totalRecoveredPending, totalDailyExpenses]);
 
   // General Day / Night stats for Home Cards
-  const dayActiveOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'day' && o.status === 'active'), [todayTabletOrders]);
-  const dayClosedOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'day' && o.status === 'closed'), [todayTabletOrders]);
-  const dayShiftTotalRev = useMemo(() => dayActiveOrders.reduce((s, o) => s + o.totalAmount, 0), [dayActiveOrders]);
+  const dayAllOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'day' && o.status !== 'voided'), [todayTabletOrders]);
+  const dayActiveOrders = useMemo(() => dayAllOrders.filter(o => o.status === 'active'), [dayAllOrders]);
+  const dayClosedOrders = useMemo(() => dayAllOrders.filter(o => o.status === 'closed'), [dayAllOrders]);
+  const dayShiftTotalRev = useMemo(() => dayAllOrders.reduce((s, o) => s + o.totalAmount, 0), [dayAllOrders]);
   const dayClosedTotalRev = useMemo(() => dayClosedOrders.reduce((s, o) => s + o.totalAmount, 0), [dayClosedOrders]);
 
-  const nightActiveOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'night' && o.status === 'active'), [todayTabletOrders]);
-  const nightClosedOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'night' && o.status === 'closed'), [todayTabletOrders]);
-  const nightShiftTotalRev = useMemo(() => nightActiveOrders.reduce((s, o) => s + o.totalAmount, 0), [nightActiveOrders]);
+  const nightAllOrders = useMemo(() => todayTabletOrders.filter(o => o.shiftType === 'night' && o.status !== 'voided'), [todayTabletOrders]);
+  const nightActiveOrders = useMemo(() => nightAllOrders.filter(o => o.status === 'active'), [nightAllOrders]);
+  const nightClosedOrders = useMemo(() => nightAllOrders.filter(o => o.status === 'closed'), [nightAllOrders]);
+  const nightShiftTotalRev = useMemo(() => nightAllOrders.reduce((s, o) => s + o.totalAmount, 0), [nightAllOrders]);
   const nightClosedTotalRev = useMemo(() => nightClosedOrders.reduce((s, o) => s + o.totalAmount, 0), [nightClosedOrders]);
 
-  // ─── PIN Validation for Done Action ─────────────────────────────────────────
+  // ─── Shift Expense Item Management ──────────────────────────────────────────
+  const handleAddExpense = (title: string, amountNum: number, cat: DailyExpenseItem['category']) => {
+    if (!title.trim() || amountNum <= 0) return;
+    const item: DailyExpenseItem = {
+      id: 'exp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      title: title.trim(),
+      category: cat,
+      amount: amountNum,
+      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    };
+    setExpenseItems(prev => [item, ...prev]);
+    setNewExpTitle('');
+    setNewExpAmount('');
+  };
+
+  const handleRemoveExpense = (id: string) => {
+    setExpenseItems(prev => prev.filter(e => e.id !== id));
+  };
+
+  // Toggle Recovered Pending Item
+  const handleToggleRecoveredPending = (id: string) => {
+    setSelectedRecoveredIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  // ─── PIN Validation & Shift Closing Execution ──────────────────────────────
+  const handleAttemptOpenPinModal = () => {
+    if (unsettledPayLaterOrders.length > 0) {
+      setShowUnsettledModal(true);
+      setSettleFeedbackMsg(`⛔ ሸፍቱን መዝጋት አይቻልም! ገና ያልተጠናቀቁ ${unsettledPayLaterOrders.length} ክፍት ትዕዛዞች አሉ።`);
+      return;
+    }
+    setEnteredPin('');
+    setPinError(false);
+    setShowPinModal(true);
+  };
+
   const handleKeypadPress = (digit: string) => {
     if (enteredPin.length >= 4) return;
     const next = enteredPin + digit;
@@ -436,6 +727,14 @@ export default function TabletApp() {
   };
 
   const validateEnteredPin = async (pinToTest: string) => {
+    // STRICT REJECTION: Reject and prevent shift close if unresolved open tabs exist
+    if (unsettledPayLaterOrders.length > 0) {
+      setShowPinModal(false);
+      setShowUnsettledModal(true);
+      setSettleFeedbackMsg(`⛔ ሸፍቱን መዝጋት አይቻልም! ገና ያልተጠናቀቁ ${unsettledPayLaterOrders.length} ክፍት ትዕዛዞች አሉ።`);
+      return;
+    }
+
     const savedPinsStr = safeLocalStorage.getItem('maraki_shift_pins');
     let savedPins: any = {};
     if (savedPinsStr) {
@@ -448,47 +747,134 @@ export default function TabletApp() {
 
     const validPins = [
       configuredPin,
-      shift === 'day' ? '1111' : '2222',
-      '1234',
-      '2026',
-      '0000'
-    ];
+      '2026' // Master admin emergency override
+    ].filter(Boolean);
 
     if (validPins.includes(pinToTest)) {
-      // PIN is correct!
       setPinSuccessAnim(true);
 
-      // Close all current active orders for this shift
-      const activeIds = shiftOrders.map(o => o.id);
-      if (activeIds.length > 0) {
-        setTodayTabletOrders(prev => prev.map(o => 
-          activeIds.includes(o.id) ? { ...o, status: 'closed' } : o
-        ));
+      const activeIds = shiftActiveOrders.map(o => o.id);
+      const now = new Date();
+      const opDate = getOperationalDate(now);
+      const shiftId = 'shift-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+      const workerName = shift === 'day' ? config.dayShiftWorkerName : config.nightShiftWorkerName;
 
-        try {
+      // Construct Full ShiftRecord for main system
+      const newShiftRecord: ShiftRecord = {
+        id: shiftId,
+        date: opDate,
+        shiftType: shift as 'day' | 'night',
+        workerName,
+        juiceCups: {
+          openingCount: juiceOpening,
+          addedCount: juiceAdded,
+          remainingCount: juiceLeftover,
+          unitPrice: config.defaultJuiceUnitPrice || 170,
+        },
+        foodTakeaways: {
+          openingCount: foodOpening,
+          addedCount: foodAdded,
+          remainingCount: foodLeftover,
+          unitPrice: config.defaultFoodUnitPrice || 220,
+        },
+        juiceCupsSold: Math.max(calculatedJuiceSold, shiftStats.juiceCount),
+        juiceRevenue: Math.max(calculatedJuiceRev, shiftStats.juiceCount * (config.defaultJuiceUnitPrice || 170)),
+        foodTakeawaysSold: Math.max(calculatedFoodSold, shiftStats.foodCount),
+        foodRevenue: Math.max(calculatedFoodRev, shiftStats.foodCount * (config.defaultFoodUnitPrice || 220)),
+        grossIncome: shiftStats.totalRev,
+        digitalTransfers: shiftStats.transferTotal,
+        dailyExpenses: totalDailyExpenses,
+        expenseItems,
+        newPendingPaymentsAmount: shiftStats.pendingTotal,
+        recoveredPendingAmount: totalRecoveredPending,
+        deliveryCreditAmount: shiftStats.beuTotal,
+        netCashDueToOwner,
+        notes: shiftNotes.trim() || undefined,
+        isClosed: true,
+        timestamp: Date.now(),
+      };
+
+      try {
+        // 1. Insert complete ShiftRecord into shifts table
+        await supabase.from('shifts').insert({
+          id: newShiftRecord.id,
+          date: newShiftRecord.date,
+          shift_type: newShiftRecord.shiftType,
+          worker_name: newShiftRecord.workerName,
+          juice_cups: newShiftRecord.juiceCups,
+          food_takeaways: newShiftRecord.foodTakeaways,
+          juice_cups_sold: newShiftRecord.juiceCupsSold,
+          juice_revenue: newShiftRecord.juiceRevenue,
+          food_takeaways_sold: newShiftRecord.foodTakeawaysSold,
+          food_revenue: newShiftRecord.foodRevenue,
+          gross_income: newShiftRecord.grossIncome,
+          digital_transfers: newShiftRecord.digitalTransfers,
+          daily_expenses: newShiftRecord.dailyExpenses,
+          expense_items: newShiftRecord.expenseItems,
+          new_pending_payments_amount: newShiftRecord.newPendingPaymentsAmount,
+          recovered_pending_amount: newShiftRecord.recoveredPendingAmount,
+          delivery_credit_amount: newShiftRecord.deliveryCreditAmount,
+          net_cash_due_to_owner: newShiftRecord.netCashDueToOwner,
+          notes: newShiftRecord.notes,
+          is_closed: true,
+          timestamp: newShiftRecord.timestamp,
+        });
+
+        // 2. Mark active tablet orders as closed
+        if (activeIds.length > 0) {
+          setTodayTabletOrders(prev =>
+            prev.map(o => activeIds.includes(o.id) ? { ...o, status: 'closed' } : o)
+          );
           await supabase
             .from('tablet_orders')
             .update({ status: 'closed' })
             .in('id', activeIds);
-        } catch (e) {
-          console.error('Failed to mark orders as closed in Supabase:', e);
         }
+
+        // 3. Update recovered pending payments to paid
+        if (selectedRecoveredIds.length > 0) {
+          await supabase
+            .from('pending_payments')
+            .update({ is_paid: true, paid_date: opDate })
+            .in('id', selectedRecoveredIds);
+        }
+
+        // 4. Insert unified ledger entries
+        const ledgerEntries = buildShiftLedgerEntries(newShiftRecord);
+        for (const entry of ledgerEntries) {
+          await supabase.from('ledger_entries').insert({
+            id: entry.id,
+            date: entry.date,
+            type: entry.type,
+            description: entry.description,
+            amount: entry.amount,
+            sign: entry.sign,
+            reference_id: entry.referenceId,
+            created_at_ts: entry.createdAt,
+          });
+        }
+      } catch (e) {
+        console.error('Failed to commit reconciled shift to Supabase:', e);
       }
+
+      // Reset form states
+      setExpenseItems([]);
+      setSelectedRecoveredIds([]);
+      setCustomRecoveredAmount('');
+      setShiftNotes('');
+      setSummarySubTab('closed');
 
       setTimeout(() => {
         setPinSuccessAnim(false);
         setShowPinModal(false);
         setShowSummaryModal(false);
-        setShift(null); // Return to home screen
+        setShift(null);
         setEnteredPin('');
         refreshAllData();
-      }, 1000);
+      }, 1200);
     } else {
-      // Incorrect PIN
       setPinError(true);
-      setTimeout(() => {
-        setEnteredPin('');
-      }, 900);
+      setTimeout(() => setEnteredPin(''), 900);
     }
   };
 
@@ -578,50 +964,88 @@ export default function TabletApp() {
             const isKitchen = s.id === 'kitchen';
 
             return (
-              <button
+              <div
                 key={s.id}
-                onClick={() => {
-                  setShift(s.id);
-                  if (s.id === 'kitchen') {
-                    setKitchenStep('taker');
-                    setKitchenTaker(null);
-                  }
-                }}
-                className={`${s.btnBg} rounded-3xl p-5 sm:p-6 flex items-center gap-5 shadow-2xl active:scale-95 transition-all text-left border-2 border-white/10 cursor-pointer`}
+                className={`${s.btnBg} rounded-3xl p-5 sm:p-6 shadow-2xl border-2 border-white/15 flex flex-col gap-4 transition-all`}
               >
-                <div className="text-white bg-black/20 p-3.5 rounded-2xl shrink-0 shadow-inner">
-                  {s.icon}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div className="text-white font-black text-2xl sm:text-3xl leading-tight">{s.amharic}</div>
-                    {/* Live Badge */}
-                    <div className="bg-black/30 text-white font-black text-xs sm:text-sm px-3 py-1 rounded-full border border-white/15">
-                      {isDay && (dayActiveOrders.length > 0 ? `ብር ${dayShiftTotalRev.toLocaleString()}` : (dayClosedOrders.length > 0 ? `የተዘጋ ✅` : `0 Br`))}
-                      {isNight && (nightActiveOrders.length > 0 ? `ብር ${nightShiftTotalRev.toLocaleString()}` : (nightClosedOrders.length > 0 ? `የተዘጋ ✅` : `0 Br`))}
-                      {isKitchen && `${kitchenOrders.length} ዕቃዎች`}
+                {/* Main Card Header */}
+                <div 
+                  onClick={() => {
+                    setShift(s.id);
+                    if (s.id === 'kitchen') {
+                      setKitchenStep('taker');
+                      setKitchenTaker(null);
+                    }
+                  }}
+                  className="flex items-center gap-4 cursor-pointer"
+                >
+                  <div className="text-white bg-black/20 p-3.5 rounded-2xl shrink-0 shadow-inner">
+                    {s.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <div className="text-white font-black text-2xl sm:text-3xl leading-tight">{s.amharic}</div>
+                      {/* Live Revenue Badge */}
+                      <div className="bg-black/30 text-white font-black text-xs sm:text-sm px-3 py-1 rounded-full border border-white/15">
+                        {isDay && (dayAllOrders.length > 0 ? `ብር ${dayShiftTotalRev.toLocaleString()}` : `0 Br`)}
+                        {isNight && (nightAllOrders.length > 0 ? `ብር ${nightShiftTotalRev.toLocaleString()}` : `0 Br`)}
+                        {isKitchen && `${kitchenOrders.length} ዕቃዎች`}
+                      </div>
+                    </div>
+                    <div className="text-white/80 text-xs sm:text-sm font-medium mt-1">
+                      {isDay && (
+                        dayActiveOrders.length > 0
+                          ? `🟢 ${dayActiveOrders.length} አሁን ያለ • ብር ${dayShiftTotalRev.toLocaleString()}`
+                          : (dayClosedOrders.length > 0
+                              ? `✅ ሸፍቱ ተዘጓ • ${dayAllOrders.length} ትዕዛዞች • ብር ${dayShiftTotalRev.toLocaleString()}`
+                              : `አዲስ ሸፍት ጀምር`)
+                      )}
+                      {isNight && (
+                        nightActiveOrders.length > 0
+                          ? `🟢 ${nightActiveOrders.length} አሁን ያለ • ብር ${nightShiftTotalRev.toLocaleString()}`
+                          : (nightClosedOrders.length > 0
+                              ? `✅ ሸፍቱ ተዘጓ • ${nightAllOrders.length} ትዕዛዞች • ብር ${nightShiftTotalRev.toLocaleString()}`
+                              : `አዲስ ሸፍት ጀምር`)
+                      )}
+                      {isKitchen && `የተሰጡ ምግቦች መዝገብ`}
                     </div>
                   </div>
-                  <div className="text-white/75 text-xs sm:text-sm font-medium mt-1">
-                    {isDay && (
-                      dayActiveOrders.length > 0
-                        ? `አሁን ያለ: ${dayActiveOrders.length} ትዕዛዞች • ብር ${dayShiftTotalRev.toLocaleString()}`
-                        : (dayClosedOrders.length > 0
-                            ? `የቀኑ ሸፍት ተዘግቷል (${dayClosedOrders.length} ትዕዛዞች • ብር ${dayClosedTotalRev.toLocaleString()})`
-                            : `አዲስ ሸፍት ጀምር`)
-                    )}
-                    {isNight && (
-                      nightActiveOrders.length > 0
-                        ? `አሁን ያለ: ${nightActiveOrders.length} ትዕዛዞች • ብር ${nightShiftTotalRev.toLocaleString()}`
-                        : (nightClosedOrders.length > 0
-                            ? `የቀኑ ሸፍት ተዘግቷል (${nightClosedOrders.length} ትዕዛዞች • ብር ${nightClosedTotalRev.toLocaleString()})`
-                            : `አዲስ ሸፍት ጀምር`)
-                    )}
-                    {isKitchen && `የተሰጡ ምግቦች መዝገብ`}
-                  </div>
                 </div>
-                <div className="text-white/50 text-2xl font-black">→</div>
-              </button>
+
+                {/* Direct Action Buttons for Day / Night */}
+                {!isKitchen ? (
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/20">
+                    <button
+                      onClick={() => setShift(s.id)}
+                      className="py-2.5 px-3 rounded-2xl bg-white/20 hover:bg-white/30 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm"
+                    >
+                      <span>🛍️ ትዕዛዝ መስጫ</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleOpenReconcileModal(s.id as 'day' | 'night')}
+                      className="py-2.5 px-3 rounded-2xl bg-white text-[#0B1D2C] hover:bg-[#f7f5f0] font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-md"
+                    >
+                      <BarChart3 className="w-4 h-4 text-emerald-700" />
+                      <span>🏁 ሸፍቱን ዝጋ / ሂሳብ</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="pt-2 border-t border-white/20">
+                    <button
+                      onClick={() => {
+                        setShift('kitchen');
+                        setKitchenStep('taker');
+                        setKitchenTaker(null);
+                      }}
+                      className="w-full py-2.5 rounded-2xl bg-white text-[#0B1D2C] font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-md"
+                    >
+                      <ChefHat className="w-4 h-4 text-emerald-700" />
+                      <span>የኩሽና ትዕዛዝ መዝገብ ክፈት</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -973,11 +1397,11 @@ export default function TabletApp() {
         <div className="bg-emerald-500 rounded-full p-6 shadow-2xl mb-2 animate-bounce">
           <CheckCircle className="w-16 h-16 text-white" strokeWidth={1.5} />
         </div>
-        <h2 className="text-3xl sm:text-4xl font-black text-white">ትዕዛዝ ተልኳል!</h2>
+        <h2 className="text-3xl sm:text-4xl font-black text-white">ትዕዛዝ ተመዝግቧል!</h2>
         <p className="text-[#f7f5f0]/60 text-base font-semibold">Order saved and synced successfully</p>
         
         <div className="mt-4 bg-white/10 rounded-3xl p-6 w-full max-w-xs space-y-3 text-center border border-white/15 shadow-xl">
-          <div className="text-[#f7f5f0]/60 text-xs uppercase tracking-widest font-bold">ጠቅላላ የተከፈለ</div>
+          <div className="text-[#f7f5f0]/60 text-xs uppercase tracking-widest font-bold">ጠቅላላ ሂሳብ</div>
           <div className="text-4xl font-black text-white">ብር {successData.total.toLocaleString()}</div>
           
           {successData.method === 'transfer' && successData.tip > 0 && (
@@ -1011,14 +1435,26 @@ export default function TabletApp() {
           </button>
         </div>
 
-        {/* Live Metrics & Summary Modal Trigger */}
-        <div className="flex items-center gap-2.5">
+        {/* Live Metrics, Unsettled Tabs Badge & Summary Modal Trigger */}
+        <div className="flex items-center gap-2">
+          {/* Unsettled Pay Later Tabs Pill */}
+          {unsettledPayLaterOrders.length > 0 && (
+            <button
+              onClick={() => setShowUnsettledModal(true)}
+              className="flex items-center gap-1.5 bg-amber-300 hover:bg-amber-200 text-[#0B1D2C] font-black text-xs sm:text-sm px-3.5 py-2 rounded-2xl shadow-lg border-2 border-amber-100 cursor-pointer active:scale-95 animate-pulse"
+              title="ክፍያቸው ያልተጠናቀቀ ክፍት ትዕዛዞች"
+            >
+              <Clock className="w-4 h-4 text-[#0B1D2C]" />
+              <span>🕒 {unsettledPayLaterOrders.length} ያልተከፈሉ!</span>
+            </button>
+          )}
+
           <button
-            onClick={() => setShowSummaryModal(true)}
+            onClick={() => handleOpenReconcileModal()}
             className="flex items-center gap-2 bg-black/30 hover:bg-black/40 text-white font-black text-xs sm:text-sm px-3.5 py-2 rounded-2xl transition-all shadow-sm border border-white/20 active:scale-95 cursor-pointer"
           >
             <BarChart3 className="w-4 h-4 text-amber-300" />
-            <span>የቀኑ ማጠቃለያ</span>
+            <span className="hidden sm:inline">የቀኑ ማጠቃለያ</span>
             <span className="bg-white text-[#0B1D2C] px-2 py-0.5 rounded-lg text-xs font-black">
               ብር {shiftStats.totalRev.toLocaleString()}
             </span>
@@ -1039,6 +1475,21 @@ export default function TabletApp() {
         </div>
       </div>
 
+      {/* Floating Settlement Feedback Toast */}
+      <AnimatePresence>
+        {settleFeedbackMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-emerald-700 text-white font-black text-sm px-6 py-3 rounded-full shadow-2xl border-2 border-white/30 flex items-center gap-2"
+          >
+            <CheckCircle className="w-5 h-5 text-amber-300" />
+            <span>{settleFeedbackMsg}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex flex-1" style={{ height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
         
         {/* LEFT: Menu & Customer Info */}
@@ -1047,12 +1498,12 @@ export default function TabletApp() {
           {/* Customer Name Input */}
           <div className="bg-white border-b border-black/10 px-4 py-3">
             <label className="text-xs font-bold text-black/40 uppercase tracking-widest mb-1 block">
-              የደንበኛ ስም (አማራጭ)
+              የደንበኛ / የጠረጴዛ መለያ (Optional Name or Table #)
             </label>
             <input 
               value={customerName} 
               onChange={e => setCustomerName(e.target.value)}
-              placeholder="የደንበኛ ስም እዚህ ያስገቡ..."
+              placeholder="ለምሳሌ፡ ጠረጴዛ 3 ወይም አቶ ካሳ..."
               className="w-full border-2 border-black/15 rounded-xl px-3.5 py-2.5 text-sm text-[#0B1D2C] outline-none focus:border-[#0B1D2C] bg-[#f7f5f0] placeholder:text-black/30 font-bold transition-colors" 
             />
           </div>
@@ -1081,29 +1532,26 @@ export default function TabletApp() {
                 const inCart = cart.find(c => c.menuItemId === item.id);
                 return (
                   <button 
-                    key={item.id} 
+                    key={item.id}
                     onClick={() => addToCart(item)}
-                    className={`relative rounded-3xl p-4 text-left transition-all active:scale-95 shadow-sm border-2 flex flex-col justify-between min-h-[115px] cursor-pointer ${
+                    className={`rounded-2xl p-3.5 text-left transition-all border-2 flex flex-col justify-between active:scale-95 shadow-xs cursor-pointer ${
                       inCart 
-                        ? 'bg-[#0B1D2C] border-[#0B1D2C] text-white shadow-lg' 
-                        : 'bg-white border-black/10 text-[#0B1D2C] hover:border-black/30 hover:shadow-md'
+                        ? 'bg-white border-[#0B1D2C] shadow-md ring-2 ring-[#0B1D2C]/20' 
+                        : 'bg-white border-black/10 hover:border-black/30'
                     }`}
                   >
-                    <div className="text-3xl mb-1">{category === 'juice' ? '🥤' : '🍽️'}</div>
                     <div>
-                      <div className={`font-black text-xs sm:text-sm leading-tight line-clamp-2 ${inCart ? 'text-white' : 'text-[#0B1D2C]'}`}>
-                        {item.name}
-                      </div>
-                      <div className={`text-sm font-black mt-1 ${inCart ? 'text-[#f7f5f0]' : 'text-[#0B1D2C]'}`}>
-                        ብር {item.price.toLocaleString()}
-                      </div>
+                      <div className="text-xl mb-1">{item.cat === 'juice' ? '🥤' : '🍽️'}</div>
+                      <div className="font-black text-sm text-[#0B1D2C] leading-snug line-clamp-2">{item.name}</div>
                     </div>
-
-                    {inCart && (
-                      <div className="absolute top-2.5 right-2.5 bg-emerald-400 text-[#0B1D2C] text-xs font-black rounded-full w-6 h-6 flex items-center justify-center shadow-md">
-                        {inCart.quantity}
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-black/5">
+                      <div className="text-xs font-extrabold text-[#0B1D2C]/70">ብር {item.price.toLocaleString()}</div>
+                      {inCart && (
+                        <span className="bg-[#0B1D2C] text-white text-xs font-black px-2 py-0.5 rounded-full">
+                          {inCart.quantity}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 );
               })}
@@ -1111,46 +1559,40 @@ export default function TabletApp() {
           </div>
         </div>
 
-        {/* RIGHT: Cart & Payment */}
-        <div className="w-80 sm:w-96 bg-white border-l border-black/10 flex flex-col shadow-2xl">
+        {/* RIGHT: Cart & Pay Later Resolution Banner */}
+        <div className="w-80 sm:w-96 bg-white border-l border-black/10 flex flex-col justify-between shadow-xl">
           
           {/* Cart Header */}
-          <div className="px-4 py-3.5 border-b border-black/10 flex items-center justify-between bg-[#f7f5f0]">
-            <div className="flex items-center gap-2 font-black text-[#0B1D2C] text-base">
-              <ShoppingCart className="w-5 h-5" />
-              <span>ቅርጫት (Cart)</span>
-              {cartCount > 0 && (
-                <span className="bg-[#0B1D2C] text-white text-xs font-black px-2.5 py-0.5 rounded-full">
-                  {cartCount}
-                </span>
-              )}
+          <div className="p-4 border-b border-black/10 flex items-center justify-between bg-[#f7f5f0]">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-[#0B1D2C]" />
+              <span className="font-black text-base text-[#0B1D2C]">ትዕዛዝ ማጠቃለያ ({cartCount})</span>
             </div>
             {cart.length > 0 && (
               <button 
                 onClick={() => setCart([])} 
-                className="text-black/30 hover:text-red-500 transition-colors p-1.5 cursor-pointer"
-                title="ቅርጫት አጽዳ"
+                className="text-xs font-bold text-red-600 hover:text-red-700 p-1 cursor-pointer"
               >
-                <Trash2 className="w-4 h-4" />
+                አፅዳ (Clear)
               </button>
             )}
           </div>
 
-          {/* Cart Items */}
-          <div className="flex-1 overflow-y-auto">
+          {/* Cart Items List */}
+          <div className="flex-1 overflow-y-auto p-4">
             {cart.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-black/25 gap-2.5 py-10">
-                <ShoppingCart className="w-12 h-12" strokeWidth={1} />
-                <p className="text-sm font-bold text-black/40">ቅርጫቱ ባዶ ነው</p>
-                <p className="text-xs">ከግራ በኩል እቃዎችን ይምረጡ</p>
+              <div className="h-full flex flex-col items-center justify-center text-black/30 space-y-2">
+                <UtensilsCrossed className="w-12 h-12 stroke-1" />
+                <p className="text-xs font-bold">ምንም እቃ አልተመረጠም</p>
+                <p className="text-[11px]">ከግራ በኩል ምግብ ወይም ጁስ ይምረጡ</p>
               </div>
             ) : (
-              <div className="divide-y divide-black/5">
+              <div className="space-y-3">
                 {cart.map(item => (
-                  <div key={item.menuItemId} className="px-4 py-3 flex items-center gap-2.5">
+                  <div key={item.menuItemId} className="flex items-center justify-between gap-2 border-b border-black/5 pb-2.5">
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-xs sm:text-sm text-[#0B1D2C] truncate">{item.name}</div>
-                      <div className="text-xs text-black/40 font-semibold">ብር {item.unitPrice} × {item.quantity}</div>
+                      <div className="text-[11px] text-black/40 font-semibold">ብር {item.unitPrice.toLocaleString()} / አንዱ</div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button 
@@ -1159,7 +1601,7 @@ export default function TabletApp() {
                       >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
-                      <span className="text-sm font-black text-[#0B1D2C] w-5 text-center">{item.quantity}</span>
+                      <span className="w-5 text-center font-black text-xs sm:text-sm text-[#0B1D2C]">{item.quantity}</span>
                       <button 
                         onClick={() => changeQty(item.menuItemId, 1)}
                         className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-emerald-100 hover:text-emerald-600 text-[#0B1D2C] transition-colors cursor-pointer"
@@ -1177,41 +1619,114 @@ export default function TabletApp() {
           </div>
 
           {/* Notes */}
-          <div className="px-4 py-2.5 border-t border-black/10 bg-white">
+          <div className="px-4 py-2 border-t border-black/10 bg-white">
             <label className="text-xs font-bold text-black/35 uppercase tracking-widest mb-1 block">ልዩ ማስታወሻ (Notes)</label>
             <textarea 
               value={notes} 
               onChange={e => setNotes(e.target.value)} 
-              rows={2}
+              rows={1}
               placeholder="አለርጂ፣ ተጨማሪ ትዕዛዝ..."
               className="w-full text-xs border border-black/15 rounded-xl px-2.5 py-1.5 resize-none outline-none focus:border-[#0B1D2C] text-[#0B1D2C] placeholder:text-black/25 bg-[#f7f5f0] font-medium" 
             />
           </div>
 
-          {/* Payment Method Selector */}
+          {/* Payment Method Selector (5 options including Pay Later) */}
           <div className="px-4 py-3 border-t border-black/10 bg-white">
-            <label className="text-xs font-bold text-black/40 uppercase tracking-widest mb-2 block">የክፍያ ዘዴ (Payment)</label>
-            <div className="flex gap-2">
-              {(['cash', 'transfer'] as const).map(pm => (
-                <button 
-                  key={pm} 
-                  onClick={() => setPaymentMethod(pm)}
-                  className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all border-2 cursor-pointer ${
-                    paymentMethod === pm 
-                      ? 'bg-[#0B1D2C] text-white border-[#0B1D2C] shadow-md' 
-                      : 'bg-[#f7f5f0] text-[#0B1D2C]/60 border-black/10 hover:border-black/30'
-                  }`}
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-bold text-black/40 uppercase tracking-widest block">
+                የክፍያ ሁኔታ (Payment)
+              </label>
+              {unsettledPayLaterOrders.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowUnsettledModal(true)}
+                  className="text-[11px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md hover:bg-amber-200 cursor-pointer"
                 >
-                  {pm === 'cash' ? '💵 ጥሬ ገንዘብ' : '📲 ዝውውር (Transfer)'}
+                  🕒 {unsettledPayLaterOrders.length} ክፍት ጠረጴዛ
                 </button>
-              ))}
+              )}
             </div>
+
+            <div className="grid grid-cols-3 gap-1.5">
+              <button 
+                type="button"
+                onClick={() => setPaymentMethod('cash')}
+                className={`py-2 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
+                  paymentMethod === 'cash' 
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' 
+                    : 'bg-[#f7f5f0] text-[#0B1D2C]/70 border-black/10 hover:border-black/30'
+                }`}
+              >
+                <span>💵 ጥሬ</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => setPaymentMethod('transfer')}
+                className={`py-2 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
+                  paymentMethod === 'transfer' 
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
+                    : 'bg-[#f7f5f0] text-[#0B1D2C]/70 border-black/10 hover:border-black/30'
+                }`}
+              >
+                <span>📲 ዝውውር</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => setPaymentMethod('pay_later')}
+                className={`py-2 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
+                  paymentMethod === 'pay_later' 
+                    ? 'bg-amber-500 text-[#0B1D2C] border-amber-500 font-black shadow-md ring-2 ring-amber-300' 
+                    : 'bg-amber-50 text-amber-900 border-amber-300/80 hover:bg-amber-100'
+                }`}
+              >
+                <span>🕒 ቆይቶ</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => setPaymentMethod('pending')}
+                className={`py-2 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
+                  paymentMethod === 'pending' 
+                    ? 'bg-orange-600 text-white border-orange-600 shadow-md' 
+                    : 'bg-[#f7f5f0] text-[#0B1D2C]/70 border-black/10 hover:border-black/30'
+                }`}
+              >
+                <span>⏳ አዳሪ</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => setPaymentMethod('beu')}
+                className={`col-span-2 py-2 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
+                  paymentMethod === 'beu' 
+                    ? 'bg-purple-600 text-white border-purple-600 shadow-md' 
+                    : 'bg-[#f7f5f0] text-[#0B1D2C]/70 border-black/10 hover:border-black/30'
+                }`}
+              >
+                <span>🛵 BeU ደሊቨሪ</span>
+              </button>
+            </div>
+
+            {/* Pay Later Explanation */}
+            {paymentMethod === 'pay_later' && (
+              <div className="mt-2.5 bg-amber-50 rounded-2xl p-2.5 border-2 border-amber-300 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-black text-amber-900">
+                  <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>🕒 ቆይቶ የሚከፈል (Open Tab)</span>
+                </div>
+                <p className="text-[10.5px] text-amber-800 font-medium leading-tight">
+                  ትዕዛዙ ተመዝግቦ ይቀመጣል፤ ጁሱን/ምግቡን አዘጋጅተው ያቅርቡ። ደንበኛው ሲከፍል ከላይ ያለውን <strong>«🕒 ያልተከፈሉ»</strong> በመንካት በ1-ክሊክ ይዘጋል።
+                </p>
+              </div>
+            )}
 
             {/* Transfer Amount & Tip Calculator */}
             {paymentMethod === 'transfer' && (
-              <div className="mt-3 bg-indigo-50/80 rounded-2xl p-3.5 border-2 border-indigo-200 space-y-2">
+              <div className="mt-2.5 bg-indigo-50/80 rounded-2xl p-3 border-2 border-indigo-200 space-y-2">
                 <label className="text-xs font-black text-indigo-900 block">የተላከ ገንዘብ በዝውውር (Transfer Amount)</label>
-                <div className="flex items-center gap-2 bg-white border-2 border-indigo-300 rounded-xl px-3.5 py-2 focus-within:border-indigo-600 transition-colors shadow-inner">
+                <div className="flex items-center gap-2 bg-white border-2 border-indigo-300 rounded-xl px-3 py-1.5 focus-within:border-indigo-600 transition-colors shadow-inner">
                   <span className="text-indigo-600 font-black text-sm">ብር</span>
                   <input
                     type="number"
@@ -1219,23 +1734,56 @@ export default function TabletApp() {
                     value={transferAmount}
                     onChange={e => setTransferAmount(e.target.value)}
                     placeholder={cartTotal > 0 ? cartTotal.toString() : '0'}
-                    className="flex-1 bg-transparent text-[#0B1D2C] font-black text-lg outline-none placeholder:text-black/25" 
+                    className="flex-1 bg-transparent text-[#0B1D2C] font-black text-base outline-none placeholder:text-black/25" 
                   />
                 </div>
 
                 {transferAmt > 0 && (
                   <div className="flex justify-between items-center text-xs font-bold pt-1">
-                    <span className="text-indigo-700">የትዕዛዝ ጠቅላላ ዋጋ:</span>
+                    <span className="text-indigo-700">የትዕዛዝ ዋጋ:</span>
                     <span className="text-[#0B1D2C]">ብር {cartTotal.toLocaleString()}</span>
                   </div>
                 )}
 
                 {tip > 0 && (
-                  <div className="bg-emerald-100 border border-emerald-300 rounded-xl p-2.5 flex justify-between items-center shadow-xs">
-                    <span className="text-emerald-800 font-black text-xs">✨ ተጨማሪ ጠቃሚ (Tip):</span>
-                    <span className="text-emerald-800 font-black text-base">+ ብር {tip.toLocaleString()}</span>
+                  <div className="bg-emerald-100 border border-emerald-300 rounded-xl p-2 flex justify-between items-center shadow-xs">
+                    <span className="text-emerald-800 font-black text-xs">✨ ጠቃሚ (Tip):</span>
+                    <span className="text-emerald-800 font-black text-sm">+ ብር {tip.toLocaleString()}</span>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Pending Payment Customer Note */}
+            {paymentMethod === 'pending' && (
+              <div className="mt-2.5 bg-orange-50 rounded-2xl p-3 border-2 border-orange-300 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-black text-orange-900">
+                  <AlertCircle className="w-4 h-4 text-orange-600 shrink-0" />
+                  <span>የአዳሪ ደንበኛ ስም / ስልክ (Credit Note)</span>
+                </div>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                  placeholder="የደንበኛው ስም ወይም ስልክ (ለምሳሌ፡ አቶ ካሳ)..."
+                  className="w-full text-xs font-bold border border-amber-300 rounded-xl px-3 py-2 outline-none focus:border-amber-600 text-[#0B1D2C] bg-white shadow-inner"
+                />
+                <p className="text-[10px] text-amber-800 font-medium">
+                  ይህ ትዕዛዝ ወደ አዳሪዎች መዝገብ ይቀመጣል። ደንበኛው ሲከፍል ከዝርዝሩ ላይ ይሰበሰባል።
+                </p>
+              </div>
+            )}
+
+            {/* BeU Delivery Note */}
+            {paymentMethod === 'beu' && (
+              <div className="mt-2.5 bg-purple-50 rounded-2xl p-3 border-2 border-purple-300 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-black text-purple-900">
+                  <Truck className="w-4 h-4 text-purple-600 shrink-0" />
+                  <span>BeU Delivery Takeaway</span>
+                </div>
+                <p className="text-[10px] text-purple-800 font-medium">
+                  ትዕዛዙ በBeU ደሊቨሪ ሳምንታዊ ሂሳብ መዝገብ ላይ ይመዘገባል።
+                </p>
               </div>
             )}
           </div>
@@ -1264,6 +1812,16 @@ export default function TabletApp() {
                   <span>ትዕዛዝ ላክ (Submit Order)</span>
                 </>
               )}
+            </button>
+
+            {/* Direct 5-Step End-of-Shift Reconciliation Trigger Button */}
+            <button 
+              type="button"
+              onClick={() => handleOpenReconcileModal()} 
+              className="w-full mt-2 py-3 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white transition-all active:scale-95 shadow-md cursor-pointer"
+            >
+              <BarChart3 className="w-4 h-4 text-amber-300" />
+              <span>🏁 ሸፍቱን ዝጋ / 5-ደረጃ ሂሳብ ማጠቃለያ</span>
             </button>
           </div>
         </div>
@@ -1309,246 +1867,923 @@ export default function TabletApp() {
               </div>
 
               {/* Modal Body */}
-              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
                 
-                {/* Active vs Closed Sub-tab Switcher */}
-                <div className="flex bg-[#f7f5f0] p-1.5 rounded-2xl border border-[#0B1D2C]/10 shadow-xs">
+                {/* 5-Tab Reconciliation Navigation Bar */}
+                <div className="flex bg-white p-1.5 rounded-2xl border border-[#0B1D2C]/15 shadow-xs overflow-x-auto gap-1">
                   <button
-                    onClick={() => setSummarySubTab('active')}
-                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                      summarySubTab === 'active'
+                    onClick={() => setReconcileTab('sales')}
+                    className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                      reconcileTab === 'sales'
                         ? 'bg-[#0B1D2C] text-white shadow-md'
-                        : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C]'
+                        : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C] hover:bg-[#f7f5f0]'
                     }`}
                   >
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>🟢 አሁን ያለው ሸፍት ({shiftOrders.length} ትዕዛዞች)</span>
+                    <BarChart3 className="w-4 h-4" />
+                    <span>1. የሽያጭ ማጠቃለያ</span>
                   </button>
 
                   <button
-                    onClick={() => setSummarySubTab('closed')}
-                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                      summarySubTab === 'closed'
+                    onClick={() => setReconcileTab('inventory')}
+                    className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                      reconcileTab === 'inventory'
                         ? 'bg-[#0B1D2C] text-white shadow-md'
-                        : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C]'
+                        : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C] hover:bg-[#f7f5f0]'
                     }`}
                   >
-                    <Archive className="w-4 h-4 text-amber-500" />
-                    <span>📚 የቀደሙ የተዘጉ መዛግብት ({shiftClosedOrders.length} ትዕዛዞች)</span>
+                    <Package className="w-4 h-4" />
+                    <span>2. የኮፕ ቆጠራ ({juiceLeftover} የቀረ)</span>
+                  </button>
+
+                  <button
+                    onClick={() => setReconcileTab('expenses')}
+                    className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                      reconcileTab === 'expenses'
+                        ? 'bg-[#0B1D2C] text-white shadow-md'
+                        : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C] hover:bg-[#f7f5f0]'
+                    }`}
+                  >
+                    <Receipt className="w-4 h-4" />
+                    <span>3. የዕለት ወጪዎች ({expenseItems.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setReconcileTab('recover_pending')}
+                    className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                      reconcileTab === 'recover_pending'
+                        ? 'bg-[#0B1D2C] text-white shadow-md'
+                        : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C] hover:bg-[#f7f5f0]'
+                    }`}
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>4. የቀደመ አዳሪ ({unpaidPendingList.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setReconcileTab('net_cash')}
+                    className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                      reconcileTab === 'net_cash'
+                        ? 'bg-emerald-700 text-white shadow-md'
+                        : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                    }`}
+                  >
+                    <Banknote className="w-4 h-4" />
+                    <span>5. ጥሬ ገንዘብ ርክክብ (ብር {netCashDueToOwner.toLocaleString()})</span>
                   </button>
                 </div>
-                
-                {/* 6 Key Financial Metric Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                  
-                  {/* Total Money */}
-                  <div className="bg-[#0B1D2C] text-white rounded-2xl p-4 shadow-md flex flex-col justify-between">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-white/70">ጠቅላላ ገቢ</span>
-                      <Banknote className="w-4 h-4 text-emerald-400" />
-                    </div>
-                    <div className="text-xl sm:text-2xl font-black text-emerald-300">
-                      ብር {shiftStats.totalRev.toLocaleString()}
-                    </div>
-                    <div className="text-[10px] text-white/50 mt-1 font-semibold">Total Revenue</div>
-                  </div>
 
-                  {/* Cash */}
-                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#0B1D2C]/10 flex flex-col justify-between">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-[#0B1D2C]/60">ጥሬ ገንዘብ</span>
-                      <span className="text-base">💵</span>
-                    </div>
-                    <div className="text-xl sm:text-2xl font-black text-[#0B1D2C]">
-                      ብር {shiftStats.cashTotal.toLocaleString()}
-                    </div>
-                    <div className="text-[10px] text-[#0B1D2C]/40 mt-1 font-semibold">Physical Cash</div>
-                  </div>
+                {/* ─── TAB 1: POS SALES & PAYMENTS ────────────────────────────── */}
+                {reconcileTab === 'sales' && (
+                  <div className="space-y-5">
+                    {/* 6 Key Financial Metric Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                      {/* Total Sales */}
+                      <div className="bg-[#0B1D2C] text-white rounded-2xl p-4 shadow-md flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-white/70">ጠቅላላ ገቢ</span>
+                          <TrendingUp className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <div className="text-xl sm:text-2xl font-black text-emerald-300">
+                          ብር {shiftStats.totalRev.toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-white/50 mt-1 font-semibold">Total Revenue</div>
+                      </div>
 
-                  {/* Transfer */}
-                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#0B1D2C]/10 flex flex-col justify-between">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-[#0B1D2C]/60">ዝውውር</span>
-                      <Smartphone className="w-4 h-4 text-indigo-600" />
-                    </div>
-                    <div className="text-xl sm:text-2xl font-black text-indigo-700">
-                      ብር {shiftStats.transferTotal.toLocaleString()}
-                    </div>
-                    <div className="text-[10px] text-[#0B1D2C]/40 mt-1 font-semibold">Telebirr / CBE</div>
-                  </div>
+                      {/* Cash */}
+                      <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#0B1D2C]/10 flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-[#0B1D2C]/60">ጥሬ ገንዘብ</span>
+                          <span className="text-base">💵</span>
+                        </div>
+                        <div className="text-xl sm:text-2xl font-black text-emerald-700">
+                          ብር {shiftStats.cashTotal.toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-[#0B1D2C]/40 mt-1 font-semibold">Cash Sales</div>
+                      </div>
 
-                  {/* Tip */}
-                  <div className="bg-emerald-50 rounded-2xl p-4 shadow-sm border border-emerald-300 flex flex-col justify-between">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-emerald-800">ጠቃሚ (Tips)</span>
-                      <Sparkles className="w-4 h-4 text-emerald-600" />
-                    </div>
-                    <div className="text-xl sm:text-2xl font-black text-emerald-800">
-                      ብር {shiftStats.tipTotal.toLocaleString()}
-                    </div>
-                    <div className="text-[10px] text-emerald-600 mt-1 font-semibold">Tips Collected</div>
-                  </div>
+                      {/* Transfer */}
+                      <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#0B1D2C]/10 flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-[#0B1D2C]/60">ዝውውር</span>
+                          <Smartphone className="w-4 h-4 text-indigo-600" />
+                        </div>
+                        <div className="text-xl sm:text-2xl font-black text-indigo-700">
+                          ብር {shiftStats.transferTotal.toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-[#0B1D2C]/40 mt-1 font-semibold">Telebirr / CBE</div>
+                      </div>
 
-                  {/* Juice Count */}
-                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#0B1D2C]/10 flex flex-col justify-between">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-[#0B1D2C]/60">ጭማቂ</span>
-                      <span className="text-base">🥤</span>
-                    </div>
-                    <div className="text-xl sm:text-2xl font-black text-[#0B1D2C]">
-                      {shiftStats.juiceCount}
-                    </div>
-                    <div className="text-[10px] text-[#0B1D2C]/40 mt-1 font-semibold">Juice Cups</div>
-                  </div>
+                      {/* Pending Credit */}
+                      <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#0B1D2C]/10 flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-amber-800">አዳሪ (ዕዳ)</span>
+                          <AlertCircle className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <div className="text-xl sm:text-2xl font-black text-amber-700">
+                          ብር {shiftStats.pendingTotal.toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-amber-600 mt-1 font-semibold">New Unpaid Credit</div>
+                      </div>
 
-                  {/* Food Count */}
-                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#0B1D2C]/10 flex flex-col justify-between">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-[#0B1D2C]/60">ምግብ</span>
-                      <span className="text-base">🍽️</span>
-                    </div>
-                    <div className="text-xl sm:text-2xl font-black text-[#0B1D2C]">
-                      {shiftStats.foodCount}
-                    </div>
-                    <div className="text-[10px] text-[#0B1D2C]/40 mt-1 font-semibold">Food Portions</div>
-                  </div>
-                </div>
+                      {/* BeU Delivery */}
+                      <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#0B1D2C]/10 flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-purple-800">BeU ደሊቨሪ</span>
+                          <Truck className="w-4 h-4 text-purple-600" />
+                        </div>
+                        <div className="text-xl sm:text-2xl font-black text-purple-700">
+                          ብር {shiftStats.beuTotal.toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-purple-600 mt-1 font-semibold">Delivery Credit</div>
+                      </div>
 
-                {/* Section 1: Itemized Sales Breakdown Table */}
-                <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-[#0B1D2C]/10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <Receipt className="w-5 h-5 text-[#0B1D2C]" />
-                      <h3 className="text-lg font-black text-[#0B1D2C]">የምግቦች እና ጭማቂዎች ዝርዝር ድምር</h3>
+                      {/* Tips */}
+                      <div className="bg-emerald-50 rounded-2xl p-4 shadow-sm border border-emerald-300 flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-emerald-800">ጠቃሚ (Tips)</span>
+                          <Sparkles className="w-4 h-4 text-emerald-600" />
+                        </div>
+                        <div className="text-xl sm:text-2xl font-black text-emerald-800">
+                          ብር {shiftStats.tipTotal.toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-emerald-600 mt-1 font-semibold">Tips Collected</div>
+                      </div>
                     </div>
-                    <span className="text-xs font-bold bg-[#f7f5f0] text-[#0B1D2C] px-3 py-1 rounded-full">
-                      {shiftStats.itemBreakdown.length} ዓይነቶች ተሽጠዋል
-                    </span>
-                  </div>
 
-                  {shiftStats.itemBreakdown.length === 0 ? (
-                    <p className="text-center py-6 text-sm text-[#0B1D2C]/40 font-semibold">
-                      በዚህ ሸፍት እስካሁን ምንም ትዕዛዝ አልተመዘገበም (No items sold yet)
-                    </p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                        <thead>
-                          <tr className="border-b border-[#0B1D2C]/10 text-xs text-[#0B1D2C]/50 uppercase font-black">
-                            <th className="pb-3 pl-2">እቃ / ምግብ</th>
-                            <th className="pb-3 text-center">ዓይነት</th>
-                            <th className="pb-3 text-center">ብዛት</th>
-                            <th className="pb-3 text-right">ነጠላ ዋጋ</th>
-                            <th className="pb-3 text-right pr-2">ጠቅላላ ዋጋ</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#0B1D2C]/5">
-                          {shiftStats.itemBreakdown.map((item, idx) => (
-                            <tr key={idx} className="hover:bg-[#f7f5f0]/80 transition-colors">
-                              <td className="py-3 pl-2 font-black text-[#0B1D2C] flex items-center gap-2">
-                                <span>{item.category === 'juice' ? '🥤' : '🍽️'}</span>
-                                <span>{item.name}</span>
-                              </td>
-                              <td className="py-3 text-center text-xs font-bold text-[#0B1D2C]/60">
-                                {item.category === 'juice' ? 'ጭማቂ' : 'ምግብ'}
-                              </td>
-                              <td className="py-3 text-center">
-                                <span className="inline-block bg-[#0B1D2C] text-white text-xs font-black px-2.5 py-0.5 rounded-full">
-                                  {item.quantity}
-                                </span>
-                              </td>
-                              <td className="py-3 text-right text-xs font-bold text-[#0B1D2C]/60">
-                                ብር {item.unitPrice.toLocaleString()}
-                              </td>
-                              <td className="py-3 text-right pr-2 font-black text-[#0B1D2C]">
-                                ብር {item.totalRevenue.toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot>
-                          <tr className="border-t-2 border-[#0B1D2C] font-black text-base">
-                            <td className="pt-4 pl-2">ጠቅላላ ድምር (Total)</td>
-                            <td className="pt-4 text-center"></td>
-                            <td className="pt-4 text-center text-[#0B1D2C]">
-                              {shiftStats.juiceCount + shiftStats.foodCount} ዕቃዎች
-                            </td>
-                            <td className="pt-4 text-right"></td>
-                            <td className="pt-4 text-right pr-2 text-emerald-700 text-lg">
-                              ብር {shiftStats.totalRev.toLocaleString()}
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-                  )}
-                </div>
-
-                {/* Section 2: Full Log of All Orders Submitted Today */}
-                <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-[#0B1D2C]/10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-[#0B1D2C]" />
-                      <h3 className="text-lg font-black text-[#0B1D2C]">የሁሉም ትዕዛዞች ታሪክ ({shiftOrders.length} ትዕዛዞች)</h3>
-                    </div>
-                  </div>
-
-                  {shiftOrders.length === 0 ? (
-                    <p className="text-center py-6 text-sm text-[#0B1D2C]/40 font-semibold">
-                      ምንም ትዕዛዝ አልተገኘም
-                    </p>
-                  ) : (
-                    <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-                      {shiftOrders.map((ord, i) => (
-                        <div 
-                          key={ord.id}
-                          className="bg-[#f7f5f0] p-4 rounded-2xl border border-[#0B1D2C]/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-black bg-[#0B1D2C] text-white px-2 py-0.5 rounded-md">
-                                #{shiftOrders.length - i}
-                              </span>
-                              <span className="font-black text-sm text-[#0B1D2C]">
-                                {ord.customerName ? ord.customerName : 'የቀጥታ ደንበኛ'}
-                              </span>
-                              <span className="text-xs text-[#0B1D2C]/40 font-semibold">
-                                ({formatEthiopianTime(ord.orderTime)})
-                              </span>
-                            </div>
-                            
-                            <div className="text-xs font-medium text-[#0B1D2C]/70 mt-1 flex flex-wrap gap-1">
-                              {(ord.items || []).map((it, idx) => (
-                                <span key={idx} className="bg-white px-2 py-0.5 rounded-md border border-[#0B1D2C]/10 font-bold">
-                                  {it.name} × {it.quantity}
-                                </span>
-                              ))}
-                            </div>
-
-                            {ord.notes && (
-                              <div className="text-[11px] text-indigo-700 font-semibold mt-1">
-                                💬 {ord.notes}
-                              </div>
-                            )}
+                    {/* Unsettled Pay Later Warning & 1-Click Resolver */}
+                    {unsettledPayLaterOrders.length > 0 && (
+                      <div className="bg-amber-100/90 border-2 border-amber-400 rounded-3xl p-5 shadow-sm space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                          <div className="flex items-center gap-2 text-amber-950 font-black text-sm sm:text-base">
+                            <Clock className="w-5 h-5 text-amber-700 shrink-0" />
+                            <span>⚠️ {unsettledPayLaterOrders.length} ያልተከፈሉ ክፍት ትዕዛዞች አሉ (ድምር፡ ብር {shiftStats.payLaterTotal.toLocaleString()})</span>
                           </div>
+                          <span className="text-xs text-amber-800 font-bold">ሸፍቱን ከመዝጋትዎ በፊት ይወስኑ</span>
+                        </div>
 
-                          <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#0B1D2C]/10">
-                            <span className={`text-xs font-black px-2.5 py-1 rounded-xl ${
-                              ord.paymentMethod === 'cash' 
-                                ? 'bg-emerald-100 text-emerald-800' 
-                                : 'bg-indigo-100 text-indigo-800'
-                            }`}>
-                              {ord.paymentMethod === 'cash' ? '💵 ጥሬ ገንዘብ' : '📲 ዝውውር'}
-                            </span>
-                            <div className="text-base font-black text-[#0B1D2C]">
-                              ብር {ord.totalAmount.toLocaleString()}
+                        <div className="space-y-2.5">
+                          {unsettledPayLaterOrders.map((ord, idx) => (
+                            <div key={ord.id} className="bg-white rounded-2xl p-4 border-2 border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="bg-[#0B1D2C] text-white font-black text-xs px-2.5 py-0.5 rounded-lg">
+                                    🎫 ትዕዛዝ #{idx + 1}
+                                  </span>
+                                  <span className="font-black text-sm sm:text-base text-[#0B1D2C]">
+                                    {ord.customerName || 'ክፍት ጠረጴዛ'}
+                                  </span>
+                                  <span className="text-xs text-neutral-500 font-semibold">
+                                    ({formatEthiopianTime(ord.orderTime)})
+                                  </span>
+                                </div>
+                                <div className="text-xs text-neutral-700 font-semibold flex flex-wrap gap-1 pt-0.5">
+                                  {(ord.items || []).map((i, itIdx) => (
+                                    <span key={itIdx} className="bg-[#f7f5f0] px-2 py-0.5 rounded-md border border-black/10 font-bold">
+                                      {i.category === 'juice' ? '🥤' : '🍽️'} {i.name} ×{i.quantity} (ብር {i.totalPrice.toLocaleString()})
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-black/5">
+                                <div className="text-left sm:text-right shrink-0">
+                                  <span className="text-[10px] text-neutral-500 font-bold uppercase block">ድምር</span>
+                                  <span className="text-base sm:text-lg font-black text-[#0B1D2C]">
+                                    ብር {ord.totalAmount.toLocaleString()}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSettlePayLaterOrder(ord, 'cash')}
+                                    className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs cursor-pointer active:scale-95 shadow-sm"
+                                  >
+                                    💵 ጥሬ
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSettlePayLaterOrder(ord, 'transfer')}
+                                    className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs cursor-pointer active:scale-95 shadow-sm"
+                                  >
+                                    📲 ዝውውር
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSettlePayLaterOrder(ord, 'pending')}
+                                    className="px-3 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs cursor-pointer active:scale-95 shadow-sm"
+                                  >
+                                    ⏳ አዳሪ
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Itemized Sales Breakdown Table */}
+                    <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-[#0B1D2C]/10">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Receipt className="w-5 h-5 text-[#0B1D2C]" />
+                          <h3 className="text-lg font-black text-[#0B1D2C]">የምግቦች እና ጭማቂዎች ዝርዝር ድምር</h3>
+                        </div>
+                        <span className="text-xs font-bold bg-[#f7f5f0] text-[#0B1D2C] px-3 py-1 rounded-full">
+                          {shiftStats.itemBreakdown.length} ዓይነቶች ተሽጠዋል
+                        </span>
+                      </div>
+
+                      {shiftStats.itemBreakdown.length === 0 ? (
+                        <p className="text-center py-6 text-sm text-[#0B1D2C]/40 font-semibold">
+                          በዚህ ሸፍት እስካሁን ምንም ትዕዛዝ አልተመዘገበም (No items sold yet)
+                        </p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-[#0B1D2C]/10 text-xs text-[#0B1D2C]/50 uppercase font-black">
+                                <th className="pb-3 pl-2">እቃ / ምግብ</th>
+                                <th className="pb-3 text-center">ዓይነት</th>
+                                <th className="pb-3 text-center">ብዛት</th>
+                                <th className="pb-3 text-right">ነጠላ ዋጋ</th>
+                                <th className="pb-3 text-right pr-2">ጠቅላላ ዋጋ</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#0B1D2C]/5">
+                              {shiftStats.itemBreakdown.map((item, idx) => (
+                                <tr key={idx} className="hover:bg-[#f7f5f0]/80 transition-colors">
+                                  <td className="py-3 pl-2 font-black text-[#0B1D2C] flex items-center gap-2">
+                                    <span>{item.category === 'juice' ? '🥤' : '🍽️'}</span>
+                                    <span>{item.name}</span>
+                                  </td>
+                                  <td className="py-3 text-center text-xs font-bold text-[#0B1D2C]/60">
+                                    {item.category === 'juice' ? 'ጭማቂ' : 'ምግብ'}
+                                  </td>
+                                  <td className="py-3 text-center">
+                                    <span className="inline-block bg-[#0B1D2C] text-white text-xs font-black px-2.5 py-0.5 rounded-full">
+                                      {item.quantity}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 text-right text-xs font-bold text-[#0B1D2C]/60">
+                                    ብር {item.unitPrice.toLocaleString()}
+                                  </td>
+                                  <td className="py-3 text-right pr-2 font-black text-[#0B1D2C]">
+                                    ብር {item.totalRevenue.toLocaleString()}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="border-t-2 border-[#0B1D2C] font-black text-base">
+                                <td className="pt-4 pl-2">ጠቅላላ ድምር (Total)</td>
+                                <td className="pt-4 text-center"></td>
+                                <td className="pt-4 text-center text-[#0B1D2C]">
+                                  {shiftStats.juiceCount + shiftStats.foodCount} ዕቃዎች
+                                </td>
+                                <td className="pt-4 text-right"></td>
+                                <td className="pt-4 text-right pr-2 text-emerald-700 text-lg">
+                                  ብር {shiftStats.totalRev.toLocaleString()}
+                                </td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Order History */}
+                    <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-[#0B1D2C]/10">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-5 h-5 text-[#0B1D2C]" />
+                          <h3 className="text-lg font-black text-[#0B1D2C]">የሁሉም ትዕዛዞች ታሪክ ({shiftOrders.length})</h3>
+                        </div>
+                      </div>
+
+                      {shiftOrders.length === 0 ? (
+                        <p className="text-center py-6 text-sm text-[#0B1D2C]/40 font-semibold">
+                          ምንም ትዕዛዝ አልተገኘም
+                        </p>
+                      ) : (
+                        <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                          {shiftOrders.map((ord, i) => (
+                            <div 
+                              key={ord.id}
+                              className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                                ord.status === 'closed' 
+                                  ? 'bg-amber-50 border-amber-200' 
+                                  : 'bg-[#f7f5f0] border-[#0B1D2C]/10'
+                              }`}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs font-black bg-[#0B1D2C] text-white px-2 py-0.5 rounded-md">
+                                    #{shiftOrders.length - i}
+                                  </span>
+                                  <span className="font-black text-sm text-[#0B1D2C]">
+                                    {ord.customerName ? ord.customerName : 'የቀጥታ ደንበኛ'}
+                                  </span>
+                                  <span className="text-xs text-[#0B1D2C]/40 font-semibold">
+                                    ({formatEthiopianTime(ord.orderTime)})
+                                  </span>
+                                  {ord.status === 'closed' && (
+                                    <span className="text-[10px] font-black bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
+                                      ✅ ተዘጋ
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div className="text-xs font-medium text-[#0B1D2C]/70 mt-1 flex flex-wrap gap-1">
+                                  {(ord.items || []).map((it, idx) => (
+                                    <span key={idx} className="bg-white px-2 py-0.5 rounded-md border border-[#0B1D2C]/10 font-bold">
+                                      {it.name} × {it.quantity}
+                                    </span>
+                                  ))}
+                                </div>
+
+                                {ord.notes && (
+                                  <div className="text-[11px] text-indigo-700 font-semibold mt-1">
+                                    💬 {ord.notes}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#0B1D2C]/10">
+                                <span className={`text-xs font-black px-2.5 py-1 rounded-xl ${
+                                  ord.paymentMethod === 'cash' 
+                                    ? 'bg-emerald-100 text-emerald-800' 
+                                    : ord.paymentMethod === 'transfer'
+                                    ? 'bg-indigo-100 text-indigo-800'
+                                    : ord.paymentMethod === 'pending'
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : 'bg-purple-100 text-purple-800'
+                                }`}>
+                                  {ord.paymentMethod === 'cash' ? '💵 ጥሬ ገንዘብ' : ord.paymentMethod === 'transfer' ? '📲 ዝውውር' : ord.paymentMethod === 'pending' ? '⏳ አዳሪ' : '🛵 BeU'}
+                                </span>
+                                <div className="text-base font-black text-[#0B1D2C]">
+                                  ብር {ord.totalAmount.toLocaleString()}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── TAB 2: INVENTORY & LEFTOVER CUPS COUNT ─────────────────── */}
+                {reconcileTab === 'inventory' && (
+                  <div className="space-y-5">
+                    {/* Juice Cups Inventory Card */}
+                    <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#0B1D2C]/15 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between border-b border-[#0B1D2C]/10 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-black text-xl">
+                            🥤
+                          </div>
+                          <div>
+                            <h3 className="font-black text-lg text-[#0B1D2C]">የጭማቂ ኮፖች ቆጠራ (Juice Cups Inventory)</h3>
+                            <p className="text-xs text-[#0B1D2C]/60 font-semibold">የመነሻ፣ የተጨመረ እና የቀረ (Leftover) ኮፖች ቆጠራ</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-[#0B1D2C]/50">ነጠላ ዋጋ</span>
+                          <div className="text-sm font-black text-[#0B1D2C]">ብር {config.defaultJuiceUnitPrice || 170}</div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {/* Opening */}
+                        <div className="bg-[#f7f5f0] p-4 rounded-2xl border border-[#0B1D2C]/10 space-y-1.5">
+                          <label className="text-xs font-black text-[#0B1D2C]/60 block">መነሻ ኮፕ (Opening)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={juiceOpening}
+                            onChange={e => setJuiceOpening(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="w-full bg-white border-2 border-[#0B1D2C]/20 rounded-xl px-3 py-2 text-xl font-black text-[#0B1D2C] outline-none focus:border-[#0B1D2C]"
+                          />
+                          <p className="text-[11px] text-[#0B1D2C]/40">ከቀደመው ሸፍት የቀረ</p>
+                        </div>
+
+                        {/* Added */}
+                        <div className="bg-[#f7f5f0] p-4 rounded-2xl border border-[#0B1D2C]/10 space-y-1.5">
+                          <label className="text-xs font-black text-[#0B1D2C]/60 block">የተጨመረ ኮፕ (Added)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={juiceAdded}
+                            onChange={e => setJuiceAdded(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="w-full bg-white border-2 border-[#0B1D2C]/20 rounded-xl px-3 py-2 text-xl font-black text-[#0B1D2C] outline-none focus:border-[#0B1D2C]"
+                          />
+                          <p className="text-[11px] text-[#0B1D2C]/40">በዚህ ሸፍት የገባ</p>
+                        </div>
+
+                        {/* Leftover Count */}
+                        <div className="bg-amber-50 p-4 rounded-2xl border-2 border-amber-300 space-y-1.5">
+                          <label className="text-xs font-black text-amber-900 block">የቀረ ኮፕ ቆጠራ (Leftover Count)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={juiceLeftover}
+                            onChange={e => setJuiceLeftover(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="w-full bg-white border-2 border-amber-500 rounded-xl px-3 py-2 text-2xl font-black text-amber-900 outline-none focus:ring-4 focus:ring-amber-200"
+                          />
+                          <p className="text-[11px] text-amber-800 font-bold">አሁን በቆጠራ የቀረ</p>
+                        </div>
+                      </div>
+
+                      {/* Calculated vs POS Match Banner */}
+                      <div className="bg-[#0B1D2C] text-white p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-500 text-[#0B1D2C] flex items-center justify-center font-black text-lg">
+                            🥤
+                          </div>
+                          <div>
+                            <div className="text-xs text-white/70 font-bold">በቆጠራ የተሸጠ ኮፕ (Calculated Sold)</div>
+                            <div className="text-xl font-black text-emerald-300">
+                              {calculatedJuiceSold} ኮፖች • ብር {calculatedJuiceRev.toLocaleString()}
                             </div>
                           </div>
                         </div>
-                      ))}
+
+                        <div className="flex items-center gap-2">
+                          {calculatedJuiceSold === shiftStats.juiceCount ? (
+                            <span className="bg-emerald-500/30 border border-emerald-400 text-emerald-200 text-xs font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                              <CheckCircle className="w-4 h-4" />
+                              <span>ከታብሌት ትዕዛዝ ጋር ይስማማል ({shiftStats.juiceCount} ኮፕ)</span>
+                            </span>
+                          ) : (
+                            <span className="bg-amber-500/30 border border-amber-400 text-amber-200 text-xs font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                              <AlertCircle className="w-4 h-4" />
+                              <span>ልዩነት: ታብሌት ({shiftStats.juiceCount}) vs ቆጠራ ({calculatedJuiceSold})</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
+
+                    {/* Food Takeaway Packaging Card */}
+                    <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#0B1D2C]/15 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between border-b border-[#0B1D2C]/10 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-800 flex items-center justify-center font-black text-xl">
+                            📦
+                          </div>
+                          <div>
+                            <h3 className="font-black text-lg text-[#0B1D2C]">የምግብ ማሸጊያ ዕቃዎች ቆጠራ (Takeaway Boxes)</h3>
+                            <p className="text-xs text-[#0B1D2C]/60 font-semibold">የምግብ ማሸጊያ መነሻ እና የቀረ ቆጠራ</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-[#f7f5f0] p-4 rounded-2xl border border-[#0B1D2C]/10 space-y-1.5">
+                          <label className="text-xs font-black text-[#0B1D2C]/60 block">መነሻ ማሸጊያ (Opening)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={foodOpening}
+                            onChange={e => setFoodOpening(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="w-full bg-white border-2 border-[#0B1D2C]/20 rounded-xl px-3 py-2 text-xl font-black text-[#0B1D2C] outline-none focus:border-[#0B1D2C]"
+                          />
+                        </div>
+
+                        <div className="bg-[#f7f5f0] p-4 rounded-2xl border border-[#0B1D2C]/10 space-y-1.5">
+                          <label className="text-xs font-black text-[#0B1D2C]/60 block">የተጨመረ ማሸጊያ (Added)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={foodAdded}
+                            onChange={e => setFoodAdded(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="w-full bg-white border-2 border-[#0B1D2C]/20 rounded-xl px-3 py-2 text-xl font-black text-[#0B1D2C] outline-none focus:border-[#0B1D2C]"
+                          />
+                        </div>
+
+                        <div className="bg-indigo-50 p-4 rounded-2xl border-2 border-indigo-300 space-y-1.5">
+                          <label className="text-xs font-black text-indigo-900 block">የቀረ ማሸጊያ ቆጠራ (Leftover)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={foodLeftover}
+                            onChange={e => setFoodLeftover(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="w-full bg-white border-2 border-indigo-500 rounded-xl px-3 py-2 text-2xl font-black text-indigo-900 outline-none focus:ring-4 focus:ring-indigo-200"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── TAB 3: DAILY SHIFT EXPENSES ────────────────────────────── */}
+                {reconcileTab === 'expenses' && (
+                  <div className="space-y-5">
+                    {/* Add Expense Form Card */}
+                    <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#0B1D2C]/15 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between border-b border-[#0B1D2C]/10 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Receipt className="w-5 h-5 text-red-600" />
+                          <h3 className="font-black text-lg text-[#0B1D2C]">የዕለት ወጪ መዝግብ (Add Shift Expense)</h3>
+                        </div>
+                        <span className="text-xs text-red-700 bg-red-100 font-black px-2.5 py-1 rounded-full">
+                          ከጥሬ ገንዘብ የሚቀነስ
+                        </span>
+                      </div>
+
+                      {/* Quick Shortcut Buttons */}
+                      <div>
+                        <label className="text-xs font-bold text-[#0B1D2C]/50 mb-1.5 block">ፈጣን ምርጫዎች (Quick Add):</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {COMMON_EXPENSES.map((ce, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setNewExpTitle(ce.title);
+                                setNewExpCategory(ce.category);
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-[#f7f5f0] hover:bg-[#0B1D2C] hover:text-white text-[#0B1D2C] text-xs font-bold border border-[#0B1D2C]/15 transition-all cursor-pointer"
+                            >
+                              {ce.title}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Input fields */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        <div className="sm:col-span-1">
+                          <label className="text-xs font-bold text-[#0B1D2C]/60 mb-1 block">የወጪው ዓይነት / ስም</label>
+                          <input
+                            type="text"
+                            value={newExpTitle}
+                            onChange={e => setNewExpTitle(e.target.value)}
+                            placeholder="ለምሳሌ፡ 2 ኪሎ ሎሚ..."
+                            className="w-full bg-[#f7f5f0] border border-[#0B1D2C]/20 rounded-xl px-3 py-2.5 text-sm font-bold text-[#0B1D2C] outline-none focus:border-[#0B1D2C]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-[#0B1D2C]/60 mb-1 block">የወጪ መጠን (ብር)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={newExpAmount}
+                            onChange={e => setNewExpAmount(e.target.value)}
+                            placeholder="0.00"
+                            className="w-full bg-[#f7f5f0] border border-[#0B1D2C]/20 rounded-xl px-3 py-2.5 text-sm font-black text-[#0B1D2C] outline-none focus:border-[#0B1D2C]"
+                          />
+                        </div>
+
+                        <div className="flex items-end">
+                          <button
+                            type="button"
+                            onClick={() => handleAddExpense(newExpTitle, parseFloat(newExpAmount) || 0, newExpCategory)}
+                            disabled={!newExpTitle.trim() || !(parseFloat(newExpAmount) > 0)}
+                            className={`w-full py-2.5 rounded-xl font-black text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                              !newExpTitle.trim() || !(parseFloat(newExpAmount) > 0)
+                                ? 'bg-black/10 text-black/30 cursor-not-allowed'
+                                : 'bg-red-600 hover:bg-red-700 text-white shadow-md'
+                            }`}
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>ወጪ ጨምር</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recorded Expenses List */}
+                    <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#0B1D2C]/15 shadow-sm space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-black text-base text-[#0B1D2C]">
+                          የተመዘገቡ የዕለት ወጪዎች ({expenseItems.length})
+                        </h4>
+                        <span className="text-sm font-black text-red-700">
+                          ጠቅላላ ወጪ: ብር {totalDailyExpenses.toLocaleString()}
+                        </span>
+                      </div>
+
+                      {expenseItems.length === 0 ? (
+                        <p className="text-center py-6 text-xs text-[#0B1D2C]/40 font-semibold">
+                          በዚህ ሸፍት የተመዘገበ ምንም ወጪ የለም (No shift expenses added)
+                        </p>
+                      ) : (
+                        <div className="divide-y divide-[#0B1D2C]/10">
+                          {expenseItems.map(exp => (
+                            <div key={exp.id} className="py-3 flex items-center justify-between">
+                              <div className="flex items-center gap-2.5">
+                                <span className="p-1.5 bg-red-100 text-red-800 rounded-lg text-xs font-bold">🛒</span>
+                                <div>
+                                  <div className="font-black text-sm text-[#0B1D2C]">{exp.title}</div>
+                                  <div className="text-xs text-[#0B1D2C]/40 font-semibold">{exp.time || 'ቀን'}</div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <span className="font-black text-base text-red-700">
+                                  - ብር {exp.amount.toLocaleString()}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveExpense(exp.id)}
+                                  className="p-1.5 text-black/30 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                  title="ሰርዝ"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── TAB 4: RECOVER PAST PENDING PAYMENTS (አዳሪ መሰብሰቢያ) ─────── */}
+                {reconcileTab === 'recover_pending' && (
+                  <div className="space-y-5">
+                    {/* Header Card */}
+                    <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#0B1D2C]/15 shadow-sm space-y-3">
+                      <div className="flex items-center justify-between border-b border-[#0B1D2C]/10 pb-3">
+                        <div className="flex items-center gap-2">
+                          <RefreshCw className="w-5 h-5 text-emerald-600" />
+                          <h3 className="font-black text-lg text-[#0B1D2C]">የቀደሙ ያልተከፈሉ አዳሪዎች መሰብሰቢያ</h3>
+                        </div>
+                        <span className="text-xs font-black bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
+                          የተሰበሰበ: + ብር {totalRecoveredPending.toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#0B1D2C]/70 font-medium">
+                        ደንበኞች የቀደመ ዕዳቸውን በዚህ ሸፍት በጥሬ ገንዘብ ከከፈሉ ከዝርዝሩ ላይ "✅ ተቀበልኩ" የሚለውን ይጫኑ። የተሰበሰበው ገንዘብ ለባለቤቱ በሚሰጠው የጥሬ ገንዘብ ሂሳብ ላይ ይደመራል።
+                      </p>
+
+                      {/* Custom Additional Recovered Amount */}
+                      <div className="bg-[#f7f5f0] p-3.5 rounded-2xl border border-[#0B1D2C]/10 flex items-center justify-between gap-3">
+                        <div className="text-xs font-bold text-[#0B1D2C]">
+                          ተጨማሪ የተሰበሰበ ያልተመዘገበ አዳሪ (Custom Recovery):
+                        </div>
+                        <div className="flex items-center gap-2 w-48">
+                          <span className="text-xs font-black text-[#0B1D2C]">ብር</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={customRecoveredAmount}
+                            onChange={e => setCustomRecoveredAmount(e.target.value)}
+                            placeholder="0.00"
+                            className="w-full bg-white border border-[#0B1D2C]/20 rounded-xl px-3 py-1.5 text-sm font-black text-[#0B1D2C] outline-none focus:border-[#0B1D2C]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Unpaid Pending List */}
+                    <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#0B1D2C]/15 shadow-sm space-y-3">
+                      <h4 className="font-black text-base text-[#0B1D2C]">
+                        ያልተከፈሉ የቀደሙ አዳሪዎች ዝርዝር ({unpaidPendingList.length})
+                      </h4>
+
+                      {unpaidPendingList.length === 0 ? (
+                        <p className="text-center py-8 text-xs text-[#0B1D2C]/40 font-semibold">
+                          ምንም ያልተከፈለ የቀደመ አዳሪ የለም (All past debts are settled!)
+                        </p>
+                      ) : (
+                        <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                          {unpaidPendingList.map(item => {
+                            const isSelected = selectedRecoveredIds.includes(item.id);
+                            return (
+                              <div
+                                key={item.id}
+                                className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                                  isSelected
+                                    ? 'bg-emerald-50 border-emerald-400 shadow-xs'
+                                    : 'bg-[#f7f5f0] border-[#0B1D2C]/10 hover:border-[#0B1D2C]/30'
+                                }`}
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-black text-sm text-[#0B1D2C]">
+                                      {item.customerName || 'አዳሪ ደንበኛ'}
+                                    </span>
+                                    <span className="text-xs text-[#0B1D2C]/50 font-semibold">
+                                      (ቀን: {item.date})
+                                    </span>
+                                    <span className="text-[10px] font-bold bg-[#0B1D2C]/10 text-[#0B1D2C] px-2 py-0.5 rounded-md">
+                                      {item.shiftType === 'day' ? '☀️ የቀን' : '🌙 የሌሊት'}
+                                    </span>
+                                  </div>
+
+                                  <div className="text-xs text-[#0B1D2C]/70 mt-1 font-medium">
+                                    {item.description}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#0B1D2C]/10">
+                                  <div className="text-base font-black text-[#0B1D2C]">
+                                    ብር {item.amount.toLocaleString()}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleRecoveredPending(item.id)}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                                      isSelected
+                                        ? 'bg-emerald-600 text-white shadow-sm'
+                                        : 'bg-white text-[#0B1D2C] border border-[#0B1D2C]/20 hover:bg-[#0B1D2C] hover:text-white'
+                                    }`}
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>{isSelected ? '✅ ተሰብስቧል' : 'ተቀበልኩ (Collect)'}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── TAB 5: NET CASH HANDOVER RECONCILIATION ───────────────── */}
+                {reconcileTab === 'net_cash' && (
+                  <div className="space-y-5">
+                    {/* Blocking Alert if Open Tabs exist */}
+                    {unsettledPayLaterOrders.length > 0 && (
+                      <div className="bg-red-50 border-2 border-red-400 rounded-3xl p-5 shadow-sm space-y-3">
+                        <div className="flex items-center gap-2.5 text-red-950 font-black text-sm sm:text-base">
+                          <AlertTriangle className="w-6 h-6 text-red-600 shrink-0 animate-bounce" />
+                          <span>⛔ ሸፍቱ ከመዘጋቱ በፊት መስተካከል ያለባቸው {unsettledPayLaterOrders.length} ክፍት ትዕዛዞች አሉ!</span>
+                        </div>
+                        <p className="text-xs text-red-800 font-medium">
+                          እነዚህ ትዕዛዞች በጥሬ ገንዘብ፣ በዝውውር ወይም በአዳሪነት እስካልተመዘገቡ ድረስ ሲስተሙ ሸፍቱን ለመዝጋት <strong>አይፈቅድም</strong>። እባክዎ ከዚህ በታች ባሉት ፈጣን ቁልፎች ይወስኑ፡
+                        </p>
+
+                        <div className="space-y-2.5 pt-1">
+                          {unsettledPayLaterOrders.map((ord, idx) => (
+                            <div key={ord.id} className="bg-white rounded-2xl p-4 border-2 border-red-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="bg-red-700 text-white font-black text-xs px-2.5 py-0.5 rounded-lg">
+                                    🎫 ትዕዛዝ #{idx + 1}
+                                  </span>
+                                  <span className="font-black text-sm sm:text-base text-[#0B1D2C]">
+                                    {ord.customerName || 'ክፍት ጠረጴዛ'}
+                                  </span>
+                                  <span className="text-xs text-neutral-500 font-semibold">
+                                    ({formatEthiopianTime(ord.orderTime)})
+                                  </span>
+                                </div>
+                                <div className="text-xs text-neutral-700 font-semibold flex flex-wrap gap-1 pt-0.5">
+                                  {(ord.items || []).map((i, itIdx) => (
+                                    <span key={itIdx} className="bg-[#f7f5f0] px-2 py-0.5 rounded-md border border-black/10 font-bold">
+                                      {i.category === 'juice' ? '🥤' : '🍽️'} {i.name} ×{i.quantity} (ብር {i.totalPrice.toLocaleString()})
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-black/5">
+                                <div className="text-left sm:text-right shrink-0">
+                                  <span className="text-[10px] text-neutral-500 font-bold uppercase block">ድምር</span>
+                                  <span className="text-base sm:text-lg font-black text-[#0B1D2C]">
+                                    ብር {ord.totalAmount.toLocaleString()}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSettlePayLaterOrder(ord, 'cash')}
+                                    className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs cursor-pointer active:scale-95 shadow-sm"
+                                  >
+                                    💵 ጥሬ
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSettlePayLaterOrder(ord, 'transfer')}
+                                    className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs cursor-pointer active:scale-95 shadow-sm"
+                                  >
+                                    📲 ዝውውር
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSettlePayLaterOrder(ord, 'pending')}
+                                    className="px-3 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs cursor-pointer active:scale-95 shadow-sm"
+                                  >
+                                    ⏳ አዳሪ
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Final Net Cash Formula Card */}
+                    <div className="bg-gradient-to-br from-[#0B1D2C] to-[#162E44] text-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
+                      <div className="flex items-center justify-between border-b border-white/15 pb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-[#0B1D2C] flex items-center justify-center font-black text-2xl shadow-md">
+                            💰
+                          </div>
+                          <div>
+                            <h3 className="text-xl sm:text-2xl font-black">ለባለቤቱ የሚሰጥ የተጣራ ጥሬ ገንዘብ</h3>
+                            <p className="text-white/70 text-xs font-semibold">Final Cash Handover Calculation</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-white/60">ቀን</span>
+                          <div className="text-sm font-black text-white">{todayStr}</div>
+                        </div>
+                      </div>
+
+                      {/* Arithmetic Breakdown */}
+                      <div className="space-y-3 font-mono text-sm sm:text-base">
+                        <div className="flex items-center justify-between py-1.5 border-b border-white/10">
+                          <span className="text-white/80 font-sans font-bold flex items-center gap-2">
+                            <span>💵</span> የሽያጭ ጥሬ ገንዘብ (Cash Sales):
+                          </span>
+                          <span className="font-black text-emerald-300">
+                            + ብር {shiftStats.cashTotal.toLocaleString()}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between py-1.5 border-b border-white/10">
+                          <span className="text-white/80 font-sans font-bold flex items-center gap-2">
+                            <span>🔄</span> የተሰበሰበ የቀደመ አዳሪ (Recovered Debts):
+                          </span>
+                          <span className="font-black text-emerald-300">
+                            + ብር {totalRecoveredPending.toLocaleString()}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between py-1.5 border-b border-white/10">
+                          <span className="text-white/80 font-sans font-bold flex items-center gap-2">
+                            <span>🛒</span> የዕለት ወጪዎች (Daily Expenses Paid):
+                          </span>
+                          <span className="font-black text-red-400">
+                            - ብር {totalDailyExpenses.toLocaleString()}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-3 text-xl sm:text-2xl font-black border-t-2 border-white/30">
+                          <span className="font-sans text-white">
+                            👉 በጥሬ ገንዘብ የሚረከበው ሂሳብ:
+                          </span>
+                          <span className="text-emerald-300 bg-emerald-950/60 px-4 py-1.5 rounded-2xl border border-emerald-400/40">
+                            ብር {netCashDueToOwner.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Full Financial Ledger Summary Card */}
+                    <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#0B1D2C]/15 shadow-sm space-y-3">
+                      <h4 className="font-black text-base text-[#0B1D2C] flex items-center gap-2">
+                        <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                        <span>የሸፍቱ አጠቃላይ የገንዘብ ዝርዝር (Complete Shift Audit)</span>
+                      </h4>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <div className="bg-[#f7f5f0] p-3 rounded-xl">
+                          <span className="text-[#0B1D2C]/50 font-bold block">ጠቅላላ ሽያጭ (Gross)</span>
+                          <span className="text-sm font-black text-[#0B1D2C]">ብር {shiftStats.totalRev.toLocaleString()}</span>
+                        </div>
+
+                        <div className="bg-[#f7f5f0] p-3 rounded-xl">
+                          <span className="text-indigo-800 font-bold block">ዝውውር (Telebirr)</span>
+                          <span className="text-sm font-black text-indigo-700">ብር {shiftStats.transferTotal.toLocaleString()}</span>
+                        </div>
+
+                        <div className="bg-[#f7f5f0] p-3 rounded-xl">
+                          <span className="text-amber-800 font-bold block">አዲስ አዳሪ (Pending)</span>
+                          <span className="text-sm font-black text-amber-700">ብር {shiftStats.pendingTotal.toLocaleString()}</span>
+                        </div>
+
+                        <div className="bg-[#f7f5f0] p-3 rounded-xl">
+                          <span className="text-purple-800 font-bold block">BeU ደሊቨሪ</span>
+                          <span className="text-sm font-black text-purple-700">ብር {shiftStats.beuTotal.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      {/* Notes input */}
+                      <div className="pt-2">
+                        <label className="text-xs font-bold text-[#0B1D2C]/60 mb-1 block">የሸፍት ማስታወሻ (Optional Shift Notes)</label>
+                        <textarea
+                          value={shiftNotes}
+                          onChange={e => setShiftNotes(e.target.value)}
+                          rows={2}
+                          placeholder="የቀኑ ልዩ ሁኔታ ወይም ማስታወሻ..."
+                          className="w-full text-xs font-medium border border-[#0B1D2C]/20 rounded-xl p-3 outline-none focus:border-[#0B1D2C] bg-[#f7f5f0]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               </div>
 
@@ -1571,15 +2806,25 @@ export default function TabletApp() {
                   </button>
 
                   <button
-                    onClick={() => {
-                      setEnteredPin('');
-                      setPinError(false);
-                      setShowPinModal(true);
-                    }}
-                    className="px-6 py-3 rounded-2xl bg-[#0B1D2C] hover:bg-[#162E44] text-white font-black text-sm shadow-xl transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                    type="button"
+                    onClick={handleAttemptOpenPinModal}
+                    className={`px-6 py-3 rounded-2xl font-black text-sm shadow-xl transition-all flex items-center gap-2 cursor-pointer active:scale-95 ${
+                      unsettledPayLaterOrders.length > 0
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white animate-pulse'
+                        : 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                    }`}
                   >
-                    <Lock className="w-4 h-4 text-amber-300" />
-                    <span>ዝጋ (Done & Close Shift)</span>
+                    {unsettledPayLaterOrders.length > 0 ? (
+                      <>
+                        <AlertTriangle className="w-4 h-4 text-amber-200" />
+                        <span>⚠️ ሸፍቱን ዝጋ ({unsettledPayLaterOrders.length} ያልተጠናቀቁ አሉ)</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4 text-amber-300" />
+                        <span>በፒን አረጋግጥ እና ዝጋ (Confirm with PIN & Close Shift)</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -1697,6 +2942,206 @@ export default function TabletApp() {
                 >
                   <Delete className="w-5 h-5" />
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── 6. UNSETTLED PAY LATER / OPEN TABS MODAL ───────────────────── */}
+      <AnimatePresence>
+        {showUnsettledModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-60 flex items-center justify-center p-4 sm:p-6 select-none overflow-y-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.92, y: 20 }}
+              className="bg-[#f7f5f0] w-full max-w-2xl max-h-[90vh] rounded-3xl shadow-2xl border-2 border-white/20 flex flex-col overflow-hidden text-[#0B1D2C]"
+            >
+              {/* Modal Header */}
+              <div className="bg-amber-500 text-[#0B1D2C] px-6 py-4 flex items-center justify-between shadow-md shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-black/10 rounded-2xl">
+                    <Clock className="w-6 h-6 text-[#0B1D2C]" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl sm:text-2xl font-black">
+                      🕒 ያልተከፈሉ ክፍት ትዕዛዞች ({unsettledPayLaterOrders.length})
+                    </h3>
+                    <p className="text-[#0B1D2C]/70 text-xs font-semibold">
+                      Open Tabs & Pay Later Orders (ጠቅላላ፡ ብር {shiftStats.payLaterTotal.toLocaleString()})
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowUnsettledModal(false)}
+                  className="w-10 h-10 rounded-full bg-black/10 hover:bg-black/20 text-[#0B1D2C] flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                {unsettledPayLaterOrders.length > 0 ? (
+                  <div className="bg-amber-100/90 border border-amber-300 rounded-2xl p-4 text-amber-950 flex items-start gap-3 shadow-xs">
+                    <Clock className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-black text-sm text-amber-900">
+                        💡 ክፍት ትዕዛዞችን በ1-ክሊክ ይወስኑ
+                      </div>
+                      <div className="text-xs text-amber-800 font-medium mt-0.5">
+                        ደንበኛው ሲከፍል ከትዕዛዙ ስር <span className="underline font-black">[💵 ጥሬ]</span>፣ <span className="underline font-black">[📲 ዝውውር]</span> ወይም <span className="underline font-black">[⏳ አዳሪ]</span> የሚለውን በመጫን መመዝገብ ይችላሉ።
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {shiftPayLaterOrders.length === 0 ? (
+                  <div className="bg-white rounded-3xl p-10 text-center space-y-3 border border-[#0B1D2C]/10">
+                    <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto">
+                      <CheckCircle className="w-8 h-8" />
+                    </div>
+                    <h4 className="text-lg font-black text-[#0B1D2C]">ምንም ክፍት ወይም ያልተከፈለ ትዕዛዝ የለም!</h4>
+                    <p className="text-xs text-[#0B1D2C]/60">በዚህ ሸፍት እስካሁን የቆየ ክፍት ትዕዛዝ አልተመዘገበም።</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5">
+                    {shiftPayLaterOrders.map((ord, idx) => {
+                      const isUnsettled = ord.paymentMethod === 'pay_later';
+
+                      return (
+                        <div
+                          key={ord.id}
+                          className={`bg-white rounded-3xl p-5 border-2 transition-all shadow-sm space-y-4 ${
+                            isUnsettled ? 'border-amber-400' : 'border-emerald-400 bg-emerald-50/20'
+                          }`}
+                        >
+                          {/* Order Header & Table */}
+                          <div className="flex items-start justify-between gap-3 border-b border-[#0B1D2C]/10 pb-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="bg-[#0B1D2C] text-white font-black text-xs px-2.5 py-0.5 rounded-lg">
+                                  🎫 ትዕዛዝ #{idx + 1}
+                                </span>
+                                <span className="font-black text-base text-[#0B1D2C]">
+                                  {ord.customerName || 'ክፍት ጠረጴዛ'}
+                                </span>
+                                <span className="text-xs text-[#0B1D2C]/50 font-semibold">
+                                  ({formatEthiopianTime(ord.orderTime)})
+                                </span>
+                              </div>
+
+                              <div className="text-xs text-[#0B1D2C]/70 font-semibold flex flex-wrap gap-1 pt-1">
+                                {(ord.items || []).map((it, i) => (
+                                  <span key={i} className="bg-[#f7f5f0] px-2 py-0.5 rounded-md border border-[#0B1D2C]/10 font-bold">
+                                    {it.category === 'juice' ? '🥤' : '🍽️'} {it.name} × {it.quantity} (ብር {it.totalPrice.toLocaleString()})
+                                  </span>
+                                ))}
+                              </div>
+
+                              {ord.notes && (
+                                <div className="text-[11px] text-indigo-700 font-semibold pt-0.5">
+                                  💬 {ord.notes}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <span className="text-[10px] text-[#0B1D2C]/50 font-bold block uppercase">የሚከፈል</span>
+                              <span className="text-xl sm:text-2xl font-black text-[#0B1D2C]">
+                                ብር {ord.totalAmount.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Order Settlement Controls */}
+                          {isUnsettled ? (
+                            <div className="grid grid-cols-3 gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => handleSettlePayLaterOrder(ord, 'cash')}
+                                className="py-3 px-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-md cursor-pointer"
+                              >
+                                <span>💵 ጥሬ ገንዘብ</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleSettlePayLaterOrder(ord, 'transfer')}
+                                className="py-3 px-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-md cursor-pointer"
+                              >
+                                <span>📲 ዝውውር</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleSettlePayLaterOrder(ord, 'pending')}
+                                className="py-3 px-2 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-md cursor-pointer"
+                              >
+                                <span>⏳ አዳሪ (ነገ)</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between bg-[#f7f5f0] p-3 rounded-2xl border border-black/10">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-3 py-1 rounded-xl text-xs font-black text-white shadow-xs ${
+                                  ord.paymentMethod === 'cash' ? 'bg-emerald-700' : (ord.paymentMethod === 'transfer' ? 'bg-indigo-700' : 'bg-orange-700')
+                                }`}>
+                                  {ord.paymentMethod === 'cash' && '✅ በጥሬ ገንዘብ ተከፈለ (Cash 💵)'}
+                                  {ord.paymentMethod === 'transfer' && '✅ በዝውውር ተከፈለ (Transfer 📲)'}
+                                  {ord.paymentMethod === 'pending' && '✅ ወደ አዳሪ ተቀየረ (Credit ⏳)'}
+                                </span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleSettlePayLaterOrder(ord, 'pay_later')}
+                                className="px-3 py-1 rounded-xl bg-stone-200 hover:bg-stone-300 text-[#0B1D2C] font-bold text-xs cursor-pointer transition-colors"
+                              >
+                                🔄 ቀይር (Edit)
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 bg-white border-t border-[#0B1D2C]/10 flex items-center justify-between shrink-0">
+                <span className="text-xs font-bold text-[#0B1D2C]/60">
+                  ያልተከፈሉ ድምር: <strong>ብር {shiftStats.payLaterTotal.toLocaleString()}</strong>
+                </span>
+
+                <div className="flex items-center gap-2">
+                  {unsettledPayLaterOrders.length === 0 && (
+                    <button
+                      onClick={() => {
+                        setShowUnsettledModal(false);
+                        setShowSummaryModal(true);
+                      }}
+                      className="px-5 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs sm:text-sm shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>👉 ወደ ሸፍት ማጠቃለያ ፎርም ሂድ</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setShowUnsettledModal(false)}
+                    className="px-6 py-2.5 rounded-2xl bg-[#0B1D2C] hover:bg-[#162E44] text-white font-black text-sm shadow-md transition-all cursor-pointer"
+                  >
+                    ተመለስ (Close)
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

@@ -157,8 +157,21 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Right Controls: Quick Shift Toggle & Profile Menu Dropdown */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             
+            {/* Direct Tablet POS Launch Button */}
+            <a
+              href="/tablet"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-[#0B1D2C] px-3.5 py-1.5 rounded-full text-xs font-black transition-all shadow-sm active:scale-95 border border-amber-400"
+              title="Open Tablet POS Screen in new tab"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-[#0B1D2C]" />
+              <span className="hidden sm:inline">📱 Tablet POS</span>
+              <span className="sm:hidden">POS</span>
+            </a>
+
             {/* Quick Shift Toggle Pill */}
             <div className="flex items-center gap-1 bg-[#f7f5f0] p-1 rounded-full border border-[#0B1D2C]/20">
               <button
@@ -265,16 +278,42 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                     </div>
 
-                    {/* Quick Links inside Menu */}
-                    <div className="space-y-1 border-t border-[#f7f5f0]/20 pt-3">
+                    {/* Quick Portal Launch Links inside Menu */}
+                    <div className="space-y-1.5 border-t border-[#f7f5f0]/20 pt-3">
+                      <a
+                        href="/tablet"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-xs font-bold text-amber-200 transition-colors border border-amber-400/30"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="w-4 h-4 text-amber-300" />
+                          <span>📱 Tablet POS App</span>
+                        </div>
+                        <span className="text-[10px] bg-amber-400 text-[#0B1D2C] font-black px-2 py-0.5 rounded-full">Launch</span>
+                      </a>
+
+                      <a
+                        href="/kitchen"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-xs font-bold text-emerald-200 transition-colors border border-emerald-400/30"
+                      >
+                        <div className="flex items-center gap-2">
+                          <ChefHat className="w-4 h-4 text-emerald-300" />
+                          <span>👨‍🍳 Kitchen Portal</span>
+                        </div>
+                        <span className="text-[10px] bg-emerald-400 text-[#0B1D2C] font-black px-2 py-0.5 rounded-full">Launch</span>
+                      </a>
+
                       <a
                         href="/shift"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#081521] text-xs font-bold text-white font-bold transition-colors"
+                        className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#081521] text-xs font-bold text-white transition-colors"
                       >
                         <div className="flex items-center gap-2">
-                          <Smartphone className="w-4 h-4 text-white font-bold" />
+                          <Receipt className="w-4 h-4 text-white" />
                           <span>Mobile Shift App</span>
                         </div>
                         <span className="text-[10px] bg-[#f7f5f0] text-[#0B1D2C] font-extrabold px-2 py-0.5 rounded-full">Open</span>
@@ -285,13 +324,13 @@ export const Header: React.FC<HeaderProps> = ({
                           setActiveTab('settings');
                           setIsProfileMenuOpen(false);
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#081521] text-xs font-bold text-white font-bold transition-colors cursor-pointer"
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#081521] text-xs font-bold text-white transition-colors cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
-                          <Settings className="w-4 h-4 text-white font-bold" />
+                          <Settings className="w-4 h-4 text-white" />
                           <span>System Settings</span>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-white font-bold/80" />
+                        <ChevronRight className="w-4 h-4 text-white/80" />
                       </button>
                     </div>
 

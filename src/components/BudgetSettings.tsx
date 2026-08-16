@@ -219,14 +219,23 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const finalDayPin = dayShiftPin.trim() || '1111';
+    const finalNightPin = nightShiftPin.trim() || '2222';
+
+    // Persist PINs locally immediately
+    safeLocalStorage.setItem('maraki_shift_pins', JSON.stringify({
+      dayShiftPin: finalDayPin,
+      nightShiftPin: finalNightPin,
+    }));
+
     onSaveConfig({
       defaultJuiceUnitPrice: juicePrice,
       defaultFoodUnitPrice: foodPrice,
       foodMenu,
       dayShiftWorkerName: dayWorker.trim(),
       nightShiftWorkerName: nightWorker.trim(),
-      dayShiftPin: dayShiftPin.trim() || '1111',
-      nightShiftPin: nightShiftPin.trim() || '2222',
+      dayShiftPin: finalDayPin,
+      nightShiftPin: finalNightPin,
       dayWorkerSignatureUrl: daySignatureUrl || undefined,
       nightWorkerSignatureUrl: nightSignatureUrl || undefined,
       restaurantName: restaurantName.trim() || 'Maraki Juice and Salad',

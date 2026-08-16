@@ -21,17 +21,23 @@ export const TabletOrdersView: React.FC<TabletOrdersViewProps> = ({
   onRefreshOrders,
   currencySymbol,
 }) => {
-  const [viewMode, setViewMode] = useState<'active' | 'closed' | 'all'>('active');
+  const [viewMode, setViewMode] = useState<'active' | 'closed' | 'all'>('all');
   const [dateFilter, setDateFilter] = useState<'today' | 'all' | 'custom'>('today');
   const [selectedCustomDate, setSelectedCustomDate] = useState<string>(getOperationalDate());
   const [shiftFilter, setShiftFilter] = useState<'all' | ShiftType>('all');
-  const [pmFilter, setPmFilter] = useState<'all' | 'cash' | 'transfer'>('all');
+  const [pmFilter, setPmFilter] = useState<'all' | 'cash' | 'transfer' | 'pending' | 'beu' | 'pay_later'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<TabletOrder | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const todayStr = getOperationalDate();
   const utcTodayStr = new Date().toISOString().split('T')[0];
+
+  // All non-voided today's orders — used for stats regardless of view mode
+  const todayAllOrders = tabletOrders.filter(o =>
+    o.status !== 'voided' &&
+    (o.date === todayStr || o.date === utcTodayStr)
+  );
 
   // Auto-refresh when viewing the tab
   const handleRefresh = () => {
@@ -75,13 +81,17 @@ export const TabletOrdersView: React.FC<TabletOrdersViewProps> = ({
     return true;
   });
 
-  // Financial Metrics
-  const totalOrders = filteredOrders.length;
-  const totalRevenue = filteredOrders.reduce((s, o) => s + (o.totalAmount || 0), 0);
-  const cashTotal = filteredOrders.filter(o => o.paymentMethod === 'cash').reduce((s, o) => s + (o.totalAmount || 0), 0);
-  const transferTotal = filteredOrders.filter(o => o.paymentMethod === 'transfer').reduce((s, o) => s + (o.totalAmount || 0), 0);
+  // Financial Metrics — always based on today's ALL non-voided orders for accuracy
+  const statsOrders = dateFilter === 'today' ? todayAllOrders : filteredOrders;
+  const totalOrders = statsOrders.length;
+  const totalRevenue = statsOrders.reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const cashTotal = statsOrders.filter(o => o.paymentMethod === 'cash').reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const transferTotal = statsOrders.filter(o => o.paymentMethod === 'transfer').reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const pendingTotal = statsOrders.filter(o => o.paymentMethod === 'pending').reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const beuTotal = statsOrders.filter(o => o.paymentMethod === 'beu').reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const payLaterTotal = statsOrders.filter(o => o.paymentMethod === 'pay_later').reduce((s, o) => s + (o.totalAmount || 0), 0);
   
-  const totalTips = filteredOrders.reduce((sum, o) => {
+  const totalTips = statsOrders.reduce((sum, o) => {
     if (o.notes) {
       const match = o.notes.match(/Tip:\s*(\d+(\.\d+)?)/i);
       if (match) return sum + parseFloat(match[1]);
@@ -89,11 +99,11 @@ export const TabletOrdersView: React.FC<TabletOrdersViewProps> = ({
     return sum;
   }, 0);
 
-  const totalJuiceSold = filteredOrders.reduce((sum, o) => 
+  const totalJuiceSold = statsOrders.reduce((sum, o) => 
     sum + (o.items || []).filter(i => i.category === 'juice').reduce((s, i) => s + i.quantity, 0), 0
   );
 
-  const totalFoodSold = filteredOrders.reduce((sum, o) => 
+  const totalFoodSold = statsOrders.reduce((sum, o) => 
     sum + (o.items || []).filter(i => i.category !== 'juice').reduce((s, i) => s + i.quantity, 0), 0
   );
 
@@ -153,6 +163,16 @@ export const TabletOrdersView: React.FC<TabletOrdersViewProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2.5">
+          <a
+            href="/tablet"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-[#0B1D2C] font-black text-xs transition-all shadow-sm active:scale-95 border border-amber-400"
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>📱 ታብሌት ክፈት (Open POS)</span>
+          </a>
+
           <button
             onClick={handleRefresh}
             className={`flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-[#f7f5f0] hover:bg-[#0B1D2C] hover:text-white text-[#0B1D2C] font-black text-xs border border-[#0B1D2C]/20 transition-all cursor-pointer ${
@@ -165,32 +185,8 @@ export const TabletOrdersView: React.FC<TabletOrdersViewProps> = ({
         </div>
       </div>
 
-      {/* View Tabs: Active vs Closed History vs All */}
-      <div className="flex bg-white rounded-2xl p-1.5 border border-[#0B1D2C]/15 shadow-xs">
-        <button
-          onClick={() => setViewMode('active')}
-          className={`flex-1 py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            viewMode === 'active'
-              ? 'bg-[#0B1D2C] text-white shadow-md'
-              : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C]'
-          }`}
-        >
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>🟢 አሁን ያሉት ትዕዛዞች (Active Shift)</span>
-        </button>
-
-        <button
-          onClick={() => setViewMode('closed')}
-          className={`flex-1 py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            viewMode === 'closed'
-              ? 'bg-[#0B1D2C] text-white shadow-md'
-              : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C]'
-          }`}
-        >
-          <Archive className="w-4 h-4 text-amber-400" />
-          <span>📚 የተዘጉ ሸፍቶች ታሪክ (Closed Shift History)</span>
-        </button>
-
+      {/* View Tabs: All (default) | Active | Closed History */}
+      <div className="flex bg-white rounded-2xl p-1.5 border border-[#0B1D2C]/15 shadow-xs gap-1">
         <button
           onClick={() => setViewMode('all')}
           className={`flex-1 py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
@@ -199,8 +195,31 @@ export const TabletOrdersView: React.FC<TabletOrdersViewProps> = ({
               : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C]'
           }`}
         >
-          <Clock className="w-4 h-4" />
-          <span>የሁሉም ጊዜ መዝገብ (All Records)</span>
+          <span>📋 ሁሉም ({todayAllOrders.length})</span>
+        </button>
+
+        <button
+          onClick={() => setViewMode('active')}
+          className={`flex-1 py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            viewMode === 'active'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C]'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>🟢 አሁን ({todayAllOrders.filter(o => o.status === 'active').length})</span>
+        </button>
+
+        <button
+          onClick={() => setViewMode('closed')}
+          className={`flex-1 py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            viewMode === 'closed'
+              ? 'bg-amber-600 text-white shadow-md'
+              : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C]'
+          }`}
+        >
+          <Archive className="w-4 h-4" />
+          <span>📚 የተዘጉ ({todayAllOrders.filter(o => o.status === 'closed').length})</span>
         </button>
       </div>
 
@@ -258,6 +277,12 @@ export const TabletOrdersView: React.FC<TabletOrdersViewProps> = ({
           <div className="text-xs text-[#0B1D2C]/50 font-bold uppercase tracking-wider mt-0.5">
             ዝውውር (Digital Transfers)
           </div>
+          {(pendingTotal > 0 || beuTotal > 0) && (
+            <div className="text-[11px] text-[#0B1D2C]/60 font-semibold mt-1 flex gap-2">
+              {pendingTotal > 0 && <span className="text-amber-700 font-bold">⏳ አዳሪ: {currencySymbol}{pendingTotal}</span>}
+              {beuTotal > 0 && <span className="text-purple-700 font-bold">🛵 BeU: {currencySymbol}{beuTotal}</span>}
+            </div>
+          )}
         </div>
       </div>
 
@@ -317,8 +342,8 @@ export const TabletOrdersView: React.FC<TabletOrdersViewProps> = ({
         </div>
 
         {/* Payment Filter */}
-        <div className="flex gap-1 bg-white border border-[#0B1D2C]/20 rounded-2xl p-1 shadow-xs">
-          {(['all', 'cash', 'transfer'] as const).map(f => (
+        <div className="flex gap-1 bg-white border border-[#0B1D2C]/20 rounded-2xl p-1 shadow-xs flex-wrap">
+          {(['all', 'cash', 'transfer', 'pay_later', 'pending', 'beu'] as const).map(f => (
             <button
               key={f}
               onClick={() => setPmFilter(f)}
@@ -328,7 +353,17 @@ export const TabletOrdersView: React.FC<TabletOrdersViewProps> = ({
                   : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C]'
               }`}
             >
-              {f === 'all' ? 'ሁሉም ክፍያ' : f === 'cash' ? '💵 ጥሬ' : '📲 ዝውውር'}
+              {f === 'all' 
+                ? 'ሁሉም ክፍያ' 
+                : f === 'cash' 
+                ? '💵 ጥሬ' 
+                : f === 'transfer' 
+                ? '📲 ዝውውር' 
+                : f === 'pay_later'
+                ? '🕒 ቆይቶ (Open)'
+                : f === 'pending' 
+                ? '⏳ አዳሪ' 
+                : '🛵 BeU'}
             </button>
           ))}
         </div>
@@ -480,8 +515,26 @@ export const TabletOrdersView: React.FC<TabletOrdersViewProps> = ({
                         <span>•</span>
                         <span>{order.items.length} ዓይነቶች</span>
                         <span>•</span>
-                        <span className={`font-black ${order.paymentMethod === 'cash' ? 'text-emerald-700' : 'text-indigo-700'}`}>
-                          {order.paymentMethod === 'cash' ? '💵 ጥሬ ገንዘብ' : '📲 ዝውውር'}
+                        <span className={`font-black ${
+                          order.paymentMethod === 'cash' 
+                            ? 'text-emerald-700' 
+                            : order.paymentMethod === 'transfer'
+                            ? 'text-indigo-700'
+                            : order.paymentMethod === 'pay_later'
+                            ? 'text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-300'
+                            : order.paymentMethod === 'pending'
+                            ? 'text-orange-700'
+                            : 'text-purple-700'
+                        }`}>
+                          {order.paymentMethod === 'cash' 
+                            ? '💵 ጥሬ ገንዘብ' 
+                            : order.paymentMethod === 'transfer' 
+                            ? '📲 ዝውውር' 
+                            : order.paymentMethod === 'pay_later'
+                            ? '🕒 ቆይቶ (Open Tab)'
+                            : order.paymentMethod === 'pending'
+                            ? '⏳ አዳሪ (Pending)'
+                            : '🛵 BeU ደሊቨሪ'}
                         </span>
                         {order.notes && (
                           <span className="text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded-md">

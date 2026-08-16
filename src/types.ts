@@ -191,7 +191,7 @@ export interface KitchenOrder {
 
 // ─── Tablet Order System ─────────────────────────────────────────────────────
 
-export type TabletPaymentMethod = 'cash' | 'transfer';
+export type TabletPaymentMethod = 'cash' | 'transfer' | 'pending' | 'beu' | 'pay_later';
 
 export interface TabletOrderItem {
   menuItemId: string;
@@ -211,8 +211,9 @@ export interface TabletOrder {
   items: TabletOrderItem[];
   totalAmount: number;
   paymentMethod: TabletPaymentMethod;
+  originalPaymentMethod?: TabletPaymentMethod;
   shiftType: ShiftType;        // 'day' | 'night'
-  status: 'active' | 'voided';
+  status: 'active' | 'closed' | 'voided';
   notes?: string;
   orderTime: string;           // ISO timestamp
   date: string;                // YYYY-MM-DD
