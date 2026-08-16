@@ -1,59 +1,133 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from './lib/supabaseClient';
-import { TabletOrder, TabletOrderItem, TabletPaymentMethod, RestaurantSystemConfig } from './types';
+import { FoodMenuItem, TabletOrder, TabletOrderItem, TabletPaymentMethod, RestaurantSystemConfig, KitchenOrder, KitchenTaker } from './types';
 import { DEFAULT_RESTAURANT_CONFIG, DEFAULT_FOOD_MENU } from './data/initialData';
-import { ShoppingCart, CheckCircle, Trash2, Plus, Minus, Send, RefreshCw, WifiOff, Sun, Moon, ChefHat, ArrowLeft } from 'lucide-react';
+import { getOperationalDate, getAutoShiftType, formatEthiopianTime } from './utils/shiftUtils';
+import { 
+  ShoppingCart, CheckCircle, Trash2, Plus, Minus, Send, RefreshCw, 
+  WifiOff, Sun, Moon, ChefHat, ArrowLeft, Clock, Check, Bike, 
+  Layers, UtensilsCrossed 
+} from 'lucide-react';
 
 type TabletShift = 'day' | 'night' | 'kitchen';
 
-interface ShiftOption { id: TabletShift; amharic: string; english: string; icon: React.ReactNode; color: string; }
+interface ShiftOption {
+  id: TabletShift;
+  amharic: string;
+  english: string;
+  icon: React.ReactNode;
+  color: string;
+  btnBg: string;
+}
 
 const SHIFTS: ShiftOption[] = [
-  { id: 'day',     amharic: 'የቀን ሸፍት',    english: 'Day Shift',    icon: <Sun className="w-10 h-10" />,     color: 'bg-amber-500' },
-  { id: 'night',   amharic: 'የሌሊት ሸፍት',  english: 'Night Shift',  icon: <Moon className="w-10 h-10" />,    color: 'bg-indigo-600' },
-  { id: 'kitchen', amharic: 'ኩሽና',         english: 'Kitchen',      icon: <ChefHat className="w-10 h-10" />, color: 'bg-emerald-600' },
+  { id: 'day',     amharic: 'የቀን ሸፍት',    english: 'Day Shift (2:00 morning – 2:00 evening)',   icon: <Sun className="w-9 h-9" />,     color: 'bg-amber-500',   btnBg: 'bg-amber-500 hover:bg-amber-600' },
+  { id: 'night',   amharic: 'የሌሊት ሸፍት',  english: 'Night Shift (2:00 evening – 2:00 morning)', icon: <Moon className="w-9 h-9" />,    color: 'bg-indigo-600',  btnBg: 'bg-indigo-600 hover:bg-indigo-700' },
+  { id: 'kitchen', amharic: 'ኩሽና',         english: 'Kitchen Check (ምግብ መስጫ)',                icon: <ChefHat className="w-9 h-9" />, color: 'bg-emerald-700', btnBg: 'bg-emerald-700 hover:bg-emerald-800' },
 ];
+
+const KITCHEN_TAKERS: { id: KitchenTaker; emoji: string; label: string; subLabel: string; color: string; border: string }[] = [
+  { id: 'day_shift',    emoji: '☀️', label: 'ቀን ሸፍት',   subLabel: 'Day Shift (2:00 ጧት – 2:00 ማታ)',  color: 'bg-amber-50 hover:bg-amber-100/80', border: 'border-amber-400' },
+  { id: 'night_shift',  emoji: '🌙', label: 'ሌሊት ሸፍት', subLabel: 'Night Shift (2:00 ማታ – 2:00 ጧት)', color: 'bg-indigo-50 hover:bg-indigo-100/80', border: 'border-indigo-400' },
+  { id: 'beu_delivery', emoji: '🚴', label: 'BeU ዴሊቨሪ', subLabel: 'Delivery Rider Takeaway',          color: 'bg-emerald-50 hover:bg-emerald-100/80', border: 'border-emerald-400' },
+];
+
+const FOOD_CATEGORIES = [
+  { id: 'all',         label: 'ሁሉም (All)',        emoji: '🍽️' },
+  { id: 'special',     label: 'ልዩ (Special)',      emoji: '⭐' },
+  { id: 'fast_food',   label: 'ፈጣን ምግብ (Fast)',    emoji: '🍝' },
+  { id: 'breakfast',   label: 'ቁርስ (Breakfast)',   emoji: '🍳' },
+  { id: 'traditional', label: 'ባሕላዊ (Traditional)', emoji: '🥘' },
+];
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  special: '⭐',
+  fast_food: '🍝',
+  breakfast: '🍳',
+  traditional: '🥘',
+};
 
 export default function TabletApp() {
   const [config, setConfig] = useState<RestaurantSystemConfig>(DEFAULT_RESTAURANT_CONFIG);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
 
-  // Shift selection (null = show shift picker screen)
+  // Main mode: null = Pick Mode (Day / Night / Kitchen)
   const [shift, setShift] = useState<TabletShift | null>(null);
 
-  // Order state
+  // ─── Shift Customer Order State (Day / Night) ──────────────────────────────
   const [customerName, setCustomerName] = useState('');
   const [notes, setNotes] = useState('');
   const [category, setCategory] = useState<'juice' | 'food'>('juice');
   const [cart, setCart] = useState<TabletOrderItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<TabletPaymentMethod>('cash');
-  const [transferAmount, setTransferAmount] = useState('');  // actual transfer amount received
+  const [transferAmount, setTransferAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successData, setSuccessData] = useState({ total: 0, tip: 0, method: 'cash' as TabletPaymentMethod });
 
-  // Load config
+  // ─── Kitchen Order Entry State (Kitchen Mode) ──────────────────────────────
+  // Step 1: 'taker' (who receives?) | Step 2: 'food' (choose food & quantity)
+  const [kitchenStep, setKitchenStep] = useState<'taker' | 'food'>('taker');
+  const [kitchenTaker, setKitchenTaker] = useState<KitchenTaker | null>(null);
+  const [kitchenCategory, setKitchenCategory] = useState<string>('all');
+  const [kitchenSelectedFood, setKitchenSelectedFood] = useState<FoodMenuItem | null>(null);
+  const [kitchenQuantity, setKitchenQuantity] = useState<number>(1);
+  const [kitchenOrders, setKitchenOrders] = useState<KitchenOrder[]>([]);
+  const [isKitchenSaving, setIsKitchenSaving] = useState(false);
+  const [kitchenSuccessAnim, setKitchenSuccessAnim] = useState(false);
+
+  const todayStr = getOperationalDate();
+
+  // Load config & today's kitchen orders
   useEffect(() => {
-    async function load() {
-      const { data } = await supabase.from('config').select('*').single();
-      if (data) {
+    async function loadData() {
+      const { data: cfg } = await supabase.from('config').select('*').single();
+      if (cfg) {
         setConfig({
-          defaultJuiceUnitPrice: data.default_juice_unit_price,
-          defaultFoodUnitPrice: data.default_food_unit_price,
-          foodMenu: data.food_menu || DEFAULT_FOOD_MENU,
-          currencySymbol: data.currency_symbol,
-          dayShiftWorkerName: data.day_shift_worker_name,
-          nightShiftWorkerName: data.night_shift_worker_name,
-          restaurantName: data.restaurant_name,
+          defaultJuiceUnitPrice: cfg.default_juice_unit_price,
+          defaultFoodUnitPrice: cfg.default_food_unit_price,
+          foodMenu: cfg.food_menu || DEFAULT_FOOD_MENU,
+          currencySymbol: cfg.currency_symbol,
+          dayShiftWorkerName: cfg.day_shift_worker_name,
+          nightShiftWorkerName: cfg.night_shift_worker_name,
+          restaurantName: cfg.restaurant_name,
         });
       }
-    }
-    load();
-    const stored = localStorage.getItem('maraki_tablet_pending');
-    if (stored) { try { setPendingSyncCount(JSON.parse(stored).length); } catch {} }
-  }, []);
 
+      // Load today's kitchen orders
+      const { data: koData } = await supabase
+        .from('kitchen_orders')
+        .select('*')
+        .eq('date', todayStr)
+        .order('created_at_ts', { ascending: false });
+
+      if (koData) {
+        setKitchenOrders(koData.map((r: any) => ({
+          id: r.id,
+          foodItemId: r.food_item_id,
+          foodItemName: r.food_item_name,
+          quantity: r.quantity,
+          taker: r.taker as KitchenTaker,
+          shiftType: r.shift_type,
+          orderTime: r.order_time,
+          date: r.date,
+          notes: r.notes,
+          createdAt: Number(r.created_at_ts),
+        })));
+      }
+    }
+
+    loadData();
+
+    const stored = localStorage.getItem('maraki_tablet_pending');
+    if (stored) {
+      try { setPendingSyncCount(JSON.parse(stored).length); } catch {}
+    }
+  }, [todayStr]);
+
+  // Online / Offline & Sync
   const retryPendingSync = useCallback(async () => {
     const stored = localStorage.getItem('maraki_tablet_pending');
     if (!stored) return;
@@ -62,12 +136,19 @@ export default function TabletApp() {
     const remaining: TabletOrder[] = [];
     for (const order of arr) {
       const { error } = await supabase.from('tablet_orders').upsert({
-        id: order.id, client_order_id: order.clientOrderId,
-        staff_name: (order as any).shiftLabel || order.staffName,
-        customer_name: order.customerName || null, items: order.items,
-        total_amount: order.totalAmount, payment_method: order.paymentMethod,
-        shift_type: order.shiftType, status: order.status, notes: order.notes || null,
-        order_time: order.orderTime, date: order.date, created_at_ts: order.createdAt,
+        id: order.id,
+        client_order_id: order.clientOrderId,
+        staff_name: order.staffName,
+        customer_name: order.customerName || null,
+        items: order.items,
+        total_amount: order.totalAmount,
+        payment_method: order.paymentMethod,
+        shift_type: order.shiftType,
+        status: order.status,
+        notes: order.notes || null,
+        order_time: order.orderTime,
+        date: order.date,
+        created_at_ts: order.createdAt,
       }, { onConflict: 'client_order_id', ignoreDuplicates: true });
       if (error) remaining.push(order);
     }
@@ -80,10 +161,13 @@ export default function TabletApp() {
     const goOffline = () => setIsOnline(false);
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
-    return () => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline); };
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
   }, [retryPendingSync]);
 
-  const savePending = (order: TabletOrder & { shiftLabel: string }) => {
+  const savePending = (order: TabletOrder) => {
     const stored = localStorage.getItem('maraki_tablet_pending');
     const arr = stored ? JSON.parse(stored) : [];
     arr.push(order);
@@ -91,7 +175,7 @@ export default function TabletApp() {
     setPendingSyncCount(arr.length);
   };
 
-  // Menu
+  // ─── Shift Customer Order Handlers ─────────────────────────────────────────
   const juiceItem = { id: 'juice-cup', name: 'ጭማቂ (Juice Cup)', price: config.defaultJuiceUnitPrice, cat: 'juice' as const };
   const allItems = [
     juiceItem,
@@ -106,8 +190,10 @@ export default function TabletApp() {
         return prev.map(c => c.menuItemId === item.id
           ? { ...c, quantity: c.quantity + 1, totalPrice: (c.quantity + 1) * c.unitPrice } : c);
       }
-      return [...prev, { menuItemId: item.id, name: item.name, category: item.cat,
-        quantity: 1, unitPrice: item.price, totalPrice: item.price }];
+      return [...prev, {
+        menuItemId: item.id, name: item.name, category: item.cat,
+        quantity: 1, unitPrice: item.price, totalPrice: item.price,
+      }];
     });
   };
 
@@ -125,32 +211,42 @@ export default function TabletApp() {
 
   const selectedShift = SHIFTS.find(s => s.id === shift);
 
-  const handleSubmit = async () => {
+  const handleSubmitCustomerOrder = async () => {
     if (!cart.length || !shift) return;
     setIsSubmitting(true);
     const now = new Date();
     const id = 'to-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
     const shiftRecord = SHIFTS.find(s => s.id === shift)!;
-    const order: TabletOrder & { shiftLabel: string; transferAmount?: number; tip?: number } = {
-      id, clientOrderId: id,
+    const order: TabletOrder = {
+      id,
+      clientOrderId: id,
       staffName: shiftRecord.amharic,
-      shiftLabel: shiftRecord.amharic,
       customerName: customerName.trim() || undefined,
-      items: cart, totalAmount: cartTotal, paymentMethod,
-      shiftType: (shift === 'kitchen' ? 'day' : shift) as 'day' | 'night',
-      status: 'active', notes: notes.trim() || undefined,
-      orderTime: now.toISOString(), date: now.toISOString().split('T')[0], createdAt: now.getTime(),
-      transferAmount: paymentMethod === 'transfer' ? transferAmt : undefined,
-      tip: tip > 0 ? tip : undefined,
+      items: cart,
+      totalAmount: cartTotal,
+      paymentMethod,
+      shiftType: shift as 'day' | 'night',
+      status: 'active',
+      notes: notes.trim() ? (tip > 0 ? `${notes.trim()} (Tip: ${tip} Br)` : notes.trim()) : (tip > 0 ? `Tip: ${tip} Br` : undefined),
+      orderTime: now.toISOString(),
+      date: now.toISOString().split('T')[0],
+      createdAt: now.getTime(),
     };
 
     const payload = {
-      id: order.id, client_order_id: order.clientOrderId,
+      id: order.id,
+      client_order_id: order.clientOrderId,
       staff_name: shiftRecord.amharic,
-      customer_name: order.customerName || null, items: order.items,
-      total_amount: order.totalAmount, payment_method: order.paymentMethod,
-      shift_type: shift, status: order.status, notes: order.notes || null,
-      order_time: order.orderTime, date: order.date, created_at_ts: order.createdAt,
+      customer_name: order.customerName || null,
+      items: order.items,
+      total_amount: order.totalAmount,
+      payment_method: order.paymentMethod,
+      shift_type: shift,
+      status: order.status,
+      notes: order.notes || null,
+      order_time: order.orderTime,
+      date: order.date,
+      created_at_ts: order.createdAt,
     };
 
     if (isOnline) {
@@ -165,26 +261,491 @@ export default function TabletApp() {
     setShowSuccess(true);
     setTimeout(() => {
       setShowSuccess(false);
-      setCart([]); setCustomerName(''); setNotes('');
-      setPaymentMethod('cash'); setTransferAmount('');
-    }, 2800);
+      setCart([]);
+      setCustomerName('');
+      setNotes('');
+      setPaymentMethod('cash');
+      setTransferAmount('');
+    }, 2500);
   };
 
-  // ── SUCCESS SCREEN ─────────────────────────────────────────────────────────
+  // ─── Kitchen Order Handlers ────────────────────────────────────────────────
+  const handleSaveKitchenOrder = async (food: FoodMenuItem, qty: number) => {
+    if (!kitchenTaker) return;
+    setIsKitchenSaving(true);
+
+    const now = new Date();
+    const autoShift = getAutoShiftType(now);
+    const shiftType = kitchenTaker === 'beu_delivery' ? autoShift.shiftType : (kitchenTaker === 'night_shift' ? 'night' : 'day');
+    const opDate = getOperationalDate(now);
+
+    const newOrder: KitchenOrder = {
+      id: 'ko-' + Date.now(),
+      foodItemId: food.id,
+      foodItemName: food.name,
+      quantity: qty,
+      taker: kitchenTaker,
+      shiftType,
+      orderTime: now.toISOString(),
+      date: opDate,
+      createdAt: Date.now(),
+    };
+
+    setKitchenOrders(prev => [newOrder, ...prev]);
+
+    if (isOnline) {
+      const { error } = await supabase.from('kitchen_orders').insert({
+        id: newOrder.id,
+        food_item_id: newOrder.foodItemId,
+        food_item_name: newOrder.foodItemName,
+        quantity: newOrder.quantity,
+        taker: newOrder.taker,
+        shift_type: newOrder.shiftType,
+        order_time: newOrder.orderTime,
+        date: newOrder.date,
+        created_at_ts: newOrder.createdAt,
+      });
+      if (error) console.error('Error saving kitchen order:', error);
+    }
+
+    setIsKitchenSaving(false);
+    setKitchenSelectedFood(null);
+    setKitchenQuantity(1);
+    setKitchenSuccessAnim(true);
+    setTimeout(() => setKitchenSuccessAnim(false), 1400);
+  };
+
+  const handleDeleteKitchenOrder = async (id: string) => {
+    setKitchenOrders(prev => prev.filter(o => o.id !== id));
+    await supabase.from('kitchen_orders').delete().eq('id', id);
+  };
+
+  const activeKitchenFoods = (config.foodMenu || DEFAULT_FOOD_MENU).filter(f => f.available !== false);
+  const filteredKitchenFoods = kitchenCategory === 'all' 
+    ? activeKitchenFoods 
+    : activeKitchenFoods.filter(f => f.category === kitchenCategory);
+
+  const selectedTakerObj = KITCHEN_TAKERS.find(t => t.id === kitchenTaker);
+
+  // ─── 1. SHIFT PICKER SCREEN (Home on tablet launch) ────────────────────────
+  if (!shift) {
+    return (
+      <div className="min-h-screen bg-[#0B1D2C] flex flex-col items-center justify-center px-6 py-8 select-none">
+        <div className="text-center mb-6">
+          <img 
+            src="/logo.jpg" 
+            alt="Maraki" 
+            className="h-20 w-20 mx-auto rounded-3xl object-cover mb-4 shadow-2xl border border-white/10"
+            onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} 
+          />
+          <h1 className="text-4xl font-black text-white tracking-tight">ማራኪ • MARAKI</h1>
+          <p className="text-[#f7f5f0]/60 text-base font-semibold mt-1">የቀን፣ የሌሊት እና የኩሽና ትዕዛዝ መስጫ</p>
+        </div>
+
+        {/* Sync & network status */}
+        <div className="flex gap-2 mb-6">
+          {pendingSyncCount > 0 && (
+            <div className="flex items-center gap-2 bg-amber-500/20 text-amber-300 text-sm font-bold px-4 py-2 rounded-full border border-amber-500/30">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>{pendingSyncCount} ትዕዛዞች በመጠባበቅ ላይ</span>
+            </div>
+          )}
+          {!isOnline && (
+            <div className="flex items-center gap-2 bg-red-500/20 text-red-300 text-sm font-bold px-4 py-2 rounded-full border border-red-500/30">
+              <WifiOff className="w-4 h-4" />
+              <span>ከኔትወርክ ውጭ (Offline)</span>
+            </div>
+          )}
+        </div>
+
+        <div className="text-center mb-4">
+          <p className="text-white/70 text-lg font-bold">እባክዎ የስራ ክፍልዎን ይምረጡ</p>
+          <p className="text-white/40 text-xs uppercase tracking-widest mt-0.5">Select Working Mode</p>
+        </div>
+
+        {/* 3 Large Action Cards */}
+        <div className="flex flex-col gap-4 w-full max-w-md">
+          {SHIFTS.map(s => (
+            <button
+              key={s.id}
+              onClick={() => {
+                setShift(s.id);
+                if (s.id === 'kitchen') {
+                  setKitchenStep('taker');
+                  setKitchenTaker(null);
+                }
+              }}
+              className={`${s.btnBg} rounded-3xl p-5 sm:p-6 flex items-center gap-5 shadow-2xl active:scale-95 transition-all text-left border-2 border-white/10`}
+            >
+              <div className="text-white bg-black/20 p-3 rounded-2xl shrink-0 shadow-inner">
+                {s.icon}
+              </div>
+              <div className="flex-1">
+                <div className="text-white font-black text-2xl sm:text-3xl leading-tight">{s.amharic}</div>
+                <div className="text-white/70 text-xs sm:text-sm font-medium mt-0.5">{s.english}</div>
+              </div>
+              <div className="text-white/50 text-2xl font-black">→</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── 2. KITCHEN CHECK FLOW (Cook / Chef Order Logging) ─────────────────────
+  if (shift === 'kitchen') {
+    return (
+      <div className="min-h-screen bg-[#f7f5f0] flex flex-col font-sans select-none">
+        {/* Top Bar */}
+        <div className="bg-[#0B1D2C] text-white px-4 py-3.5 flex items-center justify-between shadow-lg sticky top-0 z-40">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setShift(null)} 
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white flex items-center gap-1.5"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-xs font-bold hidden sm:inline">ዋና ገጽ (Home)</span>
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center text-white">
+                <ChefHat className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-black text-base leading-tight">ኩሽና • Kitchen Check</div>
+                <div className="text-white/50 text-xs">ቀን: {todayStr}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Current Taker indicator or switch button */}
+          {kitchenStep === 'food' && selectedTakerObj && (
+            <button 
+              onClick={() => setKitchenStep('taker')}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm px-3.5 py-1.5 rounded-2xl transition-all shadow-sm border border-emerald-400/40"
+            >
+              <span className="text-lg">{selectedTakerObj.emoji}</span>
+              <span>ተቀባይ: <strong>{selectedTakerObj.label}</strong></span>
+              <span className="text-white/60 text-xs ml-1">(ቀይር)</span>
+            </button>
+          )}
+        </div>
+
+        {/* ─── KITCHEN STEP 1: WHO IS RECEIVING? (ተቀባይ ማን ነው?) ─── */}
+        {kitchenStep === 'taker' ? (
+          <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 max-w-2xl mx-auto w-full">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 rounded-3xl bg-[#0B1D2C] text-white flex items-center justify-center mx-auto mb-3 shadow-lg">
+                <UtensilsCrossed className="w-8 h-8" />
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-[#0B1D2C]">ተቀባይ ማን ነው?</h2>
+              <p className="text-[#0B1D2C]/60 text-sm sm:text-base font-semibold mt-1">
+                ምግቡን የወሰደው የቀን ወይስ የሌሊት ሸፍት ነው? (Select Receiver)
+              </p>
+            </div>
+
+            {/* 3 Receiver Cards */}
+            <div className="flex flex-col gap-4 w-full">
+              {KITCHEN_TAKERS.map(t => {
+                const autoInfo = getAutoShiftType();
+                const isAutoActive = t.id === autoInfo.defaultTaker;
+
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setKitchenTaker(t.id);
+                      setKitchenStep('food');
+                      setKitchenSelectedFood(null);
+                      setKitchenQuantity(1);
+                    }}
+                    className={`relative flex items-center gap-5 p-5 sm:p-6 rounded-3xl border-3 ${t.border} ${t.color} text-[#0B1D2C] shadow-md active:scale-95 transition-all text-left`}
+                  >
+                    <span className="text-5xl sm:text-6xl p-2 bg-white rounded-2xl shadow-xs shrink-0">{t.emoji}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl sm:text-3xl font-black text-[#0B1D2C]">{t.label}</span>
+                        {isAutoActive && (
+                          <span className="text-xs bg-[#0B1D2C] text-white font-bold px-2.5 py-1 rounded-full shadow-xs">
+                            አሁን ያለው (Active)
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm font-semibold text-[#0B1D2C]/70 mt-1">{t.subLabel}</div>
+                    </div>
+                    <div className="text-[#0B1D2C]/40 text-2xl font-black">→</div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Today's Dispatched Summary */}
+            {kitchenOrders.length > 0 && (
+              <div className="mt-8 w-full bg-white rounded-3xl p-5 border border-[#0B1D2C]/10 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase text-[#0B1D2C]/60 tracking-wider">
+                    <Clock className="w-4 h-4 text-[#0B1D2C]" />
+                    <span>የዛሬ የኩሽና ትዕዛዞች (Today Dispatched: {kitchenOrders.length} ዕቃዎች)</span>
+                  </div>
+                </div>
+                <div className="divide-y divide-[#0B1D2C]/5 max-h-48 overflow-y-auto">
+                  {kitchenOrders.slice(0, 5).map(o => (
+                    <div key={o.id} className="py-2.5 flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">
+                          {o.taker === 'day_shift' ? '☀️' : o.taker === 'night_shift' ? '🌙' : '🚴'}
+                        </span>
+                        <span className="font-black text-[#0B1D2C]">{o.foodItemName}</span>
+                        <span className="text-xs text-[#0B1D2C]/50 font-bold">× {o.quantity}</span>
+                      </div>
+                      <span className="text-xs font-bold text-[#0B1D2C]/40">
+                        {formatEthiopianTime(o.orderTime)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ─── KITCHEN STEP 2: CHOOSE FOOD CATEGORIES & QUANTITY ─── */
+          <div className="flex flex-1" style={{ height: 'calc(100vh - 60px)', overflow: 'hidden' }}>
+            
+            {/* LEFT: Food Category Picker & Items Grid */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              
+              {/* Category Filter Pills */}
+              <div className="bg-white border-b border-[#0B1D2C]/10 px-4 py-3 flex gap-2 overflow-x-auto">
+                {FOOD_CATEGORIES.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setKitchenCategory(cat.id)}
+                    className={`px-4 py-2.5 rounded-2xl text-sm font-bold shrink-0 transition-all flex items-center gap-1.5 border-2 ${
+                      kitchenCategory === cat.id
+                        ? 'bg-[#0B1D2C] text-white border-[#0B1D2C] shadow-md scale-102'
+                        : 'bg-[#f7f5f0] text-[#0B1D2C]/70 border-[#0B1D2C]/15 hover:border-[#0B1D2C]/40'
+                    }`}
+                  >
+                    <span>{cat.emoji}</span>
+                    <span>{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Food Items Grid */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                  {filteredKitchenFoods.map(food => {
+                    const isSelected = kitchenSelectedFood?.id === food.id;
+                    const emoji = CATEGORY_EMOJI[food.category || 'special'] || '🍽️';
+
+                    return (
+                      <button
+                        key={food.id}
+                        onClick={() => {
+                          setKitchenSelectedFood(food);
+                          if (!kitchenSelectedFood || kitchenSelectedFood.id !== food.id) {
+                            setKitchenQuantity(1);
+                          }
+                        }}
+                        className={`relative rounded-3xl p-4 text-left transition-all active:scale-95 shadow-sm border-3 flex flex-col justify-between min-h-[120px] ${
+                          isSelected
+                            ? 'bg-[#0B1D2C] border-[#0B1D2C] text-white shadow-xl'
+                            : 'bg-white border-[#0B1D2C]/15 text-[#0B1D2C] hover:border-[#0B1D2C]/40 hover:shadow-md'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <span className="text-3xl">{emoji}</span>
+                          {isSelected && (
+                            <span className="bg-emerald-400 text-[#0B1D2C] text-xs font-black px-2 py-0.5 rounded-full">
+                              የተመረጠ
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <div className={`font-black text-sm sm:text-base leading-snug line-clamp-2 ${isSelected ? 'text-white' : 'text-[#0B1D2C]'}`}>
+                            {food.name}
+                          </div>
+                          <div className={`text-xs font-bold mt-1 ${isSelected ? 'text-[#f7f5f0]/70' : 'text-[#0B1D2C]/50'}`}>
+                            ብር {food.price.toLocaleString()}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT: Selected Food Quantity & Dispatch Action Panel */}
+            <div className="w-80 sm:w-96 bg-white border-l border-[#0B1D2C]/10 flex flex-col shadow-2xl">
+              
+              {/* Receiver Badge */}
+              <div className="p-4 bg-[#f7f5f0] border-b border-[#0B1D2C]/10 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-[#0B1D2C]/50 uppercase tracking-wider">ተቀባይ ክፍል</div>
+                  <div className="font-black text-base text-[#0B1D2C] flex items-center gap-1.5 mt-0.5">
+                    <span>{selectedTakerObj?.emoji}</span>
+                    <span>{selectedTakerObj?.label}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setKitchenStep('taker')}
+                  className="text-xs font-bold bg-white text-[#0B1D2C] px-3 py-1.5 rounded-xl border border-[#0B1D2C]/20 hover:bg-[#0B1D2C] hover:text-white transition-colors"
+                >
+                  ቀይር
+                </button>
+              </div>
+
+              {/* Quantity Selector Section */}
+              <div className="flex-1 p-5 flex flex-col justify-center items-center text-center">
+                {kitchenSelectedFood ? (
+                  <div className="w-full space-y-5">
+                    <div className="text-5xl">{CATEGORY_EMOJI[kitchenSelectedFood.category || 'special'] || '🍽️'}</div>
+                    <div>
+                      <h3 className="text-2xl font-black text-[#0B1D2C]">{kitchenSelectedFood.name}</h3>
+                      <p className="text-sm font-bold text-[#0B1D2C]/50 mt-1">ስንት እቃ ተሰጠ? (How many portions?)</p>
+                    </div>
+
+                    {/* Stepper */}
+                    <div className="flex items-center justify-center gap-6 py-2">
+                      <button
+                        onClick={() => setKitchenQuantity(q => Math.max(1, q - 1))}
+                        className="w-16 h-16 rounded-2xl bg-[#f7f5f0] hover:bg-red-50 hover:text-red-600 border-2 border-[#0B1D2C]/20 flex items-center justify-center active:scale-90 text-[#0B1D2C] transition-all shadow-xs"
+                      >
+                        <Minus className="w-7 h-7" strokeWidth={3} />
+                      </button>
+
+                      <span className="text-6xl font-black text-[#0B1D2C] w-20 text-center">
+                        {kitchenQuantity}
+                      </span>
+
+                      <button
+                        onClick={() => setKitchenQuantity(q => q + 1)}
+                        className="w-16 h-16 rounded-2xl bg-[#0B1D2C] hover:bg-[#162E44] text-white flex items-center justify-center active:scale-90 transition-all shadow-md"
+                      >
+                        <Plus className="w-7 h-7" strokeWidth={3} />
+                      </button>
+                    </div>
+
+                    {/* Quick portion chips */}
+                    <div className="flex justify-center gap-2 pt-2">
+                      {[1, 2, 3, 5, 10].map(n => (
+                        <button
+                          key={n}
+                          onClick={() => setKitchenQuantity(n)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all border ${
+                            kitchenQuantity === n
+                              ? 'bg-[#0B1D2C] text-white border-[#0B1D2C]'
+                              : 'bg-[#f7f5f0] text-[#0B1D2C]/70 border-[#0B1D2C]/20 hover:border-[#0B1D2C]/50'
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center text-[#0B1D2C]/30 space-y-3">
+                    <UtensilsCrossed className="w-16 h-16 mx-auto stroke-1" />
+                    <p className="font-bold text-base text-[#0B1D2C]/60">እባክዎ ከግራ በኩል ምግብ ይምረጡ</p>
+                    <p className="text-xs">Tap any food item to set quantity</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Save Button */}
+              <div className="p-4 border-t border-[#0B1D2C]/10 bg-[#f7f5f0]">
+                <button
+                  onClick={() => kitchenSelectedFood && handleSaveKitchenOrder(kitchenSelectedFood, kitchenQuantity)}
+                  disabled={!kitchenSelectedFood || isKitchenSaving}
+                  className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl ${
+                    !kitchenSelectedFood
+                      ? 'bg-black/15 text-black/30 cursor-not-allowed'
+                      : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-emerald-700/30'
+                  }`}
+                >
+                  {isKitchenSaving ? (
+                    <div className="w-6 h-6 border-3 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Check className="w-6 h-6" strokeWidth={3} />
+                      <span>አስቀምጥ (Save Order)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Today's Dispatched List for Kitchen */}
+              <div className="border-t border-[#0B1D2C]/10 p-3 bg-white max-h-44 overflow-y-auto">
+                <div className="text-xs font-black text-[#0B1D2C]/60 uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>የዛሬ የኩሽና መዝገብ ({kitchenOrders.length})</span>
+                </div>
+                {kitchenOrders.length === 0 ? (
+                  <p className="text-xs text-[#0B1D2C]/40 text-center py-2">ዛሬ ምንም ምግብ አልተሰጠም</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {kitchenOrders.slice(0, 4).map(o => (
+                      <div key={o.id} className="flex items-center justify-between text-xs bg-[#f7f5f0] p-2 rounded-xl border border-[#0B1D2C]/10">
+                        <div className="flex items-center gap-1.5">
+                          <span>{o.taker === 'day_shift' ? '☀️' : o.taker === 'night_shift' ? '🌙' : '🚴'}</span>
+                          <span className="font-bold text-[#0B1D2C]">{o.foodItemName}</span>
+                          <span className="text-emerald-700 font-black">× {o.quantity}</span>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteKitchenOrder(o.id)}
+                          className="text-[#0B1D2C]/30 hover:text-red-500 transition-colors p-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Success Toast Overlay */}
+            <AnimatePresence>
+              {kitchenSuccessAnim && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 pointer-events-none"
+                >
+                  <div className="bg-white rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-3 border-2 border-emerald-500 text-center">
+                    <div className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center animate-bounce">
+                      <Check className="w-10 h-10" strokeWidth={3} />
+                    </div>
+                    <h3 className="text-2xl font-black text-[#0B1D2C]">ተቀምጧል!</h3>
+                    <p className="text-sm font-bold text-neutral-600">ምግቡ በኩሽና መዝገብ ላይ ተመዝግቧል</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ─── 3. DAY / NIGHT SHIFT CUSTOMER ORDER FLOW ──────────────────────────────
   if (showSuccess) {
     return (
-      <div className="fixed inset-0 bg-[#0B1D2C] flex flex-col items-center justify-center gap-5 z-50 px-8">
-        <div className="bg-emerald-500 rounded-full p-6 shadow-2xl mb-2">
+      <div className="fixed inset-0 bg-[#0B1D2C] flex flex-col items-center justify-center gap-5 z-50 px-8 select-none">
+        <div className="bg-emerald-500 rounded-full p-6 shadow-2xl mb-2 animate-bounce">
           <CheckCircle className="w-16 h-16 text-white" strokeWidth={1.5} />
         </div>
-        <h2 className="text-3xl font-black text-white">ትዕዛዝ ተልኳል!</h2>
-        <p className="text-white/50 text-sm">Order submitted successfully</p>
-        <div className="mt-4 bg-white/10 rounded-3xl p-6 w-full max-w-xs space-y-3 text-center">
-          <div className="text-white/50 text-xs uppercase tracking-widest">ጠቅላላ ዋጋ</div>
+        <h2 className="text-3xl sm:text-4xl font-black text-white">ትዕዛዝ ተልኳል!</h2>
+        <p className="text-[#f7f5f0]/60 text-base font-semibold">Order saved and synced successfully</p>
+        
+        <div className="mt-4 bg-white/10 rounded-3xl p-6 w-full max-w-xs space-y-3 text-center border border-white/15 shadow-xl">
+          <div className="text-[#f7f5f0]/60 text-xs uppercase tracking-widest font-bold">ጠቅላላ የተከፈለ</div>
           <div className="text-4xl font-black text-white">ብር {successData.total.toLocaleString()}</div>
+          
           {successData.method === 'transfer' && successData.tip > 0 && (
-            <div className="bg-emerald-500/20 text-emerald-300 rounded-2xl px-4 py-3 mt-2">
-              <div className="text-xs text-emerald-300/70 mb-1">ጠቃሚ (Tip)</div>
+            <div className="bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 rounded-2xl px-4 py-3 mt-2">
+              <div className="text-xs text-emerald-300/80 mb-1 font-bold">✨ የተሰጠ ጠቃሚ (Tip)</div>
               <div className="text-2xl font-black">ብር {successData.tip.toLocaleString()}</div>
             </div>
           )}
@@ -193,118 +754,102 @@ export default function TabletApp() {
     );
   }
 
-  // ── SHIFT PICKER SCREEN ────────────────────────────────────────────────────
-  if (!shift) {
-    return (
-      <div className="min-h-screen bg-[#0B1D2C] flex flex-col items-center justify-center px-6 gap-8">
-        {/* Logo + title */}
-        <div className="text-center mb-2">
-          <img src="/logo.jpg" alt="Maraki" className="h-20 w-20 mx-auto rounded-2xl object-cover mb-4 shadow-2xl"
-            onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
-          <h1 className="text-3xl font-black text-white tracking-tight">ማራኪ</h1>
-          <p className="text-white/40 text-sm mt-1">ጭማቂ እና ሰላጣ • Order Entry</p>
-        </div>
-
-        {/* Pending sync badge */}
-        {pendingSyncCount > 0 && (
-          <div className="flex items-center gap-2 bg-amber-500/20 text-amber-300 text-sm px-4 py-2 rounded-full">
-            <RefreshCw className="w-4 h-4" />
-            <span>{pendingSyncCount} ትዕዛዝ ሊሄዱ ይጠብቃሉ</span>
-          </div>
-        )}
-        {!isOnline && (
-          <div className="flex items-center gap-2 bg-red-500/20 text-red-300 text-sm px-4 py-2 rounded-full">
-            <WifiOff className="w-4 h-4" /><span>ከኔት ውጭ ነዎት</span>
-          </div>
-        )}
-
-        <p className="text-white/60 text-lg font-semibold">ሸፍትዎን ይምረጡ</p>
-
-        {/* Shift buttons */}
-        <div className="flex flex-col gap-4 w-full max-w-sm">
-          {SHIFTS.map(s => (
-            <button key={s.id} onClick={() => setShift(s.id)}
-              className={`${s.color} rounded-3xl p-6 flex items-center gap-5 shadow-2xl active:scale-95 transition-all text-left`}>
-              <div className="text-white opacity-90">{s.icon}</div>
-              <div>
-                <div className="text-white font-black text-2xl">{s.amharic}</div>
-                <div className="text-white/60 text-sm">{s.english}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // ── ORDER ENTRY SCREEN ─────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#f7f5f0] flex flex-col font-sans select-none">
-
-      {/* Top bar */}
+      
+      {/* Top Bar */}
       <div className={`${selectedShift!.color} text-white px-4 py-3 flex items-center justify-between shadow-lg sticky top-0 z-40`}>
-        <button onClick={() => setShift(null)} className="flex items-center gap-2 text-white/80 hover:text-white transition-colors">
-          <ArrowLeft className="w-5 h-5" />
+        <button 
+          onClick={() => setShift(null)} 
+          className="flex items-center gap-2 text-white/90 hover:text-white active:scale-95 transition-all"
+        >
+          <div className="p-1.5 rounded-xl bg-black/20">
+            <ArrowLeft className="w-5 h-5" />
+          </div>
           <div>
             <div className="font-black text-base leading-tight">{selectedShift!.amharic}</div>
-            <div className="text-white/60 text-xs">{selectedShift!.english}</div>
+            <div className="text-white/70 text-xs">{selectedShift!.english}</div>
           </div>
         </button>
+
         <div className="flex items-center gap-2">
           {pendingSyncCount > 0 && (
-            <div className="flex items-center gap-1 bg-black/20 text-white text-xs px-2 py-1 rounded-full">
-              <RefreshCw className="w-3 h-3" /><span>{pendingSyncCount}</span>
+            <div className="flex items-center gap-1.5 bg-black/25 text-white text-xs font-bold px-3 py-1.5 rounded-full">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              <span>{pendingSyncCount}</span>
             </div>
           )}
           {!isOnline && (
-            <div className="flex items-center gap-1 bg-black/20 text-white text-xs px-2 py-1 rounded-full">
-              <WifiOff className="w-3 h-3" /><span>ከኔት ውጭ</span>
+            <div className="flex items-center gap-1 bg-black/25 text-white text-xs font-bold px-3 py-1.5 rounded-full">
+              <WifiOff className="w-3.5 h-3.5" />
+              <span>Offline</span>
             </div>
           )}
         </div>
       </div>
 
       <div className="flex flex-1" style={{ height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
-
-        {/* LEFT: Menu */}
+        
+        {/* LEFT: Menu & Customer Info */}
         <div className="flex-1 flex flex-col overflow-hidden">
-
-          {/* Customer name */}
+          
+          {/* Customer Name Input */}
           <div className="bg-white border-b border-black/10 px-4 py-3">
-            <label className="text-xs font-bold text-black/40 uppercase tracking-widest mb-1 block">የደንበኛ ስም (አማራጭ)</label>
-            <input value={customerName} onChange={e => setCustomerName(e.target.value)}
-              placeholder="የደንበኛ ስም..."
-              className="w-full border-2 border-black/15 rounded-xl px-3 py-2.5 text-sm text-[#0B1D2C] outline-none focus:border-[#0B1D2C]/50 bg-[#f7f5f0] placeholder:text-black/25 font-semibold" />
+            <label className="text-xs font-bold text-black/40 uppercase tracking-widest mb-1 block">
+              የደንበኛ ስም (አማራጭ)
+            </label>
+            <input 
+              value={customerName} 
+              onChange={e => setCustomerName(e.target.value)}
+              placeholder="የደንበኛ ስም እዚህ ያስገቡ..."
+              className="w-full border-2 border-black/15 rounded-xl px-3.5 py-2.5 text-sm text-[#0B1D2C] outline-none focus:border-[#0B1D2C] bg-[#f7f5f0] placeholder:text-black/30 font-bold transition-colors" 
+            />
           </div>
 
-          {/* Category tabs */}
+          {/* Category Tabs */}
           <div className="flex bg-white border-b border-black/10">
             {(['juice', 'food'] as const).map(cat => (
-              <button key={cat} onClick={() => setCategory(cat)}
-                className={'flex-1 py-3.5 text-base font-black tracking-wide transition-all border-b-3 ' + (
+              <button 
+                key={cat} 
+                onClick={() => setCategory(cat)}
+                className={`flex-1 py-3.5 text-base font-black tracking-wide transition-all border-b-3 ${
                   category === cat
-                    ? 'border-b-2 border-[#0B1D2C] text-[#0B1D2C] bg-[#0B1D2C]/5'
-                    : 'border-b-2 border-transparent text-black/30 hover:text-black/60'
-                )}>
-                {cat === 'juice' ? '🥤 ጭማቂ' : '🍽️ ምግብ'}
+                    ? 'border-b-3 border-[#0B1D2C] text-[#0B1D2C] bg-[#0B1D2C]/5'
+                    : 'border-b-3 border-transparent text-black/35 hover:text-black/70'
+                }`}
+              >
+                {cat === 'juice' ? '🥤 ጭማቂ (Juice)' : '🍽️ ምግብ (Food)'}
               </button>
             ))}
           </div>
 
-          {/* Menu grid */}
-          <div className="flex-1 overflow-y-auto p-3">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {/* Menu Grid */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
               {menuItems.map(item => {
                 const inCart = cart.find(c => c.menuItemId === item.id);
                 return (
-                  <button key={item.id} onClick={() => addToCart(item)}
-                    className={'relative rounded-2xl p-4 text-left transition-all active:scale-95 shadow-sm border-2 ' +
-                      (inCart ? 'bg-[#0B1D2C] border-[#0B1D2C] text-white' : 'bg-white border-black/10 text-[#0B1D2C] hover:border-black/30 hover:shadow-md')}>
-                    <div className="text-2xl mb-2">{category === 'juice' ? '🥤' : '🍽️'}</div>
-                    <div className={'font-bold text-xs leading-tight mb-1.5 line-clamp-2 ' + (inCart ? 'text-white' : 'text-[#0B1D2C]')}>{item.name}</div>
-                    <div className={'text-sm font-black ' + (inCart ? 'text-white' : 'text-[#0B1D2C]')}>ብር {item.price.toLocaleString()}</div>
+                  <button 
+                    key={item.id} 
+                    onClick={() => addToCart(item)}
+                    className={`relative rounded-3xl p-4 text-left transition-all active:scale-95 shadow-sm border-2 flex flex-col justify-between min-h-[115px] ${
+                      inCart 
+                        ? 'bg-[#0B1D2C] border-[#0B1D2C] text-white shadow-lg' 
+                        : 'bg-white border-black/10 text-[#0B1D2C] hover:border-black/30 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="text-3xl mb-1">{category === 'juice' ? '🥤' : '🍽️'}</div>
+                    <div>
+                      <div className={`font-black text-xs sm:text-sm leading-tight line-clamp-2 ${inCart ? 'text-white' : 'text-[#0B1D2C]'}`}>
+                        {item.name}
+                      </div>
+                      <div className={`text-sm font-black mt-1 ${inCart ? 'text-[#f7f5f0]' : 'text-[#0B1D2C]'}`}>
+                        ብር {item.price.toLocaleString()}
+                      </div>
+                    </div>
+
                     {inCart && (
-                      <div className="absolute top-2 right-2 bg-emerald-400 text-white text-xs font-black rounded-full w-6 h-6 flex items-center justify-center">
+                      <div className="absolute top-2.5 right-2.5 bg-emerald-400 text-[#0B1D2C] text-xs font-black rounded-full w-6 h-6 flex items-center justify-center shadow-md">
                         {inCart.quantity}
                       </div>
                     )}
@@ -315,51 +860,63 @@ export default function TabletApp() {
           </div>
         </div>
 
-        {/* RIGHT: Cart + Payment */}
-        <div className="w-72 sm:w-80 bg-white border-l border-black/10 flex flex-col shadow-xl">
-
-          {/* Cart header */}
-          <div className="px-4 py-3 border-b border-black/10 flex items-center justify-between">
-            <div className="flex items-center gap-2 font-black text-[#0B1D2C]">
-              <ShoppingCart className="w-4 h-4" />
-              <span>ቅርጫት</span>
-              {cartCount > 0 && <span className="bg-[#0B1D2C] text-white text-xs font-black px-2 py-0.5 rounded-full">{cartCount}</span>}
+        {/* RIGHT: Cart & Payment */}
+        <div className="w-80 sm:w-96 bg-white border-l border-black/10 flex flex-col shadow-2xl">
+          
+          {/* Cart Header */}
+          <div className="px-4 py-3.5 border-b border-black/10 flex items-center justify-between bg-[#f7f5f0]">
+            <div className="flex items-center gap-2 font-black text-[#0B1D2C] text-base">
+              <ShoppingCart className="w-5 h-5" />
+              <span>ቅርጫት (Cart)</span>
+              {cartCount > 0 && (
+                <span className="bg-[#0B1D2C] text-white text-xs font-black px-2.5 py-0.5 rounded-full">
+                  {cartCount}
+                </span>
+              )}
             </div>
             {cart.length > 0 && (
-              <button onClick={() => setCart([])} className="p-1 text-black/25 hover:text-red-500 transition-colors">
+              <button 
+                onClick={() => setCart([])} 
+                className="text-black/30 hover:text-red-500 transition-colors p-1.5"
+                title="ቅርጫት አጽዳ"
+              >
                 <Trash2 className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          {/* Cart items */}
+          {/* Cart Items */}
           <div className="flex-1 overflow-y-auto">
             {cart.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-black/20 gap-2">
-                <ShoppingCart className="w-10 h-10" strokeWidth={1} />
-                <p className="text-sm font-bold">ቅርጫቱ ባዶ ነው</p>
-                <p className="text-xs">ዕቃዎችን ይምረጡ</p>
+              <div className="flex flex-col items-center justify-center h-full text-black/25 gap-2.5 py-10">
+                <ShoppingCart className="w-12 h-12" strokeWidth={1} />
+                <p className="text-sm font-bold text-black/40">ቅርጫቱ ባዶ ነው</p>
+                <p className="text-xs">ከግራ በኩል እቃዎችን ይምረጡ</p>
               </div>
             ) : (
               <div className="divide-y divide-black/5">
                 {cart.map(item => (
-                  <div key={item.menuItemId} className="px-4 py-3 flex items-center gap-2">
+                  <div key={item.menuItemId} className="px-4 py-3 flex items-center gap-2.5">
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-xs text-[#0B1D2C] truncate">{item.name}</div>
-                      <div className="text-xs text-black/35">ብር {item.unitPrice} × {item.quantity}</div>
+                      <div className="font-bold text-xs sm:text-sm text-[#0B1D2C] truncate">{item.name}</div>
+                      <div className="text-xs text-black/40 font-semibold">ብር {item.unitPrice} × {item.quantity}</div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => changeQty(item.menuItemId, -1)}
-                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-red-100 hover:text-red-500 text-[#0B1D2C] transition-colors">
-                        <Minus className="w-3 h-3" />
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button 
+                        onClick={() => changeQty(item.menuItemId, -1)}
+                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-red-100 hover:text-red-600 text-[#0B1D2C] transition-colors"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
                       </button>
-                      <span className="text-sm font-black text-[#0B1D2C] w-4 text-center">{item.quantity}</span>
-                      <button onClick={() => changeQty(item.menuItemId, 1)}
-                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-emerald-100 hover:text-emerald-600 text-[#0B1D2C] transition-colors">
-                        <Plus className="w-3 h-3" />
+                      <span className="text-sm font-black text-[#0B1D2C] w-5 text-center">{item.quantity}</span>
+                      <button 
+                        onClick={() => changeQty(item.menuItemId, 1)}
+                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-emerald-100 hover:text-emerald-600 text-[#0B1D2C] transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <div className="text-xs font-black text-[#0B1D2C] w-14 text-right shrink-0">
+                    <div className="text-xs sm:text-sm font-black text-[#0B1D2C] w-16 text-right shrink-0">
                       ብር {item.totalPrice.toLocaleString()}
                     </div>
                   </div>
@@ -369,69 +926,93 @@ export default function TabletApp() {
           </div>
 
           {/* Notes */}
-          <div className="px-4 py-2 border-t border-black/10">
-            <label className="text-xs font-bold text-black/30 uppercase tracking-widest mb-1 block">ልዩ ማስታወሻ</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-              placeholder="አለርጂ፣ ተጨማሪ..."
-              className="w-full text-xs border border-black/10 rounded-lg px-2 py-1.5 resize-none outline-none focus:border-[#0B1D2C]/40 text-[#0B1D2C] placeholder:text-black/20 bg-[#f7f5f0]" />
+          <div className="px-4 py-2.5 border-t border-black/10 bg-white">
+            <label className="text-xs font-bold text-black/35 uppercase tracking-widest mb-1 block">ልዩ ማስታወሻ (Notes)</label>
+            <textarea 
+              value={notes} 
+              onChange={e => setNotes(e.target.value)} 
+              rows={2}
+              placeholder="አለርጂ፣ ተጨማሪ ትዕዛዝ..."
+              className="w-full text-xs border border-black/15 rounded-xl px-2.5 py-1.5 resize-none outline-none focus:border-[#0B1D2C] text-[#0B1D2C] placeholder:text-black/25 bg-[#f7f5f0] font-medium" 
+            />
           </div>
 
-          {/* Payment method */}
-          <div className="px-4 py-3 border-t border-black/10">
-            <label className="text-xs font-bold text-black/35 uppercase tracking-widest mb-2 block">የክፍያ ዘዴ</label>
+          {/* Payment Method Selector */}
+          <div className="px-4 py-3 border-t border-black/10 bg-white">
+            <label className="text-xs font-bold text-black/40 uppercase tracking-widest mb-2 block">የክፍያ ዘዴ (Payment)</label>
             <div className="flex gap-2">
               {(['cash', 'transfer'] as const).map(pm => (
-                <button key={pm} onClick={() => setPaymentMethod(pm)}
-                  className={'flex-1 py-3 rounded-xl text-sm font-black transition-all border-2 ' + (
-                    paymentMethod === pm ? 'bg-[#0B1D2C] text-white border-[#0B1D2C]' : 'bg-[#f7f5f0] text-[#0B1D2C]/50 border-black/10 hover:border-black/30'
-                  )}>
-                  {pm === 'cash' ? '💵 ጥሬ ገንዘብ' : '📲 ዝውውር'}
+                <button 
+                  key={pm} 
+                  onClick={() => setPaymentMethod(pm)}
+                  className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all border-2 ${
+                    paymentMethod === pm 
+                      ? 'bg-[#0B1D2C] text-white border-[#0B1D2C] shadow-md' 
+                      : 'bg-[#f7f5f0] text-[#0B1D2C]/60 border-black/10 hover:border-black/30'
+                  }`}
+                >
+                  {pm === 'cash' ? '💵 ጥሬ ገንዘብ' : '📲 ዝውውር (Transfer)'}
                 </button>
               ))}
             </div>
 
-            {/* Transfer amount input — shown only for transfer */}
+            {/* Transfer Amount & Tip Calculator */}
             {paymentMethod === 'transfer' && (
-              <div className="mt-3 bg-indigo-50 rounded-2xl p-3 border border-indigo-200">
-                <label className="text-xs font-bold text-indigo-700 mb-1.5 block">የተላከ ገንዘብ (ዝውውር)</label>
-                <div className="flex items-center gap-2 bg-white border-2 border-indigo-300 rounded-xl px-3 py-2 focus-within:border-indigo-500 transition-colors">
-                  <span className="text-indigo-500 font-black text-sm">ብር</span>
+              <div className="mt-3 bg-indigo-50/80 rounded-2xl p-3.5 border-2 border-indigo-200 space-y-2">
+                <label className="text-xs font-black text-indigo-900 block">የተላከ ገንዘብ በዝውውር (Transfer Amount)</label>
+                <div className="flex items-center gap-2 bg-white border-2 border-indigo-300 rounded-xl px-3.5 py-2 focus-within:border-indigo-600 transition-colors shadow-inner">
+                  <span className="text-indigo-600 font-black text-sm">ብር</span>
                   <input
-                    type="number" inputMode="numeric"
-                    value={transferAmount} onChange={e => setTransferAmount(e.target.value)}
-                    placeholder={cartTotal.toString()}
-                    className="flex-1 bg-transparent text-[#0B1D2C] font-black text-lg outline-none placeholder:text-black/20" />
+                    type="number"
+                    inputMode="numeric"
+                    value={transferAmount}
+                    onChange={e => setTransferAmount(e.target.value)}
+                    placeholder={cartTotal > 0 ? cartTotal.toString() : '0'}
+                    className="flex-1 bg-transparent text-[#0B1D2C] font-black text-lg outline-none placeholder:text-black/25" 
+                  />
                 </div>
-                {/* Tip display */}
+
                 {transferAmt > 0 && (
-                  <div className="mt-2 flex justify-between items-center text-sm">
-                    <span className="text-indigo-600/70">የትዕዛዝ ዋጋ</span>
-                    <span className="font-bold text-[#0B1D2C]">ብር {cartTotal.toLocaleString()}</span>
+                  <div className="flex justify-between items-center text-xs font-bold pt-1">
+                    <span className="text-indigo-700">የትዕዛዝ ጠቅላላ ዋጋ:</span>
+                    <span className="text-[#0B1D2C]">ብር {cartTotal.toLocaleString()}</span>
                   </div>
                 )}
+
                 {tip > 0 && (
-                  <div className="mt-1 bg-emerald-100 rounded-xl px-3 py-2 flex justify-between items-center">
-                    <span className="text-emerald-700 font-bold text-sm">ጠቃሚ (Tip) ✨</span>
-                    <span className="text-emerald-700 font-black text-base">ብር {tip.toLocaleString()}</span>
+                  <div className="bg-emerald-100 border border-emerald-300 rounded-xl p-2.5 flex justify-between items-center shadow-xs">
+                    <span className="text-emerald-800 font-black text-xs">✨ ተጨማሪ ጠቃሚ (Tip):</span>
+                    <span className="text-emerald-800 font-black text-base">+ ብር {tip.toLocaleString()}</span>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Total + Submit */}
+          {/* Cart Total & Submit Button */}
           <div className="px-4 pt-3 pb-5 border-t border-black/10 bg-[#f7f5f0]">
             <div className="flex items-center justify-between mb-3">
-              <span className="font-bold text-[#0B1D2C]/50 text-sm">ጠቅላላ</span>
+              <span className="font-bold text-[#0B1D2C]/60 text-sm">ጠቅላላ ዋጋ (Total)</span>
               <span className="text-2xl font-black text-[#0B1D2C]">ብር {cartTotal.toLocaleString()}</span>
             </div>
-            <button onClick={handleSubmit} disabled={cart.length === 0 || isSubmitting}
-              className={'w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg ' +
-                (cart.length === 0 ? 'bg-black/15 text-black/25 cursor-not-allowed' : 'bg-[#0B1D2C] text-white hover:bg-[#162E44]')}>
-              {isSubmitting
-                ? <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                : <><Send className="w-4 h-4" /> ትዕዛዝ ላክ</>
-              }
+
+            <button 
+              onClick={handleSubmitCustomerOrder} 
+              disabled={cart.length === 0 || isSubmitting}
+              className={`w-full py-4 rounded-2xl font-black text-base sm:text-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl ${
+                cart.length === 0 
+                  ? 'bg-black/15 text-black/30 cursor-not-allowed' 
+                  : 'bg-[#0B1D2C] text-white hover:bg-[#162E44] shadow-[#0B1D2C]/30'
+              }`}
+            >
+              {isSubmitting ? (
+                <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Send className="w-5 h-5" />
+                  <span>ትዕዛዝ ላክ (Submit Order)</span>
+                </>
+              )}
             </button>
           </div>
         </div>
