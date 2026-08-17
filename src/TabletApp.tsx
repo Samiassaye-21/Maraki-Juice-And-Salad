@@ -1416,7 +1416,7 @@ export default function TabletApp() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f5f0] flex flex-col font-sans select-none relative">
+    <div className="min-h-screen bg-[#EFEBE4] flex flex-col font-sans select-none relative">
       
       {/* ── Top Bar ── */}
       <div className={`${selectedShift!.color} text-white px-4 py-3 flex items-center justify-between shadow-lg sticky top-0 z-40`}>
@@ -1441,10 +1441,10 @@ export default function TabletApp() {
           {unsettledPayLaterOrders.length > 0 && (
             <button
               onClick={() => setShowUnsettledModal(true)}
-              className="flex items-center gap-1.5 bg-amber-300 hover:bg-amber-200 text-[#0B1D2C] font-black text-xs sm:text-sm px-3.5 py-2 rounded-2xl shadow-lg border-2 border-amber-100 cursor-pointer active:scale-95 animate-pulse"
+              className="flex items-center gap-1.5 bg-[#C2841B] hover:bg-[#A97114] text-white font-black text-xs sm:text-sm px-3.5 py-2 rounded-2xl shadow-lg border border-amber-300 cursor-pointer active:scale-95"
               title="ክፍያቸው ያልተጠናቀቀ ክፍት ትዕዛዞች"
             >
-              <Clock className="w-4 h-4 text-[#0B1D2C]" />
+              <Clock className="w-4 h-4 text-white" />
               <span>🕒 {unsettledPayLaterOrders.length} ያልተከፈሉ!</span>
             </button>
           )}
@@ -1482,7 +1482,7 @@ export default function TabletApp() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-emerald-700 text-white font-black text-sm px-6 py-3 rounded-full shadow-2xl border-2 border-white/30 flex items-center gap-2"
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#0F5B38] text-white font-black text-sm px-6 py-3 rounded-full shadow-2xl border-2 border-white/30 flex items-center gap-2"
           >
             <CheckCircle className="w-5 h-5 text-amber-300" />
             <span>{settleFeedbackMsg}</span>
@@ -1493,10 +1493,10 @@ export default function TabletApp() {
       <div className="flex flex-1" style={{ height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
         
         {/* LEFT: Menu & Customer Info */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden bg-[#EFEBE4]">
           
           {/* Customer / Table Name Input */}
-          <div className="p-4 border-b border-black/10 bg-white">
+          <div className="p-4 border-b border-[#0B1D2C]/10 bg-white shadow-xs">
             <label className="text-xs font-black text-[#0B1D2C] uppercase tracking-wider mb-1 block">
               የደንበኛ / የጠረጴዛ መለያ (Optional Name or Table #)
             </label>
@@ -1504,20 +1504,20 @@ export default function TabletApp() {
               value={customerName} 
               onChange={e => setCustomerName(e.target.value)}
               placeholder="ለምሳሌ፡ ጠረጴዛ 3 ወይም አቶ ካሳ..."
-              className="w-full border-2 border-[#0B1D2C]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#0B1D2C] outline-none focus:border-[#0B1D2C] bg-[#f7f5f0] placeholder:text-[#0B1D2C]/50 font-bold transition-colors" 
+              className="w-full border-2 border-[#0B1D2C]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#0B1D2C] outline-none focus:border-[#0B1D2C] bg-[#F7F4EE] placeholder:text-[#0B1D2C]/50 font-black transition-colors" 
             />
           </div>
 
           {/* Category Tabs */}
-          <div className="flex bg-white border-b border-black/10">
+          <div className="flex bg-white border-b border-[#0B1D2C]/10 shadow-xs">
             {(['juice', 'food'] as const).map(cat => (
               <button 
                 key={cat} 
                 onClick={() => setCategory(cat)}
                 className={`flex-1 py-3.5 text-base font-black tracking-wide transition-all border-b-3 cursor-pointer ${
                   category === cat
-                    ? 'border-b-3 border-[#0B1D2C] text-[#0B1D2C] bg-[#0B1D2C]/5'
-                    : 'border-b-3 border-transparent text-[#0B1D2C]/70 hover:text-[#0B1D2C]'
+                    ? 'border-b-3 border-[#0B1D2C] text-[#0B1D2C] bg-[#0B1D2C]/8'
+                    : 'border-b-3 border-transparent text-[#0B1D2C]/70 hover:text-[#0B1D2C] hover:bg-[#F7F4EE]'
                 }`}
               >
                 {cat === 'juice' ? '🥤 ጭማቂ (Juice)' : '🍽️ ምግብ (Food)'}
@@ -1534,20 +1534,20 @@ export default function TabletApp() {
                   <button 
                     key={item.id}
                     onClick={() => addToCart(item)}
-                    className={`rounded-2xl p-3.5 text-left transition-all border-2 flex flex-col justify-between active:scale-95 shadow-xs cursor-pointer ${
+                    className={`rounded-2xl p-3.5 text-left transition-all border-2 flex flex-col justify-between active:scale-95 shadow-sm cursor-pointer ${
                       inCart 
                         ? 'bg-white border-[#0B1D2C] shadow-md ring-2 ring-[#0B1D2C]/20' 
-                        : 'bg-white border-black/10 hover:border-black/30'
+                        : 'bg-white border-[#0B1D2C]/12 hover:border-[#0B1D2C]/40'
                     }`}
                   >
                     <div>
                       <div className="text-xl mb-1">{item.cat === 'juice' ? '🥤' : '🍽️'}</div>
                       <div className="font-black text-sm text-[#0B1D2C] leading-snug line-clamp-2">{item.name}</div>
                     </div>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-black/5">
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#0B1D2C]/8">
                       <div className="text-xs font-black text-[#0B1D2C]">ብር {item.price.toLocaleString()}</div>
                       {inCart && (
-                        <span className="bg-[#0B1D2C] text-white text-xs font-black px-2 py-0.5 rounded-full">
+                        <span className="bg-[#0B1D2C] text-white text-xs font-black px-2 py-0.5 rounded-full shadow-xs">
                           {inCart.quantity}
                         </span>
                       )}
@@ -1560,10 +1560,10 @@ export default function TabletApp() {
         </div>
 
         {/* RIGHT: Cart & Pay Later Resolution Banner */}
-        <div className="w-80 sm:w-96 bg-white border-l border-black/10 flex flex-col justify-between shadow-xl">
+        <div className="w-80 sm:w-96 bg-white border-l border-[#0B1D2C]/12 flex flex-col justify-between shadow-xl">
           
           {/* Cart Header */}
-          <div className="p-4 border-b border-black/10 flex items-center justify-between bg-[#f7f5f0]">
+          <div className="p-4 border-b border-[#0B1D2C]/10 flex items-center justify-between bg-[#F7F4EE]">
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-[#0B1D2C]" />
               <span className="font-black text-base text-[#0B1D2C]">ትዕዛዝ ማጠቃለያ ({cartCount})</span>
@@ -1581,30 +1581,30 @@ export default function TabletApp() {
           {/* Cart Items List */}
           <div className="flex-1 overflow-y-auto p-4">
             {cart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-[#0B1D2C]/60 space-y-2">
-                <UtensilsCrossed className="w-12 h-12 stroke-2 text-[#0B1D2C]/50" />
-                <p className="text-sm font-black text-[#0B1D2C]">ምንም እቃ አልተመረጠም</p>
-                <p className="text-xs font-bold text-[#0B1D2C]/60">ከግራ በኩል ምግብ ወይም ጁስ ይምረጡ</p>
+              <div className="h-full flex flex-col items-center justify-center text-[#0B1D2C]/70 space-y-2">
+                <UtensilsCrossed className="w-12 h-12 stroke-2 text-[#0B1D2C]/60" />
+                <p className="text-base font-black text-[#0B1D2C]">ምንም እቃ አልተመረጠም</p>
+                <p className="text-xs font-bold text-[#0B1D2C]/70">ከግራ በኩል ምግብ ወይም ጁስ ይምረጡ</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {cart.map(item => (
-                  <div key={item.menuItemId} className="flex items-center justify-between gap-2 border-b border-black/5 pb-2.5">
+                  <div key={item.menuItemId} className="flex items-center justify-between gap-2 border-b border-[#0B1D2C]/8 pb-2.5">
                     <div className="flex-1 min-w-0">
                       <div className="font-black text-xs sm:text-sm text-[#0B1D2C] truncate">{item.name}</div>
-                      <div className="text-[11px] text-[#0B1D2C]/70 font-bold">ብር {item.unitPrice.toLocaleString()} / አንዱ</div>
+                      <div className="text-[11px] text-[#0B1D2C]/80 font-bold">ብር {item.unitPrice.toLocaleString()} / አንዱ</div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button 
                         onClick={() => changeQty(item.menuItemId, -1)}
-                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-red-100 hover:text-red-600 text-[#0B1D2C] transition-colors cursor-pointer border border-black/10"
+                        className="w-7 h-7 rounded-full bg-[#F7F4EE] flex items-center justify-center hover:bg-red-100 hover:text-red-600 text-[#0B1D2C] transition-colors cursor-pointer border border-[#0B1D2C]/15"
                       >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
                       <span className="w-5 text-center font-black text-xs sm:text-sm text-[#0B1D2C]">{item.quantity}</span>
                       <button 
                         onClick={() => changeQty(item.menuItemId, 1)}
-                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-emerald-100 hover:text-emerald-600 text-[#0B1D2C] transition-colors cursor-pointer border border-black/10"
+                        className="w-7 h-7 rounded-full bg-[#F7F4EE] flex items-center justify-center hover:bg-emerald-100 hover:text-emerald-600 text-[#0B1D2C] transition-colors cursor-pointer border border-[#0B1D2C]/15"
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
@@ -1619,19 +1619,19 @@ export default function TabletApp() {
           </div>
 
           {/* Notes */}
-          <div className="px-4 py-2 border-t border-black/10 bg-white">
+          <div className="px-4 py-2 border-t border-[#0B1D2C]/10 bg-white">
             <label className="text-xs font-black text-[#0B1D2C] uppercase tracking-wider mb-1 block">ልዩ ማስታወሻ (Notes)</label>
             <textarea 
               value={notes} 
               onChange={e => setNotes(e.target.value)} 
               rows={1}
               placeholder="አለርጂ፣ ተጨማሪ ትዕዛዝ..."
-              className="w-full text-xs border-2 border-[#0B1D2C]/20 rounded-xl px-2.5 py-1.5 resize-none outline-none focus:border-[#0B1D2C] text-[#0B1D2C] placeholder:text-[#0B1D2C]/40 bg-[#f7f5f0] font-bold" 
+              className="w-full text-xs border-2 border-[#0B1D2C]/20 rounded-xl px-2.5 py-1.5 resize-none outline-none focus:border-[#0B1D2C] text-[#0B1D2C] placeholder:text-[#0B1D2C]/50 bg-[#F7F4EE] font-black" 
             />
           </div>
 
           {/* Payment Method Selector (5 options including Pay Later) */}
-          <div className="px-4 py-3 border-t border-black/10 bg-white">
+          <div className="px-4 py-3 border-t border-[#0B1D2C]/10 bg-white">
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-black text-[#0B1D2C] uppercase tracking-wider block">
                 የክፍያ ሁኔታ (Payment)
@@ -1640,7 +1640,7 @@ export default function TabletApp() {
                 <button
                   type="button"
                   onClick={() => setShowUnsettledModal(true)}
-                  className="text-[11px] font-black text-amber-900 bg-amber-200 px-2 py-0.5 rounded-md hover:bg-amber-300 cursor-pointer border border-amber-400"
+                  className="text-[11px] font-black text-amber-950 bg-amber-200 px-2.5 py-1 rounded-lg hover:bg-amber-300 cursor-pointer border border-amber-400 shadow-2xs"
                 >
                   🕒 {unsettledPayLaterOrders.length} ክፍት ጠረጴዛ
                 </button>
@@ -1651,10 +1651,10 @@ export default function TabletApp() {
               <button 
                 type="button"
                 onClick={() => setPaymentMethod('cash')}
-                className={`py-2 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
+                className={`py-2.5 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
                   paymentMethod === 'cash' 
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' 
-                    : 'bg-[#f7f5f0] text-[#0B1D2C] border-black/15 hover:border-black/40'
+                    ? 'bg-[#0F5B38] text-white border-[#0F5B38] shadow-md' 
+                    : 'bg-[#F7F4EE] text-[#0B1D2C] border-[#0B1D2C]/15 hover:border-[#0B1D2C]/40'
                 }`}
               >
                 <span>💵 ጥሬ</span>
@@ -1663,10 +1663,10 @@ export default function TabletApp() {
               <button 
                 type="button"
                 onClick={() => setPaymentMethod('transfer')}
-                className={`py-2 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
+                className={`py-2.5 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
                   paymentMethod === 'transfer' 
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
-                    : 'bg-[#f7f5f0] text-[#0B1D2C]/70 border-black/10 hover:border-black/30'
+                    ? 'bg-[#1E40AF] text-white border-[#1E40AF] shadow-md' 
+                    : 'bg-[#F7F4EE] text-[#0B1D2C] border-[#0B1D2C]/15 hover:border-[#0B1D2C]/40'
                 }`}
               >
                 <span>📲 ዝውውር</span>
@@ -1675,10 +1675,10 @@ export default function TabletApp() {
               <button 
                 type="button"
                 onClick={() => setPaymentMethod('pay_later')}
-                className={`py-2 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
+                className={`py-2.5 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
                   paymentMethod === 'pay_later' 
-                    ? 'bg-amber-500 text-[#0B1D2C] border-amber-500 font-black shadow-md ring-2 ring-amber-300' 
-                    : 'bg-amber-50 text-amber-900 border-amber-300/80 hover:bg-amber-100'
+                    ? 'bg-[#C2841B] text-white border-[#C2841B] font-black shadow-md ring-2 ring-amber-300' 
+                    : 'bg-amber-100 text-amber-950 border-amber-400 hover:bg-amber-200'
                 }`}
               >
                 <span>🕒 ቆይቶ</span>
@@ -1687,10 +1687,10 @@ export default function TabletApp() {
               <button 
                 type="button"
                 onClick={() => setPaymentMethod('pending')}
-                className={`py-2 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
+                className={`py-2.5 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
                   paymentMethod === 'pending' 
-                    ? 'bg-orange-600 text-white border-orange-600 shadow-md' 
-                    : 'bg-[#f7f5f0] text-[#0B1D2C]/70 border-black/10 hover:border-black/30'
+                    ? 'bg-[#C2511B] text-white border-[#C2511B] shadow-md' 
+                    : 'bg-[#F7F4EE] text-[#0B1D2C] border-[#0B1D2C]/15 hover:border-[#0B1D2C]/40'
                 }`}
               >
                 <span>⏳ አዳሪ</span>
@@ -1699,10 +1699,10 @@ export default function TabletApp() {
               <button 
                 type="button"
                 onClick={() => setPaymentMethod('beu')}
-                className={`col-span-2 py-2 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
+                className={`col-span-2 py-2.5 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
                   paymentMethod === 'beu' 
-                    ? 'bg-purple-600 text-white border-purple-600 shadow-md' 
-                    : 'bg-[#f7f5f0] text-[#0B1D2C]/70 border-black/10 hover:border-black/30'
+                    ? 'bg-[#6B21A8] text-white border-[#6B21A8] shadow-md' 
+                    : 'bg-[#F7F4EE] text-[#0B1D2C] border-[#0B1D2C]/15 hover:border-[#0B1D2C]/40'
                 }`}
               >
                 <span>🛵 BeU ደሊቨሪ</span>
