@@ -1869,67 +1869,30 @@ export default function TabletApp() {
               {/* Modal Body */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
                 
-                {/* 5-Tab Reconciliation Navigation Bar */}
-                <div className="flex bg-white p-1.5 rounded-2xl border border-[#0B1D2C]/15 shadow-xs overflow-x-auto gap-1">
-                  <button
-                    onClick={() => setReconcileTab('sales')}
-                    className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                      reconcileTab === 'sales'
-                        ? 'bg-[#0B1D2C] text-white shadow-md'
-                        : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C] hover:bg-[#f7f5f0]'
-                    }`}
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                    <span>1. የሽያጭ ማጠቃለያ</span>
-                  </button>
-
-                  <button
-                    onClick={() => setReconcileTab('inventory')}
-                    className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                      reconcileTab === 'inventory'
-                        ? 'bg-[#0B1D2C] text-white shadow-md'
-                        : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C] hover:bg-[#f7f5f0]'
-                    }`}
-                  >
-                    <Package className="w-4 h-4" />
-                    <span>2. የኮፕ ቆጠራ ({juiceLeftover} የቀረ)</span>
-                  </button>
-
-                  <button
-                    onClick={() => setReconcileTab('expenses')}
-                    className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                      reconcileTab === 'expenses'
-                        ? 'bg-[#0B1D2C] text-white shadow-md'
-                        : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C] hover:bg-[#f7f5f0]'
-                    }`}
-                  >
-                    <Receipt className="w-4 h-4" />
-                    <span>3. የዕለት ወጪዎች ({expenseItems.length})</span>
-                  </button>
-
-                  <button
-                    onClick={() => setReconcileTab('recover_pending')}
-                    className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                      reconcileTab === 'recover_pending'
-                        ? 'bg-[#0B1D2C] text-white shadow-md'
-                        : 'text-[#0B1D2C]/60 hover:text-[#0B1D2C] hover:bg-[#f7f5f0]'
-                    }`}
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    <span>4. የቀደመ አዳሪ ({unpaidPendingList.length})</span>
-                  </button>
-
-                  <button
-                    onClick={() => setReconcileTab('net_cash')}
-                    className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                      reconcileTab === 'net_cash'
-                        ? 'bg-emerald-700 text-white shadow-md'
-                        : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
-                    }`}
-                  >
-                    <Banknote className="w-4 h-4" />
-                    <span>5. ጥሬ ገንዘብ ርክክብ (ብር {netCashDueToOwner.toLocaleString()})</span>
-                  </button>
+                {/* 5-Step Visual Progress Indicator Header (No clickable tabs - Guided Flow) */}
+                <div className="bg-white p-4 rounded-2xl border border-[#0B1D2C]/15 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between text-xs font-black text-[#0B1D2C]">
+                    <span className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-[#0B1D2C] text-white flex items-center justify-center font-black text-xs shadow-xs">
+                        {reconcileTab === 'sales' ? '1' : reconcileTab === 'inventory' ? '2' : reconcileTab === 'expenses' ? '3' : reconcileTab === 'recover_pending' ? '4' : '5'}
+                      </span>
+                      <span className="text-sm">
+                        ደረጃ {reconcileTab === 'sales' ? '1 ከ 5፡ የሽያጭ ማጠቃለያ (Shift Sales)' : reconcileTab === 'inventory' ? '2 ከ 5፡ የኮፕ እና ማሸጊያ ቆጠራ (Cup Inventory)' : reconcileTab === 'expenses' ? '3 ከ 5፡ የዕለት ወጪዎች መመዝገቢያ (Daily Expenses)' : reconcileTab === 'recover_pending' ? '4 ከ 5፡ የተቀበሉት የቆየ አዳሪ (Recovered Debts)' : '5 ከ 5፡ የመጨረሻ ጥሬ ገንዘብ ርክክብ (Cash Handover)'}
+                      </span>
+                    </span>
+                    <span className="text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full text-xs font-black border border-emerald-200">
+                      {reconcileTab === 'sales' ? '20%' : reconcileTab === 'inventory' ? '40%' : reconcileTab === 'expenses' ? '60%' : reconcileTab === 'recover_pending' ? '80%' : '100%'} ተጠናቋል
+                    </span>
+                  </div>
+                  {/* Visual Progress Bar */}
+                  <div className="w-full h-2.5 bg-[#f7f5f0] rounded-full overflow-hidden border border-[#0B1D2C]/10">
+                    <div 
+                      className="h-full bg-emerald-600 transition-all duration-300 rounded-full shadow-xs"
+                      style={{
+                        width: reconcileTab === 'sales' ? '20%' : reconcileTab === 'inventory' ? '40%' : reconcileTab === 'expenses' ? '60%' : reconcileTab === 'recover_pending' ? '80%' : '100%'
+                      }}
+                    />
+                  </div>
                 </div>
 
                 {/* ─── TAB 1: POS SALES & PAYMENTS ────────────────────────────── */}
@@ -2850,6 +2813,17 @@ export default function TabletApp() {
                           className="w-full text-xs font-medium border border-[#0B1D2C]/20 rounded-xl p-3 outline-none focus:border-[#0B1D2C] bg-[#f7f5f0]"
                         />
                       </div>
+                    </div>
+
+                    {/* Step 5 Back Button to Step 4 */}
+                    <div className="flex justify-start pt-2 pb-1">
+                      <button
+                        type="button"
+                        onClick={() => setReconcileTab('recover_pending')}
+                        className="bg-[#f7f5f0] text-[#0B1D2C] hover:bg-stone-200 font-black text-sm px-5 py-3 rounded-2xl border border-[#0B1D2C]/20 transition-all cursor-pointer"
+                      >
+                        ⬅️ ተመለስ (Step 4: Recovered Debts)
+                      </button>
                     </div>
                   </div>
                 )}
