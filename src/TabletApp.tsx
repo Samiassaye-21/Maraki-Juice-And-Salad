@@ -13,7 +13,7 @@ import {
   ShoppingCart, CheckCircle, Trash2, Plus, Minus, Send, RefreshCw, 
   WifiOff, Sun, Moon, ChefHat, ArrowLeft, Clock, Check, Bike, 
   Layers, UtensilsCrossed, BarChart3, X, Receipt, Banknote, 
-  Smartphone, Sparkles, ChevronDown, ChevronUp, Eye, Lock, Delete, Archive,
+  Smartphone, Sparkles, ChevronDown, ChevronUp, ChevronRight, Eye, Lock, Delete, Archive,
   AlertCircle, AlertTriangle, Truck, Package, DollarSign, TrendingDown, TrendingUp, Calendar, Tag, ShieldCheck
 } from 'lucide-react';
 
@@ -1436,7 +1436,7 @@ export default function TabletApp() {
         </div>
 
         {/* Live Metrics, Unsettled Tabs Badge & Summary Modal Trigger */}
-        <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
           {/* Unsettled Pay Later Tabs Pill */}
           {unsettledPayLaterOrders.length > 0 && (
             <button
@@ -1495,16 +1495,16 @@ export default function TabletApp() {
         {/* LEFT: Menu & Customer Info */}
         <div className="flex-1 flex flex-col overflow-hidden">
           
-          {/* Customer Name Input */}
-          <div className="bg-white border-b border-black/10 px-4 py-3">
-            <label className="text-xs font-bold text-black/40 uppercase tracking-widest mb-1 block">
+          {/* Customer / Table Name Input */}
+          <div className="p-4 border-b border-black/10 bg-white">
+            <label className="text-xs font-black text-[#0B1D2C] uppercase tracking-wider mb-1 block">
               የደንበኛ / የጠረጴዛ መለያ (Optional Name or Table #)
             </label>
             <input 
               value={customerName} 
               onChange={e => setCustomerName(e.target.value)}
               placeholder="ለምሳሌ፡ ጠረጴዛ 3 ወይም አቶ ካሳ..."
-              className="w-full border-2 border-black/15 rounded-xl px-3.5 py-2.5 text-sm text-[#0B1D2C] outline-none focus:border-[#0B1D2C] bg-[#f7f5f0] placeholder:text-black/30 font-bold transition-colors" 
+              className="w-full border-2 border-[#0B1D2C]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#0B1D2C] outline-none focus:border-[#0B1D2C] bg-[#f7f5f0] placeholder:text-[#0B1D2C]/50 font-bold transition-colors" 
             />
           </div>
 
@@ -1517,7 +1517,7 @@ export default function TabletApp() {
                 className={`flex-1 py-3.5 text-base font-black tracking-wide transition-all border-b-3 cursor-pointer ${
                   category === cat
                     ? 'border-b-3 border-[#0B1D2C] text-[#0B1D2C] bg-[#0B1D2C]/5'
-                    : 'border-b-3 border-transparent text-black/35 hover:text-black/70'
+                    : 'border-b-3 border-transparent text-[#0B1D2C]/70 hover:text-[#0B1D2C]'
                 }`}
               >
                 {cat === 'juice' ? '🥤 ጭማቂ (Juice)' : '🍽️ ምግብ (Food)'}
@@ -1545,7 +1545,7 @@ export default function TabletApp() {
                       <div className="font-black text-sm text-[#0B1D2C] leading-snug line-clamp-2">{item.name}</div>
                     </div>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-black/5">
-                      <div className="text-xs font-extrabold text-[#0B1D2C]/70">ብር {item.price.toLocaleString()}</div>
+                      <div className="text-xs font-black text-[#0B1D2C]">ብር {item.price.toLocaleString()}</div>
                       {inCart && (
                         <span className="bg-[#0B1D2C] text-white text-xs font-black px-2 py-0.5 rounded-full">
                           {inCart.quantity}
@@ -1571,7 +1571,7 @@ export default function TabletApp() {
             {cart.length > 0 && (
               <button 
                 onClick={() => setCart([])} 
-                className="text-xs font-bold text-red-600 hover:text-red-700 p-1 cursor-pointer"
+                className="text-xs font-black text-red-600 hover:text-red-700 p-1 cursor-pointer"
               >
                 አፅዳ (Clear)
               </button>
@@ -1581,30 +1581,30 @@ export default function TabletApp() {
           {/* Cart Items List */}
           <div className="flex-1 overflow-y-auto p-4">
             {cart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-black/30 space-y-2">
-                <UtensilsCrossed className="w-12 h-12 stroke-1" />
-                <p className="text-xs font-bold">ምንም እቃ አልተመረጠም</p>
-                <p className="text-[11px]">ከግራ በኩል ምግብ ወይም ጁስ ይምረጡ</p>
+              <div className="h-full flex flex-col items-center justify-center text-[#0B1D2C]/60 space-y-2">
+                <UtensilsCrossed className="w-12 h-12 stroke-2 text-[#0B1D2C]/50" />
+                <p className="text-sm font-black text-[#0B1D2C]">ምንም እቃ አልተመረጠም</p>
+                <p className="text-xs font-bold text-[#0B1D2C]/60">ከግራ በኩል ምግብ ወይም ጁስ ይምረጡ</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {cart.map(item => (
                   <div key={item.menuItemId} className="flex items-center justify-between gap-2 border-b border-black/5 pb-2.5">
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-xs sm:text-sm text-[#0B1D2C] truncate">{item.name}</div>
-                      <div className="text-[11px] text-black/40 font-semibold">ብር {item.unitPrice.toLocaleString()} / አንዱ</div>
+                      <div className="font-black text-xs sm:text-sm text-[#0B1D2C] truncate">{item.name}</div>
+                      <div className="text-[11px] text-[#0B1D2C]/70 font-bold">ብር {item.unitPrice.toLocaleString()} / አንዱ</div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button 
                         onClick={() => changeQty(item.menuItemId, -1)}
-                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-red-100 hover:text-red-600 text-[#0B1D2C] transition-colors cursor-pointer"
+                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-red-100 hover:text-red-600 text-[#0B1D2C] transition-colors cursor-pointer border border-black/10"
                       >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
                       <span className="w-5 text-center font-black text-xs sm:text-sm text-[#0B1D2C]">{item.quantity}</span>
                       <button 
                         onClick={() => changeQty(item.menuItemId, 1)}
-                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-emerald-100 hover:text-emerald-600 text-[#0B1D2C] transition-colors cursor-pointer"
+                        className="w-7 h-7 rounded-full bg-[#f7f5f0] flex items-center justify-center hover:bg-emerald-100 hover:text-emerald-600 text-[#0B1D2C] transition-colors cursor-pointer border border-black/10"
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
@@ -1620,27 +1620,27 @@ export default function TabletApp() {
 
           {/* Notes */}
           <div className="px-4 py-2 border-t border-black/10 bg-white">
-            <label className="text-xs font-bold text-black/35 uppercase tracking-widest mb-1 block">ልዩ ማስታወሻ (Notes)</label>
+            <label className="text-xs font-black text-[#0B1D2C] uppercase tracking-wider mb-1 block">ልዩ ማስታወሻ (Notes)</label>
             <textarea 
               value={notes} 
               onChange={e => setNotes(e.target.value)} 
               rows={1}
               placeholder="አለርጂ፣ ተጨማሪ ትዕዛዝ..."
-              className="w-full text-xs border border-black/15 rounded-xl px-2.5 py-1.5 resize-none outline-none focus:border-[#0B1D2C] text-[#0B1D2C] placeholder:text-black/25 bg-[#f7f5f0] font-medium" 
+              className="w-full text-xs border-2 border-[#0B1D2C]/20 rounded-xl px-2.5 py-1.5 resize-none outline-none focus:border-[#0B1D2C] text-[#0B1D2C] placeholder:text-[#0B1D2C]/40 bg-[#f7f5f0] font-bold" 
             />
           </div>
 
           {/* Payment Method Selector (5 options including Pay Later) */}
           <div className="px-4 py-3 border-t border-black/10 bg-white">
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold text-black/40 uppercase tracking-widest block">
+              <label className="text-xs font-black text-[#0B1D2C] uppercase tracking-wider block">
                 የክፍያ ሁኔታ (Payment)
               </label>
               {unsettledPayLaterOrders.length > 0 && (
                 <button
                   type="button"
                   onClick={() => setShowUnsettledModal(true)}
-                  className="text-[11px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md hover:bg-amber-200 cursor-pointer"
+                  className="text-[11px] font-black text-amber-900 bg-amber-200 px-2 py-0.5 rounded-md hover:bg-amber-300 cursor-pointer border border-amber-400"
                 >
                   🕒 {unsettledPayLaterOrders.length} ክፍት ጠረጴዛ
                 </button>
@@ -1654,7 +1654,7 @@ export default function TabletApp() {
                 className={`py-2 px-2 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-1 cursor-pointer ${
                   paymentMethod === 'cash' 
                     ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' 
-                    : 'bg-[#f7f5f0] text-[#0B1D2C]/70 border-black/10 hover:border-black/30'
+                    : 'bg-[#f7f5f0] text-[#0B1D2C] border-black/15 hover:border-black/40'
                 }`}
               >
                 <span>💵 ጥሬ</span>
@@ -2230,6 +2230,18 @@ export default function TabletApp() {
                         </div>
                       )}
                     </div>
+
+                    {/* Step 1 -> Step 2 Step-by-Step Guided Navigation */}
+                    <div className="flex justify-end pt-2 pb-1">
+                      <button
+                        type="button"
+                        onClick={() => setReconcileTab('inventory')}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-6 py-3.5 rounded-2xl shadow-md flex items-center gap-2 transition-all cursor-pointer active:scale-95 border-2 border-emerald-400"
+                      >
+                        <span>ቀጣይ፡ ደረጃ 2 - የኮፕ ቆጠራ (Step 2: Cup Count)</span>
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -2374,6 +2386,25 @@ export default function TabletApp() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Step 2 -> Step 3 Guided Navigation */}
+                    <div className="flex justify-between items-center pt-2 pb-1">
+                      <button
+                        type="button"
+                        onClick={() => setReconcileTab('sales')}
+                        className="bg-[#f7f5f0] text-[#0B1D2C] hover:bg-stone-200 font-black text-sm px-5 py-3 rounded-2xl border border-[#0B1D2C]/20 transition-all cursor-pointer"
+                      >
+                        ⬅️ ተመለስ (Step 1: Sales)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReconcileTab('expenses')}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-6 py-3.5 rounded-2xl shadow-md flex items-center gap-2 transition-all cursor-pointer active:scale-95 border-2 border-emerald-400"
+                      >
+                        <span>ቀጣይ፡ ደረጃ 3 - የወጪዎች መመዝገቢያ (Step 3: Expenses)</span>
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -2500,6 +2531,25 @@ export default function TabletApp() {
                         </div>
                       )}
                     </div>
+
+                    {/* Step 3 -> Step 4 Guided Navigation */}
+                    <div className="flex justify-between items-center pt-2 pb-1">
+                      <button
+                        type="button"
+                        onClick={() => setReconcileTab('inventory')}
+                        className="bg-[#f7f5f0] text-[#0B1D2C] hover:bg-stone-200 font-black text-sm px-5 py-3 rounded-2xl border border-[#0B1D2C]/20 transition-all cursor-pointer"
+                      >
+                        ⬅️ ተመለስ (Step 2: Inventory)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReconcileTab('recover_pending')}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-6 py-3.5 rounded-2xl shadow-md flex items-center gap-2 transition-all cursor-pointer active:scale-95 border-2 border-emerald-400"
+                      >
+                        <span>ቀጣይ፡ ደረጃ 4 - የተቀበሉት አዳሪ (Step 4: Recovered Debts)</span>
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -2604,6 +2654,25 @@ export default function TabletApp() {
                           })}
                         </div>
                       )}
+                    </div>
+
+                    {/* Step 4 -> Step 5 Guided Navigation */}
+                    <div className="flex justify-between items-center pt-2 pb-1">
+                      <button
+                        type="button"
+                        onClick={() => setReconcileTab('expenses')}
+                        className="bg-[#f7f5f0] text-[#0B1D2C] hover:bg-stone-200 font-black text-sm px-5 py-3 rounded-2xl border border-[#0B1D2C]/20 transition-all cursor-pointer"
+                      >
+                        ⬅️ ተመለስ (Step 3: Expenses)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReconcileTab('net_cash')}
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm px-6 py-3.5 rounded-2xl shadow-md flex items-center gap-2 transition-all cursor-pointer active:scale-95 border-2 border-emerald-400 ring-2 ring-emerald-200"
+                      >
+                        <span>ቀጣይ፡ ደረጃ 5 - የመጨረሻ ሂሳብ ርክክብ (Step 5: Cash Handover)</span>
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
                 )}
