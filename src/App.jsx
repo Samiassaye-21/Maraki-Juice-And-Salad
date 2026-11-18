@@ -272,10 +272,58 @@ export default function App() {
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Shift Aggregates for Chef
+  // Shift Aggregates for Chef (Current Shift)
   const shiftOrders = sentOrders.filter(o => o.shift === currentShift);
   const totalShiftBoxesUsed = shiftOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
   const totalShiftRevenue = shiftOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+
+  // --- OWNER INSPECTION & FILTERING (SHIFTS, BEU, FOOD TYPES) ---
+  const [viewFilter, setViewFilter] = useState('All'); // 'All', 'Day Shift', 'Night Shift', 'BEU Delivery', 'In-Store Takeaway'
+
+  // Filtered Sent Orders based on viewFilter
+  const filteredSentOrders = sentOrders.filter(order => {
+    if (viewFilter === 'Day Shift') return order.shift === 'Day Shift';
+    if (viewFilter === 'Night Shift') return order.shift === 'Night Shift';
+    if (viewFilter === 'BEU Delivery') return order.channel === 'BEU Delivery';
+    if (viewFilter === 'In-Store Takeaway') return order.channel === 'In-Store Takeaway';
+    return true; // 'All'
+  });
+
+  // Shift & Channel Counts & Totals
+  const dayOrders = sentOrders.filter(o => o.shift === 'Day Shift');
+  const nightOrders = sentOrders.filter(o => o.shift === 'Night Shift');
+  const beuOrders = sentOrders.filter(o => o.channel === 'BEU Delivery');
+  const inStoreOrders = sentOrders.filter(o => o.channel === 'In-Store Takeaway');
+
+  const dayBoxes = dayOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
+  const nightBoxes = nightOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
+  const beuBoxes = beuOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
+  const inStoreBoxes = inStoreOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
+
+  const dayRevenue = dayOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+  const nightRevenue = nightOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+  const beuRevenue = beuOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+  const inStoreRevenue = inStoreOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+
+  // Food Types Breakdown (Exact counts of each food dish prepared in the active view)
+  const dishBreakdown = foodMenu.map(dish => {
+    let countSold = 0;
+    let revenue = 0;
+    filteredSentOrders.forEach(order => {
+      order.items?.forEach(i => {
+        if (i.id === dish.id || i.name === dish.name) {
+          countSold += i.qty;
+          revenue += (i.qty * dish.price);
+        }
+      });
+    });
+    return {
+      ...dish,
+      countSold,
+      boxesUsed: countSold, // 1 box per dish
+      revenueGenerated: revenue
+    };
+  });
 
   return (
     <div className="min-h-screen bg-[#FFFDFB] flex flex-col font-sans text-slate-800 antialiased selection:bg-emerald-600 selection:text-white">
@@ -769,46 +817,278 @@ export default function App() {
       </main>
 
       {/* ============================================================== */}
-      {/* SENT ORDERS FEED: WHAT CHEF SENT TO OWNER TODAY                */}
+      {/* OWNER LIVE INSPECTION: SHIFTS, BEU & FOOD TYPES BREAKDOWN      */}
       {/* ============================================================== */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full space-y-4">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full space-y-6">
+        
+        {/* Section Header */}
+        <div className="bg-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400 text-2xl shadow-inner">
+              📊
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
+                <span>Owner Food & Shift Inspection Hub</span>
+                <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full">
+                  Live Feed
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Inspect how many orders went to Day vs Night shift, BEU Delivery vs In-Store, and exactly what type of food was prepared.
+              </p>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Combined Boxes</span>
+            <span className="text-xl font-black text-emerald-400">{dayBoxes + nightBoxes} 🥡 Takeaway Boxes</span>
+          </div>
+        </div>
+
+        {/* 4 SUMMARY METRIC CARDS: DAY SHIFT vs NIGHT SHIFT vs BEU vs IN-STORE */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          {/* Day Shift Card */}
+          <div 
+            onClick={() => setViewFilter(viewFilter === 'Day Shift' ? 'All' : 'Day Shift')}
+            className={`p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between ${
+              viewFilter === 'Day Shift'
+                ? 'bg-amber-500 text-white border-amber-600 shadow-xl scale-[1.02]'
+                : 'bg-white text-slate-900 border-amber-200 shadow-lg shadow-amber-500/5 hover:border-amber-400'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className={`text-[10px] font-black uppercase tracking-wider ${viewFilter === 'Day Shift' ? 'text-amber-100' : 'text-amber-700'}`}>
+                ☀️ Day Shift Orders
+              </span>
+              <span className="text-lg">☀️</span>
+            </div>
+            <div className="mt-3">
+              <p className="text-2xl font-black">{dayOrders.length} Orders</p>
+              <div className="flex items-center justify-between mt-1 text-xs font-bold">
+                <span className={viewFilter === 'Day Shift' ? 'text-amber-100' : 'text-slate-500'}>
+                  {dayBoxes} 🥡 Boxes Used
+                </span>
+                <span className="font-black">{dayRevenue.toLocaleString()} ETB</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Night Shift Card */}
+          <div 
+            onClick={() => setViewFilter(viewFilter === 'Night Shift' ? 'All' : 'Night Shift')}
+            className={`p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between ${
+              viewFilter === 'Night Shift'
+                ? 'bg-indigo-600 text-white border-indigo-700 shadow-xl scale-[1.02]'
+                : 'bg-white text-slate-900 border-indigo-200 shadow-lg shadow-indigo-600/5 hover:border-indigo-400'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className={`text-[10px] font-black uppercase tracking-wider ${viewFilter === 'Night Shift' ? 'text-indigo-200' : 'text-indigo-700'}`}>
+                🌙 Night Shift Orders
+              </span>
+              <span className="text-lg">🌙</span>
+            </div>
+            <div className="mt-3">
+              <p className="text-2xl font-black">{nightOrders.length} Orders</p>
+              <div className="flex items-center justify-between mt-1 text-xs font-bold">
+                <span className={viewFilter === 'Night Shift' ? 'text-indigo-200' : 'text-slate-500'}>
+                  {nightBoxes} 🥡 Boxes Used
+                </span>
+                <span className="font-black">{nightRevenue.toLocaleString()} ETB</span>
+              </div>
+            </div>
+          </div>
+
+          {/* BEU Delivery Card */}
+          <div 
+            onClick={() => setViewFilter(viewFilter === 'BEU Delivery' ? 'All' : 'BEU Delivery')}
+            className={`p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between ${
+              viewFilter === 'BEU Delivery'
+                ? 'bg-orange-500 text-white border-orange-600 shadow-xl scale-[1.02]'
+                : 'bg-white text-slate-900 border-orange-200 shadow-lg shadow-orange-500/5 hover:border-orange-400'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className={`text-[10px] font-black uppercase tracking-wider ${viewFilter === 'BEU Delivery' ? 'text-orange-100' : 'text-orange-700'}`}>
+                🛵 BEU Delivery App
+              </span>
+              <span className="text-lg">🛵</span>
+            </div>
+            <div className="mt-3">
+              <p className="text-2xl font-black">{beuOrders.length} Orders</p>
+              <div className="flex items-center justify-between mt-1 text-xs font-bold">
+                <span className={viewFilter === 'BEU Delivery' ? 'text-orange-100' : 'text-slate-500'}>
+                  {beuBoxes} 🥡 Boxes
+                </span>
+                <span className="font-black">{beuRevenue.toLocaleString()} ETB</span>
+              </div>
+            </div>
+          </div>
+
+          {/* In-Store Takeaway Card */}
+          <div 
+            onClick={() => setViewFilter(viewFilter === 'In-Store Takeaway' ? 'All' : 'In-Store Takeaway')}
+            className={`p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between ${
+              viewFilter === 'In-Store Takeaway'
+                ? 'bg-emerald-600 text-white border-emerald-700 shadow-xl scale-[1.02]'
+                : 'bg-white text-slate-900 border-emerald-200 shadow-lg shadow-emerald-600/5 hover:border-emerald-400'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className={`text-[10px] font-black uppercase tracking-wider ${viewFilter === 'In-Store Takeaway' ? 'text-emerald-100' : 'text-emerald-700'}`}>
+                🏪 In-Store Walk-ins
+              </span>
+              <span className="text-lg">🏪</span>
+            </div>
+            <div className="mt-3">
+              <p className="text-2xl font-black">{inStoreOrders.length} Orders</p>
+              <div className="flex items-center justify-between mt-1 text-xs font-bold">
+                <span className={viewFilter === 'In-Store Takeaway' ? 'text-emerald-100' : 'text-slate-500'}>
+                  {inStoreBoxes} 🥡 Boxes
+                </span>
+                <span className="font-black">{inStoreRevenue.toLocaleString()} ETB</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* FOOD TYPES BREAKDOWN: WHAT TYPE OF FOOD DISHES WERE ORDERED */}
         <div className="bg-white rounded-3xl p-6 shadow-xl shadow-emerald-700/5 border border-emerald-100 space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-emerald-100">
             <div>
-              <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                <span>Orders Finished & Sent to Owner ({currentShift})</span>
-              </h3>
+              <h4 className="font-black text-slate-900 text-sm flex items-center gap-2">
+                <UtensilsCrossed className="w-4 h-4 text-emerald-600" />
+                <span>Food Types Breakdown (ምን አይነት ምግቦች እንደተዘጋጁ)</span>
+              </h4>
               <p className="text-xs text-slate-500 mt-0.5">
-                Every order logged here is permanently saved for the owner and tracks takeaway boxes.
+                Exact count of each dish and how many 🥡 takeaway boxes were used for: <strong className="text-emerald-700 font-black">{viewFilter}</strong>
               </p>
             </div>
 
-            <span className="text-xs font-black bg-emerald-100 text-emerald-900 px-3 py-1.5 rounded-xl border border-emerald-200">
-              {shiftOrders.length} Sent Orders • {totalShiftBoxesUsed} Total Boxes (🥡)
+            <span className="text-xs font-black text-slate-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+              Showing: {viewFilter}
             </span>
           </div>
 
-          {shiftOrders.length === 0 ? (
-            <div className="py-12 text-center text-slate-400">
+          {/* Dish Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {dishBreakdown.map(dish => (
+              <div 
+                key={dish.id} 
+                className={`p-4 rounded-2xl border transition-all flex items-center gap-3.5 ${
+                  dish.countSold > 0
+                    ? 'bg-emerald-50/40 border-emerald-200 shadow-sm'
+                    : 'bg-slate-50/50 border-slate-100 opacity-60'
+                }`}
+              >
+                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-emerald-100 flex-shrink-0 shadow-inner">
+                  {dish.imageUrl ? (
+                    <img src={dish.imageUrl} alt={dish.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="w-full h-full flex items-center justify-center text-2xl">{dish.emoji}</span>
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <h5 className="font-black text-xs text-slate-900 truncate">{dish.name}</h5>
+                  <span className="text-[10px] text-slate-400 font-bold block">{dish.price} ETB / bowl</span>
+                  
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className={`text-xs font-black px-2 py-0.5 rounded-lg ${
+                      dish.countSold > 0 ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      {dish.countSold} Prepared
+                    </span>
+                    <span className="text-[11px] font-extrabold text-slate-500">
+                      ({dish.boxesUsed} 🥡 Boxes)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-right flex-shrink-0">
+                  <span className="text-xs font-black text-emerald-800 block">
+                    {dish.revenueGenerated.toLocaleString()} ETB
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* INTERACTIVE FILTER TABS & DETAILED ORDER FEED */}
+        <div className="bg-white rounded-3xl p-6 shadow-xl shadow-emerald-700/5 border border-emerald-100 space-y-4">
+          
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-emerald-100">
+            <div>
+              <h4 className="font-black text-slate-900 text-base flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-emerald-600" />
+                <span>Orders Sent to Owner ({filteredSentOrders.length})</span>
+              </h4>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Every order logged by Chef Almaz and sent directly to your database.
+              </p>
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none w-full sm:w-auto pb-1 sm:pb-0">
+              {[
+                { id: 'All', label: '🌟 All Orders', count: sentOrders.length },
+                { id: 'Day Shift', label: '☀️ Day Shift', count: dayOrders.length },
+                { id: 'Night Shift', label: '🌙 Night Shift', count: nightOrders.length },
+                { id: 'BEU Delivery', label: '🛵 BEU Delivery', count: beuOrders.length },
+                { id: 'In-Store Takeaway', label: '🏪 In-Store', count: inStoreOrders.length }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setViewFilter(tab.id)}
+                  className={`px-3 py-1.5 rounded-xl font-black text-xs whitespace-nowrap transition-all ${
+                    viewFilter === tab.id
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                      : 'bg-emerald-50/60 text-slate-700 hover:bg-emerald-100'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className="ml-1 opacity-80 text-[10px]">({tab.count})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Orders Feed */}
+          {filteredSentOrders.length === 0 ? (
+            <div className="py-14 text-center text-slate-400">
               <ShoppingBag className="w-12 h-12 mx-auto text-emerald-200 mb-2" />
-              <p className="text-xs font-black text-slate-500">No food orders finished yet for this shift.</p>
-              <p className="text-[11px] text-slate-400">When Chef Almaz prepares and sends an order, it appears here instantly.</p>
+              <p className="text-xs font-black text-slate-500">No orders match the filter "{viewFilter}".</p>
+              <p className="text-[11px] text-slate-400">When orders are finished and sent by the chef, they will show up here.</p>
             </div>
           ) : (
             <div className="divide-y divide-emerald-50">
-              {shiftOrders.map(order => (
+              {filteredSentOrders.map(order => (
                 <div key={order.id} className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-black text-slate-900 text-sm">Order #{order.id.slice(-6)}</span>
+                      
+                      {/* Shift Badge */}
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        order.shift === 'Day Shift' ? 'bg-amber-100 text-amber-900' : 'bg-indigo-100 text-indigo-900'
+                      }`}>
+                        {order.shift === 'Day Shift' ? '☀️ Day' : '🌙 Night'}
+                      </span>
+
+                      {/* Channel Badge */}
                       <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
                         order.channel === 'BEU Delivery' 
-                          ? 'bg-amber-100 text-amber-900' 
+                          ? 'bg-orange-100 text-orange-900 border border-orange-200' 
                           : 'bg-emerald-100 text-emerald-900'
                       }`}>
-                        {order.channel}
+                        {order.channel} {order.beuOrderId ? `(${order.beuOrderId})` : ''}
                       </span>
+
+                      {/* Boxes Count */}
                       <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                         {order.boxesCount} 🥡 Boxes
                       </span>
@@ -842,6 +1122,7 @@ export default function App() {
             </div>
           )}
         </div>
+
       </section>
 
       {/* ============================================================== */}
