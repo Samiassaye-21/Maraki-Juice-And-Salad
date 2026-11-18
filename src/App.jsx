@@ -268,9 +268,6 @@ export default function App() {
   const [customWaiterName, setCustomWaiterName] = useState('');
   const [showAddWaiterInput, setShowAddWaiterInput] = useState(false);
 
-  // Payment Method
-  const [paymentMethod, setPaymentMethod] = useState('Cash');
-
   // Order Submission Success Flash Modal
   const [orderSuccessModal, setOrderSuccessModal] = useState(null);
 
@@ -348,7 +345,6 @@ export default function App() {
     setBeuOrderId('');
     setCustomWaiterName('');
     setShowAddWaiterInput(false);
-    setPaymentMethod('Cash');
   };
 
   // Packaging & Amount Math (Every single dish item is 100% takeaway = 1 Box)
@@ -367,7 +363,7 @@ export default function App() {
     const isBeu = selectedShiftType === 'BEU';
     const shiftLabel = isBeu ? 'Day Shift' : (selectedShiftType === 'Day' ? 'Day Shift' : 'Night Shift');
     const channelLabel = isBeu ? 'BEU Delivery' : 'In-Store Takeaway';
-    const finalPayment = isBeu ? 'BEU Account' : paymentMethod;
+    const finalPayment = isBeu ? 'BEU Account' : 'Kitchen Dispatch';
 
     const orderId = `food-${Date.now()}`;
     const orderData = {
@@ -1163,36 +1159,7 @@ export default function App() {
                   </span>
                 </div>
 
-                {/* 4. Payment Method Selection (if not BEU) */}
-                {selectedShiftType !== 'BEU' && (
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2">
-                      የክፍያ ዘዴ (Payment Method)
-                    </span>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'Cash', label: '💵 ጥሬ ገንዘብ' },
-                        { id: 'Telebirr', label: '📱 ቴሌብር' },
-                        { id: 'CBE Birr', label: '🏦 ሲቢኢ ብር' }
-                      ].map(m => (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => setPaymentMethod(m.id)}
-                          className={`py-2 px-1 rounded-xl text-xs font-black transition-all ${
-                            paymentMethod === m.id
-                              ? 'bg-emerald-600 text-white shadow-md'
-                              : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
-                          }`}
-                        >
-                          {m.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 5. Total Price */}
+                {/* 4. Total Price */}
                 <div className="pt-3 border-t-2 border-dashed border-emerald-100 flex items-center justify-between">
                   <div>
                     <span className="text-xs font-black text-slate-400 uppercase tracking-wider block">

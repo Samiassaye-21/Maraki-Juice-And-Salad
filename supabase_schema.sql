@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     waiter_name TEXT,
     channel TEXT NOT NULL CHECK (channel IN ('In-Store', 'BEU Delivery')),
     beu_order_id TEXT,
-    payment_method TEXT NOT NULL CHECK (payment_method IN ('Cash', 'Telebirr', 'CBE Birr', 'Adari', 'BEU Account')),
+    payment_method TEXT NOT NULL CHECK (payment_method IN ('Cash', 'Telebirr', 'CBE Birr', 'Adari', 'BEU Account', 'Kitchen Dispatch')),
     total_amount NUMERIC NOT NULL CHECK (total_amount >= 0),
     cups_used INTEGER DEFAULT 0 CHECK (cups_used >= 0),
     boxes_used INTEGER DEFAULT 0 CHECK (boxes_used >= 0),
