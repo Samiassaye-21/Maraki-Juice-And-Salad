@@ -17,12 +17,17 @@ import {
   Camera, 
   Upload, 
   PlusCircle, 
-  BookOpen, 
   Sun, 
   Moon, 
   Box, 
   Receipt,
-  Database
+  ArrowRight,
+  ArrowLeft,
+  User,
+  Users,
+  BarChart3,
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import { dbService, isSupabaseConfigured } from './lib/supabaseClient';
 
@@ -221,53 +226,69 @@ export const MARAKI_REAL_FOOD_MENU = [
   }
 ];
 
+export const DEFAULT_WAITERS = [
+  'ሰላም (Selam)',
+  'ትዕግስት (Tigist)',
+  'ማህሌት (Mahlet)',
+  'ሔለን (Helen)',
+  'ዮናስ (Yonas)',
+  'ቀጥታ ደንበኛ (Walk-in)',
+  'BEU Delivery Rider'
+];
+
 export default function App() {
-  // --- 1. CHEF & SHIFT STATE ---
-  const [chefName, setChefName] = useState('Chef Almaz');
-  const [currentShift, setCurrentShift] = useState('Day Shift');
+  // Navigation: 'order' (Simple Stepper POS) vs 'reports' (Owner Dashboard)
+  const [viewMode, setViewMode] = useState('order');
 
-  // --- 2. FOOD MENU (FOODS ONLY - ALL TAKEAWAY) ---
-  const [foodMenu, setFoodMenu] = useState(() => {
-    const saved = localStorage.getItem('maraki_chef_food_menu_v2');
-    return saved ? JSON.parse(saved) : MARAKI_REAL_FOOD_MENU;
+  // --- ORDER STEPPER STATE (1: Food -> 2: Shift/BEU -> 3: Waiter -> 4: Submit) ---
+  const [orderStep, setOrderStep] = useState(1);
+
+  // Cart / Food Selection
+  const [cart, setCart] = useState([]);
+
+  // Step 2 Selection: 'Day' | 'Night' | 'BEU'
+  const [selectedShiftType, setSelectedShiftType] = useState('Day'); // 'Day', 'Night', 'BEU'
+  const [beuOrderId, setBeuOrderId] = useState('');
+
+  // Step 3 Selection: Waiter who takes it
+  const [waitersList, setWaitersList] = useState(() => {
+    const saved = localStorage.getItem('maraki_waiters_list');
+    return saved ? JSON.parse(saved) : DEFAULT_WAITERS;
   });
+  const [selectedWaiter, setSelectedWaiter] = useState('ሰላም (Selam)');
+  const [customWaiterName, setCustomWaiterName] = useState('');
+  const [showAddWaiterInput, setShowAddWaiterInput] = useState(false);
 
-  const [activeCategory, setActiveCategory] = useState('All');
+  // Payment Method
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
 
-  // --- 3. ORDERS SENT TO OWNER ---
+  // Order Submission Success Flash Modal
+  const [orderSuccessModal, setOrderSuccessModal] = useState(null);
+
+  // Database of Sent Orders
   const [sentOrders, setSentOrders] = useState(() => {
     const saved = localStorage.getItem('maraki_chef_sent_orders');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // --- 4. BOXES & WASTE TRACKING ---
-  const [openingBoxes, setOpeningBoxes] = useState(120);
-  const [wasteBoxes, setWasteBoxes] = useState(1);
+  // Food Menu & Filtering
+  const [foodMenu, setFoodMenu] = useState(() => {
+    const saved = localStorage.getItem('maraki_chef_food_menu_v2');
+    return saved ? JSON.parse(saved) : MARAKI_REAL_FOOD_MENU;
+  });
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Damaged Boxes Tracking
+  const [wasteBoxes, setWasteBoxes] = useState(() => {
+    const saved = localStorage.getItem('maraki_waste_boxes');
+    return saved ? Number(saved) : 1;
+  });
   const [showWasteModal, setShowWasteModal] = useState(false);
   const [wasteCountInput, setWasteCountInput] = useState(1);
   const [wasteReason, setWasteReason] = useState('Box Damaged / Dropped');
 
-  // --- 5. ACTIVE CHEF ORDER FORM STATES ---
-  const [cart, setCart] = useState([]);
-  const [orderChannel, setOrderChannel] = useState('In-Store Takeaway');
-  const [beuOrderId, setBeuOrderId] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('Cash');
-  const [specialNotes, setSpecialNotes] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Adari customer fields (if on credit)
-  const [adariCustomerName, setAdariCustomerName] = useState('');
-  const [adariCustomerPhone, setAdariCustomerPhone] = useState('');
-
-  // Add New Dish Modal
-  const [showAddDishModal, setShowAddDishModal] = useState(false);
-  const [newDishName, setNewDishName] = useState('');
-  const [newDishPrice, setNewDishPrice] = useState('');
-  const [newDishDesc, setNewDishDesc] = useState('');
-  const [newDishImagePreview, setNewDishImagePreview] = useState(null);
-  const fileInputRef = useRef(null);
-
-  // Toast Notification
+  // Toast message
   const [toastMessage, setToastMessage] = useState(null);
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -276,27 +297,31 @@ export default function App() {
 
   // Persist State
   useEffect(() => {
-    localStorage.setItem('maraki_chef_food_menu_v2', JSON.stringify(foodMenu));
-  }, [foodMenu]);
-
-  useEffect(() => {
     localStorage.setItem('maraki_chef_sent_orders', JSON.stringify(sentOrders));
   }, [sentOrders]);
 
-  // --- CART ACTIONS ---
-  const addToCart = (item, qtyDelta = 1) => {
+  useEffect(() => {
+    localStorage.setItem('maraki_waiters_list', JSON.stringify(waitersList));
+  }, [waitersList]);
+
+  useEffect(() => {
+    localStorage.setItem('maraki_waste_boxes', wasteBoxes.toString());
+  }, [wasteBoxes]);
+
+  // --- CART / FOOD SELECTION ACTIONS ---
+  const toggleOrAddFood = (dish) => {
     setCart(prev => {
-      const existing = prev.find(i => i.id === item.id);
+      const existing = prev.find(i => i.id === dish.id);
       if (existing) {
-        return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + qtyDelta } : i);
+        return prev.map(i => i.id === dish.id ? { ...i, qty: i.qty + 1 } : i);
       }
-      return [...prev, { ...item, qty: qtyDelta }];
+      return [...prev, { ...dish, qty: 1 }];
     });
   };
 
-  const updateCartQty = (id, delta) => {
+  const updateCartQty = (dishId, delta) => {
     setCart(prev => prev.map(i => {
-      if (i.id === id) {
+      if (i.id === dishId) {
         const nextQty = i.qty + delta;
         return nextQty > 0 ? { ...i, qty: nextQty } : null;
       }
@@ -304,56 +329,52 @@ export default function App() {
     }).filter(Boolean));
   };
 
-  const removeFromCart = (id) => {
-    setCart(prev => prev.filter(i => i.id !== id));
+  const removeDishFromCart = (dishId) => {
+    setCart(prev => prev.filter(i => i.id !== dishId));
   };
 
-  const clearCart = () => {
+  const clearCurrentOrder = () => {
     setCart([]);
-    setSpecialNotes('');
+    setOrderStep(1);
     setBeuOrderId('');
-    setAdariCustomerName('');
-    setAdariCustomerPhone('');
+    setCustomWaiterName('');
+    setShowAddWaiterInput(false);
+    setPaymentMethod('Cash');
   };
 
-  // Totals: ALWAYS TAKEAWAY = 1 Box per each item qty!
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  // Packaging & Amount Math (Every single dish item is 100% takeaway = 1 Box)
+  const totalSubtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   const totalBoxesInOrder = cart.reduce((sum, item) => sum + item.qty, 0);
 
-  // --- FINISH ORDER & SEND TO OWNER ---
-  const handleSendOrderToOwner = async (e) => {
-    e.preventDefault();
+  // --- SUBMIT ORDER ---
+  const handleFinalSubmit = async () => {
     if (cart.length === 0) {
-      showToast('⚠️ Please select at least 1 food dish to send');
+      showToast('⚠️ እባክዎ ቢያንስ አንድ ምግብ ይምረጡ (Please choose at least 1 food item)');
+      setOrderStep(1);
       return;
     }
 
-    if (orderChannel === 'BEU Delivery' && !beuOrderId.trim()) {
-      showToast('⚠️ Please enter the BEU Delivery Order ID');
-      return;
-    }
-
-    if (paymentMethod === 'Adari' && !adariCustomerName.trim()) {
-      showToast('⚠️ Please enter customer name for Adari credit');
-      return;
-    }
+    const effectiveWaiter = customWaiterName.trim() || selectedWaiter;
+    const isBeu = selectedShiftType === 'BEU';
+    const shiftLabel = isBeu ? 'Day Shift' : (selectedShiftType === 'Day' ? 'Day Shift' : 'Night Shift');
+    const channelLabel = isBeu ? 'BEU Delivery' : 'In-Store Takeaway';
+    const finalPayment = isBeu ? 'BEU Account' : paymentMethod;
 
     const orderId = `food-${Date.now()}`;
     const orderData = {
       id: orderId,
-      chefName,
-      shift: currentShift,
-      channel: orderChannel,
-      beuOrderId: orderChannel === 'BEU Delivery' ? beuOrderId.trim() : null,
-      paymentMethod,
-      totalAmount: subtotal,
-      boxesCount: totalBoxesInOrder, // Every item is a takeaway box
-      packagingType: 'takeaway_box',
-      specialNotes: specialNotes.trim() || null,
-      status: 'Sent to Owner',
+      chefName: 'Chef Almaz',
+      shift: shiftLabel,
+      channel: channelLabel,
+      waiterName: effectiveWaiter,
+      beuOrderId: isBeu ? (beuOrderId.trim() || 'BEU-Direct') : null,
+      paymentMethod: finalPayment,
+      totalAmount: totalSubtotal,
+      boxesCount: totalBoxesInOrder,
       items: cart.map(i => ({
         id: i.id,
         name: i.name,
+        englishName: i.englishName,
         qty: i.qty,
         price: i.price
       })),
@@ -361,79 +382,48 @@ export default function App() {
       createdAt: new Date().toISOString()
     };
 
-    // If Adari credit
-    if (paymentMethod === 'Adari') {
-      const adariEntry = {
-        id: `adari-${Date.now()}`,
-        customerName: adariCustomerName.trim(),
-        customerPhone: adariCustomerPhone.trim() || 'No Phone',
-        amount: subtotal,
-        orderId,
-        status: 'Unpaid',
-        staff: chefName,
-        date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        itemsDescription: cart.map(i => `${i.qty}x ${i.name}`).join(', ')
-      };
-      await dbService.saveAdari(adariEntry);
-    }
-
-    // Save locally and sync with Supabase database
+    // Save locally
     setSentOrders(prev => [orderData, ...prev]);
+
+    // Send to Supabase
     await dbService.saveOrder({
       ...orderData,
+      staffName: 'Chef Almaz',
       cupsCount: 0,
-      staffName: chefName
+      boxesUsed: totalBoxesInOrder
     });
 
-    // Reset Form
-    clearCart();
-    showToast(`✅ Order sent to Owner! (${totalBoxesInOrder} 🥡 Takeaway Box${totalBoxesInOrder > 1 ? 'es' : ''} logged)`);
+    // If new custom waiter was typed, save to permanent list
+    if (customWaiterName.trim() && !waitersList.includes(customWaiterName.trim())) {
+      setWaitersList(prev => [...prev, customWaiterName.trim()]);
+    }
+
+    // Show big success confirmation modal
+    setOrderSuccessModal({
+      ...orderData,
+      foodSummary: cart.map(i => `${i.qty}x ${i.name}`).join(', ')
+    });
+
+    // Reset current order
+    clearCurrentOrder();
   };
 
-  // --- SAVE DAMAGED BOX / SPILL ---
-  const handleSaveWaste = (e) => {
+  // Add custom waiter permanently
+  const handleAddCustomWaiter = (e) => {
     e.preventDefault();
-    const count = Number(wasteCountInput) || 1;
-    setWasteBoxes(prev => prev + count);
-    setShowWasteModal(false);
-    showToast(`⚠️ Logged ${count} damaged takeaway box(es) (${wasteReason})`);
-  };
-
-  // --- ADD NEW DISH ---
-  const handleCreateDish = (e) => {
-    e.preventDefault();
-    if (!newDishName.trim() || !newDishPrice) return;
-
-    const newDish = {
-      id: `dish-${Date.now()}`,
-      name: newDishName.trim(),
-      price: Number(newDishPrice),
-      description: newDishDesc.trim() || 'Freshly prepared takeaway dish',
-      containerType: 'box',
-      isAvailable: true,
-      emoji: '🥗',
-      imageUrl: newDishImagePreview || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80'
-    };
-
-    setFoodMenu(prev => [newDish, ...prev]);
-    setNewDishName('');
-    setNewDishPrice('');
-    setNewDishDesc('');
-    setNewDishImagePreview(null);
-    setShowAddDishModal(false);
-    showToast(`Added "${newDish.name}" to Food Menu!`);
-  };
-
-  const handleImageFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setNewDishImagePreview(reader.result);
-      reader.readAsDataURL(file);
+    if (customWaiterName.trim()) {
+      const name = customWaiterName.trim();
+      if (!waitersList.includes(name)) {
+        setWaitersList(prev => [...prev, name]);
+      }
+      setSelectedWaiter(name);
+      setCustomWaiterName('');
+      setShowAddWaiterInput(false);
+      showToast(`Added "${name}" to Waiters`);
     }
   };
 
-  // Filtered Menu by Category & Search (supports Amharic & English search)
+  // Filtered dishes for Step 1
   const filteredDishes = foodMenu.filter(item => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch = !q ||
@@ -443,44 +433,26 @@ export default function App() {
     return matchesSearch && matchesCategory;
   });
 
-  // Shift Aggregates for Chef (Current Shift)
-  const shiftOrders = sentOrders.filter(o => o.shift === currentShift);
-  const totalShiftBoxesUsed = shiftOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
-  const totalShiftRevenue = shiftOrders.reduce((sum, o) => sum + o.totalAmount, 0);
-
-  // --- OWNER INSPECTION & FILTERING (SHIFTS, BEU, FOOD TYPES) ---
-  const [viewFilter, setViewFilter] = useState('All'); // 'All', 'Day Shift', 'Night Shift', 'BEU Delivery', 'In-Store Takeaway'
-
-  // Filtered Sent Orders based on viewFilter
-  const filteredSentOrders = sentOrders.filter(order => {
-    if (viewFilter === 'Day Shift') return order.shift === 'Day Shift';
-    if (viewFilter === 'Night Shift') return order.shift === 'Night Shift';
-    if (viewFilter === 'BEU Delivery') return order.channel === 'BEU Delivery';
-    if (viewFilter === 'In-Store Takeaway') return order.channel === 'In-Store Takeaway';
-    return true; // 'All'
-  });
-
-  // Shift & Channel Counts & Totals
-  const dayOrders = sentOrders.filter(o => o.shift === 'Day Shift');
-  const nightOrders = sentOrders.filter(o => o.shift === 'Night Shift');
+  // --- STATS FOR OWNER REPORTS ---
+  const dayOrders = sentOrders.filter(o => o.shift === 'Day Shift' && o.channel !== 'BEU Delivery');
+  const nightOrders = sentOrders.filter(o => o.shift === 'Night Shift' && o.channel !== 'BEU Delivery');
   const beuOrders = sentOrders.filter(o => o.channel === 'BEU Delivery');
-  const inStoreOrders = sentOrders.filter(o => o.channel === 'In-Store Takeaway');
 
   const dayBoxes = dayOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
   const nightBoxes = nightOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
   const beuBoxes = beuOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
-  const inStoreBoxes = inStoreOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
+  const totalBoxesAll = sentOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
 
   const dayRevenue = dayOrders.reduce((sum, o) => sum + o.totalAmount, 0);
   const nightRevenue = nightOrders.reduce((sum, o) => sum + o.totalAmount, 0);
   const beuRevenue = beuOrders.reduce((sum, o) => sum + o.totalAmount, 0);
-  const inStoreRevenue = inStoreOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+  const totalRevenueAll = sentOrders.reduce((sum, o) => sum + o.totalAmount, 0);
 
-  // Food Types Breakdown (Exact counts of each food dish prepared in the active view)
+  // Breakdown by Food Dishes (All 16)
   const dishBreakdown = foodMenu.map(dish => {
     let countSold = 0;
     let revenue = 0;
-    filteredSentOrders.forEach(order => {
+    sentOrders.forEach(order => {
       order.items?.forEach(i => {
         if (i.id === dish.id || i.name === dish.name) {
           countSold += i.qty;
@@ -491,991 +463,1157 @@ export default function App() {
     return {
       ...dish,
       countSold,
-      boxesUsed: countSold, // 1 box per dish
+      boxesUsed: countSold,
       revenueGenerated: revenue
     };
   });
 
+  // Breakdown by Waiter
+  const waiterStats = {};
+  sentOrders.forEach(order => {
+    const w = order.waiterName || 'Unassigned';
+    if (!waiterStats[w]) {
+      waiterStats[w] = { ordersCount: 0, boxesCount: 0, totalETB: 0 };
+    }
+    waiterStats[w].ordersCount += 1;
+    waiterStats[w].boxesCount += (order.boxesCount || 0);
+    waiterStats[w].totalETB += order.totalAmount;
+  });
+
+  // Delete Order (Owner correction)
+  const handleDeleteOrder = (orderId) => {
+    if (window.confirm('ይህን ትዕዛዝ በእርግጥ መሰረዝ ይፈልጋሉ? (Are you sure you want to delete this order?)')) {
+      setSentOrders(prev => prev.filter(o => o.id !== orderId));
+      showToast('Order deleted');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#FFFDFB] flex flex-col font-sans text-slate-800 antialiased selection:bg-emerald-600 selection:text-white">
+    <div className="min-h-screen bg-[#FDFBF7] flex flex-col font-sans text-slate-800 antialiased selection:bg-emerald-600 selection:text-white">
       
       {/* ============================================================== */}
-      {/* VIBRANT CHEF HEADER (CHEF ALMAZ & SHIFT)                        */}
+      {/* VIBRANT TOP APP BAR                                             */}
       {/* ============================================================== */}
-      <header className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white sticky top-0 z-50 shadow-xl shadow-emerald-700/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <header className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white sticky top-0 z-50 shadow-lg shadow-emerald-800/10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
           
-          {/* Logo & Chef Station Identity */}
+          {/* Logo & Brand */}
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-2xl shadow-inner">
+            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-xl shadow-inner">
               👩‍🍳
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="font-black text-lg tracking-tight text-white drop-shadow-sm">MARAKI</h1>
-                <span className="text-[10px] font-black uppercase tracking-wider bg-white text-emerald-800 px-2.5 py-0.5 rounded-full shadow-sm">
-                  Chef Food Station
+                <span className="text-[10px] font-black uppercase tracking-wider bg-white text-emerald-800 px-2 py-0.5 rounded-full shadow-sm">
+                  Food Station
                 </span>
               </div>
-              <p className="text-xs text-emerald-100 flex items-center gap-1.5 font-bold mt-0.5">
-                <span>Chef on Duty:</span>
-                <span className="underline decoration-emerald-300 font-black">{chefName}</span>
+              <p className="text-[11px] text-emerald-100 flex items-center gap-1 font-bold">
+                <span>100% Takeaway</span>
                 <span className="text-white/40">•</span>
-                <span className="text-[11px] bg-black/20 px-2 py-0.5 rounded-lg border border-white/10">
-                  100% Takeaway (🥡)
-                </span>
+                <span>🥡 1 Box per Dish</span>
               </p>
             </div>
           </div>
 
-          {/* Quick Shift & Action Controls */}
-          <div className="flex items-center gap-2.5 text-xs font-semibold">
-            
-            {/* Shift Switcher */}
-            <button
-              onClick={() => {
-                const next = currentShift === 'Day Shift' ? 'Night Shift' : 'Day Shift';
-                setCurrentShift(next);
-                showToast(`Switched to ${next}`);
-              }}
-              className="px-3 py-1.5 bg-black/20 hover:bg-black/30 text-white rounded-2xl border border-white/20 font-black text-xs flex items-center gap-1.5 transition-all"
-            >
-              {currentShift === 'Day Shift' ? <Sun className="w-3.5 h-3.5 text-amber-300" /> : <Moon className="w-3.5 h-3.5 text-indigo-200" />}
-              <span>{currentShift}</span>
-            </button>
+          {/* Clean View Mode Switcher: New Order vs Owner Reports */}
+          <div className="flex items-center gap-2">
+            <div className="flex bg-black/20 p-1 rounded-2xl border border-white/20">
+              <button
+                type="button"
+                onClick={() => setViewMode('order')}
+                className={`px-3.5 py-1.5 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all ${
+                  viewMode === 'order'
+                    ? 'bg-white text-emerald-800 shadow-md scale-[1.02]'
+                    : 'text-white hover:text-emerald-100'
+                }`}
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>ትዕዛዝ አስገባ (Order)</span>
+              </button>
 
-            {/* Log Damaged Box Button */}
+              <button
+                type="button"
+                onClick={() => setViewMode('reports')}
+                className={`px-3.5 py-1.5 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all ${
+                  viewMode === 'reports'
+                    ? 'bg-white text-emerald-800 shadow-md scale-[1.02]'
+                    : 'text-white hover:text-emerald-100'
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>የባለቤት ሪፖርት (Reports)</span>
+              </button>
+            </div>
+
+            {/* Damaged Box Button */}
             <button
               onClick={() => setShowWasteModal(true)}
-              className="px-3 py-1.5 bg-rose-500/90 hover:bg-rose-600 text-white font-black rounded-2xl text-xs flex items-center gap-1 shadow-md transition-colors border border-rose-400/30"
+              className="hidden sm:flex px-2.5 py-1.5 bg-rose-500/80 hover:bg-rose-600 text-white font-black rounded-xl text-xs items-center gap-1 border border-rose-400/30 transition-all"
+              title="የተበላሸ ቦክስ መዝግብ"
             >
               <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Log Damaged Box</span>
-            </button>
-
-            {/* Add New Dish */}
-            <button
-              onClick={() => setShowAddDishModal(true)}
-              className="px-3 py-1.5 bg-white text-emerald-800 hover:bg-emerald-50 font-black rounded-2xl text-xs flex items-center gap-1 shadow-md transition-all"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>+ Add Dish</span>
+              <span>የተበላሸ እቃ</span>
             </button>
           </div>
+
         </div>
       </header>
 
-      {/* Toast Alert */}
+      {/* Global Toast */}
       {toastMessage && (
-        <div className="max-w-md mx-auto mt-3 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black rounded-2xl shadow-xl shadow-emerald-700/20 flex items-center gap-2 animate-in fade-in duration-200 z-50">
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 bg-slate-900/90 backdrop-blur-md text-white text-xs font-black rounded-2xl shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* ============================================================== */}
-      {/* 4 LIVE CHEF COUNTERS (BOXES, ORDERS SENT, REVENUE)             */}
+      {/* 1. SIMPLE 4-STEP ORDERING WIZARD                                */}
       {/* ============================================================== */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 w-full">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      {viewMode === 'order' && (
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full pb-28">
           
-          {/* Total Boxes Used */}
-          <div className="bg-white p-4 rounded-3xl border border-emerald-100 shadow-xl shadow-emerald-700/5 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-2xl flex-shrink-0">
-              🥡
-            </div>
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                Boxes Handed Out
-              </span>
-              <p className="text-xl font-black text-emerald-700 mt-0.5">{totalShiftBoxesUsed} Boxes</p>
-              <span className="text-[10px] text-slate-400 font-bold">1 box per dish</span>
-            </div>
-          </div>
-
-          {/* Orders Sent to Owner */}
-          <div className="bg-white p-4 rounded-3xl border border-emerald-100 shadow-xl shadow-emerald-700/5 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-800 flex items-center justify-center text-2xl flex-shrink-0">
-              📤
-            </div>
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                Orders Sent to Owner
-              </span>
-              <p className="text-xl font-black text-slate-900 mt-0.5">{shiftOrders.length} Sent</p>
-              <span className="text-[10px] text-emerald-600 font-bold">Logged to database</span>
-            </div>
-          </div>
-
-          {/* Shift Food Value */}
-          <div className="bg-white p-4 rounded-3xl border border-emerald-100 shadow-xl shadow-emerald-700/5 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center text-2xl flex-shrink-0">
-              💰
-            </div>
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                Total Food Sales
-              </span>
-              <p className="text-xl font-black text-slate-900 mt-0.5">{totalShiftRevenue.toLocaleString()} ETB</p>
-              <span className="text-[10px] text-slate-400 font-bold">{currentShift}</span>
-            </div>
-          </div>
-
-          {/* Damaged Boxes */}
-          <div className="bg-white p-4 rounded-3xl border border-rose-100 shadow-xl shadow-rose-600/5 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-800 flex items-center justify-center text-2xl flex-shrink-0">
-              ⚠️
-            </div>
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                Damaged / Spilled
-              </span>
-              <p className="text-xl font-black text-rose-600 mt-0.5">{wasteBoxes} Boxes</p>
-              <span className="text-[10px] text-slate-400 font-bold">Reported to Owner</span>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* ============================================================== */}
-      {/* MAIN WORKSPACE: DISH SELECTOR & SEND TO OWNER PANEL            */}
-      {/* ============================================================== */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* LEFT 7-8 COLUMNS: CHEF FOOD DISHES (TOUCH CARDS) */}
-        <div className="lg:col-span-7 xl:col-span-8 space-y-4">
-          
-          {/* Top Bar: Channel Toggle & Search */}
-          <div className="bg-white rounded-3xl p-4 shadow-xl shadow-emerald-700/5 border border-emerald-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            
-            {/* Channel Selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Channel:</span>
-              <div className="grid grid-cols-2 gap-1.5 bg-emerald-50/80 p-1 rounded-2xl border border-emerald-100">
-                <button
-                  type="button"
-                  onClick={() => { setOrderChannel('In-Store Takeaway'); setPaymentMethod('Cash'); }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
-                    orderChannel === 'In-Store Takeaway'
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
-                      : 'text-slate-600 hover:text-emerald-700'
-                  }`}
-                >
-                  <Store className="w-3.5 h-3.5" />
-                  <span>In-Store Takeaway</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => { setOrderChannel('BEU Delivery'); setPaymentMethod('BEU Account'); }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
-                    orderChannel === 'BEU Delivery'
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
-                      : 'text-slate-600 hover:text-emerald-700'
-                  }`}
-                >
-                  <Truck className="w-3.5 h-3.5" />
-                  <span>BEU Delivery</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Search Dishes */}
-            <div className="relative flex-1 max-w-xs">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
-              <input
-                type="text"
-                placeholder="Search food dish..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-emerald-50/40 border border-emerald-100 rounded-2xl pl-8 pr-3 py-2 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-          </div>
-
-          {/* BEU Delivery Banner */}
-          {orderChannel === 'BEU Delivery' && (
-            <div className="bg-amber-500 text-white p-3.5 rounded-3xl shadow-lg shadow-amber-500/10 flex items-center justify-between gap-3 animate-in fade-in">
-              <div className="flex items-center gap-2">
-                <Truck className="w-5 h-5 flex-shrink-0" />
-                <span className="text-xs font-black">BEU Delivery Rider Order:</span>
-              </div>
-              <input
-                type="text"
-                placeholder="Enter BEU Order # (e.g. BEU-4921)"
-                value={beuOrderId}
-                onChange={(e) => setBeuOrderId(e.target.value)}
-                className="bg-white/20 placeholder-white/80 text-white text-xs font-bold rounded-xl px-3 py-1.5 outline-none border border-white/30 w-52"
-              />
-            </div>
-          )}
-
-          {/* Quick Category Tabs for Chef Almaz */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {[
-              { id: 'All', label: '🌟 ሁሉም (All 16)' },
-              { id: 'Salad', label: '🥗 ሳላድና ፍራፍሬ' },
-              { id: 'Pasta & Rice', label: '🍝 ፓስታ እና ሩዝ' },
-              { id: 'Eggs & Firfir', label: '🍳 እንቁላል እና ፍርፍር' },
-              { id: 'Sandwiches', label: '🥪 ሳንድዊች' }
-            ].map(cat => (
+          {/* STEP PROGRESS INDICATOR */}
+          <div className="mb-6 bg-white p-3.5 rounded-3xl shadow-md shadow-emerald-900/5 border border-emerald-100">
+            <div className="grid grid-cols-4 gap-2 text-center">
+              
+              {/* Step 1 Pill */}
               <button
-                key={cat.id}
                 type="button"
-                onClick={() => setActiveCategory(cat.id)}
-                className={`px-4 py-2 rounded-2xl font-black text-xs whitespace-nowrap transition-all ${
-                  activeCategory === cat.id
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-700/20 scale-[1.02]'
-                    : 'bg-white text-slate-700 hover:bg-emerald-50 border border-emerald-100'
+                onClick={() => setOrderStep(1)}
+                className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all ${
+                  orderStep === 1 
+                    ? 'bg-emerald-600 text-white font-black shadow-md shadow-emerald-600/30' 
+                    : orderStep > 1 
+                      ? 'bg-emerald-50 text-emerald-800 font-bold hover:bg-emerald-100' 
+                      : 'text-slate-400 font-semibold'
                 }`}
               >
-                {cat.label}
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span>1. ምግብ</span>
+                  {cart.length > 0 && (
+                    <span className="w-4 h-4 rounded-full bg-amber-400 text-slate-900 text-[10px] font-black flex items-center justify-center">
+                      {cart.reduce((s, i) => s + i.qty, 0)}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] opacity-80 hidden sm:inline">Choose Food</span>
               </button>
-            ))}
+
+              {/* Step 2 Pill */}
+              <button
+                type="button"
+                disabled={cart.length === 0}
+                onClick={() => cart.length > 0 && setOrderStep(2)}
+                className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all ${
+                  orderStep === 2 
+                    ? 'bg-emerald-600 text-white font-black shadow-md shadow-emerald-600/30' 
+                    : orderStep > 2 
+                      ? 'bg-emerald-50 text-emerald-800 font-bold hover:bg-emerald-100' 
+                      : 'text-slate-400 font-semibold disabled:opacity-40'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span>2. ፈረቃ / ቢዩ</span>
+                </div>
+                <span className="text-[10px] opacity-80 hidden sm:inline">Day, Night or BEU</span>
+              </button>
+
+              {/* Step 3 Pill */}
+              <button
+                type="button"
+                disabled={cart.length === 0}
+                onClick={() => cart.length > 0 && setOrderStep(3)}
+                className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all ${
+                  orderStep === 3 
+                    ? 'bg-emerald-600 text-white font-black shadow-md shadow-emerald-600/30' 
+                    : orderStep > 3 
+                      ? 'bg-emerald-50 text-emerald-800 font-bold hover:bg-emerald-100' 
+                      : 'text-slate-400 font-semibold disabled:opacity-40'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span>3. አስተናጋጅ</span>
+                </div>
+                <span className="text-[10px] opacity-80 hidden sm:inline">Waiter</span>
+              </button>
+
+              {/* Step 4 Pill */}
+              <button
+                type="button"
+                disabled={cart.length === 0}
+                onClick={() => cart.length > 0 && setOrderStep(4)}
+                className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all ${
+                  orderStep === 4 
+                    ? 'bg-emerald-600 text-white font-black shadow-md shadow-emerald-600/30' 
+                    : 'text-slate-400 font-semibold disabled:opacity-40'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span>4. አስገባ</span>
+                </div>
+                <span className="text-[10px] opacity-80 hidden sm:inline">Submit</span>
+              </button>
+
+            </div>
           </div>
 
-          {/* DISH CARDS GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredDishes.map(item => {
-              const inCart = cart.find(i => i.id === item.id);
-              return (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-3xl p-4 shadow-xl shadow-emerald-700/5 border border-emerald-100 hover:border-emerald-300 transition-all flex flex-col justify-between group"
-                >
-                  <div>
-                    {/* Real Photography with 🥡 Takeaway Box Tag */}
-                    <div className="w-full h-40 rounded-2xl overflow-hidden relative bg-emerald-50 mb-3 shadow-inner">
-                      {item.imageUrl ? (
-                        <img 
-                          src={item.imageUrl} 
-                          alt={item.name} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-5xl">
-                          {item.emoji}
-                        </div>
-                      )}
-
-                      {/* Always Takeaway Box Tag */}
-                      <div className="absolute top-2.5 left-2.5 bg-black/50 backdrop-blur-md text-white text-[10px] font-black px-2.5 py-1 rounded-xl flex items-center gap-1 border border-white/20">
-                        <span>🥡 1 Takeaway Box</span>
-                      </div>
-
-                      {/* Price Tag */}
-                      <div className="absolute bottom-2.5 right-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-xs px-3 py-1 rounded-xl shadow-md">
-                        {item.price} ETB
-                      </div>
-                    </div>
-
-                    <h3 className="font-black text-slate-900 text-sm leading-snug line-clamp-1">{item.name}</h3>
-                    {item.englishName && (
-                      <span className="text-[11px] font-bold text-emerald-700 block mt-0.5">
-                        {item.englishName}
-                      </span>
-                    )}
-                    <p className="text-[11px] text-slate-400 font-bold mt-1 line-clamp-2 leading-relaxed">
-                      {item.description}
-                    </p>
-                  </div>
-
-                  {/* Big Number Touch Counter */}
-                  <div className="mt-4 pt-3 border-t border-emerald-50 flex items-center justify-between">
-                    {inCart ? (
-                      <div className="flex items-center justify-between w-full bg-emerald-50 p-1.5 rounded-2xl border border-emerald-200">
-                        <button
-                          type="button"
-                          onClick={() => updateCartQty(item.id, -1)}
-                          className="w-10 h-10 rounded-xl bg-white text-emerald-800 hover:bg-emerald-100 flex items-center justify-center font-black shadow-sm active:scale-95 transition-transform"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        
-                        <div className="text-center px-2">
-                          <span className="font-black text-lg text-emerald-800 block leading-none">
-                            {inCart.qty}
-                          </span>
-                          <span className="text-[9px] font-extrabold text-emerald-600 uppercase">
-                            {inCart.qty} 🥡
-                          </span>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => updateCartQty(item.id, 1)}
-                          className="w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center font-black shadow-md shadow-emerald-600/20 active:scale-95 transition-transform"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => addToCart(item, 1)}
-                        className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 transition-transform active:scale-95"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Add Takeaway Dish</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-        </div>
-
-        {/* RIGHT 4-5 COLUMNS: SEND TO OWNER PANEL */}
-        <div className="lg:col-span-5 xl:col-span-4 bg-white rounded-3xl p-5 shadow-2xl shadow-emerald-700/10 border border-emerald-100 sticky top-20 flex flex-col justify-between min-h-[620px]">
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-emerald-100">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-base font-black shadow-md">
-                  👩‍🍳
-                </div>
+          {/* ============================================================== */}
+          {/* STEP 1: CHOOSE FOOD FROM MENU                                  */}
+          {/* ============================================================== */}
+          {orderStep === 1 && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              
+              {/* Header Title & Search */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-emerald-100 shadow-sm">
                 <div>
-                  <h2 className="font-black text-slate-900 text-sm">Chef Order Tray</h2>
-                  <span className="text-[10px] text-slate-400 font-bold block">
-                    {orderChannel} • {chefName}
-                  </span>
+                  <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-black">
+                      1
+                    </span>
+                    <span>የምግብ አይነት ይምረጡ (Choose Food from Menu)</span>
+                  </h2>
+                  <p className="text-xs text-slate-400 font-bold mt-0.5">
+                    የሚፈልጉትን ምግብ ይጫኑ፤ እያንዳንዱ ምግብ 1 🥡 ቴክአዌይ ቦክስ ያሰላል
+                  </p>
+                </div>
+
+                {/* Search Box */}
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="ፈልግ / Search food..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-emerald-50/60 border border-emerald-100 rounded-2xl pl-9 pr-3 py-2 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
                 </div>
               </div>
 
-              {cart.length > 0 && (
-                <button
-                  type="button"
-                  onClick={clearCart}
-                  className="text-[11px] text-rose-500 hover:text-rose-700 font-black flex items-center gap-1"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Clear</span>
-                </button>
-              )}
-            </div>
-
-            {/* Packaging Notice: ALWAYS TAKEAWAY BOXES */}
-            <div className="my-3 p-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="text-3xl">🥡</span>
-                <div>
-                  <span className="text-xs font-black text-emerald-950 block">
-                    Takeaway Boxes Count:
-                  </span>
-                  <span className="text-[10px] text-emerald-700 font-bold">
-                    Logged directly to owner's packaging stock
-                  </span>
-                </div>
-              </div>
-              <span className="text-xl font-black text-emerald-800 bg-white px-3.5 py-1.5 rounded-xl border border-emerald-300 shadow-sm">
-                {totalBoxesInOrder} 🥡
-              </span>
-            </div>
-
-            {/* Cart Items List */}
-            <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
-              {cart.length === 0 ? (
-                <div className="py-14 text-center">
-                  <UtensilsCrossed className="w-12 h-12 mx-auto text-emerald-200 mb-2" />
-                  <p className="text-xs font-black text-slate-500">No dishes on tray</p>
-                  <p className="text-[11px] text-slate-400">Tap food dishes on the left to add</p>
-                </div>
-              ) : (
-                cart.map(item => (
-                  <div key={item.id} className="p-3 rounded-2xl border border-emerald-100 bg-[#FAFDFB] flex items-center justify-between">
-                    <div>
-                      <h4 className="font-black text-slate-900 text-xs">{item.name}</h4>
-                      <span className="text-[11px] font-black text-emerald-700">
-                        {item.price * item.qty} ETB ({item.qty} 🥡 Boxes)
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-emerald-200 shadow-xs">
-                      <button
-                        type="button"
-                        onClick={() => updateCartQty(item.id, -1)}
-                        className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 flex items-center justify-center font-black text-xs"
-                      >
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="text-xs font-black text-emerald-800 px-2">{item.qty}</span>
-                      <button
-                        type="button"
-                        onClick={() => updateCartQty(item.id, 1)}
-                        className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-xs"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Checkout & Send to Owner Form */}
-          <form onSubmit={handleSendOrderToOwner} className="pt-4 border-t border-emerald-100 space-y-3">
-            
-            {/* Special Instructions / Kitchen Note */}
-            <div>
-              <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1">
-                Custom Preparation Note:
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. ያለ ማዮኔዝ / No Mayo, Extra dressing, Spicy"
-                value={specialNotes}
-                onChange={(e) => setSpecialNotes(e.target.value)}
-                className="w-full bg-emerald-50/40 border border-emerald-200 rounded-2xl px-3.5 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            {/* Payment Method */}
-            <div>
-              <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider block mb-1">
-                Payment Method:
-              </span>
-              <div className="grid grid-cols-4 gap-1.5">
+              {/* Category Filter Tabs */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
                 {[
-                  { id: 'Cash', label: 'Cash', icon: '💵' },
-                  { id: 'Telebirr', label: 'Telebirr', icon: '📱' },
-                  { id: 'CBE Birr', label: 'CBE', icon: '🏦' },
-                  { id: 'Adari', label: 'Adari', icon: '📋' }
-                ].map(m => (
+                  { id: 'All', label: '🌟 ሁሉም (All 16)' },
+                  { id: 'Salad', label: '🥗 ሳላድና ፍራፍሬ' },
+                  { id: 'Pasta & Rice', label: '🍝 ፓስታ እና ሩዝ' },
+                  { id: 'Eggs & Firfir', label: '🍳 እንቁላል እና ፍርፍር' },
+                  { id: 'Sandwiches', label: '🥪 ሳንድዊች' }
+                ].map(cat => (
                   <button
-                    key={m.id}
+                    key={cat.id}
                     type="button"
-                    onClick={() => setPaymentMethod(m.id)}
-                    className={`p-2 rounded-2xl text-center text-xs font-black transition-all ${
-                      paymentMethod === m.id
-                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
-                        : 'bg-emerald-50/60 text-slate-700 hover:bg-emerald-100 border border-emerald-100'
+                    onClick={() => setActiveCategory(cat.id)}
+                    className={`px-4 py-2 rounded-2xl font-black text-xs whitespace-nowrap transition-all ${
+                      activeCategory === cat.id
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/20 scale-[1.02]'
+                        : 'bg-white text-slate-700 hover:bg-emerald-50 border border-emerald-100'
                     }`}
                   >
-                    <span className="block text-sm">{m.icon}</span>
-                    <span className="text-[10px] block mt-0.5">{m.label}</span>
+                    {cat.label}
                   </button>
                 ))}
               </div>
-            </div>
 
-            {/* Adari credit inputs if selected */}
-            {paymentMethod === 'Adari' && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl space-y-2 animate-in fade-in">
-                <div className="flex items-center gap-1.5 text-xs font-black text-amber-900">
-                  <BookOpen className="w-3.5 h-3.5 text-amber-700" />
-                  <span>Adari Customer Tab (አዳሪ)</span>
+              {/* 16 FOOD DISHES GRID */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                {filteredDishes.map(dish => {
+                  const inCart = cart.find(i => i.id === dish.id);
+                  return (
+                    <div
+                      key={dish.id}
+                      onClick={() => !inCart && toggleOrAddFood(dish)}
+                      className={`relative bg-white rounded-3xl p-3 border transition-all cursor-pointer flex flex-col justify-between group select-none ${
+                        inCart 
+                          ? 'border-emerald-500 shadow-xl shadow-emerald-600/15 ring-2 ring-emerald-500/30' 
+                          : 'border-emerald-100 hover:border-emerald-300 shadow-sm hover:shadow-md'
+                      }`}
+                    >
+                      <div>
+                        {/* Food Image */}
+                        <div className="w-full h-32 rounded-2xl overflow-hidden relative bg-emerald-50 mb-2.5 shadow-inner">
+                          {dish.imageUrl ? (
+                            <img 
+                              src={dish.imageUrl} 
+                              alt={dish.name} 
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-4xl">
+                              {dish.emoji}
+                            </div>
+                          )}
+
+                          {/* 1 Takeaway Box Tag */}
+                          <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md text-white text-[9px] font-black px-2 py-0.5 rounded-lg border border-white/20">
+                            🥡 1 ቦክስ
+                          </div>
+
+                          {/* Selected Quantity Indicator Pill */}
+                          {inCart && (
+                            <div className="absolute top-2 right-2 bg-emerald-600 text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center shadow-lg border border-white">
+                              {inCart.qty}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Dish Details */}
+                        <h3 className="font-black text-slate-900 text-xs sm:text-sm leading-snug line-clamp-1">
+                          {dish.name}
+                        </h3>
+                        <span className="text-[10px] font-bold text-emerald-700 block mt-0.5 line-clamp-1">
+                          {dish.englishName}
+                        </span>
+                      </div>
+
+                      {/* Price & Quantity Controls */}
+                      <div className="mt-3 pt-2 border-t border-emerald-50 flex items-center justify-between">
+                        <span className="font-black text-xs sm:text-sm text-slate-900">
+                          {dish.price} <span className="text-[10px] text-slate-400 font-bold">ETB</span>
+                        </span>
+
+                        {inCart ? (
+                          <div 
+                            className="flex items-center gap-1.5 bg-emerald-50 p-1 rounded-xl border border-emerald-200"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => updateCartQty(dish.id, -1)}
+                              className="w-7 h-7 rounded-lg bg-white text-emerald-800 hover:bg-emerald-100 flex items-center justify-center font-black shadow-sm"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="font-black text-xs text-emerald-900 px-1">
+                              {inCart.qty}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateCartQty(dish.id, 1)}
+                              className="w-7 h-7 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 flex items-center justify-center font-black shadow-sm"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); toggleOrAddFood(dish); }}
+                            className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-black flex items-center gap-1 transition-all"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>ምረጥ</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+            </div>
+          )}
+
+          {/* ============================================================== */}
+          {/* STEP 2: IS IT DAY, NIGHT, OR BEU?                              */}
+          {/* ============================================================== */}
+          {orderStep === 2 && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              
+              <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm text-center max-w-xl mx-auto">
+                <span className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 font-black inline-flex items-center justify-center text-sm mb-2">
+                  2
+                </span>
+                <h2 className="text-lg font-black text-slate-900">
+                  ቀን፣ ማታ ወይስ ቢዩ? (Day, Night or BEU?)
+                </h2>
+                <p className="text-xs text-slate-400 font-bold mt-1">
+                  ይህ ትዕዛዝ የተዘጋጀው በየትኛው ፈረቃ ነው ወይስ በቢዩ ዴሊቨሪ?
+                </p>
+              </div>
+
+              {/* 3 BIG VISUAL CARDS */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                
+                {/* 1. Day Shift Card */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedShiftType('Day')}
+                  className={`p-6 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-3 ${
+                    selectedShiftType === 'Day'
+                      ? 'border-amber-500 bg-amber-50/80 shadow-xl shadow-amber-500/10 scale-105'
+                      : 'border-emerald-100 bg-white hover:border-amber-200'
+                  }`}
+                >
+                  <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-600 flex items-center justify-center shadow-inner">
+                    <Sun className="w-9 h-9" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base text-slate-900">☀️ ቀን (Day Shift)</h3>
+                    <p className="text-xs text-slate-400 font-bold mt-0.5">የቀን ፈረቃ ትዕዛዝ</p>
+                  </div>
+                  {selectedShiftType === 'Day' && (
+                    <span className="text-[11px] font-black text-amber-700 bg-amber-200/60 px-3 py-1 rounded-full">
+                      ✓ ተመርጧል (Selected)
+                    </span>
+                  )}
+                </button>
+
+                {/* 2. Night Shift Card */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedShiftType('Night')}
+                  className={`p-6 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-3 ${
+                    selectedShiftType === 'Night'
+                      ? 'border-indigo-600 bg-indigo-50/80 shadow-xl shadow-indigo-600/10 scale-105'
+                      : 'border-emerald-100 bg-white hover:border-indigo-200'
+                  }`}
+                >
+                  <div className="w-16 h-16 rounded-3xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-inner">
+                    <Moon className="w-9 h-9" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base text-slate-900">🌙 ማታ (Night Shift)</h3>
+                    <p className="text-xs text-slate-400 font-bold mt-0.5">የማታ ፈረቃ ትዕዛዝ</p>
+                  </div>
+                  {selectedShiftType === 'Night' && (
+                    <span className="text-[11px] font-black text-indigo-700 bg-indigo-200/60 px-3 py-1 rounded-full">
+                      ✓ ተመርጧል (Selected)
+                    </span>
+                  )}
+                </button>
+
+                {/* 3. BEU Delivery Card */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedShiftType('BEU')}
+                  className={`p-6 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-3 ${
+                    selectedShiftType === 'BEU'
+                      ? 'border-teal-600 bg-teal-50/80 shadow-xl shadow-teal-600/10 scale-105'
+                      : 'border-emerald-100 bg-white hover:border-teal-200'
+                  }`}
+                >
+                  <div className="w-16 h-16 rounded-3xl bg-teal-100 text-teal-700 flex items-center justify-center shadow-inner">
+                    <Truck className="w-9 h-9" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base text-slate-900">🛵 ቢዩ (BEU Delivery)</h3>
+                    <p className="text-xs text-slate-400 font-bold mt-0.5">የቢዩ አሽከርካሪ ትዕዛዝ</p>
+                  </div>
+                  {selectedShiftType === 'BEU' && (
+                    <span className="text-[11px] font-black text-teal-700 bg-teal-200/60 px-3 py-1 rounded-full">
+                      ✓ ተመርጧል (Selected)
+                    </span>
+                  )}
+                </button>
+
+              </div>
+
+              {/* If BEU Delivery is selected, optional BEU Order # input */}
+              {selectedShiftType === 'BEU' && (
+                <div className="max-w-md mx-auto bg-teal-50 border border-teal-200 p-4 rounded-3xl animate-in fade-in">
+                  <label className="block text-xs font-black text-teal-900 mb-1.5">
+                    የቢዩ ትዕዛዝ ቁጥር (BEU Order # - Optional):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="ለምሳሌ፡ BEU-4921"
+                    value={beuOrderId}
+                    onChange={(e) => setBeuOrderId(e.target.value)}
+                    className="w-full bg-white border border-teal-300 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-teal-500"
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="Customer Name (e.g. Ato Daniel)"
-                  value={adariCustomerName}
-                  onChange={(e) => setAdariCustomerName(e.target.value)}
-                  className="w-full bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs font-bold outline-none"
-                  required
-                />
-                <input
-                  type="tel"
-                  placeholder="Phone number (optional)"
-                  value={adariCustomerPhone}
-                  onChange={(e) => setAdariCustomerPhone(e.target.value)}
-                  className="w-full bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs font-bold outline-none"
-                />
-              </div>
-            )}
+              )}
 
-            {/* Total and Big Send to Owner Button */}
-            <div className="flex items-center justify-between pt-1">
-              <div>
-                <span className="text-[10px] font-black uppercase text-slate-400 block">Total Takeaway Due</span>
-                <span className="text-xl font-black text-emerald-800">{subtotal.toLocaleString()} ETB</span>
+              {/* Step 2 Back & Next Action Buttons */}
+              <div className="flex items-center justify-between max-w-2xl mx-auto pt-4">
+                <button
+                  type="button"
+                  onClick={() => setOrderStep(1)}
+                  className="px-5 py-3 rounded-2xl bg-white hover:bg-emerald-50 text-slate-700 border border-emerald-200 font-black text-xs flex items-center gap-2 transition-all"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>ወደ ምግብ መረጣ (Back)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderStep(3)}
+                  className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-700/20 transition-all scale-[1.02]"
+                >
+                  <span>ቀጥል ወደ አስተናጋጅ (Next: Waiter)</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
-              <div className="text-right">
-                <span className="text-[10px] font-black uppercase text-slate-400 block">Boxes</span>
-                <span className="text-lg font-black text-emerald-600">{totalBoxesInOrder} 🥡</span>
-              </div>
+
             </div>
+          )}
 
-            {/* THE PRIMARY ACTION: FINISH & SEND TO OWNER */}
-            <button
-              type="submit"
-              disabled={cart.length === 0}
-              className={`w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-xl transition-all ${
-                cart.length > 0
-                  ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white shadow-emerald-700/25 active:scale-98'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-              }`}
-            >
-              <Send className="w-4 h-4" />
-              <span>Finish & Send to Owner (አጠናቅቄ ልኬያለሁ)</span>
-            </button>
-          </form>
-        </div>
-
-      </main>
-
-      {/* ============================================================== */}
-      {/* OWNER LIVE INSPECTION: SHIFTS, BEU & FOOD TYPES BREAKDOWN      */}
-      {/* ============================================================== */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full space-y-6">
-        
-        {/* Section Header */}
-        <div className="bg-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400 text-2xl shadow-inner">
-              📊
-            </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
-                <span>Owner Food & Shift Inspection Hub</span>
-                <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full">
-                  Live Feed
+          {/* ============================================================== */}
+          {/* STEP 3: WHO IS THE WAITER THAT TAKES IT?                        */}
+          {/* ============================================================== */}
+          {orderStep === 3 && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              
+              <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm text-center max-w-xl mx-auto">
+                <span className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 font-black inline-flex items-center justify-center text-sm mb-2">
+                  3
                 </span>
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Inspect how many orders went to Day vs Night shift, BEU Delivery vs In-Store, and exactly what type of food was prepared.
-              </p>
-            </div>
-          </div>
-
-          <div className="text-right">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Combined Boxes</span>
-            <span className="text-xl font-black text-emerald-400">{dayBoxes + nightBoxes} 🥡 Takeaway Boxes</span>
-          </div>
-        </div>
-
-        {/* 4 SUMMARY METRIC CARDS: DAY SHIFT vs NIGHT SHIFT vs BEU vs IN-STORE */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          
-          {/* Day Shift Card */}
-          <div 
-            onClick={() => setViewFilter(viewFilter === 'Day Shift' ? 'All' : 'Day Shift')}
-            className={`p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between ${
-              viewFilter === 'Day Shift'
-                ? 'bg-amber-500 text-white border-amber-600 shadow-xl scale-[1.02]'
-                : 'bg-white text-slate-900 border-amber-200 shadow-lg shadow-amber-500/5 hover:border-amber-400'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className={`text-[10px] font-black uppercase tracking-wider ${viewFilter === 'Day Shift' ? 'text-amber-100' : 'text-amber-700'}`}>
-                ☀️ Day Shift Orders
-              </span>
-              <span className="text-lg">☀️</span>
-            </div>
-            <div className="mt-3">
-              <p className="text-2xl font-black">{dayOrders.length} Orders</p>
-              <div className="flex items-center justify-between mt-1 text-xs font-bold">
-                <span className={viewFilter === 'Day Shift' ? 'text-amber-100' : 'text-slate-500'}>
-                  {dayBoxes} 🥡 Boxes Used
-                </span>
-                <span className="font-black">{dayRevenue.toLocaleString()} ETB</span>
+                <h2 className="text-lg font-black text-slate-900">
+                  ምግቡን የወሰደው አስተናጋጅ ማን ነው?
+                </h2>
+                <p className="text-xs text-slate-400 font-bold mt-1">
+                  (Who is the Waiter that takes the food?)
+                </p>
               </div>
-            </div>
-          </div>
 
-          {/* Night Shift Card */}
-          <div 
-            onClick={() => setViewFilter(viewFilter === 'Night Shift' ? 'All' : 'Night Shift')}
-            className={`p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between ${
-              viewFilter === 'Night Shift'
-                ? 'bg-indigo-600 text-white border-indigo-700 shadow-xl scale-[1.02]'
-                : 'bg-white text-slate-900 border-indigo-200 shadow-lg shadow-indigo-600/5 hover:border-indigo-400'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className={`text-[10px] font-black uppercase tracking-wider ${viewFilter === 'Night Shift' ? 'text-indigo-200' : 'text-indigo-700'}`}>
-                🌙 Night Shift Orders
-              </span>
-              <span className="text-lg">🌙</span>
-            </div>
-            <div className="mt-3">
-              <p className="text-2xl font-black">{nightOrders.length} Orders</p>
-              <div className="flex items-center justify-between mt-1 text-xs font-bold">
-                <span className={viewFilter === 'Night Shift' ? 'text-indigo-200' : 'text-slate-500'}>
-                  {nightBoxes} 🥡 Boxes Used
-                </span>
-                <span className="font-black">{nightRevenue.toLocaleString()} ETB</span>
+              {/* WAITER SELECTION CARDS */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
+                {waitersList.map(waiter => {
+                  const isSelected = selectedWaiter === waiter && !customWaiterName.trim();
+                  return (
+                    <button
+                      key={waiter}
+                      type="button"
+                      onClick={() => {
+                        setSelectedWaiter(waiter);
+                        setCustomWaiterName('');
+                      }}
+                      className={`p-4 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-2 ${
+                        isSelected
+                          ? 'border-emerald-600 bg-emerald-50/80 shadow-lg shadow-emerald-600/15 scale-105'
+                          : 'border-emerald-100 bg-white hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-inner ${
+                        isSelected ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-800'
+                      }`}>
+                        👩‍🍳
+                      </div>
+                      <span className="font-black text-xs text-slate-900">{waiter}</span>
+                      {isSelected && (
+                        <span className="text-[10px] font-black text-emerald-700 bg-emerald-200/60 px-2 py-0.5 rounded-full">
+                          ✓ ተመርጧል
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-            </div>
-          </div>
 
-          {/* BEU Delivery Card */}
-          <div 
-            onClick={() => setViewFilter(viewFilter === 'BEU Delivery' ? 'All' : 'BEU Delivery')}
-            className={`p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between ${
-              viewFilter === 'BEU Delivery'
-                ? 'bg-orange-500 text-white border-orange-600 shadow-xl scale-[1.02]'
-                : 'bg-white text-slate-900 border-orange-200 shadow-lg shadow-orange-500/5 hover:border-orange-400'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className={`text-[10px] font-black uppercase tracking-wider ${viewFilter === 'BEU Delivery' ? 'text-orange-100' : 'text-orange-700'}`}>
-                🛵 BEU Delivery App
-              </span>
-              <span className="text-lg">🛵</span>
-            </div>
-            <div className="mt-3">
-              <p className="text-2xl font-black">{beuOrders.length} Orders</p>
-              <div className="flex items-center justify-between mt-1 text-xs font-bold">
-                <span className={viewFilter === 'BEU Delivery' ? 'text-orange-100' : 'text-slate-500'}>
-                  {beuBoxes} 🥡 Boxes
-                </span>
-                <span className="font-black">{beuRevenue.toLocaleString()} ETB</span>
+              {/* Add Custom Waiter Name Input */}
+              <div className="max-w-md mx-auto bg-white p-4 rounded-3xl border border-emerald-100 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-black text-slate-700">ሌላ ስም መጻፍ ይፈልጋሉ? (Custom Name):</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="የአስተናጋጅ ስም ጻፍ (e.g. ሰላማዊት)..."
+                    value={customWaiterName}
+                    onChange={(e) => setCustomWaiterName(e.target.value)}
+                    className="flex-1 bg-emerald-50/60 border border-emerald-200 rounded-2xl px-4 py-2 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  {customWaiterName.trim() && (
+                    <button
+                      type="button"
+                      onClick={handleAddCustomWaiter}
+                      className="px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-black hover:bg-emerald-700 transition-all"
+                    >
+                      + አስቀምጥ
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* In-Store Takeaway Card */}
-          <div 
-            onClick={() => setViewFilter(viewFilter === 'In-Store Takeaway' ? 'All' : 'In-Store Takeaway')}
-            className={`p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between ${
-              viewFilter === 'In-Store Takeaway'
-                ? 'bg-emerald-600 text-white border-emerald-700 shadow-xl scale-[1.02]'
-                : 'bg-white text-slate-900 border-emerald-200 shadow-lg shadow-emerald-600/5 hover:border-emerald-400'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className={`text-[10px] font-black uppercase tracking-wider ${viewFilter === 'In-Store Takeaway' ? 'text-emerald-100' : 'text-emerald-700'}`}>
-                🏪 In-Store Walk-ins
-              </span>
-              <span className="text-lg">🏪</span>
-            </div>
-            <div className="mt-3">
-              <p className="text-2xl font-black">{inStoreOrders.length} Orders</p>
-              <div className="flex items-center justify-between mt-1 text-xs font-bold">
-                <span className={viewFilter === 'In-Store Takeaway' ? 'text-emerald-100' : 'text-slate-500'}>
-                  {inStoreBoxes} 🥡 Boxes
-                </span>
-                <span className="font-black">{inStoreRevenue.toLocaleString()} ETB</span>
+              {/* Step 3 Back & Next Action Buttons */}
+              <div className="flex items-center justify-between max-w-2xl mx-auto pt-4">
+                <button
+                  type="button"
+                  onClick={() => setOrderStep(2)}
+                  className="px-5 py-3 rounded-2xl bg-white hover:bg-emerald-50 text-slate-700 border border-emerald-200 font-black text-xs flex items-center gap-2 transition-all"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>ወደ ፈረቃ (Back)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderStep(4)}
+                  className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-700/20 transition-all scale-[1.02]"
+                >
+                  <span>ቀጥል ወደ ማረጋገጫ (Next: Submit)</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
+
             </div>
-          </div>
+          )}
 
-        </div>
+          {/* ============================================================== */}
+          {/* STEP 4: REVIEW & SUBMIT TO OWNER                               */}
+          {/* ============================================================== */}
+          {orderStep === 4 && (
+            <div className="space-y-6 animate-in fade-in duration-200 max-w-xl mx-auto">
+              
+              <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm text-center">
+                <span className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 font-black inline-flex items-center justify-center text-sm mb-2">
+                  4
+                </span>
+                <h2 className="text-lg font-black text-slate-900">
+                  ትዕዛዙን አረጋግጠው ያስገቡ (Confirm & Submit)
+                </h2>
+                <p className="text-xs text-slate-400 font-bold mt-1">
+                  ትዕዛዙ በቀጥታ ወደ ሲስተሙ ዳታቤዝ ይመዘገባል
+                </p>
+              </div>
 
-        {/* FOOD TYPES BREAKDOWN: WHAT TYPE OF FOOD DISHES WERE ORDERED */}
-        <div className="bg-white rounded-3xl p-6 shadow-xl shadow-emerald-700/5 border border-emerald-100 space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-emerald-100">
-            <div>
-              <h4 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                <UtensilsCrossed className="w-4 h-4 text-emerald-600" />
-                <span>Food Types Breakdown (ምን አይነት ምግቦች እንደተዘጋጁ)</span>
-              </h4>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Exact count of each dish and how many 🥡 takeaway boxes were used for: <strong className="text-emerald-700 font-black">{viewFilter}</strong>
-              </p>
+              {/* BEAUTIFUL ORDER SUMMARY RECEIPT CARD */}
+              <div className="bg-white rounded-3xl p-6 border-2 border-emerald-500 shadow-xl shadow-emerald-700/10 space-y-4">
+                
+                {/* 1. Food Items List */}
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2">
+                    የተመረጡ ምግቦች (Food Items)
+                  </span>
+                  <div className="space-y-2">
+                    {cart.map(item => (
+                      <div key={item.id} className="flex items-center justify-between bg-emerald-50/50 p-2.5 rounded-2xl border border-emerald-100">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-lg">{item.emoji || '🍲'}</span>
+                          <div>
+                            <h4 className="font-black text-xs text-slate-900">{item.name}</h4>
+                            <span className="text-[10px] text-slate-400 font-bold">
+                              {item.qty} x {item.price} ETB • 🥡 {item.qty} ቦክስ
+                            </span>
+                          </div>
+                        </div>
+                        <span className="font-black text-xs text-emerald-800">
+                          {item.qty * item.price} ETB
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Key Metadata Badges */}
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-emerald-100">
+                  
+                  {/* Shift / Channel */}
+                  <div className="bg-slate-50 p-3 rounded-2xl">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
+                      ፈረቃ / ዓይነት (Shift)
+                    </span>
+                    <span className="font-black text-xs text-slate-900 mt-0.5 flex items-center gap-1">
+                      {selectedShiftType === 'Day' && '☀️ ቀን (Day Shift)'}
+                      {selectedShiftType === 'Night' && '🌙 ማታ (Night Shift)'}
+                      {selectedShiftType === 'BEU' && `🛵 ቢዩ (${beuOrderId || 'BEU Order'})`}
+                    </span>
+                  </div>
+
+                  {/* Waiter */}
+                  <div className="bg-slate-50 p-3 rounded-2xl">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
+                      የወሰደው አስተናጋጅ (Waiter)
+                    </span>
+                    <span className="font-black text-xs text-slate-900 mt-0.5 flex items-center gap-1">
+                      👤 {customWaiterName.trim() || selectedWaiter}
+                    </span>
+                  </div>
+
+                </div>
+
+                {/* 3. Takeaway Box Tally */}
+                <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🥡</span>
+                    <div>
+                      <span className="font-black text-xs text-emerald-900 block">የወጣ የቴክአዌይ ሳጥን</span>
+                      <span className="text-[10px] text-emerald-700 font-bold">100% Takeaway Packaging</span>
+                    </div>
+                  </div>
+                  <span className="text-base font-black text-emerald-900">
+                    {totalBoxesInOrder} ቦክስ
+                  </span>
+                </div>
+
+                {/* 4. Payment Method Selection (if not BEU) */}
+                {selectedShiftType !== 'BEU' && (
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2">
+                      የክፍያ ዘዴ (Payment Method)
+                    </span>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'Cash', label: '💵 ጥሬ ገንዘብ' },
+                        { id: 'Telebirr', label: '📱 ቴሌብር' },
+                        { id: 'CBE Birr', label: '🏦 ሲቢኢ ብር' }
+                      ].map(m => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setPaymentMethod(m.id)}
+                          className={`py-2 px-1 rounded-xl text-xs font-black transition-all ${
+                            paymentMethod === m.id
+                              ? 'bg-emerald-600 text-white shadow-md'
+                              : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. Total Price */}
+                <div className="pt-3 border-t-2 border-dashed border-emerald-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-black text-slate-400 uppercase tracking-wider block">
+                      አጠቃላይ ድምር ዋጋ
+                    </span>
+                    <span className="text-[11px] text-emerald-600 font-bold">
+                      {totalBoxesInOrder} የተዘጋጀ ምግብ
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-black text-slate-900">
+                      {totalSubtotal.toLocaleString()}
+                    </span>
+                    <span className="text-xs font-black text-emerald-700 ml-1">ETB</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Step 4 Back & HUGE SUBMIT BUTTON */}
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={handleFinalSubmit}
+                  className="w-full py-4 rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-emerald-700/25 active:scale-95 transition-all"
+                >
+                  <Check className="w-5 h-5" />
+                  <span>ትዕዛዙን መዝግብ / አስገባ (Submit Order)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderStep(3)}
+                  className="w-full py-2.5 rounded-2xl bg-white hover:bg-emerald-50 text-slate-600 border border-emerald-100 font-black text-xs flex items-center justify-center gap-1.5 transition-all"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>ወደ ኋላ ተመለስና አስተካክል (Back to Edit)</span>
+                </button>
+              </div>
+
             </div>
+          )}
 
-            <span className="text-xs font-black text-slate-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-              Showing: {viewFilter}
-            </span>
-          </div>
-
-          {/* Dish Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {dishBreakdown.map(dish => (
-              <div 
-                key={dish.id} 
-                className={`p-4 rounded-2xl border transition-all flex items-center gap-3.5 ${
-                  dish.countSold > 0
-                    ? 'bg-emerald-50/40 border-emerald-200 shadow-sm'
-                    : 'bg-slate-50/50 border-slate-100 opacity-60'
-                }`}
-              >
-                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-emerald-100 flex-shrink-0 shadow-inner">
-                  {dish.imageUrl ? (
-                    <img src={dish.imageUrl} alt={dish.name} className="w-full h-full object-cover" />
+          {/* ============================================================== */}
+          {/* FLOATING ACTION BOTTOM BAR (When in Step 1)                      */}
+          {/* ============================================================== */}
+          {orderStep === 1 && (
+            <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-emerald-100 py-3 px-4 shadow-2xl z-40">
+              <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
+                
+                {/* Summary Info */}
+                <div>
+                  {cart.length > 0 ? (
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-base text-slate-900">
+                          {totalSubtotal.toLocaleString()} <span className="text-xs text-emerald-700">ETB</span>
+                        </span>
+                        <span className="text-xs text-slate-400 font-bold">•</span>
+                        <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-lg">
+                          🥡 {totalBoxesInOrder} ቦክስ
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 font-bold truncate max-w-xs sm:max-w-md">
+                        {cart.map(i => `${i.qty}x ${i.name}`).join(', ')}
+                      </p>
+                    </div>
                   ) : (
-                    <span className="w-full h-full flex items-center justify-center text-2xl">{dish.emoji}</span>
+                    <div className="flex items-center gap-2 text-slate-400 text-xs font-bold">
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>እባክዎ የሚዘጋጀውን ምግብ ይምረጡ (Choose food from menu)</span>
+                    </div>
                   )}
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <h5 className="font-black text-xs text-slate-900 truncate">{dish.name}</h5>
-                  <span className="text-[10px] text-slate-400 font-bold block">{dish.price} ETB / bowl</span>
-                  
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className={`text-xs font-black px-2 py-0.5 rounded-lg ${
-                      dish.countSold > 0 ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
-                    }`}>
-                      {dish.countSold} Prepared
-                    </span>
-                    <span className="text-[11px] font-extrabold text-slate-500">
-                      ({dish.boxesUsed} 🥡 Boxes)
-                    </span>
-                  </div>
+                {/* Next Button */}
+                <div className="flex items-center gap-2">
+                  {cart.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setCart([])}
+                      className="px-3 py-2.5 rounded-2xl text-xs font-black text-rose-600 hover:bg-rose-50 transition-all"
+                    >
+                      አጥፋ
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={cart.length === 0}
+                    onClick={() => setOrderStep(2)}
+                    className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 text-white disabled:text-slate-400 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-700/20 disabled:shadow-none transition-all active:scale-95"
+                  >
+                    <span>ቀጥል (Next: Shift & Waiter)</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
 
-                <div className="text-right flex-shrink-0">
-                  <span className="text-xs font-black text-emerald-800 block">
-                    {dish.revenueGenerated.toLocaleString()} ETB
-                  </span>
-                </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          )}
 
-        {/* INTERACTIVE FILTER TABS & DETAILED ORDER FEED */}
-        <div className="bg-white rounded-3xl p-6 shadow-xl shadow-emerald-700/5 border border-emerald-100 space-y-4">
+        </main>
+      )}
+
+      {/* ============================================================== */}
+      {/* 2. OWNER DASHBOARD & REPORT VIEW                                */}
+      {/* ============================================================== */}
+      {viewMode === 'reports' && (
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6 animate-in fade-in duration-200">
           
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-emerald-100">
+          {/* Header Title */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm">
             <div>
-              <h4 className="font-black text-slate-900 text-base flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-emerald-600" />
-                <span>Orders Sent to Owner ({filteredSentOrders.length})</span>
-              </h4>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Every order logged by Chef Almaz and sent directly to your database.
+              <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-emerald-600" />
+                <span>የባለቤት መቆጣጠሪያና ሪፖርት (Owner Shift & Food Report)</span>
+              </h2>
+              <p className="text-xs text-slate-400 font-bold mt-0.5">
+                የቀን፣ የማታ እና የቢዩ ፈረቃዎች፣ የተሸጡ ምግቦች እና የወጡ ቴክአዌይ ሳጥኖች ቆጠራ
               </p>
             </div>
 
-            {/* Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none w-full sm:w-auto pb-1 sm:pb-0">
-              {[
-                { id: 'All', label: '🌟 All Orders', count: sentOrders.length },
-                { id: 'Day Shift', label: '☀️ Day Shift', count: dayOrders.length },
-                { id: 'Night Shift', label: '🌙 Night Shift', count: nightOrders.length },
-                { id: 'BEU Delivery', label: '🛵 BEU Delivery', count: beuOrders.length },
-                { id: 'In-Store Takeaway', label: '🏪 In-Store', count: inStoreOrders.length }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setViewFilter(tab.id)}
-                  className={`px-3 py-1.5 rounded-xl font-black text-xs whitespace-nowrap transition-all ${
-                    viewFilter === tab.id
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
-                      : 'bg-emerald-50/60 text-slate-700 hover:bg-emerald-100'
-                  }`}
-                >
-                  <span>{tab.label}</span>
-                  <span className="ml-1 opacity-80 text-[10px]">({tab.count})</span>
-                </button>
-              ))}
+            <button
+              type="button"
+              onClick={() => setViewMode('order')}
+              className="px-4 py-2 rounded-2xl bg-emerald-600 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-700/20 hover:bg-emerald-700 transition-all"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>+ አዲስ ትዕዛዝ አስገባ</span>
+            </button>
+          </div>
+
+          {/* 4 SUMMARY STAT CARDS: DAY, NIGHT, BEU & TOTAL BOXES */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            
+            {/* 1. Day Shift Card */}
+            <div className="bg-white p-4 rounded-3xl border border-amber-200 shadow-sm flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl flex-shrink-0">
+                ☀️
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                  የቀን ፈረቃ (Day Shift)
+                </span>
+                <p className="text-lg font-black text-slate-900 mt-0.5">{dayOrders.length} Orders</p>
+                <div className="flex items-center gap-2 text-[10px] font-bold text-amber-700 mt-0.5">
+                  <span>🥡 {dayBoxes} ቦክስ</span>
+                  <span>•</span>
+                  <span>{dayRevenue.toLocaleString()} ETB</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Night Shift Card */}
+            <div className="bg-white p-4 rounded-3xl border border-indigo-200 shadow-sm flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl flex-shrink-0">
+                🌙
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                  የማታ ፈረቃ (Night Shift)
+                </span>
+                <p className="text-lg font-black text-slate-900 mt-0.5">{nightOrders.length} Orders</p>
+                <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-700 mt-0.5">
+                  <span>🥡 {nightBoxes} ቦክስ</span>
+                  <span>•</span>
+                  <span>{nightRevenue.toLocaleString()} ETB</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. BEU Delivery Card */}
+            <div className="bg-white p-4 rounded-3xl border border-teal-200 shadow-sm flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center text-2xl flex-shrink-0">
+                🛵
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                  ቢዩ (BEU Delivery)
+                </span>
+                <p className="text-lg font-black text-slate-900 mt-0.5">{beuOrders.length} Orders</p>
+                <div className="flex items-center gap-2 text-[10px] font-bold text-teal-700 mt-0.5">
+                  <span>🥡 {beuBoxes} ቦክስ</span>
+                  <span>•</span>
+                  <span>{beuRevenue.toLocaleString()} ETB</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Total Packaging Boxes */}
+            <div className="bg-white p-4 rounded-3xl border border-emerald-200 shadow-sm flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl flex-shrink-0">
+                🥡
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                  ጠቅላላ የወጡ ቦክሶች
+                </span>
+                <p className="text-lg font-black text-emerald-800 mt-0.5">{totalBoxesAll} Boxes</p>
+                <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-700 mt-0.5">
+                  <span>ድምር: {totalRevenueAll.toLocaleString()} ETB</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* FOOD TYPES BREAKDOWN TABLE (ALL 16 DISHES) */}
+          <div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-black text-slate-900">
+                  🍲 የምግቦች ዝርዝር ቆጠራ (Food Types Breakdown)
+                </h3>
+                <p className="text-xs text-slate-400 font-bold mt-0.5">
+                  ከ16ቱ ምግቦች እያንዳንዱ ስንት ሳህን እንደተሸጠና የወጣው ቦክስ
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-emerald-100 text-slate-400 uppercase text-[9px] font-black tracking-wider">
+                    <th className="py-2.5 px-3">ምግብ (Food Dish)</th>
+                    <th className="py-2.5 px-3">ምድብ</th>
+                    <th className="py-2.5 px-3 text-right">የአንዱ ዋጋ</th>
+                    <th className="py-2.5 px-3 text-center">የተዘጋጀ ብዛት</th>
+                    <th className="py-2.5 px-3 text-center">🥡 የወጣ ቦክስ</th>
+                    <th className="py-2.5 px-3 text-right">የተገኘ ገቢ (ETB)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-emerald-50">
+                  {dishBreakdown.map((item, index) => (
+                    <tr key={item.id} className="hover:bg-emerald-50/40 transition-colors">
+                      <td className="py-2.5 px-3 font-black text-slate-900 flex items-center gap-2">
+                        <span>{item.emoji || '🍲'}</span>
+                        <div>
+                          <span>{item.name}</span>
+                          <span className="block text-[10px] text-slate-400 font-bold">{item.englishName}</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-500 font-bold">{item.category}</td>
+                      <td className="py-2.5 px-3 text-right font-black text-slate-800">{item.price} ETB</td>
+                      <td className="py-2.5 px-3 text-center">
+                        <span className={`px-2.5 py-0.5 rounded-full font-black text-xs ${
+                          item.countSold > 0 ? 'bg-emerald-100 text-emerald-800' : 'text-slate-300'
+                        }`}>
+                          {item.countSold} ሳህን
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-bold text-slate-700">
+                        {item.boxesUsed} 🥡
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-black text-slate-900">
+                        {item.revenueGenerated.toLocaleString()} ETB
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* Orders Feed */}
-          {filteredSentOrders.length === 0 ? (
-            <div className="py-14 text-center text-slate-400">
-              <ShoppingBag className="w-12 h-12 mx-auto text-emerald-200 mb-2" />
-              <p className="text-xs font-black text-slate-500">No orders match the filter "{viewFilter}".</p>
-              <p className="text-[11px] text-slate-400">When orders are finished and sent by the chef, they will show up here.</p>
+          {/* WAITERS BREAKDOWN */}
+          <div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-sm space-y-4">
+            <h3 className="text-sm font-black text-slate-900">
+              👤 በአስተናጋጆች የተወሰደ (Orders by Waiter)
+            </h3>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {Object.keys(waiterStats).length > 0 ? (
+                Object.entries(waiterStats).map(([waiter, stats]) => (
+                  <div key={waiter} className="bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-100">
+                    <span className="font-black text-xs text-slate-900 block truncate">{waiter}</span>
+                    <div className="mt-1 space-y-0.5 text-[11px] font-bold text-slate-500">
+                      <p>ትዕዛዞች: <span className="font-black text-slate-900">{stats.ordersCount}</span></p>
+                      <p>ቦክሶች: <span className="font-black text-emerald-800">{stats.boxesCount} 🥡</span></p>
+                      <p>ድምር: <span className="font-black text-slate-900">{stats.totalETB.toLocaleString()} ETB</span></p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-400 font-bold col-span-full">እስካሁን ምንም ትዕዛዝ አልተመዘገበም</p>
+              )}
             </div>
-          ) : (
-            <div className="divide-y divide-emerald-50">
-              {filteredSentOrders.map(order => (
-                <div key={order.id} className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-black text-slate-900 text-sm">Order #{order.id.slice(-6)}</span>
-                      
-                      {/* Shift Badge */}
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                        order.shift === 'Day Shift' ? 'bg-amber-100 text-amber-900' : 'bg-indigo-100 text-indigo-900'
-                      }`}>
-                        {order.shift === 'Day Shift' ? '☀️ Day' : '🌙 Night'}
-                      </span>
+          </div>
 
-                      {/* Channel Badge */}
-                      <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
-                        order.channel === 'BEU Delivery' 
-                          ? 'bg-orange-100 text-orange-900 border border-orange-200' 
-                          : 'bg-emerald-100 text-emerald-900'
-                      }`}>
-                        {order.channel} {order.beuOrderId ? `(${order.beuOrderId})` : ''}
-                      </span>
+          {/* RECENT ORDERS FEED */}
+          <div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-sm space-y-3">
+            <h3 className="text-sm font-black text-slate-900">
+              📋 የቅርብ ጊዜ ትዕዛዞች ዝርዝር (Recent Orders Log)
+            </h3>
 
-                      {/* Boxes Count */}
-                      <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                        {order.boxesCount} 🥡 Boxes
+            {sentOrders.length === 0 ? (
+              <p className="text-xs text-slate-400 font-bold py-4 text-center">ምንም ትዕዛዝ የለም</p>
+            ) : (
+              <div className="space-y-2">
+                {sentOrders.slice(0, 15).map(order => (
+                  <div 
+                    key={order.id}
+                    className="p-3 bg-slate-50 rounded-2xl flex items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 font-black flex items-center justify-center text-xs">
+                        🥡
                       </span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-slate-900">
+                            {order.items?.map(i => `${i.qty}x ${i.name}`).join(', ')}
+                          </span>
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-1.5 py-0.5 rounded">
+                            {order.shift}
+                          </span>
+                          {order.channel === 'BEU Delivery' && (
+                            <span className="text-[10px] bg-teal-100 text-teal-800 font-black px-1.5 py-0.5 rounded">
+                              {order.beuOrderId || 'BEU'}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-bold">
+                          {order.timestamp} • ወሳጅ፡ {order.waiterName || 'አልተጠቀሰም'} • {order.boxesCount} ቦክስ
+                        </span>
+                      </div>
                     </div>
 
-                    <p className="text-xs text-slate-700 font-bold mt-1">
-                      {order.items?.map(i => `${i.qty}x ${i.name}`).join(', ')}
-                    </p>
-
-                    {order.specialNotes && (
-                      <p className="text-[11px] text-amber-700 font-bold mt-0.5">
-                        📝 Note: {order.specialNotes}
-                      </p>
-                    )}
-
-                    <span className="text-[10px] text-slate-400 font-bold block mt-0.5">
-                      Sent at: {order.timestamp} by {order.chefName} • Paid via {order.paymentMethod}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-black text-slate-900 text-sm">
+                        {order.totalAmount} ETB
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteOrder(order.id)}
+                        className="text-slate-300 hover:text-rose-500 p-1"
+                        title="ሰርዝ"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-                  <div className="flex items-center gap-3">
-                    <span className="text-base font-black text-emerald-800">
-                      {order.totalAmount} ETB
-                    </span>
-                    <span className="text-[10px] font-black text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded-xl">
-                      Sent to Owner ✓
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-      </section>
+        </main>
+      )}
 
       {/* ============================================================== */}
-      {/* MODAL: LOG DAMAGED BOX / SPILL                                 */}
+      {/* SUCCESS CONFIRMATION MODAL                                     */}
       {/* ============================================================== */}
-      {showWasteModal && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 border border-emerald-100 shadow-2xl animate-in zoom-in-95 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-emerald-100">
-              <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-500" />
-                <span>Log Damaged Food Box / Spill (የተበላሸ እቃ)</span>
-              </h3>
-              <button onClick={() => setShowWasteModal(false)} className="text-slate-400">✕</button>
+      {orderSuccessModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border-2 border-emerald-500 space-y-4">
+            
+            <div className="w-16 h-16 rounded-3xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-3xl shadow-inner animate-bounce">
+              ✅
             </div>
 
-            <form onSubmit={handleSaveWaste} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-black text-slate-700">Number of Damaged / Wasted Boxes (🥡)</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={wasteCountInput}
-                  onChange={(e) => setWasteCountInput(e.target.value)}
-                  className="mt-1 w-full bg-emerald-50/40 border border-emerald-200 rounded-2xl px-3.5 py-2 text-xs font-black outline-none focus:ring-2 focus:ring-emerald-500"
-                  required
-                />
-              </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-900">ትዕዛዙ ተመዝግቧል!</h3>
+              <p className="text-xs text-slate-500 font-bold mt-1">
+                Order Sent & Successfully Logged!
+              </p>
+            </div>
 
-              <div>
-                <label className="text-xs font-black text-slate-700">Reason</label>
-                <select
-                  value={wasteReason}
-                  onChange={(e) => setWasteReason(e.target.value)}
-                  className="mt-1 w-full bg-emerald-50/40 border border-emerald-200 rounded-2xl px-3.5 py-2 text-xs font-black outline-none"
-                >
-                  <option value="Box Damaged / Dropped">🥡 Box Damaged / Dropped on Floor</option>
-                  <option value="Salad Remake / Customer Change">🥗 Remade Salad / Food Spilled</option>
-                  <option value="Defective Box Packaging">📦 Defective Packaging Batch</option>
-                </select>
-              </div>
+            <div className="bg-emerald-50 p-4 rounded-2xl text-left text-xs font-bold space-y-1.5 border border-emerald-100">
+              <p className="text-slate-900 font-black text-sm">
+                {orderSuccessModal.foodSummary}
+              </p>
+              <p className="text-slate-600">
+                ፈረቃ፡ <span className="font-black text-slate-900">{orderSuccessModal.shift}</span> ({orderSuccessModal.channel})
+              </p>
+              <p className="text-slate-600">
+                የወሰደው፡ <span className="font-black text-slate-900">{orderSuccessModal.waiterName}</span>
+              </p>
+              <p className="text-emerald-800 font-black">
+                🥡 የወጣ ቦክስ፡ {orderSuccessModal.boxesCount} Takeaway Box
+              </p>
+              <p className="text-slate-900 font-black text-sm pt-1 border-t border-emerald-200">
+                ድምር ዋጋ፡ {orderSuccessModal.totalAmount} ETB
+              </p>
+            </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowWasteModal(false)} className="px-4 py-2 text-xs font-bold text-slate-600">
-                  Cancel
-                </button>
-                <button type="submit" className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl text-xs font-black shadow-md">
-                  Report Damaged Box
-                </button>
-              </div>
-            </form>
+            <button
+              type="button"
+              onClick={() => setOrderSuccessModal(null)}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-700/20 transition-all"
+            >
+              + ቀጣይ አዲስ ትዕዛዝ አስገባ (Next Order)
+            </button>
+
           </div>
         </div>
       )}
 
       {/* ============================================================== */}
-      {/* MODAL: ADD NEW FOOD DISH                                       */}
+      {/* DAMAGED BOX / SPILL MODAL                                      */}
       {/* ============================================================== */}
-      {showAddDishModal && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 border border-emerald-100 shadow-2xl animate-in zoom-in-95 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-emerald-100">
-              <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
-                <PlusCircle className="w-5 h-5 text-emerald-600" />
-                <span>Add New Takeaway Dish to Menu</span>
-              </h3>
-              <button onClick={() => setShowAddDishModal(false)} className="text-slate-400">✕</button>
+      {showWasteModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-rose-100 space-y-4">
+            <div className="flex items-center gap-2 text-rose-600">
+              <AlertTriangle className="w-5 h-5" />
+              <h3 className="font-black text-sm text-slate-900">የተበላሸ ቦክስ መዝግብ (Log Waste)</h3>
+            </div>
+            
+            <p className="text-xs text-slate-500 font-bold">
+              የወደቀ ወይም የተበላሸ የቴክአዌይ እቃ ሲኖር የቦክስ ቆጠራው ትክክል እንዲሆን እዚህ ይመዝግቡ።
+            </p>
+
+            <div>
+              <label className="block text-xs font-black text-slate-700 mb-1">ስንት ቦክስ ተበላሸ? (Count)</label>
+              <input
+                type="number"
+                min="1"
+                value={wasteCountInput}
+                onChange={(e) => setWasteCountInput(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-rose-500"
+              />
             </div>
 
-            <form onSubmit={handleCreateDish} className="space-y-4">
-              <div>
-                <label className="text-xs font-black text-slate-700 block mb-1">
-                  Dish Photo (Upload from Phone or Computer)
-                </label>
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-36 rounded-2xl border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-emerald-50/50 flex flex-col items-center justify-center cursor-pointer transition-colors relative overflow-hidden"
-                >
-                  {newDishImagePreview ? (
-                    <img src={newDishImagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-center space-y-1">
-                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mx-auto text-emerald-600 shadow-sm">
-                        <Upload className="w-5 h-5" />
-                      </div>
-                      <span className="text-xs font-black text-emerald-700 block">Click to select photo</span>
-                      <span className="text-[10px] text-slate-400">JPG, PNG, WebP supported</span>
-                    </div>
-                  )}
-                </div>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleImageFileChange} 
-                  accept="image/*" 
-                  className="hidden" 
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-black text-slate-700">Dish Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Avocado Chicken Wrap"
-                    value={newDishName}
-                    onChange={(e) => setNewDishName(e.target.value)}
-                    className="mt-1 w-full bg-emerald-50/40 border border-emerald-200 rounded-xl px-3 py-2 text-xs font-black outline-none"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-black text-slate-700">Price (ETB)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="300"
-                    value={newDishPrice}
-                    onChange={(e) => setNewDishPrice(e.target.value)}
-                    className="mt-1 w-full bg-emerald-50/40 border border-emerald-200 rounded-xl px-3 py-2 text-xs font-black outline-none"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-slate-700">Description / Ingredients</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Fresh lettuce, tomato, grilled chicken..."
-                  value={newDishDesc}
-                  onChange={(e) => setNewDishDesc(e.target.value)}
-                  className="mt-1 w-full bg-emerald-50/40 border border-emerald-200 rounded-xl px-3 py-2 text-xs font-black outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddDishModal(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black rounded-2xl text-xs shadow-md shadow-emerald-700/20"
-                >
-                  Save Dish
-                </button>
-              </div>
-            </form>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowWasteModal(false)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-black text-xs"
+              >
+                ተመለስ
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const count = Number(wasteCountInput) || 1;
+                  setWasteBoxes(prev => prev + count);
+                  setShowWasteModal(false);
+                  showToast(`⚠️ ${count} የተበላሸ ቦክስ ተመዘገበ`);
+                }}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-xs shadow-md shadow-rose-600/20"
+              >
+                መዝግብ
+              </button>
+            </div>
           </div>
         </div>
       )}
