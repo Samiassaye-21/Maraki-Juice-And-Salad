@@ -35,6 +35,7 @@ export const dbService = {
             shift: order.shift,
             staff_name: order.staffName,
             waiter_name: order.waiterName || null,
+            ethiopian_date: order.ethiopianDate || null,
             channel: order.channel,
             beu_order_id: order.beuOrderId || null,
             payment_method: order.paymentMethod,

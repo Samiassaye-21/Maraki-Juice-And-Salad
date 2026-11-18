@@ -27,7 +27,9 @@ import {
   Users,
   BarChart3,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Calendar,
+  Edit3
 } from 'lucide-react';
 import { dbService, isSupabaseConfigured } from './lib/supabaseClient';
 
@@ -226,6 +228,50 @@ export const MARAKI_REAL_FOOD_MENU = [
   }
 ];
 
+export const ETHIOPIAN_MONTHS = [
+  { id: 1, name: 'መስከረም', english: 'Meskerem', maxDays: 30 },
+  { id: 2, name: 'ጥቅምት', english: 'Tikimt', maxDays: 30 },
+  { id: 3, name: 'ኅዳር', english: 'Hidar', maxDays: 30 },
+  { id: 4, name: 'ታኅሣሥ', english: 'Tahsas', maxDays: 30 },
+  { id: 5, name: 'ጥር', english: 'Tir', maxDays: 30 },
+  { id: 6, name: 'የካቲት', english: 'Yekatit', maxDays: 30 },
+  { id: 7, name: 'መጋቢት', english: 'Megabit', maxDays: 30 },
+  { id: 8, name: 'ሚያዝያ', english: 'Miyazya', maxDays: 30 },
+  { id: 9, name: 'ግንቦት', english: 'Ginbot', maxDays: 30 },
+  { id: 10, name: 'ሰኔ', english: 'Sene', maxDays: 30 },
+  { id: 11, name: 'ሐምሌ', english: 'Hamle', maxDays: 30 },
+  { id: 12, name: 'ነሐሴ', english: 'Nehase', maxDays: 30 },
+  { id: 13, name: 'ጳጉሜ', english: 'Pagume', maxDays: 6 }
+];
+
+export function getTodayEthiopianDate(d = new Date()) {
+  const year = d.getFullYear();
+  const month = d.getMonth() + 1; // 1-12
+  const day = d.getDate();
+
+  const a = Math.floor((14 - month) / 12);
+  const y = year + 4800 - a;
+  const m = month + 12 * a - 3;
+  const jdn = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+
+  const r = (jdn - 1723856) % 1461;
+  const n = (r % 365) + 365 * Math.floor(r / 1460);
+  const ethYear = 4 * Math.floor((jdn - 1723856) / 1461) + Math.floor(r / 365) - Math.floor(r / 1460);
+  const ethMonthIndex = Math.floor(n / 30);
+  const ethDay = (n % 30) + 1;
+
+  const monthObj = ETHIOPIAN_MONTHS[ethMonthIndex] || ETHIOPIAN_MONTHS[0];
+
+  return {
+    year: ethYear,
+    monthId: monthObj.id,
+    monthName: monthObj.name,
+    monthEnglish: monthObj.english,
+    day: ethDay,
+    formatted: `${monthObj.name} ${ethDay}, ${ethYear} ዓ.ም`
+  };
+}
+
 export const DEFAULT_WAITERS = [
   { amharic: 'ሀብታሙ', english: 'Habtamu', fullName: 'ሀብታሙ (Habtamu)', emoji: '👨‍🍳' },
   { amharic: 'ወንዴ', english: 'Wende', fullName: 'ወንዴ (Wende)', emoji: '👨‍🍳' },
@@ -238,6 +284,14 @@ export const DEFAULT_WAITERS = [
 export default function App() {
   // Navigation: 'order' (Simple Stepper POS) vs 'reports' (Owner Dashboard)
   const [viewMode, setViewMode] = useState('order');
+
+  // --- AUTOMATIC ETHIOPIAN CALENDAR STATE ---
+  const [orderEthDate, setOrderEthDate] = useState(() => getTodayEthiopianDate());
+  const [showEthDateModal, setShowEthDateModal] = useState(false);
+  const [editingDateTarget, setEditingDateTarget] = useState('current'); // 'current' or orderId
+  const [modalDay, setModalDay] = useState(orderEthDate.day);
+  const [modalMonthId, setModalMonthId] = useState(orderEthDate.monthId);
+  const [modalYear, setModalYear] = useState(orderEthDate.year);
 
   // --- ORDER STEPPER STATE (1: Food -> 2: Shift/BEU -> 3: Waiter -> 4: Submit) ---
   const [orderStep, setOrderStep] = useState(1);
@@ -372,6 +426,10 @@ export default function App() {
       shift: shiftLabel,
       channel: channelLabel,
       waiterName: effectiveWaiter,
+      ethiopianDate: orderEthDate.formatted,
+      ethiopianDay: orderEthDate.day,
+      ethiopianMonth: orderEthDate.monthName,
+      ethiopianYear: orderEthDate.year,
       beuOrderId: isBeu ? (beuOrderId.trim() || 'BEU-Direct') : null,
       paymentMethod: finalPayment,
       totalAmount: totalSubtotal,
@@ -431,6 +489,64 @@ export default function App() {
       setShowAddWaiterInput(false);
       showToast(`Added "${name}" to Waiters`);
     }
+  };
+
+  // --- ETHIOPIAN DATE MODAL HANDLERS ---
+  const openEthDateModal = (target = 'current', targetOrder = null) => {
+    setEditingDateTarget(target);
+    if (target === 'current') {
+      setModalDay(orderEthDate.day);
+      setModalMonthId(orderEthDate.monthId);
+      setModalYear(orderEthDate.year);
+    } else if (targetOrder) {
+      setModalDay(targetOrder.ethiopianDay || 10);
+      const mObj = ETHIOPIAN_MONTHS.find(m => m.name === targetOrder.ethiopianMonth) || ETHIOPIAN_MONTHS[2];
+      setModalMonthId(mObj.id);
+      setModalYear(targetOrder.ethiopianYear || 2019);
+    }
+    setShowEthDateModal(true);
+  };
+
+  const handleSaveEthDate = (e) => {
+    e?.preventDefault();
+    const monthObj = ETHIOPIAN_MONTHS.find(m => m.id === Number(modalMonthId)) || ETHIOPIAN_MONTHS[0];
+    const formatted = `${monthObj.name} ${modalDay}, ${modalYear} ዓ.ም`;
+
+    if (editingDateTarget === 'current') {
+      setOrderEthDate({
+        day: Number(modalDay),
+        monthId: monthObj.id,
+        monthName: monthObj.name,
+        monthEnglish: monthObj.english,
+        year: Number(modalYear),
+        formatted
+      });
+      showToast(`ቀን ተስተካክሏል፡ ${formatted}`);
+    } else {
+      // Edit past order in sentOrders
+      setSentOrders(prev => prev.map(o => {
+        if (o.id === editingDateTarget) {
+          return {
+            ...o,
+            ethiopianDate: formatted,
+            ethiopianDay: Number(modalDay),
+            ethiopianMonth: monthObj.name,
+            ethiopianYear: Number(modalYear)
+          };
+        }
+        return o;
+      }));
+      showToast(`የትዕዛዝ ቀን ተስተካክሏል፡ ${formatted}`);
+    }
+    setShowEthDateModal(false);
+  };
+
+  const handleResetToTodayEthDate = () => {
+    const today = getTodayEthiopianDate();
+    setModalDay(today.day);
+    setModalMonthId(today.monthId);
+    setModalYear(today.year);
+    showToast(`ወደ ዛሬ ቀን ተመልሷል፡ ${today.formatted}`);
   };
 
   // Filtered dishes for Step 1
@@ -526,6 +642,21 @@ export default function App() {
               </p>
             </div>
           </div>
+
+          {/* Automatic Ethiopian Date Badge (Click to Edit) */}
+          <button
+            type="button"
+            onClick={() => openEthDateModal('current')}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl border border-white/25 text-white font-black text-xs shadow-inner transition-all hover:scale-[1.02]"
+            title="የኢትዮጵያ ቀን ቀይር / Edit Ethiopian Date"
+          >
+            <Calendar className="w-3.5 h-3.5 text-amber-300" />
+            <span>{orderEthDate.formatted}</span>
+            <span className="text-[10px] bg-black/20 text-emerald-200 px-1.5 py-0.5 rounded-lg border border-white/10 flex items-center gap-0.5 font-bold">
+              <Edit3 className="w-2.5 h-2.5" />
+              <span>ቀይር</span>
+            </span>
+          </button>
 
           {/* Clean View Mode Switcher: New Order vs Owner Reports */}
           <div className="flex items-center gap-2">
@@ -1119,28 +1250,51 @@ export default function App() {
                 </div>
 
                 {/* 2. Key Metadata Badges */}
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-emerald-100">
+                <div className="space-y-2.5 pt-2 border-t border-emerald-100">
                   
-                  {/* Shift / Channel */}
-                  <div className="bg-slate-50 p-3 rounded-2xl">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
-                      ፈረቃ / ዓይነት (Shift)
-                    </span>
-                    <span className="font-black text-xs text-slate-900 mt-0.5 flex items-center gap-1">
-                      {selectedShiftType === 'Day' && '☀️ ቀን (Day Shift)'}
-                      {selectedShiftType === 'Night' && '🌙 ማታ (Night Shift)'}
-                      {selectedShiftType === 'BEU' && `🛵 ቢዩ (${beuOrderId || 'BEU Order'})`}
-                    </span>
+                  {/* Automatic Ethiopian Date with Quick Edit */}
+                  <div className="bg-emerald-50/80 p-3 rounded-2xl border border-emerald-200/90 flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] font-black text-emerald-800 uppercase tracking-wider block">
+                        ቀን (Ethiopian Date)
+                      </span>
+                      <span className="font-black text-xs text-emerald-950 mt-0.5 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>{orderEthDate.formatted}</span>
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openEthDateModal('current')}
+                      className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 text-[11px] font-black rounded-xl border border-emerald-300 transition-all flex items-center gap-1 shadow-sm"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      <span>ቀይር (Edit)</span>
+                    </button>
                   </div>
 
-                  {/* Waiter */}
-                  <div className="bg-slate-50 p-3 rounded-2xl">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
-                      የወሰደው አስተናጋጅ (Waiter)
-                    </span>
-                    <span className="font-black text-xs text-slate-900 mt-0.5 flex items-center gap-1">
-                      👤 {customWaiterName.trim() || selectedWaiter}
-                    </span>
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Shift / Channel */}
+                    <div className="bg-slate-50 p-3 rounded-2xl">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
+                        ፈረቃ / ዓይነት (Shift)
+                      </span>
+                      <span className="font-black text-xs text-slate-900 mt-0.5 flex items-center gap-1">
+                        {selectedShiftType === 'Day' && '☀️ ቀን (Day Shift)'}
+                        {selectedShiftType === 'Night' && '🌙 ማታ (Night Shift)'}
+                        {selectedShiftType === 'BEU' && `🛵 ቢዩ (${beuOrderId || 'BEU Order'})`}
+                      </span>
+                    </div>
+
+                    {/* Waiter */}
+                    <div className="bg-slate-50 p-3 rounded-2xl">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
+                        የወሰደው አስተናጋጅ (Waiter)
+                      </span>
+                      <span className="font-black text-xs text-slate-900 mt-0.5 flex items-center gap-1">
+                        👤 {customWaiterName.trim() || selectedWaiter}
+                      </span>
+                    </div>
                   </div>
 
                 </div>
@@ -1482,9 +1636,25 @@ export default function App() {
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-slate-400 font-bold">
-                          {order.timestamp} • ወሳጅ፡ {order.waiterName || 'አልተጠቀሰም'} • {order.boxesCount} ቦክስ
-                        </span>
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold mt-0.5">
+                          <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-black flex items-center gap-1">
+                            📅 {order.ethiopianDate || orderEthDate.formatted}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openEthDateModal(order.id, order)}
+                            className="text-slate-400 hover:text-emerald-700 underline text-[10px]"
+                            title="ቀን ቀይር / Edit Date"
+                          >
+                            ✏️ ቀይር
+                          </button>
+                          <span>•</span>
+                          <span>{order.timestamp}</span>
+                          <span>•</span>
+                          <span>ወሳጅ፡ {order.waiterName || 'አልተጠቀሰም'}</span>
+                          <span>•</span>
+                          <span>{order.boxesCount} ቦክስ</span>
+                        </div>
                       </div>
                     </div>
 
@@ -1533,6 +1703,9 @@ export default function App() {
                 {orderSuccessModal.foodSummary}
               </p>
               <p className="text-slate-600">
+                ቀን፡ <span className="font-black text-emerald-900">📅 {orderSuccessModal.ethiopianDate || orderEthDate.formatted}</span>
+              </p>
+              <p className="text-slate-600">
                 ፈረቃ፡ <span className="font-black text-slate-900">{orderSuccessModal.shift}</span> ({orderSuccessModal.channel})
               </p>
               <p className="text-slate-600">
@@ -1553,6 +1726,160 @@ export default function App() {
             >
               + ቀጣይ አዲስ ትዕዛዝ አስገባ (Next Order)
             </button>
+
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* AMHARIC / ETHIOPIAN CALENDAR DATE PICKER MODAL                 */}
+      {/* ============================================================== */}
+      {showEthDateModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border-2 border-emerald-500 space-y-4 max-h-[90vh] overflow-y-auto">
+            
+            <div className="flex items-center justify-between border-b border-emerald-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-emerald-700" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-slate-900">የኢትዮጵያ ቀን መምረጫ</h3>
+                  <span className="text-[10px] text-slate-400 font-bold block">Ethiopian Calendar Date</span>
+                </div>
+              </div>
+
+              {/* Reset to Today Button */}
+              <button
+                type="button"
+                onClick={handleResetToTodayEthDate}
+                className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl font-black text-[11px] flex items-center gap-1 border border-amber-200 transition-all"
+                title="ወደ ዛሬ ቀን መልስ"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>ዛሬ (Today)</span>
+              </button>
+            </div>
+
+            {/* Selected Date Preview */}
+            <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-200 text-center">
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">
+                የተመረጠው ቀን (Selected Date)
+              </span>
+              <p className="text-base font-black text-emerald-900 mt-0.5">
+                {ETHIOPIAN_MONTHS.find(m => m.id === Number(modalMonthId))?.name || 'ኅዳር'} {modalDay}, {modalYear} ዓ.ም
+              </p>
+            </div>
+
+            {/* 1. Month Picker (13 Months) */}
+            <div>
+              <label className="block text-xs font-black text-slate-700 mb-2">
+                1. ወር ይምረጡ (Choose Month):
+              </label>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                {ETHIOPIAN_MONTHS.map(m => {
+                  const isSelected = Number(modalMonthId) === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => {
+                        setModalMonthId(m.id);
+                        if (m.id === 13 && modalDay > 6) {
+                          setModalDay(5); // Pagume max 5 or 6
+                        }
+                      }}
+                      className={`py-2 px-1 rounded-xl text-xs font-black transition-all ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white shadow-md scale-[1.02]'
+                          : 'bg-slate-50 hover:bg-emerald-50 text-slate-700 border border-slate-100'
+                      }`}
+                    >
+                      <span className="block leading-none">{m.name}</span>
+                      <span className={`text-[9px] block mt-0.5 font-bold opacity-75 ${isSelected ? 'text-white' : 'text-slate-400'}`}>
+                        {m.english}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Day Picker (1 to 30) */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-black text-slate-700">
+                  2. ቀን ይምረጡ (Choose Day):
+                </label>
+                <span className="text-[11px] font-black text-emerald-800">
+                  ቀን {modalDay}
+                </span>
+              </div>
+              <div className="grid grid-cols-6 gap-1.5 max-h-36 overflow-y-auto p-1 bg-slate-50/60 rounded-2xl border border-slate-100">
+                {Array.from({ length: Number(modalMonthId) === 13 ? 6 : 30 }, (_, i) => i + 1).map(dayNum => {
+                  const isSelected = Number(modalDay) === dayNum;
+                  return (
+                    <button
+                      key={dayNum}
+                      type="button"
+                      onClick={() => setModalDay(dayNum)}
+                      className={`py-2 rounded-xl text-xs font-black transition-all ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white shadow-md scale-105'
+                          : 'bg-white hover:bg-emerald-50 text-slate-800 border border-slate-200'
+                      }`}
+                    >
+                      {dayNum}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3. Year Picker (ዓመተ ምሕረት) */}
+            <div>
+              <label className="block text-xs font-black text-slate-700 mb-1.5">
+                3. ዓመተ ምሕረት (Year):
+              </label>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[2016, 2017, 2018, 2019, 2020].map(y => {
+                  const isSelected = Number(modalYear) === y;
+                  return (
+                    <button
+                      key={y}
+                      type="button"
+                      onClick={() => setModalYear(y)}
+                      className={`py-2 rounded-xl text-xs font-black transition-all ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white shadow-md scale-[1.02]'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-100'
+                      }`}
+                    >
+                      {y}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center gap-2 pt-2 border-t border-emerald-100">
+              <button
+                type="button"
+                onClick={() => setShowEthDateModal(false)}
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs transition-all"
+              >
+                ተመለስ (Cancel)
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveEthDate}
+                className="flex-1 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-lg shadow-emerald-700/20 transition-all"
+              >
+                ✓ አጽድቅ (Save Date)
+              </button>
+            </div>
 
           </div>
         </div>

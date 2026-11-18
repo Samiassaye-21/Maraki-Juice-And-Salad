@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     shift TEXT NOT NULL CHECK (shift IN ('Day Shift', 'Night Shift')),
     staff_name TEXT NOT NULL,
     waiter_name TEXT,
+    ethiopian_date TEXT,
     channel TEXT NOT NULL CHECK (channel IN ('In-Store', 'BEU Delivery')),
     beu_order_id TEXT,
     payment_method TEXT NOT NULL CHECK (payment_method IN ('Cash', 'Telebirr', 'CBE Birr', 'Adari', 'BEU Account', 'Kitchen Dispatch')),
