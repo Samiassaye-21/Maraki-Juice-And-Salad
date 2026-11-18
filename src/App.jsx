@@ -227,13 +227,12 @@ export const MARAKI_REAL_FOOD_MENU = [
 ];
 
 export const DEFAULT_WAITERS = [
-  'ሰላም (Selam)',
-  'ትዕግስት (Tigist)',
-  'ማህሌት (Mahlet)',
-  'ሔለን (Helen)',
-  'ዮናስ (Yonas)',
-  'ቀጥታ ደንበኛ (Walk-in)',
-  'BEU Delivery Rider'
+  { amharic: 'ሀብታሙ', english: 'Habtamu', fullName: 'ሀብታሙ (Habtamu)', emoji: '👨‍🍳' },
+  { amharic: 'ወንዴ', english: 'Wende', fullName: 'ወንዴ (Wende)', emoji: '👨‍🍳' },
+  { amharic: 'ዳዊት', english: 'Dawit', fullName: 'ዳዊት (Dawit)', emoji: '👨‍🍳' },
+  { amharic: 'የቢዩ አሽከርካሪ', english: 'BEU Driver', fullName: 'የቢዩ አሽከርካሪ (BEU Driver)', emoji: '🛵' },
+  { amharic: 'ፋሲል', english: 'Fassil', fullName: 'ፋሲል (Fassil)', emoji: '👨‍🍳' },
+  { amharic: 'በለጠ', english: 'Belete', fullName: 'በለጠ (Belete)', emoji: '👨‍🍳' }
 ];
 
 export default function App() {
@@ -252,10 +251,20 @@ export default function App() {
 
   // Step 3 Selection: Waiter who takes it
   const [waitersList, setWaitersList] = useState(() => {
-    const saved = localStorage.getItem('maraki_waiters_list');
-    return saved ? JSON.parse(saved) : DEFAULT_WAITERS;
+    const saved = localStorage.getItem('maraki_waiters_list_v3');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].amharic) {
+          return parsed;
+        }
+      } catch (e) {
+        console.warn('Fallback to default waiters');
+      }
+    }
+    return DEFAULT_WAITERS;
   });
-  const [selectedWaiter, setSelectedWaiter] = useState('ሰላም (Selam)');
+  const [selectedWaiter, setSelectedWaiter] = useState('ሀብታሙ (Habtamu)');
   const [customWaiterName, setCustomWaiterName] = useState('');
   const [showAddWaiterInput, setShowAddWaiterInput] = useState(false);
 
@@ -301,7 +310,7 @@ export default function App() {
   }, [sentOrders]);
 
   useEffect(() => {
-    localStorage.setItem('maraki_waiters_list', JSON.stringify(waitersList));
+    localStorage.setItem('maraki_waiters_list_v3', JSON.stringify(waitersList));
   }, [waitersList]);
 
   useEffect(() => {
@@ -394,8 +403,12 @@ export default function App() {
     });
 
     // If new custom waiter was typed, save to permanent list
-    if (customWaiterName.trim() && !waitersList.includes(customWaiterName.trim())) {
-      setWaitersList(prev => [...prev, customWaiterName.trim()]);
+    if (customWaiterName.trim()) {
+      const name = customWaiterName.trim();
+      const existing = waitersList.find(w => w.fullName === name || w.amharic === name || w.english === name);
+      if (!existing) {
+        setWaitersList(prev => [...prev, { amharic: name, english: name, fullName: name, emoji: '👤' }]);
+      }
     }
 
     // Show big success confirmation modal
@@ -413,8 +426,9 @@ export default function App() {
     e.preventDefault();
     if (customWaiterName.trim()) {
       const name = customWaiterName.trim();
-      if (!waitersList.includes(name)) {
-        setWaitersList(prev => [...prev, name]);
+      const existing = waitersList.find(w => w.fullName === name || w.amharic === name || w.english === name);
+      if (!existing) {
+        setWaitersList(prev => [...prev, { amharic: name, english: name, fullName: name, emoji: '👤' }]);
       }
       setSelectedWaiter(name);
       setCustomWaiterName('');
@@ -888,7 +902,10 @@ export default function App() {
                 {/* 3. BEU Delivery Card */}
                 <button
                   type="button"
-                  onClick={() => setSelectedShiftType('BEU')}
+                  onClick={() => {
+                    setSelectedShiftType('BEU');
+                    setSelectedWaiter('የቢዩ አሽከርካሪ (BEU Driver)');
+                  }}
                   className={`p-6 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-3 ${
                     selectedShiftType === 'BEU'
                       ? 'border-teal-600 bg-teal-50/80 shadow-xl shadow-teal-600/10 scale-105'
@@ -969,33 +986,40 @@ export default function App() {
                 </p>
               </div>
 
-              {/* WAITER SELECTION CARDS */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
+              {/* WAITER SELECTION CARDS (6 OFFICIAL WAITERS) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 max-w-2xl mx-auto">
                 {waitersList.map(waiter => {
-                  const isSelected = selectedWaiter === waiter && !customWaiterName.trim();
+                  const isSelected = (selectedWaiter === waiter.fullName || selectedWaiter === waiter.amharic) && !customWaiterName.trim();
                   return (
                     <button
-                      key={waiter}
+                      key={waiter.fullName || waiter.amharic}
                       type="button"
                       onClick={() => {
-                        setSelectedWaiter(waiter);
+                        setSelectedWaiter(waiter.fullName || waiter.amharic);
                         setCustomWaiterName('');
                       }}
-                      className={`p-4 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-2 ${
+                      className={`p-4 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-2 select-none ${
                         isSelected
-                          ? 'border-emerald-600 bg-emerald-50/80 shadow-lg shadow-emerald-600/15 scale-105'
-                          : 'border-emerald-100 bg-white hover:border-emerald-300'
+                          ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-600/15 ring-2 ring-emerald-500/30 scale-[1.03]'
+                          : 'border-emerald-100 bg-white hover:border-emerald-300 hover:shadow-md'
                       }`}
                     >
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-inner ${
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-colors ${
                         isSelected ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-800'
                       }`}>
-                        👩‍🍳
+                        {waiter.emoji || '👨‍🍳'}
                       </div>
-                      <span className="font-black text-xs text-slate-900">{waiter}</span>
+                      <div className="text-center">
+                        <span className="font-black text-sm text-slate-900 block leading-tight">
+                          {waiter.amharic}
+                        </span>
+                        <span className="text-[11px] font-extrabold text-emerald-700 block mt-0.5">
+                          {waiter.english}
+                        </span>
+                      </div>
                       {isSelected && (
-                        <span className="text-[10px] font-black text-emerald-700 bg-emerald-200/60 px-2 py-0.5 rounded-full">
-                          ✓ ተመርጧል
+                        <span className="text-[10px] font-black text-emerald-800 bg-emerald-200/80 px-2.5 py-0.5 rounded-full mt-0.5">
+                          ✓ ተመርጧል (Selected)
                         </span>
                       )}
                     </button>
