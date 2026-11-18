@@ -41,7 +41,13 @@ import {
   Coffee,
   Box,
   Eye,
-  EyeOff
+  EyeOff,
+  ChefHat,
+  UtensilsCrossed,
+  Utensils,
+  Clock,
+  Flame,
+  CheckCheck
 } from 'lucide-react';
 import { dbService, isSupabaseConfigured } from './lib/supabaseClient';
 
@@ -249,6 +255,13 @@ export default function App() {
   const editPhotoInputRef = useRef(null);
   const [itemChangingPhotoId, setItemChangingPhotoId] = useState(null);
 
+  // Chef Food Station States
+  const [chefActiveTab, setChefActiveTab] = useState('create_order'); // 'create_order', 'live_queue', 'chef_stats'
+  const [chefOrderNotes, setChefOrderNotes] = useState('');
+  const [showChefWasteModal, setShowChefWasteModal] = useState(false);
+  const [chefWasteCount, setChefWasteCount] = useState(1);
+  const [chefWasteReason, setChefWasteReason] = useState('Damaged Box / Dropped');
+
   // --- POS CART ACTIONS ---
   const addToCart = (item, qtyToAdd = 1) => {
     if (!item.isAvailable) {
@@ -348,6 +361,8 @@ export default function App() {
       cupsCount: cartCupsCount,
       boxesCount: cartBoxesCount,
       status: 'Paid',
+      kitchenStatus: cartBoxesCount > 0 ? 'preparing' : 'ready',
+      specialNotes: chefOrderNotes.trim() || null,
       items: cart.map(i => ({
         id: i.id,
         name: i.name,
@@ -384,10 +399,99 @@ export default function App() {
 
     // Reset Form
     clearCart();
+    setChefOrderNotes('');
     setBeuOrderId('');
     setAdariCustomerName('');
     setAdariCustomerPhone('');
     showToast(`✅ Order ${newOrderId.slice(-4)} recorded! (${cartCupsCount} 🥤, ${cartBoxesCount} 🥡)`);
+  };
+
+  // --- CHEF FOOD STATION CHECKOUT (DIRECT FOOD ORDER BY CHEF) ---
+  const handleChefCheckout = async (e) => {
+    e.preventDefault();
+    if (cart.length === 0) return;
+
+    if (orderChannel === 'BEU Delivery' && !beuOrderId.trim()) {
+      showToast('⚠️ Please enter BEU Delivery Order ID');
+      return;
+    }
+
+    if (paymentMethod === 'Adari' && !adariCustomerName.trim()) {
+      showToast('⚠️ Please enter customer name for Adari tab');
+      return;
+    }
+
+    const newOrderId = `ord-${Date.now()}`;
+    const orderData = {
+      id: newOrderId,
+      shift: currentShift,
+      staffName: staffName || 'Chef Almaz',
+      channel: orderChannel,
+      beuOrderId: orderChannel === 'BEU Delivery' ? beuOrderId.trim() : null,
+      paymentMethod,
+      totalAmount: subtotal,
+      cupsCount: cartCupsCount,
+      boxesCount: cartBoxesCount,
+      status: 'Paid',
+      kitchenStatus: 'ready', // Chef prepared it directly
+      specialNotes: chefOrderNotes.trim() || null,
+      items: cart.map(i => ({
+        id: i.id,
+        name: i.name,
+        qty: i.qty,
+        price: i.price,
+        sugarLevel: i.sugarLevel,
+        iceOption: i.iceOption,
+        extraAddons: i.extraAddons,
+        containerType: i.containerType
+      })),
+      createdAt: new Date().toISOString()
+    };
+
+    if (paymentMethod === 'Adari') {
+      const adariEntry = {
+        id: `adari-${Date.now()}`,
+        customerName: adariCustomerName.trim(),
+        customerPhone: adariCustomerPhone.trim() || 'No Phone',
+        amount: subtotal,
+        orderId: newOrderId,
+        status: 'Unpaid',
+        staff: staffName || 'Chef Almaz',
+        date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        itemsDescription: cart.map(i => `${i.qty}x ${i.name}`).join(', ')
+      };
+      setAdariList(prev => [adariEntry, ...prev]);
+      await dbService.saveAdari(adariEntry);
+    }
+
+    setOrders(prev => [orderData, ...prev]);
+    await dbService.saveOrder(orderData);
+
+    clearCart();
+    setChefOrderNotes('');
+    setBeuOrderId('');
+    setAdariCustomerName('');
+    setAdariCustomerPhone('');
+    showToast(`👩‍🍳 Order ${newOrderId.slice(-4)} saved & prepared! (${cartBoxesCount} 🥡 boxes logged)`);
+  };
+
+  const toggleKitchenStatus = (orderId) => {
+    setOrders(prev => prev.map(o => {
+      if (o.id === orderId) {
+        const next = o.kitchenStatus === 'ready' ? 'preparing' : 'ready';
+        return { ...o, kitchenStatus: next };
+      }
+      return o;
+    }));
+    showToast('Kitchen order status updated!');
+  };
+
+  const handleSaveChefWaste = (e) => {
+    e.preventDefault();
+    const count = Number(chefWasteCount) || 1;
+    setWasteBoxes(prev => prev + count);
+    setShowChefWasteModal(false);
+    showToast(`Logged ${count} damaged/spilled box(es) (${chefWasteReason})`);
   };
 
   // --- Settle Adari Debt ---
@@ -572,6 +676,15 @@ export default function App() {
     return matchesSearch && matchesTab;
   });
 
+  // Food & Kitchen Orders (Orders that contain at least 1 box / food item)
+  const foodOrders = orders.filter(o => (o.boxesCount || 0) > 0);
+  const activeFoodOrders = foodOrders.filter(o => o.kitchenStatus === 'preparing' || (!o.kitchenStatus && (o.boxesCount || 0) > 0));
+  const completedFoodOrders = foodOrders.filter(o => o.kitchenStatus === 'ready');
+  const shiftFoodOrders = foodOrders.filter(o => o.shift === currentShift);
+  const shiftFoodBoxes = shiftFoodOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
+  const shiftFoodRevenue = shiftFoodOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+  const foodMenuItems = menuItems.filter(i => i.menuType === 'Food');
+
   return (
     <div className="min-h-screen bg-[#FFFBF7] flex flex-col font-sans text-slate-800 antialiased selection:bg-orange-500 selection:text-white">
       
@@ -617,7 +730,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* Central Role Selector: Employee Counter vs Admin Portal */}
+          {/* Central Role Selector: Juice Counter vs Chef Station vs Admin Hub */}
           <div className="flex items-center gap-1 bg-black/20 p-1 rounded-2xl border border-white/20 backdrop-blur-md">
             <button
               onClick={() => setActiveRole('employee_pos')}
@@ -628,7 +741,27 @@ export default function App() {
               }`}
             >
               <Store className="w-3.5 h-3.5" />
-              <span>Counter POS</span>
+              <span>Juice Counter</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveRole('chef_station');
+                setStaffName('Chef Almaz');
+              }}
+              className={`px-3 py-1.5 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all ${
+                activeRole === 'chef_station'
+                  ? 'bg-white text-emerald-700 shadow-md scale-[1.02]'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <UtensilsCrossed className="w-3.5 h-3.5" />
+              <span>Chef Station</span>
+              {activeFoodOrders.length > 0 && (
+                <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] flex items-center justify-center font-black animate-pulse">
+                  {activeFoodOrders.length}
+                </span>
+              )}
             </button>
 
             <button
@@ -1111,6 +1244,590 @@ export default function App() {
               </button>
             </form>
           </div>
+        </main>
+      )}
+
+      {/* ============================================================== */}
+      {/* VIEW C: CHEF FOOD STATION (FOR CHEF ALMAZ & KITCHEN STAFF)     */}
+      {/* ============================================================== */}
+      {activeRole === 'chef_station' && (
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex-1 w-full space-y-6">
+          
+          {/* Chef Kitchen Top Banner */}
+          <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white rounded-3xl p-5 sm:p-6 shadow-xl shadow-emerald-600/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white text-2xl shadow-inner">
+                👩‍🍳
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-black tracking-tight text-white">Chef Food Station (የምግብና ሰላጣ ማዕድ)</h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-white/20 text-emerald-100 border border-white/30">
+                    Chef: {staffName || 'Chef Almaz'}
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-100 mt-0.5">
+                  Save food & salad orders directly, track takeaway boxes (🥡), and manage the live preparation queue.
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <button
+                onClick={() => setShowChefWasteModal(true)}
+                className="px-3.5 py-2 bg-rose-500 hover:bg-rose-600 text-white font-black rounded-2xl text-xs flex items-center gap-1.5 shadow-md transition-colors"
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Log Damaged Box / Spill</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Chef Live Metric Counters */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-white p-4 rounded-3xl border border-emerald-100 shadow-xl shadow-emerald-600/5">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block">Food Boxes Used (🥡)</span>
+              <p className="text-2xl font-black text-emerald-600 mt-1">{shiftFoodBoxes} Boxes</p>
+              <span className="text-[10px] text-slate-400 font-bold">Logged for active shift</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-3xl border border-emerald-100 shadow-xl shadow-emerald-600/5">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block">Active In Preparation</span>
+              <p className="text-2xl font-black text-amber-500 mt-1">{activeFoodOrders.length} Orders</p>
+              <span className="text-[10px] text-slate-400 font-bold">Waiting to be picked up</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-3xl border border-emerald-100 shadow-xl shadow-emerald-600/5">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block">Dishes Completed</span>
+              <p className="text-2xl font-black text-slate-900 mt-1">{completedFoodOrders.length} Completed</p>
+              <span className="text-[10px] text-slate-400 font-bold">Ready for customers</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-3xl border border-emerald-100 shadow-xl shadow-emerald-600/5">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block">Shift Food Sales</span>
+              <p className="text-2xl font-black text-emerald-600 mt-1">{shiftFoodRevenue.toLocaleString()} ETB</p>
+              <span className="text-[10px] text-slate-400 font-bold">Food station revenue</span>
+            </div>
+          </div>
+
+          {/* Chef Sub-Tabs */}
+          <div className="flex items-center gap-2 border-b border-emerald-100 pb-2 overflow-x-auto scrollbar-none">
+            <button
+              onClick={() => setChefActiveTab('create_order')}
+              className={`px-4 py-2.5 rounded-2xl font-black text-xs flex items-center gap-2 transition-all ${
+                chefActiveTab === 'create_order'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/20'
+                  : 'bg-white text-slate-600 hover:bg-emerald-50 border border-emerald-100'
+              }`}
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>📝 Take & Save Food Order</span>
+            </button>
+
+            <button
+              onClick={() => setChefActiveTab('live_queue')}
+              className={`px-4 py-2.5 rounded-2xl font-black text-xs flex items-center gap-2 transition-all ${
+                chefActiveTab === 'live_queue'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/20'
+                  : 'bg-white text-slate-600 hover:bg-emerald-50 border border-emerald-100'
+              }`}
+            >
+              <Flame className="w-4 h-4 text-orange-500" />
+              <span>⚡ Active Food Orders Queue</span>
+              {activeFoodOrders.length > 0 && (
+                <span className="bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full text-[10px] font-black">
+                  {activeFoodOrders.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setChefActiveTab('chef_stats')}
+              className={`px-4 py-2.5 rounded-2xl font-black text-xs flex items-center gap-2 transition-all ${
+                chefActiveTab === 'chef_stats'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/20'
+                  : 'bg-white text-slate-600 hover:bg-emerald-50 border border-emerald-100'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              <span>📋 Chef Shift Log ({shiftFoodOrders.length})</span>
+            </button>
+          </div>
+
+          {/* SUBTAB 1: TAKE & SAVE FOOD ORDER (CHEF CREATOR) */}
+          {chefActiveTab === 'create_order' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              
+              {/* Left 7-8 cols: Food Catalog */}
+              <div className="lg:col-span-7 xl:col-span-8 space-y-4">
+                
+                {/* Channel & Category Selector */}
+                <div className="bg-white rounded-3xl p-4 shadow-xl shadow-emerald-600/5 border border-emerald-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Channel:</span>
+                    <div className="grid grid-cols-2 gap-1.5 bg-emerald-50/80 p-1 rounded-2xl border border-emerald-100">
+                      <button
+                        onClick={() => { setOrderChannel('In-Store'); setPaymentMethod('Cash'); }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
+                          orderChannel === 'In-Store'
+                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                            : 'text-slate-600 hover:text-emerald-700'
+                        }`}
+                      >
+                        <Store className="w-3.5 h-3.5" />
+                        <span>In-Store</span>
+                      </button>
+
+                      <button
+                        onClick={() => { setOrderChannel('BEU Delivery'); setPaymentMethod('BEU Account'); }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
+                          orderChannel === 'BEU Delivery'
+                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                            : 'text-slate-600 hover:text-emerald-700'
+                        }`}
+                      >
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>BEU Delivery</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Filter: Foods Only */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+                      🥗 Food Dishes ({foodMenuItems.length})
+                    </span>
+                  </div>
+                </div>
+
+                {/* BEU Delivery Order ID input banner if active */}
+                {orderChannel === 'BEU Delivery' && (
+                  <div className="bg-amber-500 text-white p-3.5 rounded-3xl shadow-lg shadow-amber-500/10 flex items-center justify-between gap-3 animate-in fade-in">
+                    <div className="flex items-center gap-2">
+                      <Truck className="w-5 h-5 flex-shrink-0" />
+                      <span className="text-xs font-black">BEU Platform Order:</span>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Enter BEU Order # (e.g. BEU-8492)"
+                      value={beuOrderId}
+                      onChange={(e) => setBeuOrderId(e.target.value)}
+                      className="bg-white/20 placeholder-white/70 text-white text-xs font-bold rounded-xl px-3 py-1.5 outline-none border border-white/30 w-52"
+                    />
+                  </div>
+                )}
+
+                {/* Food Products Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {menuItems.filter(i => i.menuType === 'Food').map(item => {
+                    const inCart = cart.find(i => i.id === item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        className="bg-white rounded-3xl p-4 shadow-xl shadow-emerald-600/5 border border-emerald-100 hover:border-emerald-300 transition-all flex flex-col justify-between group"
+                      >
+                        <div>
+                          <div className="w-full h-36 rounded-2xl overflow-hidden relative bg-emerald-50 mb-3 shadow-inner">
+                            {item.imageUrl ? (
+                              <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            ) : (
+                              <div className={`w-full h-full bg-gradient-to-br ${item.bgGradient} flex items-center justify-center text-5xl`}>
+                                {item.emoji}
+                              </div>
+                            )}
+
+                            <div className="absolute top-2.5 left-2.5 bg-black/40 backdrop-blur-md text-white text-[10px] font-black px-2.5 py-1 rounded-xl flex items-center gap-1 border border-white/20">
+                              🥡 1 Food Box
+                            </div>
+
+                            <div className="absolute bottom-2.5 right-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-xs px-3 py-1 rounded-xl shadow-md">
+                              {item.price} ETB
+                            </div>
+                          </div>
+
+                          <h3 className="font-black text-slate-900 text-sm leading-snug line-clamp-1">{item.name}</h3>
+                          <p className="text-[11px] text-slate-400 font-bold mt-0.5">Fresh Food / Salad Preparation</p>
+                        </div>
+
+                        {/* Touch Counter */}
+                        <div className="mt-4 pt-3 border-t border-emerald-50 flex items-center justify-between">
+                          {inCart ? (
+                            <div className="flex items-center justify-between w-full bg-emerald-50 p-1.5 rounded-2xl border border-emerald-200">
+                              <button
+                                onClick={() => updateCartQty(item.id, -1)}
+                                className="w-9 h-9 rounded-xl bg-white text-emerald-700 hover:bg-emerald-100 flex items-center justify-center font-black shadow-sm"
+                              >
+                                <Minus className="w-4 h-4" />
+                              </button>
+                              
+                              <span className="font-black text-lg text-emerald-700 px-3">
+                                {inCart.qty}
+                              </span>
+
+                              <button
+                                onClick={() => updateCartQty(item.id, 1)}
+                                className="w-9 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center font-black shadow-md shadow-emerald-600/20"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => addToCart(item, 1)}
+                              className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 transition-transform active:scale-95"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span>Add Dish</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Right 4-5 cols: Chef Order Summary & Save */}
+              <div className="lg:col-span-5 xl:col-span-4 bg-white rounded-3xl p-5 shadow-2xl shadow-emerald-600/10 border border-emerald-100 sticky top-20 flex flex-col justify-between min-h-[600px]">
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-emerald-100">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm font-black shadow-md">
+                        👩‍🍳
+                      </div>
+                      <div>
+                        <h2 className="font-black text-slate-900 text-sm">Chef Order Tray</h2>
+                        <span className="text-[10px] text-slate-400 font-bold block">
+                          Prepared by {staffName || 'Chef Almaz'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {cart.length > 0 && (
+                      <button onClick={clearCart} className="text-[11px] text-rose-500 font-black flex items-center gap-1">
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Clear</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Packaging Indicator */}
+                  <div className="my-3 p-3 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🥡</span>
+                      <div>
+                        <span className="text-xs font-black text-emerald-950 block">Takeaway Boxes Required:</span>
+                        <span className="text-[10px] text-slate-500 font-bold">1 box per salad or food bowl</span>
+                      </div>
+                    </div>
+                    <span className="text-lg font-black text-emerald-700 bg-white px-3 py-1 rounded-xl border border-emerald-200">
+                      {cartBoxesCount} 🥡
+                    </span>
+                  </div>
+
+                  {/* Cart Items List */}
+                  <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
+                    {cart.length === 0 ? (
+                      <div className="py-12 text-center text-slate-400">
+                        <UtensilsCrossed className="w-10 h-10 mx-auto text-emerald-200 mb-2" />
+                        <p className="text-xs font-black text-slate-400">Tray is empty</p>
+                        <p className="text-[11px] text-slate-300">Tap dishes on the left to add</p>
+                      </div>
+                    ) : (
+                      cart.map(item => (
+                        <div key={item.id} className="p-3 rounded-2xl border border-emerald-100 bg-emerald-50/20 flex items-center justify-between">
+                          <div>
+                            <h4 className="font-black text-slate-900 text-xs">{item.name}</h4>
+                            <span className="text-[11px] font-black text-emerald-700">{item.price * item.qty} ETB</span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-emerald-200">
+                            <button
+                              onClick={() => updateCartQty(item.id, -1)}
+                              className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xs"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="text-xs font-black text-emerald-700 px-1.5">{item.qty}</span>
+                            <button
+                              onClick={() => updateCartQty(item.id, 1)}
+                              className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-xs"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Bottom Checkout & Special Notes */}
+                <form onSubmit={handleChefCheckout} className="pt-4 border-t border-emerald-100 space-y-3">
+                  
+                  {/* Special Kitchen Preparation Notes */}
+                  <div>
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1">
+                      Kitchen Notes / Custom Requests:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. ያለ ማዮኔዝ / Extra dressing / Pack separate"
+                      value={chefOrderNotes}
+                      onChange={(e) => setChefOrderNotes(e.target.value)}
+                      className="w-full bg-emerald-50/40 border border-emerald-200 rounded-2xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  {/* Payment Method Selector */}
+                  <div>
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider block mb-1">
+                      Payment Method:
+                    </span>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { id: 'Cash', label: 'Cash', icon: '💵' },
+                        { id: 'Telebirr', label: 'Telebirr', icon: '📱' },
+                        { id: 'CBE Birr', label: 'CBE', icon: '🏦' },
+                        { id: 'Adari', label: 'Adari', icon: '📋' }
+                      ].map(m => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setPaymentMethod(m.id)}
+                          className={`p-2 rounded-2xl text-center text-xs font-black transition-all ${
+                            paymentMethod === m.id
+                              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                              : 'bg-emerald-50 text-slate-700 hover:bg-emerald-100 border border-emerald-100'
+                          }`}
+                        >
+                          <span className="block text-sm">{m.icon}</span>
+                          <span className="text-[10px] block mt-0.5">{m.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Adari Fields if selected */}
+                  {paymentMethod === 'Adari' && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl space-y-2 animate-in fade-in">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-amber-900">
+                        <BookOpen className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Adari Customer Tab (አዳሪ)</span>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Customer Name (e.g. Ato Daniel)"
+                        value={adariCustomerName}
+                        onChange={(e) => setAdariCustomerName(e.target.value)}
+                        className="w-full bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs font-bold outline-none"
+                        required
+                      />
+                      <input
+                        type="tel"
+                        placeholder="Phone number (optional)"
+                        value={adariCustomerPhone}
+                        onChange={(e) => setAdariCustomerPhone(e.target.value)}
+                        className="w-full bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs font-bold outline-none"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-xs font-bold text-slate-500">Total Due:</span>
+                    <span className="text-xl font-black text-emerald-700">{subtotal.toLocaleString()} ETB</span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={cart.length === 0}
+                    className={`w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-xl transition-all ${
+                      cart.length > 0
+                        ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white shadow-emerald-600/25 active:scale-98'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <Check className="w-5 h-5" />
+                    <span>Save & Complete Food Order ({subtotal} ETB)</span>
+                  </button>
+                </form>
+              </div>
+
+            </div>
+          )}
+
+          {/* SUBTAB 2: ACTIVE KITCHEN QUEUE */}
+          {chefActiveTab === 'live_queue' && (
+            <div className="bg-white rounded-3xl p-6 shadow-xl shadow-emerald-600/5 border border-emerald-100 space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-emerald-100">
+                <div>
+                  <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
+                    <Flame className="w-5 h-5 text-orange-500" />
+                    <span>Live Kitchen Preparation Queue</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Orders with salad and food bowls. Tap "Mark Ready" as soon as you finish preparing each dish.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black bg-amber-100 text-amber-900 px-3 py-1.5 rounded-xl border border-amber-200">
+                    ⏳ {activeFoodOrders.length} Preparing
+                  </span>
+                  <span className="text-xs font-black bg-emerald-100 text-emerald-900 px-3 py-1.5 rounded-xl border border-emerald-200">
+                    ✅ {completedFoodOrders.length} Ready
+                  </span>
+                </div>
+              </div>
+
+              {foodOrders.length === 0 ? (
+                <div className="py-16 text-center text-slate-400">
+                  <Utensils className="w-12 h-12 mx-auto text-emerald-200 mb-2" />
+                  <p className="text-sm font-black text-slate-500">No food orders in the queue</p>
+                  <p className="text-xs text-slate-400">When food is ordered at the counter or chef station, it will appear here!</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {foodOrders.map(order => {
+                    const isReady = order.kitchenStatus === 'ready';
+                    return (
+                      <div
+                        key={order.id}
+                        className={`p-5 rounded-3xl border transition-all space-y-3 ${
+                          isReady 
+                            ? 'bg-emerald-50/30 border-emerald-200' 
+                            : 'bg-white border-amber-200 shadow-md ring-1 ring-amber-100'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-slate-900 text-sm">Order #{order.id.slice(-6)}</span>
+                              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                                order.channel === 'BEU Delivery'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}>
+                                {order.channel}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-slate-400 font-bold block mt-0.5">
+                              Staff: {order.staffName} • {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+
+                          <span className={`text-xs font-black px-3 py-1 rounded-xl flex items-center gap-1 ${
+                            isReady 
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                              : 'bg-amber-100 text-amber-900 border border-amber-200 animate-pulse'
+                          }`}>
+                            {isReady ? <CheckCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                            <span>{isReady ? 'Ready for Pickup' : 'Preparing'}</span>
+                          </span>
+                        </div>
+
+                        {/* Food Items */}
+                        <div className="p-3 bg-white/80 rounded-2xl border border-slate-100 space-y-1.5">
+                          {order.items?.filter(i => i.containerType === 'box').map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between text-xs font-bold text-slate-800">
+                              <span className="flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-[11px]">
+                                  {item.qty}x
+                                </span>
+                                <span>{item.name}</span>
+                              </span>
+                              <span className="text-slate-400 text-[11px]">🥡 1 Box</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Special Notes if any */}
+                        {order.specialNotes && (
+                          <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                            <span>📝 Note:</span>
+                            <span>{order.specialNotes}</span>
+                          </div>
+                        )}
+
+                        {/* Action Toggle Button */}
+                        <div className="pt-2 flex justify-end">
+                          <button
+                            onClick={() => toggleKitchenStatus(order.id)}
+                            className={`px-4 py-2 rounded-2xl font-black text-xs flex items-center gap-1.5 shadow-md transition-all ${
+                              isReady
+                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-emerald-600/20'
+                            }`}
+                          >
+                            {isReady ? (
+                              <>
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>Move Back to Preparing</span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCheck className="w-4 h-4" />
+                                <span>Mark Ready for Pickup (ተዘጋጅቷል)</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SUBTAB 3: CHEF SHIFT STATS & ORDER HISTORY */}
+          {chefActiveTab === 'chef_stats' && (
+            <div className="bg-white rounded-3xl p-6 shadow-xl shadow-emerald-600/5 border border-emerald-100 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-emerald-100">
+                <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
+                  <ChefHat className="w-5 h-5 text-emerald-600" />
+                  <span>Chef Almaz's Shift Summary ({currentShift})</span>
+                </h3>
+                <span className="text-xs font-black bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
+                  {shiftFoodOrders.length} Shift Food Orders
+                </span>
+              </div>
+
+              <div className="divide-y divide-emerald-50">
+                {shiftFoodOrders.length === 0 ? (
+                  <div className="py-12 text-center text-slate-400 text-xs font-black">
+                    No food orders saved for {currentShift} yet.
+                  </div>
+                ) : (
+                  shiftFoodOrders.map(order => (
+                    <div key={order.id} className="py-3.5 flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-slate-900">Order #{order.id.slice(-6)}</span>
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2 py-0.5 rounded-full">
+                            {order.boxesCount} 🥡 Boxes
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-bold">({order.channel})</span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {order.items?.map(i => `${i.qty}x ${i.name}`).join(', ')}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="font-black text-sm text-emerald-700">{order.totalAmount} ETB</span>
+                        <span className="text-[10px] font-black px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700">
+                          {order.paymentMethod}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
         </main>
       )}
 
@@ -2118,6 +2835,59 @@ VITE_SUPABASE_ANON_KEY=your-anon-public-key
                 </button>
                 <button type="submit" className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-2xl text-xs font-black shadow-md">
                   Log Bulk Expense
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL: CHEF LOG DAMAGED BOX / SPILL                           */}
+      {/* ============================================================== */}
+      {showChefWasteModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 border border-emerald-100 shadow-2xl animate-in zoom-in-95 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-emerald-100">
+              <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-500" />
+                <span>Log Damaged Food Box / Spill (የተበላሸ እቃ)</span>
+              </h3>
+              <button onClick={() => setShowChefWasteModal(false)} className="text-slate-400">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveChefWaste} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-black text-slate-700">Number of Damaged / Wasted Boxes (🥡)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={chefWasteCount}
+                  onChange={(e) => setChefWasteCount(e.target.value)}
+                  className="mt-1 w-full bg-emerald-50/40 border border-emerald-200 rounded-2xl px-3.5 py-2 text-xs font-black outline-none focus:ring-2 focus:ring-emerald-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-black text-slate-700">Reason</label>
+                <select
+                  value={chefWasteReason}
+                  onChange={(e) => setChefWasteReason(e.target.value)}
+                  className="mt-1 w-full bg-emerald-50/40 border border-emerald-200 rounded-2xl px-3.5 py-2 text-xs font-black outline-none"
+                >
+                  <option value="Damaged Box / Dropped">🥡 Box Damaged / Dropped on Floor</option>
+                  <option value="Salad Remake / Customer Change">🥗 Remade Salad / Customer Changed Mind</option>
+                  <option value="Defective Packaging Batch">📦 Defective Packaging Batch</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setShowChefWasteModal(false)} className="px-4 py-2 text-xs font-bold text-slate-600">
+                  Cancel
+                </button>
+                <button type="submit" className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl text-xs font-black shadow-md">
+                  Log Box Waste
                 </button>
               </div>
             </form>
