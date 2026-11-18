@@ -6,17 +6,19 @@
 -- 1. Enable UUID Extension (optional utility)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. Menu Items Table
+-- 2. Menu Items Table (100% Takeaway Food Items)
 CREATE TABLE IF NOT EXISTS public.menu_items (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    menu_type TEXT NOT NULL CHECK (menu_type IN ('Juice', 'Food')),
+    english_name TEXT,
+    category TEXT,
+    menu_type TEXT NOT NULL DEFAULT 'Food' CHECK (menu_type IN ('Juice', 'Food')),
     price NUMERIC NOT NULL CHECK (price >= 0),
-    container_type TEXT NOT NULL CHECK (container_type IN ('cup', 'box')),
+    container_type TEXT NOT NULL DEFAULT 'box' CHECK (container_type IN ('cup', 'box')),
     is_available BOOLEAN DEFAULT true,
     emoji TEXT,
     image_url TEXT,
-    bg_gradient TEXT,
+    description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -104,14 +106,30 @@ CREATE POLICY "Public insert expenses" ON public.expenses FOR INSERT WITH CHECK 
 CREATE POLICY "Public read packaging audits" ON public.packaging_audits FOR SELECT USING (true);
 CREATE POLICY "Public insert packaging audits" ON public.packaging_audits FOR INSERT WITH CHECK (true);
 
--- 8. Seed Initial Maraki Menu Catalog
-INSERT INTO public.menu_items (id, name, menu_type, price, container_type, is_available, emoji, image_url, bg_gradient)
+-- 8. Seed Official 16 Takeaway Food Menu Items
+INSERT INTO public.menu_items (id, name, english_name, category, menu_type, price, container_type, is_available, emoji, image_url, description)
 VALUES 
-    ('j1', 'Special Avocado & Mango (Spris)', 'Juice', 180, 'cup', true, '🥑🥭', 'https://images.unsplash.com/photo-1546173159-315724a31696?auto=format&fit=crop&w=400&q=80', 'from-amber-400 to-orange-500'),
-    ('j2', 'Pure Fresh Mango Juice', 'Juice', 150, 'cup', true, '🥭', 'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=400&q=80', 'from-orange-400 to-amber-500'),
-    ('j3', 'Tropical Papaya & Orange', 'Juice', 140, 'cup', true, '🍊', 'https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&fit=crop&w=400&q=80', 'from-amber-500 to-red-400'),
-    ('j4', 'Green Detox (Apple & Cucumber)', 'Juice', 190, 'cup', true, '🥬🍏', 'https://images.unsplash.com/photo-1610970881699-44a5587cabec?auto=format&fit=crop&w=400&q=80', 'from-emerald-400 to-teal-500'),
-    ('f1', 'Tropical Fruit Salad Bowl', 'Food', 240, 'box', true, '🥗🍍', 'https://images.unsplash.com/photo-1519996529931-28324d5a630e?auto=format&fit=crop&w=400&q=80', 'from-emerald-500 to-lime-500'),
-    ('f2', 'Chicken Avocado Salad Bowl', 'Food', 320, 'box', true, '🍗🥑', 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80', 'from-orange-500 to-emerald-600'),
-    ('f3', 'Mediterranean Tuna Salad', 'Food', 290, 'box', true, '🐟🥗', 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80', 'from-teal-500 to-blue-500')
-ON CONFLICT (id) DO NOTHING;
+    ('m1', 'ማራኪ ኮምቦ ሳላድ', 'Maraki Combo Salad', 'Salad', 'Food', 430, 'box', true, '🥗✨', 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80', 'የተሟላ ማራኪ ኮምቦ ሳላድ በአቮካዶ፣ ዶሮና ትኩስ አትክልት'),
+    ('m2', 'ሳላድ', 'Salad', 'Salad', 'Food', 320, 'box', true, '🥗', 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80', 'ትኩስ ሰላጣ ከአትክልትና ድሬሲንግ ጋር'),
+    ('m3', 'ፓስታ በሳላድ', 'Pasta with Salad', 'Pasta & Rice', 'Food', 320, 'box', true, '🍝🥗', 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=600&q=80', 'ጣፋጭ የተቀቀለ ፓስታ ከትኩስ ሰላጣ ጋር'),
+    ('m4', 'ሩዝ በሳላድ', 'Rice with Salad', 'Pasta & Rice', 'Food', 320, 'box', true, '🍚🥗', 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=600&q=80', 'ጥሩ ተደርጎ የተዘጋጀ ሩዝ ከሰላጣ ጋር'),
+    ('m5', 'ፓስታ በአትክልት', 'Pasta with Vegetables', 'Pasta & Rice', 'Food', 320, 'box', true, '🍝🥦', 'https://images.unsplash.com/photo-1621996346565-e3d5d6281691?auto=format&fit=crop&w=600&q=80', 'ፓስታ ከተለያዩ ትኩስ አትክልቶች ጋር'),
+    ('m6', 'ሩዝ በአትክልት', 'Rice with Vegetables', 'Pasta & Rice', 'Food', 320, 'box', true, '🍚🥕', 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=600&q=80', 'በካሮት፣ አተርና ጥቅል ጎመን የተዘጋጀ አትክልት ሩዝ'),
+    ('m7', 'ፓስታ በእንቁላል', 'Pasta with Egg', 'Pasta & Rice', 'Food', 320, 'box', true, '🍝🥚', 'https://images.unsplash.com/photo-1546549032-9571cd6b27df?auto=format&fit=crop&w=600&q=80', 'ፓስታ በእንቁላል ተዘጋጅቶ የቀረበ'),
+    ('m8', 'ሩዝ በእንቁላል', 'Rice with Egg', 'Pasta & Rice', 'Food', 320, 'box', true, '🍚🥚', 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80', 'በእንቁላል የተጠበሰ ጣፋጭ ሩዝ'),
+    ('m9', 'እንቁላል ፍርፍር', 'Egg Firfir', 'Eggs & Firfir', 'Food', 230, 'box', true, '🍳', 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=600&q=80', 'በባህላዊ መንገድ በሽንኩርትና ቃሪያ የተዘጋጀ እንቁላል ፍርፍር'),
+    ('m10', 'እንቁላል ስልስ', 'Egg Sils', 'Eggs & Firfir', 'Food', 230, 'box', true, '🍳🍅', 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=600&q=80', 'በጣፋጭ የቲማቲም ስልስ የተሰራ ትኩስ እንቁላል'),
+    ('m11', 'እንቁላል ሳንድዊች', 'Egg Sandwich', 'Sandwiches', 'Food', 120, 'box', true, '🥪🥚', 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=600&q=80', 'ትኩስ የእንቁላል ሳንድዊች በሰላጣና ቲማቲም'),
+    ('m12', 'አትክልት ሳንድዊች', 'Vegetable Sandwich', 'Sandwiches', 'Food', 100, 'box', true, '🥪🥑', 'https://images.unsplash.com/photo-1509722747041-616f39b57569?auto=format&fit=crop&w=600&q=80', 'በአቮካዶና ትኩስ አትክልት የተዘጋጀ ሳንድዊች'),
+    ('m13', 'ፍሩት ፓንች', 'Fruit Punch', 'Salad', 'Food', 320, 'box', true, '🍍🥭', 'https://images.unsplash.com/photo-1519996529931-28324d5a630e?auto=format&fit=crop&w=600&q=80', 'ማንጎ፣ ፓፓያ፣ አናናስና ሙዝ በማር የተዘጋጀ የፍራፍሬ ቦውል'),
+    ('m14', 'ፍርፍር', 'Firfir', 'Eggs & Firfir', 'Food', 200, 'box', true, '🥘', 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80', 'በበርበሬና ቅመማቅመም የተዘጋጀ የእንጀራ ፍርፍር'),
+    ('m15', 'ፓስታ በስጎ', 'Pasta with Sugo', 'Pasta & Rice', 'Food', 200, 'box', true, '🍝🍅', 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=600&q=80', 'በልዩ የቲማቲም ስጎ የተሰራ ትኩስ ፓስታ'),
+    ('m16', 'ቴስቲሶያ', 'Tasty Soya', 'Eggs & Firfir', 'Food', 200, 'box', true, '🍲🌱', 'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=600&q=80', 'በጥሩ ቅመም የተዘጋጀ ጣፋጭ የአኩሪ አተር ወጥ (ቴስቲሶያ)')
+ON CONFLICT (id) DO UPDATE 
+SET name = EXCLUDED.name,
+    english_name = EXCLUDED.english_name,
+    category = EXCLUDED.category,
+    price = EXCLUDED.price,
+    container_type = EXCLUDED.container_type,
+    image_url = EXCLUDED.image_url,
+    description = EXCLUDED.description;

@@ -26,6 +26,201 @@ import {
 } from 'lucide-react';
 import { dbService, isSupabaseConfigured } from './lib/supabaseClient';
 
+export const MARAKI_REAL_FOOD_MENU = [
+  { 
+    id: 'm1', 
+    name: 'ማራኪ ኮምቦ ሳላድ', 
+    englishName: 'Maraki Combo Salad', 
+    category: 'Salad',
+    price: 430, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🥗✨',
+    imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+    description: 'የተሟላ ማራኪ ኮምቦ ሳላድ በአቮካዶ፣ ዶሮና ትኩስ አትክልት'
+  },
+  { 
+    id: 'm2', 
+    name: 'ሳላድ', 
+    englishName: 'Salad', 
+    category: 'Salad',
+    price: 320, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🥗',
+    imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
+    description: 'ትኩስ ሰላጣ ከአትክልትና ድሬሲንግ ጋር'
+  },
+  { 
+    id: 'm3', 
+    name: 'ፓስታ በሳላድ', 
+    englishName: 'Pasta with Salad', 
+    category: 'Pasta & Rice',
+    price: 320, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🍝🥗',
+    imageUrl: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=600&q=80',
+    description: 'ጣፋጭ የተቀቀለ ፓስታ ከትኩስ ሰላጣ ጋር'
+  },
+  { 
+    id: 'm4', 
+    name: 'ሩዝ በሳላድ', 
+    englishName: 'Rice with Salad', 
+    category: 'Pasta & Rice',
+    price: 320, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🍚🥗',
+    imageUrl: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=600&q=80',
+    description: 'ጥሩ ተደርጎ የተዘጋጀ ሩዝ ከሰላጣ ጋር'
+  },
+  { 
+    id: 'm5', 
+    name: 'ፓስታ በአትክልት', 
+    englishName: 'Pasta with Vegetables', 
+    category: 'Pasta & Rice',
+    price: 320, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🍝🥦',
+    imageUrl: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281691?auto=format&fit=crop&w=600&q=80',
+    description: 'ፓስታ ከተለያዩ ትኩስ አትክልቶች ጋር'
+  },
+  { 
+    id: 'm6', 
+    name: 'ሩዝ በአትክልት', 
+    englishName: 'Rice with Vegetables', 
+    category: 'Pasta & Rice',
+    price: 320, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🍚🥕',
+    imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=600&q=80',
+    description: 'በካሮት፣ አተርና ጥቅል ጎመን የተዘጋጀ አትክልት ሩዝ'
+  },
+  { 
+    id: 'm7', 
+    name: 'ፓስታ በእንቁላል', 
+    englishName: 'Pasta with Egg', 
+    category: 'Pasta & Rice',
+    price: 320, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🍝🥚',
+    imageUrl: 'https://images.unsplash.com/photo-1546549032-9571cd6b27df?auto=format&fit=crop&w=600&q=80',
+    description: 'ፓስታ በእንቁላል ተዘጋጅቶ የቀረበ'
+  },
+  { 
+    id: 'm8', 
+    name: 'ሩዝ በእንቁላል', 
+    englishName: 'Rice with Egg', 
+    category: 'Pasta & Rice',
+    price: 320, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🍚🥚',
+    imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80',
+    description: 'በእንቁላል የተጠበሰ ጣፋጭ ሩዝ'
+  },
+  { 
+    id: 'm9', 
+    name: 'እንቁላል ፍርፍር', 
+    englishName: 'Egg Firfir', 
+    category: 'Eggs & Firfir',
+    price: 230, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🍳',
+    imageUrl: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=600&q=80',
+    description: 'በባህላዊ መንገድ በሽንኩርትና ቃሪያ የተዘጋጀ እንቁላል ፍርፍር'
+  },
+  { 
+    id: 'm10', 
+    name: 'እንቁላል ስልስ', 
+    englishName: 'Egg Sils', 
+    category: 'Eggs & Firfir',
+    price: 230, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🍳🍅',
+    imageUrl: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=600&q=80',
+    description: 'በጣፋጭ የቲማቲም ስልስ የተሰራ ትኩስ እንቁላል'
+  },
+  { 
+    id: 'm11', 
+    name: 'እንቁላል ሳንድዊች', 
+    englishName: 'Egg Sandwich', 
+    category: 'Sandwiches',
+    price: 120, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🥪🥚',
+    imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=600&q=80',
+    description: 'ትኩስ የእንቁላል ሳንድዊች በሰላጣና ቲማቲም'
+  },
+  { 
+    id: 'm12', 
+    name: 'አትክልት ሳንድዊች', 
+    englishName: 'Vegetable Sandwich', 
+    category: 'Sandwiches',
+    price: 100, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🥪🥑',
+    imageUrl: 'https://images.unsplash.com/photo-1509722747041-616f39b57569?auto=format&fit=crop&w=600&q=80',
+    description: 'በአቮካዶና ትኩስ አትክልት የተዘጋጀ ሳንድዊች'
+  },
+  { 
+    id: 'm13', 
+    name: 'ፍሩት ፓንች', 
+    englishName: 'Fruit Punch', 
+    category: 'Salad',
+    price: 320, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🍍🥭',
+    imageUrl: 'https://images.unsplash.com/photo-1519996529931-28324d5a630e?auto=format&fit=crop&w=600&q=80',
+    description: 'ማንጎ፣ ፓፓያ፣ አናናስና ሙዝ በማር የተዘጋጀ የፍራፍሬ ቦውል'
+  },
+  { 
+    id: 'm14', 
+    name: 'ፍርፍር', 
+    englishName: 'Firfir', 
+    category: 'Eggs & Firfir',
+    price: 200, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🥘',
+    imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+    description: 'በበርበሬና ቅመማቅመም የተዘጋጀ የእንጀራ ፍርፍር'
+  },
+  { 
+    id: 'm15', 
+    name: 'ፓስታ በስጎ', 
+    englishName: 'Pasta with Sugo', 
+    category: 'Pasta & Rice',
+    price: 200, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🍝🍅',
+    imageUrl: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=600&q=80',
+    description: 'በልዩ የቲማቲም ስጎ የተሰራ ትኩስ ፓስታ'
+  },
+  { 
+    id: 'm16', 
+    name: 'ቴስቲሶያ', 
+    englishName: 'Tasty Soya', 
+    category: 'Eggs & Firfir',
+    price: 200, 
+    containerType: 'box', 
+    isAvailable: true, 
+    emoji: '🍲🌱',
+    imageUrl: 'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=600&q=80',
+    description: 'በጥሩ ቅመም የተዘጋጀ ጣፋጭ የአኩሪ አተር ወጥ (ቴስቲሶያ)'
+  }
+];
+
 export default function App() {
   // --- 1. CHEF & SHIFT STATE ---
   const [chefName, setChefName] = useState('Chef Almaz');
@@ -33,40 +228,11 @@ export default function App() {
 
   // --- 2. FOOD MENU (FOODS ONLY - ALL TAKEAWAY) ---
   const [foodMenu, setFoodMenu] = useState(() => {
-    const saved = localStorage.getItem('maraki_chef_food_menu');
-    return saved ? JSON.parse(saved) : [
-      { 
-        id: 'f1', 
-        name: 'Chicken Avocado Salad Bowl', 
-        price: 320, 
-        containerType: 'box', 
-        isAvailable: true, 
-        emoji: '🍗🥑',
-        imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
-        description: 'Fresh grilled chicken breast, ripe Haas avocado, mixed greens & light dressing'
-      },
-      { 
-        id: 'f2', 
-        name: 'Mediterranean Tuna Salad Bowl', 
-        price: 290, 
-        containerType: 'box', 
-        isAvailable: true, 
-        emoji: '🐟🥗',
-        imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
-        description: 'Flaked tuna, crisp cucumber, sweet corn, boiled egg, olive oil dressing'
-      },
-      { 
-        id: 'f3', 
-        name: 'Tropical Fruit Salad Bowl', 
-        price: 240, 
-        containerType: 'box', 
-        isAvailable: true, 
-        emoji: '🥗🍍',
-        imageUrl: 'https://images.unsplash.com/photo-1519996529931-28324d5a630e?auto=format&fit=crop&w=600&q=80',
-        description: 'Fresh diced mango, papaya, pineapple, banana with honey drizzle'
-      }
-    ];
+    const saved = localStorage.getItem('maraki_chef_food_menu_v2');
+    return saved ? JSON.parse(saved) : MARAKI_REAL_FOOD_MENU;
   });
+
+  const [activeCategory, setActiveCategory] = useState('All');
 
   // --- 3. ORDERS SENT TO OWNER ---
   const [sentOrders, setSentOrders] = useState(() => {
@@ -110,7 +276,7 @@ export default function App() {
 
   // Persist State
   useEffect(() => {
-    localStorage.setItem('maraki_chef_food_menu', JSON.stringify(foodMenu));
+    localStorage.setItem('maraki_chef_food_menu_v2', JSON.stringify(foodMenu));
   }, [foodMenu]);
 
   useEffect(() => {
@@ -267,10 +433,15 @@ export default function App() {
     }
   };
 
-  // Filtered Menu
-  const filteredDishes = foodMenu.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filtered Menu by Category & Search (supports Amharic & English search)
+  const filteredDishes = foodMenu.filter(item => {
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch = !q ||
+      item.name.toLowerCase().includes(q) ||
+      (item.englishName && item.englishName.toLowerCase().includes(q));
+    const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   // Shift Aggregates for Chef (Current Shift)
   const shiftOrders = sentOrders.filter(o => o.shift === currentShift);
@@ -540,6 +711,30 @@ export default function App() {
             </div>
           )}
 
+          {/* Quick Category Tabs for Chef Almaz */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {[
+              { id: 'All', label: '🌟 ሁሉም (All 16)' },
+              { id: 'Salad', label: '🥗 ሳላድና ፍራፍሬ' },
+              { id: 'Pasta & Rice', label: '🍝 ፓስታ እና ሩዝ' },
+              { id: 'Eggs & Firfir', label: '🍳 እንቁላል እና ፍርፍር' },
+              { id: 'Sandwiches', label: '🥪 ሳንድዊች' }
+            ].map(cat => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setActiveCategory(cat.id)}
+                className={`px-4 py-2 rounded-2xl font-black text-xs whitespace-nowrap transition-all ${
+                  activeCategory === cat.id
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-700/20 scale-[1.02]'
+                    : 'bg-white text-slate-700 hover:bg-emerald-50 border border-emerald-100'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
           {/* DISH CARDS GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredDishes.map(item => {
@@ -551,7 +746,7 @@ export default function App() {
                 >
                   <div>
                     {/* Real Photography with 🥡 Takeaway Box Tag */}
-                    <div className="w-full h-44 rounded-2xl overflow-hidden relative bg-emerald-50 mb-3 shadow-inner">
+                    <div className="w-full h-40 rounded-2xl overflow-hidden relative bg-emerald-50 mb-3 shadow-inner">
                       {item.imageUrl ? (
                         <img 
                           src={item.imageUrl} 
@@ -576,6 +771,11 @@ export default function App() {
                     </div>
 
                     <h3 className="font-black text-slate-900 text-sm leading-snug line-clamp-1">{item.name}</h3>
+                    {item.englishName && (
+                      <span className="text-[11px] font-bold text-emerald-700 block mt-0.5">
+                        {item.englishName}
+                      </span>
+                    )}
                     <p className="text-[11px] text-slate-400 font-bold mt-1 line-clamp-2 leading-relaxed">
                       {item.description}
                     </p>
