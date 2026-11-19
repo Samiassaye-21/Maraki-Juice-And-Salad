@@ -1,0 +1,24 @@
+{
+  "name": "Maraki Food Station",
+  "short_name": "Maraki Food",
+  "description": "Maraki Juice & Salad Smart Kitchen Food Station and Takeaway POS",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#064e3b",
+  "theme_color": "#059669",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -37,7 +37,9 @@ import {
   Eye,
   EyeOff,
   LogOut,
-  Settings
+  Settings,
+  Smartphone,
+  Download
 } from 'lucide-react';
 import { dbService, isSupabaseConfigured } from './lib/supabaseClient';
 
@@ -321,6 +323,34 @@ export default function App() {
 
   // Navigation: 'order' (Simple Stepper POS) vs 'reports' (Owner Dashboard)
   const [viewMode, setViewMode] = useState('order');
+
+  // --- PWA MOBILE / DESKTOP APP INSTALL STATE ---
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [canInstallPWA, setCanInstallPWA] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setCanInstallPWA(true);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setCanInstallPWA(false);
+        showToast('🎉 አፕሊኬሽኑ ተጭኗል!');
+      }
+      setDeferredPrompt(null);
+    } else {
+      alert("📱 በስልክዎ ወይም በኮምፒውተርዎ ላይ አፑን ለመጫን:\n\n• በ Chrome: ከላይ ባለ ሶስት ነጥብ (⋮) ነክተው 'Install app' ወይም 'Add to Home Screen' ይጫኑ።\n• በ Safari (iPhone): ከታች Share (ማጋሪያ) ምልክት ነክተው 'Add to Home Screen' ይጫኑ።");
+    }
+  };
 
   // --- AUTOMATIC ETHIOPIAN CALENDAR STATE ---
   const [orderEthDate, setOrderEthDate] = useState(() => getTodayEthiopianDate());
@@ -874,6 +904,16 @@ export default function App() {
             </div>
           </div>
 
+          {/* Install App Link */}
+          <button
+            type="button"
+            onClick={handleInstallApp}
+            className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-black flex items-center justify-center gap-1.5 transition-all border border-slate-200"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+            <span>📲 አፑን በስልክዎ ላይ ይጫኑ (Install App)</span>
+          </button>
+
         </div>
       </div>
     );
@@ -977,6 +1017,17 @@ export default function App() {
                 <Settings className="w-4 h-4" />
               </button>
             )}
+
+            {/* Install App Button */}
+            <button
+              type="button"
+              onClick={handleInstallApp}
+              className="px-2.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1 shadow-md transition-all active:scale-95"
+              title="አፕሊኬሽኑን በስልክዎ ወይም በኮምፒውተርዎ ላይ ይጫኑ / Install App"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">አፑን ጫን</span>
+            </button>
 
             {/* Lock App Button */}
             <button
