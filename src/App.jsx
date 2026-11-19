@@ -29,7 +29,15 @@ import {
   Sparkles,
   RefreshCw,
   Calendar,
-  Edit3
+  Edit3,
+  Lock,
+  Unlock,
+  Key,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  LogOut,
+  Settings
 } from 'lucide-react';
 import { dbService, isSupabaseConfigured } from './lib/supabaseClient';
 
@@ -282,6 +290,35 @@ export const DEFAULT_WAITERS = [
 ];
 
 export default function App() {
+  // --- SECURITY & PASSWORD AUTHENTICATION STATE ---
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('maraki_is_authenticated') === 'true';
+  });
+  const [authRole, setAuthRole] = useState(() => {
+    return localStorage.getItem('maraki_auth_role') || 'owner'; // 'owner' or 'chef'
+  });
+  const [ownerPassword, setOwnerPassword] = useState(() => {
+    return localStorage.getItem('maraki_owner_password') || '1234';
+  });
+  const [chefPin, setChefPin] = useState(() => {
+    return localStorage.getItem('maraki_chef_pin') || '0000';
+  });
+
+  // Login Form States
+  const [pinInput, setPinInput] = useState('');
+  const [loginError, setLoginError] = useState(null);
+  const [showPasswordText, setShowPasswordText] = useState(false);
+
+  // Password Settings Modal
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [newOwnerPassInput, setNewOwnerPassInput] = useState('');
+  const [newChefPinInput, setNewChefPinInput] = useState('');
+
+  // Owner Authorization Prompt (When Chef clicks Reports)
+  const [showOwnerAuthPrompt, setShowOwnerAuthPrompt] = useState(false);
+  const [ownerPromptInput, setOwnerPromptInput] = useState('');
+  const [ownerPromptError, setOwnerPromptError] = useState(null);
+
   // Navigation: 'order' (Simple Stepper POS) vs 'reports' (Owner Dashboard)
   const [viewMode, setViewMode] = useState('order');
 
@@ -549,6 +586,103 @@ export default function App() {
     showToast(`ወደ ዛሬ ቀን ተመልሷል፡ ${today.formatted}`);
   };
 
+  // --- AUTHENTICATION & LOCK HANDLERS ---
+  const handleLoginSubmit = (e) => {
+    if (e) e.preventDefault();
+    const entered = pinInput.trim();
+    if (!entered) {
+      setLoginError('እባክዎ የይለፍ ቃል ያስገቡ (Please enter password)');
+      return;
+    }
+
+    if (entered === ownerPassword) {
+      setIsAuthenticated(true);
+      setAuthRole('owner');
+      localStorage.setItem('maraki_is_authenticated', 'true');
+      localStorage.setItem('maraki_auth_role', 'owner');
+      setPinInput('');
+      setLoginError(null);
+      showToast('👑 እንደ ባለቤት ገብተዋል (Logged in as Owner)');
+    } else if (entered === chefPin) {
+      setIsAuthenticated(true);
+      setAuthRole('chef');
+      setViewMode('order');
+      localStorage.setItem('maraki_is_authenticated', 'true');
+      localStorage.setItem('maraki_auth_role', 'chef');
+      setPinInput('');
+      setLoginError(null);
+      showToast('👩‍🍳 እንደ ሼፍ ገብተዋል (Logged in as Chef)');
+    } else {
+      setLoginError('❌ የተሳሳተ የይለፍ ቃል ነው፤ እባክዎ እንደገና ይሞክሩ');
+    }
+  };
+
+  const handleKeypadPress = (val) => {
+    setLoginError(null);
+    if (val === 'backspace') {
+      setPinInput(prev => prev.slice(0, -1));
+    } else if (val === 'clear') {
+      setPinInput('');
+    } else {
+      setPinInput(prev => prev + val);
+    }
+  };
+
+  const handleLockApp = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('maraki_is_authenticated');
+    setPinInput('');
+    setLoginError(null);
+    showToast('🔒 ሲስተሙ ተቆልፏል (App Locked)');
+  };
+
+  const handleSwitchToReports = () => {
+    if (authRole === 'owner') {
+      setViewMode('reports');
+    } else {
+      setOwnerPromptInput('');
+      setOwnerPromptError(null);
+      setShowOwnerAuthPrompt(true);
+    }
+  };
+
+  const handleVerifyOwnerForReports = (e) => {
+    e.preventDefault();
+    if (ownerPromptInput.trim() === ownerPassword) {
+      setShowOwnerAuthPrompt(false);
+      setAuthRole('owner');
+      localStorage.setItem('maraki_auth_role', 'owner');
+      setViewMode('reports');
+      showToast('👑 የባለቤት ሪፖርት ተከፍቷል (Reports Unlocked)');
+    } else {
+      setOwnerPromptError('❌ የተሳሳተ የባለቤት የይለፍ ቃል ነው');
+    }
+  };
+
+  const handleSaveNewPasswords = (e) => {
+    e.preventDefault();
+    let updated = false;
+    if (newOwnerPassInput.trim()) {
+      setOwnerPassword(newOwnerPassInput.trim());
+      localStorage.setItem('maraki_owner_password', newOwnerPassInput.trim());
+      updated = true;
+    }
+    if (newChefPinInput.trim()) {
+      setChefPin(newChefPinInput.trim());
+      localStorage.setItem('maraki_chef_pin', newChefPinInput.trim());
+      updated = true;
+    }
+    if (updated) {
+      setNewOwnerPassInput('');
+      setNewChefPinInput('');
+      setShowSettingsModal(false);
+      showToast('✅ አዲስ የይለፍ ቃሎች ተመዝግበዋል (Passwords updated)');
+    } else {
+      showToast('ምንም ለውጥ አልተደረገም');
+      setShowSettingsModal(false);
+    }
+  };
+
   // Filtered dishes for Step 1
   const filteredDishes = foodMenu.filter(item => {
     const q = searchQuery.toLowerCase().trim();
@@ -614,6 +748,137 @@ export default function App() {
     }
   };
 
+  // ==============================================================
+  // 🔒 LOCK SCREEN / PASSWORD LOGIN SCREEN
+  // ==============================================================
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-teal-900 to-slate-950 flex flex-col items-center justify-center p-4 selection:bg-emerald-500 selection:text-white">
+        <div className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/30 text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+          
+          {/* Logo & Header */}
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center text-3xl shadow-lg shadow-emerald-900/30 mb-2.5">
+              👩‍🍳
+            </div>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">MARAKI</h1>
+            <p className="text-xs font-black text-emerald-700 uppercase tracking-wider">
+              Food Station & Management
+            </p>
+            <div className="flex items-center gap-1.5 mt-2 text-[11px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+              <Lock className="w-3 h-3 text-emerald-600" />
+              <span>የደህንነት መግቢያ (Security Passcode)</span>
+            </div>
+          </div>
+
+          {/* Password Input Form */}
+          <form onSubmit={handleLoginSubmit} className="space-y-3">
+            <div className="relative">
+              <input
+                type={showPasswordText ? "text" : "password"}
+                placeholder="የይለፍ ቃል / PIN ያስገቡ..."
+                value={pinInput}
+                onChange={(e) => { setPinInput(e.target.value); setLoginError(null); }}
+                className="w-full bg-slate-50 border-2 border-emerald-200 focus:border-emerald-500 rounded-2xl py-3.5 pl-10 pr-10 text-center font-black text-lg text-slate-900 tracking-widest placeholder:tracking-normal placeholder:font-bold placeholder:text-xs placeholder:text-slate-400 outline-none transition-all shadow-inner"
+                autoFocus
+              />
+              <Key className="w-4 h-4 text-emerald-600 absolute left-3.5 top-4" />
+              <button
+                type="button"
+                onClick={() => setShowPasswordText(!showPasswordText)}
+                className="absolute right-3.5 top-4 text-slate-400 hover:text-slate-600"
+              >
+                {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {/* Error Message */}
+            {loginError && (
+              <p className="text-xs font-black text-rose-600 bg-rose-50 py-1.5 px-3 rounded-xl border border-rose-200 animate-in shake">
+                {loginError}
+              </p>
+            )}
+
+            {/* Touch Keypad */}
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => handleKeypadPress(num.toString())}
+                  className="py-3 bg-slate-100 hover:bg-emerald-50 active:bg-emerald-100 text-slate-800 hover:text-emerald-900 font-black text-lg rounded-2xl border border-slate-200/80 transition-all active:scale-95 shadow-sm"
+                >
+                  {num}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => handleKeypadPress('clear')}
+                className="py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 font-black text-xs rounded-2xl border border-rose-200 transition-all active:scale-95"
+              >
+                አጥፋ
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleKeypadPress('0')}
+                className="py-3 bg-slate-100 hover:bg-emerald-50 active:bg-emerald-100 text-slate-800 hover:text-emerald-900 font-black text-lg rounded-2xl border border-slate-200/80 transition-all active:scale-95 shadow-sm"
+              >
+                0
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleKeypadPress('backspace')}
+                className="py-3 bg-amber-50 hover:bg-amber-100 text-amber-800 font-black text-sm rounded-2xl border border-amber-200 transition-all active:scale-95 flex items-center justify-center"
+              >
+                ⌫
+              </button>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-800/25 active:scale-95 transition-all flex items-center justify-center gap-2 mt-2"
+            >
+              <Unlock className="w-4 h-4" />
+              <span>ክፈት / ግባ (Unlock)</span>
+            </button>
+          </form>
+
+          {/* Quick Default Passwords Guide */}
+          <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-100/80 text-left text-[11px] font-bold text-slate-600 space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 block">
+              💡 የመጀመሪያ ይለፍ ቃሎች (Default Passwords):
+            </span>
+            <div className="flex items-center justify-between text-slate-700">
+              <span>👑 የባለቤት መግቢያ (Owner):</span>
+              <button 
+                type="button" 
+                onClick={() => setPinInput(ownerPassword)} 
+                className="font-black text-emerald-800 hover:underline bg-white px-2 py-0.5 rounded border border-emerald-200"
+              >
+                {ownerPassword}
+              </button>
+            </div>
+            <div className="flex items-center justify-between text-slate-700">
+              <span>👩‍🍳 የሼፍ / ኩሽና መግቢያ (Chef):</span>
+              <button 
+                type="button" 
+                onClick={() => setPinInput(chefPin)} 
+                className="font-black text-emerald-800 hover:underline bg-white px-2 py-0.5 rounded border border-emerald-200"
+              >
+                {chefPin}
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex flex-col font-sans text-slate-800 antialiased selection:bg-emerald-600 selection:text-white">
       
@@ -676,7 +941,7 @@ export default function App() {
 
               <button
                 type="button"
-                onClick={() => setViewMode('reports')}
+                onClick={handleSwitchToReports}
                 className={`px-3.5 py-1.5 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all ${
                   viewMode === 'reports'
                     ? 'bg-white text-emerald-800 shadow-md scale-[1.02]'
@@ -688,14 +953,40 @@ export default function App() {
               </button>
             </div>
 
-            {/* Damaged Box Button */}
+            {/* Role Badge */}
+            <span className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 border shadow-sm ${
+              authRole === 'owner'
+                ? 'bg-amber-400 text-slate-950 border-amber-300'
+                : 'bg-white/20 text-white border-white/20'
+            }`}>
+              {authRole === 'owner' ? '👑 ባለቤት' : '👩‍🍳 ሼፍ'}
+            </span>
+
+            {/* If Owner: Settings Button to Change Passwords */}
+            {authRole === 'owner' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setNewOwnerPassInput(ownerPassword);
+                  setNewChefPinInput(chefPin);
+                  setShowSettingsModal(true);
+                }}
+                className="p-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black border border-white/20 transition-all shadow-sm"
+                title="የይለፍ ቃል ቀይር / Change Passwords"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Lock App Button */}
             <button
-              onClick={() => setShowWasteModal(true)}
-              className="hidden sm:flex px-2.5 py-1.5 bg-rose-500/80 hover:bg-rose-600 text-white font-black rounded-xl text-xs items-center gap-1 border border-rose-400/30 transition-all"
-              title="የተበላሸ ቦክስ መዝግብ"
+              type="button"
+              onClick={handleLockApp}
+              className="px-2.5 py-1.5 bg-rose-500/80 hover:bg-rose-600 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-rose-400/30 transition-all shadow-sm"
+              title="ሲስተሙን ቆልፍ / Lock App"
             >
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>የተበላሸ እቃ</span>
+              <Lock className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">ቆልፍ</span>
             </button>
           </div>
 
@@ -1932,6 +2223,130 @@ export default function App() {
                 መዝግብ
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* SECURITY / CHANGE PASSWORDS MODAL                              */}
+      {/* ============================================================== */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-2 border-emerald-500 space-y-4">
+            
+            <div className="flex items-center gap-2.5 pb-2 border-b border-emerald-100">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                <Settings className="w-5 h-5 text-emerald-700" />
+              </div>
+              <div>
+                <h3 className="font-black text-sm text-slate-900">የይለፍ ቃል መቀየሪያ</h3>
+                <span className="text-[10px] text-slate-400 font-bold block">Change Security Passwords</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveNewPasswords} className="space-y-3.5">
+              
+              {/* Owner Password */}
+              <div>
+                <label className="block text-xs font-black text-slate-700 mb-1">
+                  👑 የባለቤት አዲስ የይለፍ ቃል (Owner Password):
+                </label>
+                <input
+                  type="text"
+                  placeholder={`የአሁኑ፡ ${ownerPassword}`}
+                  value={newOwnerPassInput}
+                  onChange={(e) => setNewOwnerPassInput(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none"
+                />
+              </div>
+
+              {/* Chef PIN */}
+              <div>
+                <label className="block text-xs font-black text-slate-700 mb-1">
+                  👩‍🍳 የሼፍ / ኩሽና አዲስ ፒን (Chef PIN):
+                </label>
+                <input
+                  type="text"
+                  placeholder={`የአሁኑ፡ ${chefPin}`}
+                  value={newChefPinInput}
+                  onChange={(e) => setNewChefPinInput(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSettingsModal(false)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-black text-xs transition-all"
+                >
+                  ተመለስ (Cancel)
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs shadow-md shadow-emerald-700/20 transition-all"
+                >
+                  💾 መዝግብ (Save)
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* OWNER PASSCODE PROMPT MODAL (RESTRICT REPORTS FOR STAFF)       */}
+      {/* ============================================================== */}
+      {showOwnerAuthPrompt && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-2 border-amber-500 space-y-4 text-center">
+            
+            <div className="w-14 h-14 rounded-3xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-2xl shadow-inner">
+              🔒
+            </div>
+
+            <div>
+              <h3 className="font-black text-base text-slate-900">የባለቤት የይለፍ ቃል</h3>
+              <p className="text-xs text-slate-400 font-bold mt-1">
+                ይህንን የሂሳብ እና የሽያጭ ሪፖርት ለመክፈት የባለቤት የይለፍ ቃል ያስገቡ።
+              </p>
+            </div>
+
+            <form onSubmit={handleVerifyOwnerForReports} className="space-y-3">
+              <input
+                type="password"
+                placeholder="የባለቤት የይለፍ ቃል ያስገቡ..."
+                value={ownerPromptInput}
+                onChange={(e) => { setOwnerPromptInput(e.target.value); setOwnerPromptError(null); }}
+                className="w-full bg-slate-50 border-2 border-amber-300 focus:border-amber-500 rounded-2xl py-3 px-4 text-center font-black text-base tracking-widest text-slate-900 outline-none"
+                autoFocus
+              />
+
+              {ownerPromptError && (
+                <p className="text-xs font-black text-rose-600 bg-rose-50 py-1.5 px-3 rounded-xl border border-rose-200">
+                  {ownerPromptError}
+                </p>
+              )}
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowOwnerAuthPrompt(false)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-black text-xs"
+                >
+                  ተመለስ (Cancel)
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black text-xs shadow-md shadow-amber-500/20"
+                >
+                  ክፈት (Unlock)
+                </button>
+              </div>
+            </form>
+
           </div>
         </div>
       )}
