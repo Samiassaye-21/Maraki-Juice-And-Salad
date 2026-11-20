@@ -361,7 +361,9 @@ export default function App() {
   const [ownerPromptError, setOwnerPromptError] = useState(null);
 
   // Navigation: 'order' (Simple Stepper POS) vs 'reports' (Owner Dashboard)
-  const [viewMode, setViewMode] = useState('order');
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('maraki_auth_role') === 'owner' ? 'reports' : 'order';
+  });
 
   // --- PWA MOBILE / DESKTOP APP INSTALL STATE ---
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -703,11 +705,12 @@ export default function App() {
     if (entered === ownerPassword) {
       setIsAuthenticated(true);
       setAuthRole('owner');
+      setViewMode('reports');
       localStorage.setItem('maraki_is_authenticated', 'true');
       localStorage.setItem('maraki_auth_role', 'owner');
       setPinInput('');
       setLoginError(null);
-      showToast('👑 እንደ ባለቤት ገብተዋል (Logged in as Owner)');
+      showToast('👑 Logged in as Owner (የባለቤት መቆጣጠሪያ)');
     } else if (entered === chefPin) {
       setIsAuthenticated(true);
       setAuthRole('chef');
@@ -1206,35 +1209,57 @@ export default function App() {
             </span>
           </button>
 
-          {/* Clean View Mode Switcher: New Order vs Owner Reports */}
+          {/* Top Bar Navigation */}
           <div className="flex items-center gap-2">
-            <div className="flex bg-black/20 p-1 rounded-2xl border border-white/20">
-              <button
-                type="button"
-                onClick={() => setViewMode('order')}
-                className={`px-3.5 py-1.5 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all ${
-                  viewMode === 'order'
-                    ? 'bg-white text-emerald-800 shadow-md scale-[1.02]'
-                    : 'text-white hover:text-emerald-100'
-                }`}
-              >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>ትዕዛዝ አስገባ (Order)</span>
-              </button>
+            {authRole === 'chef' ? (
+              <div className="flex bg-black/20 p-1 rounded-2xl border border-white/20">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('order')}
+                  className={`px-3.5 py-1.5 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all ${
+                    viewMode === 'order'
+                      ? 'bg-white text-emerald-800 shadow-md scale-[1.02]'
+                      : 'text-white hover:text-emerald-100'
+                  }`}
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Order (ትዕዛዝ አስገባ)</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={handleSwitchToReports}
-                className={`px-3.5 py-1.5 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all ${
-                  viewMode === 'reports'
-                    ? 'bg-white text-emerald-800 shadow-md scale-[1.02]'
-                    : 'text-white hover:text-emerald-100'
-                }`}
-              >
-                <BarChart3 className="w-3.5 h-3.5" />
-                <span>የባለቤት ሪፖርት (Reports)</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={handleSwitchToReports}
+                  className={`px-3.5 py-1.5 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all ${
+                    viewMode === 'reports'
+                      ? 'bg-white text-emerald-800 shadow-md scale-[1.02]'
+                      : 'text-white hover:text-emerald-100'
+                  }`}
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>Reports (የባለቤት ሪፖርት)</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="px-3.5 py-1.5 rounded-xl bg-black/20 border border-white/20 text-white font-black text-xs flex items-center gap-1.5 shadow-inner">
+                  <BarChart3 className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Owner Command Center</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthRole('chef');
+                    setViewMode('order');
+                    localStorage.setItem('maraki_auth_role', 'chef');
+                    showToast('Switched to Chef Ordering Mode');
+                  }}
+                  className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/90 text-xs font-bold transition-all border border-white/10"
+                  title="Switch to Chef ordering menu"
+                >
+                  👩‍🍳 Chef Mode
+                </button>
+              </div>
+            )}
 
             {/* Role Badge */}
             <span className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 border shadow-sm ${
@@ -1242,7 +1267,7 @@ export default function App() {
                 ? 'bg-amber-400 text-slate-950 border-amber-300'
                 : 'bg-white/20 text-white border-white/20'
             }`}>
-              {authRole === 'owner' ? '👑 ባለቤት' : '👩‍🍳 ሼፍ'}
+              {authRole === 'owner' ? '👑 Owner' : '👩‍🍳 Chef'}
             </span>
 
             {/* If Owner: Settings Button to Change Passwords */}
@@ -2222,16 +2247,6 @@ export default function App() {
                 <RefreshCw className="w-3.5 h-3.5 text-rose-600" />
                 <span>አዲስ ቀን</span>
               </button>
-
-              {/* Switch to New Order */}
-              <button
-                type="button"
-                onClick={() => setViewMode('order')}
-                className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-700/20 transition-all active:scale-95"
-              >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>+ አዲስ ትዕዛዝ</span>
-              </button>
             </div>
           </div>
 
@@ -2432,99 +2447,6 @@ export default function App() {
               >
                 ክምችት አሻሽል
               </button>
-            </div>
-          </div>
-
-          {/* TOP 5 BEST SELLING FOOD DISHES (ተወዳጅ ምግቦች) */}
-          {topSellingDishes.length > 0 && (
-            <div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-sm space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-emerald-600" />
-                  <h3 className="text-sm font-black text-slate-900">
-                    ተወዳጅ ምግቦች ደረጃ (Top Selling Food Dishes)
-                  </h3>
-                </div>
-                <span className="text-xs text-slate-400 font-bold">በብዛት የተዘጋጁት</span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-                {topSellingDishes.map((dish, idx) => {
-                  const medals = ['🥇 #1', '🥈 #2', '🥉 #3', '⭐ #4', '⭐ #5'];
-                  return (
-                    <div key={dish.id} className="p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100/80 flex flex-col justify-between">
-                      <div>
-                        <span className="text-[10px] font-black text-emerald-800 bg-white px-1.5 py-0.5 rounded-md border border-emerald-200">
-                          {medals[idx]}
-                        </span>
-                        <h4 className="font-black text-xs text-slate-900 mt-1.5 truncate">{dish.name}</h4>
-                        <span className="text-[10px] text-slate-400 font-bold block">{dish.englishName}</span>
-                      </div>
-                      <div className="mt-2 pt-1.5 border-t border-emerald-100/60 flex items-center justify-between text-[11px] font-black">
-                        <span className="text-emerald-800">{dish.countSold} ሳህን</span>
-                        <span className="text-slate-700">{dish.revenueGenerated.toLocaleString()} ETB</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* FOOD TYPES BREAKDOWN TABLE (ALL 16 DISHES) */}
-          <div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-black text-slate-900">
-                  🍲 የምግቦች ዝርዝር ቆጠራ (Food Types Breakdown - All 16 Dishes)
-                </h3>
-                <p className="text-xs text-slate-400 font-bold mt-0.5">
-                  ከ16ቱ ምግቦች እያንዳንዱ ስንት ሳህን እንደተሸጠና የወጣው ቦክስ
-                </p>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-emerald-100 text-slate-400 uppercase text-[9px] font-black tracking-wider">
-                    <th className="py-2.5 px-3">ምግብ (Food Dish)</th>
-                    <th className="py-2.5 px-3">ምድብ</th>
-                    <th className="py-2.5 px-3 text-right">የአንዱ ዋጋ</th>
-                    <th className="py-2.5 px-3 text-center">የተዘጋጀ ብዛት</th>
-                    <th className="py-2.5 px-3 text-center">🥡 የወጣ ቦክስ</th>
-                    <th className="py-2.5 px-3 text-right">የተገኘ ገቢ (ETB)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-emerald-50">
-                  {dishBreakdown.map((item) => (
-                    <tr key={item.id} className="hover:bg-emerald-50/40 transition-colors">
-                      <td className="py-2.5 px-3 font-black text-slate-900 flex items-center gap-2">
-                        <span>{item.emoji || '🍲'}</span>
-                        <div>
-                          <span>{item.name}</span>
-                          <span className="block text-[10px] text-slate-400 font-bold">{item.englishName}</span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 text-slate-500 font-bold">{item.category}</td>
-                      <td className="py-2.5 px-3 text-right font-black text-slate-800">{item.price} ETB</td>
-                      <td className="py-2.5 px-3 text-center">
-                        <span className={`px-2.5 py-0.5 rounded-full font-black text-xs ${
-                          item.countSold > 0 ? 'bg-emerald-100 text-emerald-800' : 'text-slate-300'
-                        }`}>
-                          {item.countSold} ሳህን
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-center font-bold text-slate-700">
-                        {item.boxesUsed} 🥡
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-black text-slate-900">
-                        {item.revenueGenerated.toLocaleString()} ETB
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </div>
 
