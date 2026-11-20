@@ -305,6 +305,24 @@ export function getDishEffectivePrice(dishOrItem, currentOrderType = 'Takeaway')
   return basePrice;
 }
 
+export function getFormattedGregorianDate(d = new Date()) {
+  return d.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+}
+
+export function formatWaiterDisplayName(waiterStr) {
+  if (!waiterStr) return 'አልተጠቀሰም';
+  const match = waiterStr.match(/^(.*?)\s*\((.*?)\)$/);
+  if (match) {
+    return `${match[1]}  ${match[2]}`;
+  }
+  return waiterStr;
+}
+
 export default function App() {
   // --- SECURITY & PASSWORD AUTHENTICATION STATE ---
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -528,6 +546,7 @@ export default function App() {
       ethiopianDay: orderEthDate.day,
       ethiopianMonth: orderEthDate.monthName,
       ethiopianYear: orderEthDate.year,
+      gregorianDateFormatted: getFormattedGregorianDate(),
       beuOrderId: isBeu ? (beuOrderId.trim() || 'BEU-Direct') : null,
       paymentMethod: finalPayment,
       totalAmount: totalSubtotal,
@@ -1709,183 +1728,170 @@ export default function App() {
           {/* STEP 4: REVIEW & SUBMIT TO OWNER                               */}
           {/* ============================================================== */}
           {orderStep === 4 && (
-            <div className="space-y-6 animate-in fade-in duration-200 max-w-xl mx-auto">
+            <div className="space-y-5 animate-in fade-in duration-200 max-w-sm sm:max-w-md mx-auto text-center">
               
-              <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm text-center">
-                <span className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 font-black inline-flex items-center justify-center text-sm mb-2">
+              <div>
+                <span className="w-9 h-9 rounded-2xl bg-[#E2F4EB] text-[#126848] font-black inline-flex items-center justify-center text-sm mb-2 shadow-sm">
                   4
                 </span>
-                <h2 className="text-lg font-black text-slate-900">
-                  ትዕዛዙን አረጋግጠው ያስገቡ (Confirm & Submit)
+                <h2 className="text-xl sm:text-2xl font-black text-[#1C201D] tracking-tight">
+                  ትዕዛዙን አረጋግጠው ያስገቡ
                 </h2>
-                <p className="text-xs text-slate-400 font-bold mt-1">
-                  ትዕዛዙ በቀጥታ ወደ ሲስተሙ ዳታቤዝ ይመዘገባል
+                <p className="text-xs font-semibold text-[#666E67] mt-1">
+                  Confirm & Review Order Ticket
                 </p>
               </div>
 
-              {/* BEAUTIFUL ORDER SUMMARY RECEIPT CARD */}
-              <div className="bg-white rounded-3xl p-6 border-2 border-emerald-500 shadow-xl shadow-emerald-700/10 space-y-4">
+              {/* TICKET RECEIPT CARD (MATCHING SUBMISSION LAYOUT) */}
+              <div className="w-full bg-white rounded-[32px] shadow-sm border border-[#E9E4D6] overflow-hidden text-left">
                 
                 {/* 1. Food Items List */}
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2">
-                    የተመረጡ ምግቦች (Food Items)
-                  </span>
-                  <div className="space-y-2">
-                    {cart.map(item => {
-                      const itemEffectivePrice = getDishEffectivePrice(item, orderType);
-                      const isDisc = orderType === 'Home' && item.price === 320;
-                      return (
-                        <div key={item.id} className="flex items-center justify-between bg-emerald-50/50 p-2.5 rounded-2xl border border-emerald-100">
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-lg">{item.emoji || '🍲'}</span>
-                            <div>
-                              <h4 className="font-black text-xs text-slate-900">{item.name}</h4>
-                              <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1.5">
-                                <span>{item.qty} x {itemEffectivePrice} ETB</span>
-                                {isDisc && (
-                                  <span className="text-amber-800 bg-amber-100 px-1 py-0.2 rounded font-black text-[9px]">
-                                    (ቅናሽ 300)
-                                  </span>
-                                )}
-                                <span>•</span>
-                                <span>{orderType === 'Takeaway' ? `🥡 ${item.qty} ቦክስ` : '🍽️ ቤት ውስጥ'}</span>
-                              </span>
-                            </div>
-                          </div>
-                          <span className="font-black text-xs text-emerald-800">
-                            {item.qty * itemEffectivePrice} ETB
-                          </span>
-                        </div>
-                      );
-                    })}
+                <div className="p-5 sm:p-6 space-y-3">
+                  {cart.map((item, idx) => (
+                    <div key={item.id || idx} className="flex items-center gap-3.5 pb-2.5 border-b border-[#F2EEE4] last:border-b-0 last:pb-0">
+                      <span className="bg-[#E2F4EB] text-[#126848] font-black text-xs px-2.5 py-1 rounded-xl flex-shrink-0">
+                        {item.qty}×
+                      </span>
+                      <span className="font-black text-sm sm:text-base text-[#1C201D] tracking-tight">
+                        {item.name}
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* Total Price Box */}
+                  <div className="bg-[#EBF6F0] rounded-2xl p-4 flex items-center justify-between mt-3">
+                    <span className="font-black text-sm text-[#1C201D]">ድምር ዋጋ</span>
+                    <div className="flex items-baseline">
+                      <span className="text-3xl font-black text-[#1C201D] tracking-tight">
+                        {totalSubtotal.toLocaleString()}
+                      </span>
+                      <span className="text-xs font-black text-[#107049] ml-1.5">
+                        ETB
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* 2. Key Metadata Badges */}
-                <div className="space-y-2.5 pt-2 border-t border-emerald-100">
+                {/* Dashed Tear Line with Circular Notches */}
+                <div className="relative py-1 bg-white">
+                  <div className="border-t-2 border-dashed border-[#DDD7C8] w-full" />
+                  <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#FDFBF7] border-r border-[#DDD7C8]" />
+                  <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#FDFBF7] border-l border-[#DDD7C8]" />
+                </div>
+
+                {/* 2. Metadata Details Rows */}
+                <div className="p-5 sm:p-6 space-y-4 bg-white">
                   
-                  {/* Automatic Ethiopian Date with Quick Edit */}
-                  <div className="bg-emerald-50/80 p-3 rounded-2xl border border-emerald-200/90 flex items-center justify-between">
-                    <div>
-                      <span className="text-[9px] font-black text-emerald-800 uppercase tracking-wider block">
-                        ቀን (Ethiopian Date)
-                      </span>
-                      <span className="font-black text-xs text-emerald-950 mt-0.5 flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-emerald-700" />
-                        <span>{orderEthDate.formatted}</span>
+                  {/* Date */}
+                  <div className="flex items-start justify-between text-xs">
+                    <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                      <Calendar className="w-4 h-4 text-[#7A837C]" />
+                      <span>ቀን</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center gap-1.5 justify-end">
+                        <span className="font-black text-xs text-[#1D211E]">
+                          {orderEthDate.formatted}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openEthDateModal('current')}
+                          className="text-[10px] text-emerald-700 hover:underline font-bold"
+                          title="ቀን ቀይር"
+                        >
+                          (ቀይር)
+                        </button>
+                      </div>
+                      <span className="text-[11px] font-semibold text-[#7D847E] block mt-0.5">
+                        {getFormattedGregorianDate()}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => openEthDateModal('current')}
-                      className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 text-[11px] font-black rounded-xl border border-emerald-300 transition-all flex items-center gap-1 shadow-sm"
-                    >
-                      <Edit3 className="w-3 h-3" />
-                      <span>ቀይር (Edit)</span>
-                    </button>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                    {/* Shift / Channel */}
-                    <div className="bg-slate-50 p-2.5 sm:p-3 rounded-2xl">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
-                        ፈረቃ (Shift)
+                  {/* Shift */}
+                  <div className="flex items-start justify-between text-xs">
+                    <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                      <Sun className="w-4 h-4 text-[#7A837C]" />
+                      <span>ፈረቃ</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-black text-xs text-[#1D211E] block">
+                        {selectedShiftType === 'Day' ? 'Day Shift' : selectedShiftType === 'Night' ? 'Night Shift' : 'BEU Delivery'}
                       </span>
-                      <span className="font-black text-xs text-slate-900 mt-0.5 flex items-center gap-1">
-                        {selectedShiftType === 'Day' && '☀️ ቀን'}
-                        {selectedShiftType === 'Night' && '🌙 ማታ'}
-                        {selectedShiftType === 'BEU' && `🛵 ቢዩ (${beuOrderId || 'BEU'})`}
+                      <span className="text-[11px] font-semibold text-[#7D847E] block mt-0.5">
+                        {selectedShiftType === 'BEU' ? (beuOrderId || 'BEU Delivery') : orderType === 'Home' ? 'In-Store Home' : 'In-Store Takeaway'}
                       </span>
                     </div>
+                  </div>
 
-                    {/* Order Type */}
-                    <div className={`p-2.5 sm:p-3 rounded-2xl ${orderType === 'Home' ? 'bg-amber-50 border border-amber-200' : 'bg-slate-50'}`}>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
-                        ዓይነት (Type)
-                      </span>
-                      <span className="font-black text-xs text-slate-900 mt-0.5 flex items-center gap-1">
-                        {orderType === 'Takeaway' ? '🥡 ቴክአዌይ' : '🏠 ቤት ውስጥ'}
+                  {/* Order Type */}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                      <ShoppingBag className="w-4 h-4 text-[#7A837C]" />
+                      <span>አገልግሎት</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-black text-xs text-[#1D211E]">
+                        {orderType === 'Home' ? 'ቤት ውስጥ  Home' : 'ቴክአዌይ  Takeaway'}
                       </span>
                     </div>
+                  </div>
 
-                    {/* Waiter */}
-                    <div className="bg-slate-50 p-2.5 sm:p-3 rounded-2xl">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
-                        አስተናጋጅ (Waiter)
+                  {/* Waiter */}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                      <User className="w-4 h-4 text-[#7A837C]" />
+                      <span>የወሰደው</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-black text-xs text-[#1D211E]">
+                        {formatWaiterDisplayName(customWaiterName.trim() || selectedWaiter)}
                       </span>
-                      <span className="font-black text-xs text-slate-900 mt-0.5 flex items-center gap-1 truncate">
-                        👤 {customWaiterName.trim() || selectedWaiter}
+                    </div>
+                  </div>
+
+                  {/* Boxes Count */}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                      <Box className="w-4 h-4 text-[#7A837C]" />
+                      <span>የወጣ ቦክስ</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-black text-xs text-[#1D211E]">
+                        {orderType === 'Home' 
+                          ? '0  Takeaway Box' 
+                          : `${totalBoxesInOrder}  Takeaway Box`}
                       </span>
                     </div>
                   </div>
 
                 </div>
-
-                {/* 3. Takeaway Box Tally */}
-                {orderType === 'Takeaway' ? (
-                  <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-200 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">🥡</span>
-                      <div>
-                        <span className="font-black text-xs text-emerald-900 block">የወጣ የቴክአዌይ ሳጥን</span>
-                        <span className="text-[10px] text-emerald-700 font-bold">100% Takeaway Packaging</span>
-                      </div>
-                    </div>
-                    <span className="text-base font-black text-emerald-900">
-                      {totalBoxesInOrder} ቦክስ
-                    </span>
-                  </div>
-                ) : (
-                  <div className="bg-amber-50 p-3 rounded-2xl border border-amber-200 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">🍽️</span>
-                      <div>
-                        <span className="font-black text-xs text-amber-900 block">ቤት ውስጥ የቀረበ (Dine-in)</span>
-                        <span className="text-[10px] text-amber-700 font-bold">የቴክአዌይ ሳጥን አልወጣም (0 Boxes Used)</span>
-                      </div>
-                    </div>
-                    <span className="text-base font-black text-amber-900">
-                      0 ቦክስ
-                    </span>
-                  </div>
-                )}
-
-                {/* 4. Total Price */}
-                <div className="pt-3 border-t-2 border-dashed border-emerald-100 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-wider block">
-                      አጠቃላይ ድምር ዋጋ
-                    </span>
-                    <span className="text-[11px] text-emerald-600 font-bold">
-                      {cart.reduce((s, i) => s + i.qty, 0)} የተዘጋጀ ምግብ • {orderType === 'Takeaway' ? '🥡 ቴክአዌይ' : '🏠 ቤት ውስጥ'}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-black text-slate-900">
-                      {totalSubtotal.toLocaleString()}
-                    </span>
-                    <span className="text-xs font-black text-emerald-700 ml-1">ETB</span>
-                  </div>
-                </div>
-
               </div>
 
-              {/* Step 4 Back & HUGE SUBMIT BUTTON */}
-              <div className="space-y-3">
+              {/* Action Buttons */}
+              <div className="space-y-3 pt-2">
                 <button
                   type="button"
                   onClick={handleFinalSubmit}
-                  className="w-full py-4 rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-emerald-700/25 active:scale-95 transition-all"
+                  className="w-full bg-[#107049] hover:bg-[#0D5B3B] active:scale-[0.98] transition-all text-white rounded-3xl py-4 px-6 flex items-center justify-center gap-3.5 shadow-xl shadow-[#107049]/25 select-none"
                 >
-                  <Check className="w-5 h-5" />
-                  <span>ትዕዛዙን መዝግብ / አስገባ (Submit Order)</span>
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <Check className="w-5 h-5 text-white stroke-[3]" />
+                  </div>
+                  <div className="text-left">
+                    <span className="font-black text-sm sm:text-base text-white block leading-tight">
+                      ትዕዛዙን መዝግብ / አስገባ
+                    </span>
+                    <span className="text-[11px] font-semibold text-white/80 block mt-0.5">
+                      Confirm & Submit Order
+                    </span>
+                  </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setOrderStep(3)}
-                  className="w-full py-2.5 rounded-2xl bg-white hover:bg-emerald-50 text-slate-600 border border-emerald-100 font-black text-xs flex items-center justify-center gap-1.5 transition-all"
+                  className="w-full py-3 rounded-2xl bg-white hover:bg-emerald-50 text-slate-600 border border-emerald-100 font-black text-xs flex items-center justify-center gap-1.5 transition-all"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>ወደ ኋላ ተመለስና አስተካክል (Back to Edit)</span>
@@ -2253,55 +2259,175 @@ export default function App() {
       )}
 
       {/* ============================================================== */}
-      {/* SUCCESS CONFIRMATION MODAL                                     */}
+      {/* SUBMISSION SUCCESS CONFIRMATION RECEIPT (EXACT MATCH TO DESIGN) */}
       {/* ============================================================== */}
       {orderSuccessModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border-2 border-emerald-500 space-y-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#F8F6F0] flex flex-col items-center justify-center p-4 sm:p-6 min-h-screen animate-in fade-in duration-200">
+          
+          {/* Subtle Dot Matrix Background Texture */}
+          <div 
+            className="fixed inset-0 opacity-40 pointer-events-none"
+            style={{
+              backgroundImage: 'radial-gradient(#C8BFAD 1.5px, transparent 1.5px)',
+              backgroundSize: '20px 20px'
+            }}
+          />
+
+          <div className="relative z-10 w-full flex flex-col items-center max-w-sm sm:max-w-md my-auto py-6">
             
-            <div className="w-16 h-16 rounded-3xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-3xl shadow-inner animate-bounce">
-              ✅
+            {/* Top Glowing Checkmark Badge */}
+            <div className="relative inline-flex items-center justify-center mb-1">
+              <div className="w-20 h-20 rounded-full bg-[#D4EFE2] flex items-center justify-center shadow-inner">
+                <div className="w-14 h-14 rounded-full bg-[#107049] flex items-center justify-center text-white shadow-md">
+                  <Check className="w-8 h-8 stroke-[3.5] text-white" />
+                </div>
+              </div>
             </div>
 
-            <div>
-              <h3 className="text-lg font-black text-slate-900">ትዕዛዙ ተመዝግቧል!</h3>
-              <p className="text-xs text-slate-500 font-bold mt-1">
-                Order Sent & Successfully Logged!
-              </p>
+            {/* Header Titles */}
+            <h2 className="text-2xl sm:text-3xl font-black text-[#1C201D] tracking-tight text-center mt-3">
+              ትዕዛዙ ተመዝግቧል!
+            </h2>
+            <p className="text-xs sm:text-sm font-semibold text-[#666E67] text-center mt-1 tracking-wide">
+              Order sent & successfully logged
+            </p>
+
+            {/* Ticket Card */}
+            <div className="w-full bg-white rounded-[32px] shadow-sm border border-[#E9E4D6] overflow-hidden text-left mt-6">
+              
+              {/* Food Items List */}
+              <div className="p-5 sm:p-6 space-y-3">
+                {orderSuccessModal.items?.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3.5 pb-2.5 border-b border-[#F2EEE4] last:border-b-0 last:pb-0">
+                    <span className="bg-[#E2F4EB] text-[#126848] font-black text-xs px-2.5 py-1 rounded-xl flex-shrink-0">
+                      {item.qty}×
+                    </span>
+                    <span className="font-black text-sm sm:text-base text-[#1C201D] tracking-tight">
+                      {item.name}
+                    </span>
+                  </div>
+                ))}
+
+                {/* Total Price Box */}
+                <div className="bg-[#EBF6F0] rounded-2xl p-4 flex items-center justify-between mt-3">
+                  <span className="font-black text-sm text-[#1C201D]">ድምር ዋጋ</span>
+                  <div className="flex items-baseline">
+                    <span className="text-3xl font-black text-[#1C201D] tracking-tight">
+                      {orderSuccessModal.totalAmount?.toLocaleString()}
+                    </span>
+                    <span className="text-xs font-black text-[#107049] ml-1.5">
+                      ETB
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dashed Tear Line with Circular Notches */}
+              <div className="relative py-1 bg-white">
+                <div className="border-t-2 border-dashed border-[#DDD7C8] w-full" />
+                <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#F8F6F0] border-r border-[#DDD7C8]" />
+                <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#F8F6F0] border-l border-[#DDD7C8]" />
+              </div>
+
+              {/* Metadata Details Rows */}
+              <div className="p-5 sm:p-6 space-y-4 bg-white">
+                
+                {/* 1. Date */}
+                <div className="flex items-start justify-between text-xs">
+                  <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                    <Calendar className="w-4 h-4 text-[#7A837C]" />
+                    <span>ቀን</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-black text-xs text-[#1D211E] block">
+                      {orderSuccessModal.ethiopianDate}
+                    </span>
+                    <span className="text-[11px] font-semibold text-[#7D847E] block mt-0.5">
+                      {orderSuccessModal.gregorianDateFormatted || getFormattedGregorianDate()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Shift */}
+                <div className="flex items-start justify-between text-xs">
+                  <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                    <Sun className="w-4 h-4 text-[#7A837C]" />
+                    <span>ፈረቃ</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-black text-xs text-[#1D211E] block">
+                      {orderSuccessModal.shift}
+                    </span>
+                    <span className="text-[11px] font-semibold text-[#7D847E] block mt-0.5">
+                      {orderSuccessModal.channel}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3. Service / Order Type */}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                    <ShoppingBag className="w-4 h-4 text-[#7A837C]" />
+                    <span>አገልግሎት</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-black text-xs text-[#1C201D]">
+                      {orderSuccessModal.orderType === 'Home' ? 'ቤት ውስጥ  Home' : 'ቴክአዌይ  Takeaway'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4. Waiter */}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                    <User className="w-4 h-4 text-[#7A837C]" />
+                    <span>የወሰደው</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-black text-xs text-[#1D211E]">
+                      {formatWaiterDisplayName(orderSuccessModal.waiterName)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 5. Boxes count */}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                    <Box className="w-4 h-4 text-[#7A837C]" />
+                    <span>የወጣ ቦክስ</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-black text-xs text-[#1D211E]">
+                      {orderSuccessModal.orderType === 'Home' 
+                        ? '0  Takeaway Box' 
+                        : `${orderSuccessModal.boxesCount}  Takeaway Box`}
+                    </span>
+                  </div>
+                </div>
+
+              </div>
             </div>
 
-            <div className="bg-emerald-50 p-4 rounded-2xl text-left text-xs font-bold space-y-1.5 border border-emerald-100">
-              <p className="text-slate-900 font-black text-sm">
-                {orderSuccessModal.foodSummary}
-              </p>
-              <p className="text-slate-600">
-                ቀን፡ <span className="font-black text-emerald-900">📅 {orderSuccessModal.ethiopianDate || orderEthDate.formatted}</span>
-              </p>
-              <p className="text-slate-600">
-                ፈረቃ፡ <span className="font-black text-slate-900">{orderSuccessModal.shift}</span> ({orderSuccessModal.channel})
-              </p>
-              <p className="text-slate-600">
-                አገልግሎት፡ <span className="font-black text-slate-900">{orderSuccessModal.orderType === 'Home' ? '🏠 ቤት ውስጥ (Home)' : '🥡 ቴክአዌይ (Takeaway)'}</span>
-              </p>
-              <p className="text-slate-600">
-                የወሰደው፡ <span className="font-black text-slate-900">{orderSuccessModal.waiterName}</span>
-              </p>
-              <p className="text-emerald-800 font-black">
-                {orderSuccessModal.orderType === 'Home' 
-                  ? '🍽️ ቤት ውስጥ የቀረበ፡ 0 ቦክስ (የቴክአዌይ እቃ አልወጣም)' 
-                  : `🥡 የወጣ ቦክስ፡ ${orderSuccessModal.boxesCount} Takeaway Box`}
-              </p>
-              <p className="text-slate-900 font-black text-sm pt-1 border-t border-emerald-200">
-                ድምር ዋጋ፡ {orderSuccessModal.totalAmount} ETB
-              </p>
-            </div>
-
+            {/* Bottom Next Order Button */}
             <button
               type="button"
-              onClick={() => setOrderSuccessModal(null)}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-700/20 transition-all"
+              onClick={() => {
+                setOrderSuccessModal(null);
+                clearCurrentOrder();
+              }}
+              className="w-full bg-[#107049] hover:bg-[#0D5B3B] active:scale-[0.98] transition-all text-white rounded-3xl py-4 px-6 flex items-center justify-center gap-3.5 shadow-xl shadow-[#107049]/25 mt-6 select-none"
             >
-              + ቀጣይ አዲስ ትዕዛዝ አስገባ (Next Order)
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                <Plus className="w-5 h-5 text-white stroke-[3]" />
+              </div>
+              <div className="text-left">
+                <span className="font-black text-sm sm:text-base text-white block leading-tight">
+                  ቀጣይ አዲስ ትዕዛዝ አስገባ
+                </span>
+                <span className="text-[11px] font-semibold text-white/80 block mt-0.5">
+                  Next Order
+                </span>
+              </div>
             </button>
 
           </div>
