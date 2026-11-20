@@ -291,6 +291,20 @@ export const DEFAULT_WAITERS = [
   { amharic: 'በለጠ', english: 'Belete', fullName: 'በለጠ (Belete)', emoji: '👨‍🍳' }
 ];
 
+/**
+ * Calculates effective price based on order type:
+ * - If Home (ቤት ውስጥ) and base price is 320 ETB, decreases to 300 ETB.
+ * - All other prices remain unchanged.
+ * - If Takeaway (ቴክአዌይ), base price is maintained.
+ */
+export function getDishEffectivePrice(dishOrItem, currentOrderType = 'Takeaway') {
+  const basePrice = Number(dishOrItem.originalPrice || dishOrItem.basePrice || dishOrItem.price || 0);
+  if (currentOrderType === 'Home' && basePrice === 320) {
+    return 300;
+  }
+  return basePrice;
+}
+
 export default function App() {
   // --- SECURITY & PASSWORD AUTHENTICATION STATE ---
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -362,6 +376,9 @@ export default function App() {
 
   // --- ORDER STEPPER STATE (1: Food -> 2: Shift/BEU -> 3: Waiter -> 4: Submit) ---
   const [orderStep, setOrderStep] = useState(1);
+
+  // Order Type: 'Takeaway' (default) vs 'Home' (Dine-in with 320 -> 300 ETB price rule)
+  const [orderType, setOrderType] = useState('Takeaway');
 
   // Cart / Food Selection
   const [cart, setCart] = useState([]);
@@ -463,14 +480,23 @@ export default function App() {
   const clearCurrentOrder = () => {
     setCart([]);
     setOrderStep(1);
+    setOrderType('Takeaway');
     setBeuOrderId('');
     setCustomWaiterName('');
     setShowAddWaiterInput(false);
   };
 
-  // Packaging & Amount Math (Every single dish item is 100% takeaway = 1 Box)
-  const totalSubtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-  const totalBoxesInOrder = cart.reduce((sum, item) => sum + item.qty, 0);
+  // Packaging & Amount Math
+  // - If Home (ቤት ውስጥ): All 320 ETB dishes decrease to 300 ETB; other prices stay the same.
+  // - Takeaway uses 1 🥡 Box per dish item. Home (dine-in) uses 0 takeaway boxes.
+  const totalSubtotal = cart.reduce((sum, item) => {
+    const effectivePrice = getDishEffectivePrice(item, orderType);
+    return sum + (effectivePrice * item.qty);
+  }, 0);
+
+  const totalBoxesInOrder = orderType === 'Takeaway' 
+    ? cart.reduce((sum, item) => sum + item.qty, 0) 
+    : 0;
 
   // --- SUBMIT ORDER ---
   const handleFinalSubmit = async () => {
@@ -482,8 +508,12 @@ export default function App() {
 
     const effectiveWaiter = customWaiterName.trim() || selectedWaiter;
     const isBeu = selectedShiftType === 'BEU';
+    // BEU delivery orders are always Takeaway
+    const finalOrderType = isBeu ? 'Takeaway' : orderType;
     const shiftLabel = isBeu ? 'Day Shift' : (selectedShiftType === 'Day' ? 'Day Shift' : 'Night Shift');
-    const channelLabel = isBeu ? 'BEU Delivery' : 'In-Store Takeaway';
+    const channelLabel = isBeu 
+      ? 'BEU Delivery' 
+      : (finalOrderType === 'Home' ? 'In-Store Home' : 'In-Store Takeaway');
     const finalPayment = isBeu ? 'BEU Account' : 'Kitchen Dispatch';
 
     const orderId = `food-${Date.now()}`;
@@ -492,6 +522,7 @@ export default function App() {
       chefName: 'Chef Almaz',
       shift: shiftLabel,
       channel: channelLabel,
+      orderType: finalOrderType, // 'Takeaway' | 'Home'
       waiterName: effectiveWaiter,
       ethiopianDate: orderEthDate.formatted,
       ethiopianDay: orderEthDate.day,
@@ -506,7 +537,8 @@ export default function App() {
         name: i.name,
         englishName: i.englishName,
         qty: i.qty,
-        price: i.price
+        price: getDishEffectivePrice(i, finalOrderType),
+        basePrice: i.price
       })),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       createdAt: new Date().toISOString()
@@ -727,6 +759,8 @@ export default function App() {
   const dayOrders = sentOrders.filter(o => o.shift === 'Day Shift' && o.channel !== 'BEU Delivery');
   const nightOrders = sentOrders.filter(o => o.shift === 'Night Shift' && o.channel !== 'BEU Delivery');
   const beuOrders = sentOrders.filter(o => o.channel === 'BEU Delivery');
+  const takeawayOrders = sentOrders.filter(o => o.orderType !== 'Home' && o.channel !== 'In-Store Home');
+  const homeOrders = sentOrders.filter(o => o.orderType === 'Home' || o.channel === 'In-Store Home');
 
   const dayBoxes = dayOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
   const nightBoxes = nightOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
@@ -736,24 +770,31 @@ export default function App() {
   const dayRevenue = dayOrders.reduce((sum, o) => sum + o.totalAmount, 0);
   const nightRevenue = nightOrders.reduce((sum, o) => sum + o.totalAmount, 0);
   const beuRevenue = beuOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+  const homeRevenue = homeOrders.reduce((sum, o) => sum + o.totalAmount, 0);
   const totalRevenueAll = sentOrders.reduce((sum, o) => sum + o.totalAmount, 0);
 
   // Breakdown by Food Dishes (All 16)
   const dishBreakdown = foodMenu.map(dish => {
     let countSold = 0;
+    let boxesUsed = 0;
     let revenue = 0;
     sentOrders.forEach(order => {
       order.items?.forEach(i => {
         if (i.id === dish.id || i.name === dish.name) {
           countSold += i.qty;
-          revenue += (i.qty * dish.price);
+          const isHome = order.orderType === 'Home' || order.channel === 'In-Store Home';
+          if (!isHome) {
+            boxesUsed += i.qty;
+          }
+          const soldPrice = Number(i.price ?? (isHome && dish.price === 320 ? 300 : dish.price));
+          revenue += (i.qty * soldPrice);
         }
       });
     });
     return {
       ...dish,
       countSold,
-      boxesUsed: countSold,
+      boxesUsed,
       revenueGenerated: revenue
     };
   });
@@ -941,9 +982,9 @@ export default function App() {
                 </span>
               </div>
               <p className="text-[11px] text-emerald-100 flex items-center gap-1 font-bold">
-                <span>100% Takeaway</span>
+                <span>🥡 ቴክአዌይና 🏠 ቤት ውስጥ</span>
                 <span className="text-white/40">•</span>
-                <span>🥡 1 Box per Dish</span>
+                <span>የምግብ ቤት ሲስተም</span>
               </p>
             </div>
           </div>
@@ -1149,6 +1190,67 @@ export default function App() {
           {orderStep === 1 && (
             <div className="space-y-4 animate-in fade-in duration-200">
               
+              {/* Takeaway vs. Home Selector Banner */}
+              <div className="bg-white p-3.5 sm:p-4 rounded-3xl border-2 border-emerald-200/90 shadow-md shadow-emerald-900/5">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-900">
+                        የአገልግሎት ዓይነት ይምረጡ (Order Type)
+                      </span>
+                      {orderType === 'Home' && (
+                        <span className="bg-amber-100 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-300">
+                          ✨ የ 320 ብር ምግቦች በ 300 ብር ብቻ!
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-bold mt-0.5">
+                      {orderType === 'Takeaway' 
+                        ? '🥡 ቴክአዌይ፡ መደበኛ ዋጋና 1 ቦክስ በምግብ' 
+                        : '🏠 ቤት ውስጥ፡ የ 320 ብር ምግቦች ወደ 300 ብር ዝቅ ይላሉ፤ የቴክአዌይ ቦክስ አይወጣም'}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 w-full sm:w-80">
+                    <button
+                      type="button"
+                      onClick={() => setOrderType('Takeaway')}
+                      className={`py-2.5 px-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 transition-all ${
+                        orderType === 'Takeaway'
+                          ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/25 scale-[1.02]'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                      }`}
+                    >
+                      <span className="text-base">🥡</span>
+                      <div className="text-left">
+                        <span className="block leading-none">ቴክአዌይ</span>
+                        <span className={`text-[9px] font-bold block mt-0.5 ${orderType === 'Takeaway' ? 'text-emerald-100' : 'text-slate-400'}`}>
+                          Takeaway
+                        </span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setOrderType('Home')}
+                      className={`py-2.5 px-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 transition-all ${
+                        orderType === 'Home'
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-600/25 scale-[1.02]'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                      }`}
+                    >
+                      <span className="text-base">🏠</span>
+                      <div className="text-left">
+                        <span className="block leading-none">ቤት ውስጥ</span>
+                        <span className={`text-[9px] font-bold block mt-0.5 ${orderType === 'Home' ? 'text-amber-100' : 'text-slate-400'}`}>
+                          Home (300 ETB)
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Header Title & Search */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-emerald-100 shadow-sm">
                 <div>
@@ -1159,7 +1261,9 @@ export default function App() {
                     <span>የምግብ አይነት ይምረጡ (Choose Food from Menu)</span>
                   </h2>
                   <p className="text-xs text-slate-400 font-bold mt-0.5">
-                    የሚፈልጉትን ምግብ ይጫኑ፤ እያንዳንዱ ምግብ 1 🥡 ቴክአዌይ ቦክስ ያሰላል
+                    {orderType === 'Takeaway'
+                      ? 'የሚፈልጉትን ምግብ ይጫኑ፤ እያንዳንዱ ምግብ 1 🥡 ቴክአዌይ ቦክስ ያሰላል'
+                      : 'የሚፈልጉትን ምግብ ይጫኑ፤ በቤት ውስጥ (🍽️) ስለቀረበ የቦክስ እቃ አይወጣም'}
                   </p>
                 </div>
 
@@ -1204,6 +1308,8 @@ export default function App() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                 {filteredDishes.map(dish => {
                   const inCart = cart.find(i => i.id === dish.id);
+                  const effectivePrice = getDishEffectivePrice(dish, orderType);
+                  const isDiscounted = orderType === 'Home' && dish.price === 320;
                   return (
                     <div
                       key={dish.id}
@@ -1229,10 +1335,17 @@ export default function App() {
                             </div>
                           )}
 
-                          {/* 1 Takeaway Box Tag */}
-                          <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md text-white text-[9px] font-black px-2 py-0.5 rounded-lg border border-white/20">
-                            🥡 1 ቦክስ
+                          {/* Packaging Tag */}
+                          <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-white text-[9px] font-black px-2 py-0.5 rounded-lg border border-white/20">
+                            {orderType === 'Takeaway' ? '🥡 1 ቦክስ' : '🍽️ ቤት ውስጥ'}
                           </div>
+
+                          {/* Discount Badge on Image for 320 ETB dishes when Home */}
+                          {isDiscounted && (
+                            <div className="absolute bottom-2 left-2 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-lg shadow-sm border border-amber-300">
+                              🏠 300 ETB
+                            </div>
+                          )}
 
                           {/* Selected Quantity Indicator Pill */}
                           {inCart && (
@@ -1253,9 +1366,19 @@ export default function App() {
 
                       {/* Price & Quantity Controls */}
                       <div className="mt-3 pt-2 border-t border-emerald-50 flex items-center justify-between">
-                        <span className="font-black text-xs sm:text-sm text-slate-900">
-                          {dish.price} <span className="text-[10px] text-slate-400 font-bold">ETB</span>
-                        </span>
+                        <div>
+                          <div className="flex items-baseline gap-1">
+                            <span className={`font-black text-xs sm:text-sm ${isDiscounted ? 'text-amber-600' : 'text-slate-900'}`}>
+                              {effectivePrice}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold">ETB</span>
+                          </div>
+                          {isDiscounted && (
+                            <span className="text-[9px] text-slate-400 line-through font-bold block">
+                              320 ETB
+                            </span>
+                          )}
+                        </div>
 
                         {inCart ? (
                           <div 
@@ -1374,6 +1497,7 @@ export default function App() {
                   onClick={() => {
                     setSelectedShiftType('BEU');
                     setSelectedWaiter('የቢዩ አሽከርካሪ (BEU Driver)');
+                    setOrderType('Takeaway');
                   }}
                   className={`p-6 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-3 ${
                     selectedShiftType === 'BEU'
@@ -1396,6 +1520,42 @@ export default function App() {
                 </button>
 
               </div>
+
+              {/* Takeaway vs. Home Toggle in Step 2 */}
+              {selectedShiftType !== 'BEU' ? (
+                <div className="max-w-md mx-auto bg-white p-3.5 rounded-3xl border border-emerald-100 shadow-sm flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-slate-400 block">አገልግሎት (Order Type)</span>
+                    <span className="font-black text-xs text-slate-900">
+                      {orderType === 'Takeaway' ? '🥡 ቴክአዌይ (Takeaway)' : '🏠 ቤት ውስጥ (Home - 300 ETB)'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl">
+                    <button
+                      type="button"
+                      onClick={() => setOrderType('Takeaway')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                        orderType === 'Takeaway' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      🥡 ቴክአዌይ
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOrderType('Home')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                        orderType === 'Home' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      🏠 ቤት ውስጥ
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="max-w-md mx-auto bg-teal-50 border border-teal-200 p-3 rounded-2xl text-center text-xs font-black text-teal-800">
+                  🛵 የቢዩ ዴሊቨሪ ትዕዛዝ ሁልጊዜ ቴክአዌይ ነው (BEU Delivery is 100% Takeaway)
+                </div>
+              )}
 
               {/* If BEU Delivery is selected, optional BEU Order # input */}
               {selectedShiftType === 'BEU' && (
@@ -1572,22 +1732,33 @@ export default function App() {
                     የተመረጡ ምግቦች (Food Items)
                   </span>
                   <div className="space-y-2">
-                    {cart.map(item => (
-                      <div key={item.id} className="flex items-center justify-between bg-emerald-50/50 p-2.5 rounded-2xl border border-emerald-100">
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-lg">{item.emoji || '🍲'}</span>
-                          <div>
-                            <h4 className="font-black text-xs text-slate-900">{item.name}</h4>
-                            <span className="text-[10px] text-slate-400 font-bold">
-                              {item.qty} x {item.price} ETB • 🥡 {item.qty} ቦክስ
-                            </span>
+                    {cart.map(item => {
+                      const itemEffectivePrice = getDishEffectivePrice(item, orderType);
+                      const isDisc = orderType === 'Home' && item.price === 320;
+                      return (
+                        <div key={item.id} className="flex items-center justify-between bg-emerald-50/50 p-2.5 rounded-2xl border border-emerald-100">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-lg">{item.emoji || '🍲'}</span>
+                            <div>
+                              <h4 className="font-black text-xs text-slate-900">{item.name}</h4>
+                              <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1.5">
+                                <span>{item.qty} x {itemEffectivePrice} ETB</span>
+                                {isDisc && (
+                                  <span className="text-amber-800 bg-amber-100 px-1 py-0.2 rounded font-black text-[9px]">
+                                    (ቅናሽ 300)
+                                  </span>
+                                )}
+                                <span>•</span>
+                                <span>{orderType === 'Takeaway' ? `🥡 ${item.qty} ቦክስ` : '🍽️ ቤት ውስጥ'}</span>
+                              </span>
+                            </div>
                           </div>
+                          <span className="font-black text-xs text-emerald-800">
+                            {item.qty * itemEffectivePrice} ETB
+                          </span>
                         </div>
-                        <span className="font-black text-xs text-emerald-800">
-                          {item.qty * item.price} ETB
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1615,25 +1786,35 @@ export default function App() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
                     {/* Shift / Channel */}
-                    <div className="bg-slate-50 p-3 rounded-2xl">
+                    <div className="bg-slate-50 p-2.5 sm:p-3 rounded-2xl">
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
-                        ፈረቃ / ዓይነት (Shift)
+                        ፈረቃ (Shift)
                       </span>
                       <span className="font-black text-xs text-slate-900 mt-0.5 flex items-center gap-1">
-                        {selectedShiftType === 'Day' && '☀️ ቀን (Day Shift)'}
-                        {selectedShiftType === 'Night' && '🌙 ማታ (Night Shift)'}
-                        {selectedShiftType === 'BEU' && `🛵 ቢዩ (${beuOrderId || 'BEU Order'})`}
+                        {selectedShiftType === 'Day' && '☀️ ቀን'}
+                        {selectedShiftType === 'Night' && '🌙 ማታ'}
+                        {selectedShiftType === 'BEU' && `🛵 ቢዩ (${beuOrderId || 'BEU'})`}
+                      </span>
+                    </div>
+
+                    {/* Order Type */}
+                    <div className={`p-2.5 sm:p-3 rounded-2xl ${orderType === 'Home' ? 'bg-amber-50 border border-amber-200' : 'bg-slate-50'}`}>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
+                        ዓይነት (Type)
+                      </span>
+                      <span className="font-black text-xs text-slate-900 mt-0.5 flex items-center gap-1">
+                        {orderType === 'Takeaway' ? '🥡 ቴክአዌይ' : '🏠 ቤት ውስጥ'}
                       </span>
                     </div>
 
                     {/* Waiter */}
-                    <div className="bg-slate-50 p-3 rounded-2xl">
+                    <div className="bg-slate-50 p-2.5 sm:p-3 rounded-2xl">
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
-                        የወሰደው አስተናጋጅ (Waiter)
+                        አስተናጋጅ (Waiter)
                       </span>
-                      <span className="font-black text-xs text-slate-900 mt-0.5 flex items-center gap-1">
+                      <span className="font-black text-xs text-slate-900 mt-0.5 flex items-center gap-1 truncate">
                         👤 {customWaiterName.trim() || selectedWaiter}
                       </span>
                     </div>
@@ -1642,18 +1823,33 @@ export default function App() {
                 </div>
 
                 {/* 3. Takeaway Box Tally */}
-                <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">🥡</span>
-                    <div>
-                      <span className="font-black text-xs text-emerald-900 block">የወጣ የቴክአዌይ ሳጥን</span>
-                      <span className="text-[10px] text-emerald-700 font-bold">100% Takeaway Packaging</span>
+                {orderType === 'Takeaway' ? (
+                  <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🥡</span>
+                      <div>
+                        <span className="font-black text-xs text-emerald-900 block">የወጣ የቴክአዌይ ሳጥን</span>
+                        <span className="text-[10px] text-emerald-700 font-bold">100% Takeaway Packaging</span>
+                      </div>
                     </div>
+                    <span className="text-base font-black text-emerald-900">
+                      {totalBoxesInOrder} ቦክስ
+                    </span>
                   </div>
-                  <span className="text-base font-black text-emerald-900">
-                    {totalBoxesInOrder} ቦክስ
-                  </span>
-                </div>
+                ) : (
+                  <div className="bg-amber-50 p-3 rounded-2xl border border-amber-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🍽️</span>
+                      <div>
+                        <span className="font-black text-xs text-amber-900 block">ቤት ውስጥ የቀረበ (Dine-in)</span>
+                        <span className="text-[10px] text-amber-700 font-bold">የቴክአዌይ ሳጥን አልወጣም (0 Boxes Used)</span>
+                      </div>
+                    </div>
+                    <span className="text-base font-black text-amber-900">
+                      0 ቦክስ
+                    </span>
+                  </div>
+                )}
 
                 {/* 4. Total Price */}
                 <div className="pt-3 border-t-2 border-dashed border-emerald-100 flex items-center justify-between">
@@ -1662,7 +1858,7 @@ export default function App() {
                       አጠቃላይ ድምር ዋጋ
                     </span>
                     <span className="text-[11px] text-emerald-600 font-bold">
-                      {totalBoxesInOrder} የተዘጋጀ ምግብ
+                      {cart.reduce((s, i) => s + i.qty, 0)} የተዘጋጀ ምግብ • {orderType === 'Takeaway' ? '🥡 ቴክአዌይ' : '🏠 ቤት ውስጥ'}
                     </span>
                   </div>
                   <div className="text-right">
@@ -1715,9 +1911,15 @@ export default function App() {
                           {totalSubtotal.toLocaleString()} <span className="text-xs text-emerald-700">ETB</span>
                         </span>
                         <span className="text-xs text-slate-400 font-bold">•</span>
-                        <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-lg">
-                          🥡 {totalBoxesInOrder} ቦክስ
-                        </span>
+                        {orderType === 'Takeaway' ? (
+                          <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-lg">
+                            🥡 {totalBoxesInOrder} ቦክስ
+                          </span>
+                        ) : (
+                          <span className="text-xs font-black text-amber-900 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300">
+                            🏠 ቤት ውስጥ (0 ቦክስ)
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-slate-400 font-bold truncate max-w-xs sm:max-w-md">
                         {cart.map(i => `${i.qty}x ${i.name}`).join(', ')}
@@ -1789,20 +1991,20 @@ export default function App() {
             </button>
           </div>
 
-          {/* 4 SUMMARY STAT CARDS: DAY, NIGHT, BEU & TOTAL BOXES */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* 5 SUMMARY STAT CARDS: DAY, NIGHT, BEU, HOME & TOTAL BOXES */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
             
             {/* 1. Day Shift Card */}
             <div className="bg-white p-4 rounded-3xl border border-amber-200 shadow-sm flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl flex-shrink-0">
+              <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl flex-shrink-0">
                 ☀️
               </div>
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                  የቀን ፈረቃ (Day Shift)
+                  የቀን ፈረቃ (Day)
                 </span>
-                <p className="text-lg font-black text-slate-900 mt-0.5">{dayOrders.length} Orders</p>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-amber-700 mt-0.5">
+                <p className="text-base font-black text-slate-900 mt-0.5">{dayOrders.length} Orders</p>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-700 mt-0.5">
                   <span>🥡 {dayBoxes} ቦክስ</span>
                   <span>•</span>
                   <span>{dayRevenue.toLocaleString()} ETB</span>
@@ -1812,15 +2014,15 @@ export default function App() {
 
             {/* 2. Night Shift Card */}
             <div className="bg-white p-4 rounded-3xl border border-indigo-200 shadow-sm flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl flex-shrink-0">
+              <div className="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl flex-shrink-0">
                 🌙
               </div>
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                  የማታ ፈረቃ (Night Shift)
+                  የማታ ፈረቃ (Night)
                 </span>
-                <p className="text-lg font-black text-slate-900 mt-0.5">{nightOrders.length} Orders</p>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-700 mt-0.5">
+                <p className="text-base font-black text-slate-900 mt-0.5">{nightOrders.length} Orders</p>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-700 mt-0.5">
                   <span>🥡 {nightBoxes} ቦክስ</span>
                   <span>•</span>
                   <span>{nightRevenue.toLocaleString()} ETB</span>
@@ -1830,15 +2032,15 @@ export default function App() {
 
             {/* 3. BEU Delivery Card */}
             <div className="bg-white p-4 rounded-3xl border border-teal-200 shadow-sm flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center text-2xl flex-shrink-0">
+              <div className="w-11 h-11 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl flex-shrink-0">
                 🛵
               </div>
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
                   ቢዩ (BEU Delivery)
                 </span>
-                <p className="text-lg font-black text-slate-900 mt-0.5">{beuOrders.length} Orders</p>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-teal-700 mt-0.5">
+                <p className="text-base font-black text-slate-900 mt-0.5">{beuOrders.length} Orders</p>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-teal-700 mt-0.5">
                   <span>🥡 {beuBoxes} ቦክስ</span>
                   <span>•</span>
                   <span>{beuRevenue.toLocaleString()} ETB</span>
@@ -1846,17 +2048,35 @@ export default function App() {
               </div>
             </div>
 
-            {/* 4. Total Packaging Boxes */}
-            <div className="bg-white p-4 rounded-3xl border border-emerald-200 shadow-sm flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl flex-shrink-0">
+            {/* 4. Home (Dine-in) Card */}
+            <div className="bg-white p-4 rounded-3xl border border-amber-300 shadow-sm flex items-center gap-3 bg-amber-50/20">
+              <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center text-xl flex-shrink-0">
+                🏠
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 block">
+                  ቤት ውስጥ (Home)
+                </span>
+                <p className="text-base font-black text-slate-900 mt-0.5">{homeOrders.length} Orders</p>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-800 mt-0.5">
+                  <span>🍽️ 0 ቦክስ</span>
+                  <span>•</span>
+                  <span>{homeRevenue.toLocaleString()} ETB</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 5. Total Packaging Boxes */}
+            <div className="bg-white p-4 rounded-3xl border border-emerald-200 shadow-sm flex items-center gap-3 col-span-2 lg:col-span-1">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl flex-shrink-0">
                 🥡
               </div>
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                  ጠቅላላ የወጡ ቦክሶች
+                  የወጡ ቦክሶች
                 </span>
-                <p className="text-lg font-black text-emerald-800 mt-0.5">{totalBoxesAll} Boxes</p>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-700 mt-0.5">
+                <p className="text-base font-black text-emerald-800 mt-0.5">{totalBoxesAll} Boxes</p>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 mt-0.5">
                   <span>ድምር: {totalRevenueAll.toLocaleString()} ETB</span>
                 </div>
               </div>
@@ -1955,66 +2175,76 @@ export default function App() {
               <p className="text-xs text-slate-400 font-bold py-4 text-center">ምንም ትዕዛዝ የለም</p>
             ) : (
               <div className="space-y-2">
-                {sentOrders.slice(0, 15).map(order => (
-                  <div 
-                    key={order.id}
-                    className="p-3 bg-slate-50 rounded-2xl flex items-center justify-between gap-3 text-xs"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 font-black flex items-center justify-center text-xs">
-                        🥡
-                      </span>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-slate-900">
-                            {order.items?.map(i => `${i.qty}x ${i.name}`).join(', ')}
-                          </span>
-                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-1.5 py-0.5 rounded">
-                            {order.shift}
-                          </span>
-                          {order.channel === 'BEU Delivery' && (
-                            <span className="text-[10px] bg-teal-100 text-teal-800 font-black px-1.5 py-0.5 rounded">
-                              {order.beuOrderId || 'BEU'}
+                {sentOrders.slice(0, 20).map(order => {
+                  const isHome = order.orderType === 'Home' || order.channel === 'In-Store Home';
+                  return (
+                    <div 
+                      key={order.id}
+                      className="p-3 bg-slate-50 rounded-2xl flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`w-8 h-8 rounded-xl font-black flex items-center justify-center text-xs ${
+                          isHome ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {isHome ? '🍽️' : '🥡'}
+                        </span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-slate-900">
+                              {order.items?.map(i => `${i.qty}x ${i.name}`).join(', ')}
                             </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold mt-0.5">
-                          <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-black flex items-center gap-1">
-                            📅 {order.ethiopianDate || orderEthDate.formatted}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => openEthDateModal(order.id, order)}
-                            className="text-slate-400 hover:text-emerald-700 underline text-[10px]"
-                            title="ቀን ቀይር / Edit Date"
-                          >
-                            ✏️ ቀይር
-                          </button>
-                          <span>•</span>
-                          <span>{order.timestamp}</span>
-                          <span>•</span>
-                          <span>ወሳጅ፡ {order.waiterName || 'አልተጠቀሰም'}</span>
-                          <span>•</span>
-                          <span>{order.boxesCount} ቦክስ</span>
+                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-1.5 py-0.5 rounded">
+                              {order.shift}
+                            </span>
+                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                              isHome ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700'
+                            }`}>
+                              {isHome ? '🏠 ቤት ውስጥ' : '🥡 ቴክአዌይ'}
+                            </span>
+                            {order.channel === 'BEU Delivery' && (
+                              <span className="text-[10px] bg-teal-100 text-teal-800 font-black px-1.5 py-0.5 rounded">
+                                {order.beuOrderId || 'BEU'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold mt-0.5">
+                            <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-black flex items-center gap-1">
+                              📅 {order.ethiopianDate || orderEthDate.formatted}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openEthDateModal(order.id, order)}
+                              className="text-slate-400 hover:text-emerald-700 underline text-[10px]"
+                              title="ቀን ቀይር / Edit Date"
+                            >
+                              ✏️ ቀይር
+                            </button>
+                            <span>•</span>
+                            <span>{order.timestamp}</span>
+                            <span>•</span>
+                            <span>ወሳጅ፡ {order.waiterName || 'አልተጠቀሰም'}</span>
+                            <span>•</span>
+                            <span>{isHome ? '🍽️ 0 ቦክስ (Home)' : `${order.boxesCount || 0} ቦክስ`}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-3">
-                      <span className="font-black text-slate-900 text-sm">
-                        {order.totalAmount} ETB
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteOrder(order.id)}
-                        className="text-slate-300 hover:text-rose-500 p-1"
-                        title="ሰርዝ"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <span className="font-black text-slate-900 text-sm">
+                          {order.totalAmount} ETB
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteOrder(order.id)}
+                          className="text-slate-300 hover:text-rose-500 p-1"
+                          title="ሰርዝ"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2051,10 +2281,15 @@ export default function App() {
                 ፈረቃ፡ <span className="font-black text-slate-900">{orderSuccessModal.shift}</span> ({orderSuccessModal.channel})
               </p>
               <p className="text-slate-600">
+                አገልግሎት፡ <span className="font-black text-slate-900">{orderSuccessModal.orderType === 'Home' ? '🏠 ቤት ውስጥ (Home)' : '🥡 ቴክአዌይ (Takeaway)'}</span>
+              </p>
+              <p className="text-slate-600">
                 የወሰደው፡ <span className="font-black text-slate-900">{orderSuccessModal.waiterName}</span>
               </p>
               <p className="text-emerald-800 font-black">
-                🥡 የወጣ ቦክስ፡ {orderSuccessModal.boxesCount} Takeaway Box
+                {orderSuccessModal.orderType === 'Home' 
+                  ? '🍽️ ቤት ውስጥ የቀረበ፡ 0 ቦክስ (የቴክአዌይ እቃ አልወጣም)' 
+                  : `🥡 የወጣ ቦክስ፡ ${orderSuccessModal.boxesCount} Takeaway Box`}
               </p>
               <p className="text-slate-900 font-black text-sm pt-1 border-t border-emerald-200">
                 ድምር ዋጋ፡ {orderSuccessModal.totalAmount} ETB

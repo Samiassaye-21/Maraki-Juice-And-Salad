@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     waiter_name TEXT,
     ethiopian_date TEXT,
     channel TEXT NOT NULL CHECK (channel IN ('In-Store', 'BEU Delivery')),
+    order_type TEXT DEFAULT 'Takeaway' CHECK (order_type IN ('Takeaway', 'Home')),
     beu_order_id TEXT,
     payment_method TEXT NOT NULL CHECK (payment_method IN ('Cash', 'Telebirr', 'CBE Birr', 'Adari', 'BEU Account', 'Kitchen Dispatch')),
     total_amount NUMERIC NOT NULL CHECK (total_amount >= 0),
