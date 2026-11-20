@@ -638,7 +638,7 @@ export default function App() {
   // --- ETHIOPIAN DATE MODAL HANDLERS ---
   const openEthDateModal = (target = 'current', targetOrder = null) => {
     setEditingDateTarget(target);
-    if (target === 'current') {
+    if (target === 'current' || target === 'filter') {
       setModalDay(orderEthDate.day);
       setModalMonthId(orderEthDate.monthId);
       setModalYear(orderEthDate.year);
@@ -666,6 +666,10 @@ export default function App() {
         formatted
       });
       showToast(`ቀን ተስተካክሏል፡ ${formatted}`);
+    } else if (editingDateTarget === 'filter') {
+      setOwnerSelectedCustomDate(formatted);
+      setOwnerDateRange('custom');
+      showToast(`📅 Showing orders for: ${formatted}`);
     } else {
       // Edit past order in sentOrders
       setSentOrders(prev => prev.map(o => {
@@ -2251,10 +2255,11 @@ export default function App() {
           </div>
 
           {/* DATE RANGE FILTER TABS FOR THE DASHBOARD */}
-          <div className="bg-white p-3 rounded-2xl border border-emerald-100 shadow-sm flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider mr-1">
-                የሪፖርት ጊዜ (Date Filter):
+          <div className="bg-white p-3.5 rounded-3xl border border-emerald-100 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1 mr-1">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                <span>ቀን ምረጥ (Select Day):</span>
               </span>
 
               {/* Today */}
@@ -2267,7 +2272,7 @@ export default function App() {
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                📅 የዛሬ ትዕዛዞች ({sentOrders.filter(o => o.ethiopianDate === orderEthDate.formatted).length})
+                📅 ዛሬ ({sentOrders.filter(o => o.ethiopianDate === orderEthDate.formatted).length})
               </button>
 
               {/* All Time */}
@@ -2280,22 +2285,54 @@ export default function App() {
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                🗓️ ሁሉም ትዕዛዞች ({sentOrders.length})
+                🗓️ ሁሉም ቀናት ({sentOrders.length})
               </button>
+
+              {/* Direct Open Calendar Button */}
+              <button
+                type="button"
+                onClick={() => openEthDateModal('filter')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border ${
+                  ownerDateRange === 'custom'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                    : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                }`}
+                title="ከቀን መቁጠሪያ ቀን ይምረጡ / Pick any day from calendar"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>ከቀን መቁጠሪያ ምረጥ (Calendar)</span>
+              </button>
+
+              {/* Selected Custom Date Pill */}
+              {ownerDateRange === 'custom' && ownerSelectedCustomDate && (
+                <div className="flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-xl text-xs font-black">
+                  <span>📅 {ownerSelectedCustomDate}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setOwnerDateRange('today'); setOwnerSelectedCustomDate(''); }}
+                    className="hover:text-rose-600 ml-1 font-black"
+                    title="ወደ ዛሬ መልስ (Reset to Today)"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
 
               {/* Other Specific Days if exist */}
               {availableDates.filter(d => d !== orderEthDate.formatted).length > 0 && (
                 <div className="flex items-center gap-1">
                   <select
-                    value={ownerSelectedCustomDate}
+                    value={ownerDateRange === 'custom' ? ownerSelectedCustomDate : ''}
                     onChange={(e) => {
-                      setOwnerSelectedCustomDate(e.target.value);
-                      if (e.target.value) setOwnerDateRange('custom');
+                      if (e.target.value) {
+                        setOwnerSelectedCustomDate(e.target.value);
+                        setOwnerDateRange('custom');
+                      }
                     }}
                     className="bg-slate-100 border border-slate-200 text-slate-800 text-xs font-black px-2.5 py-1.5 rounded-xl outline-none"
                   >
-                    <option value="">-- ያለፉ ቀኖች ይምረጡ (Past Days) --</option>
-                    {availableDates.filter(d => d !== orderEthDate.formatted).map(d => (
+                    <option value="">-- ያለፉ ቀኖች (Recorded Days) --</option>
+                    {availableDates.map(d => (
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </select>
@@ -2303,8 +2340,11 @@ export default function App() {
               )}
             </div>
 
-            <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-100">
-              የተመረጠው ቀን፡ <span className="font-black">{ownerDateRange === 'today' ? orderEthDate.formatted : (ownerSelectedCustomDate || 'ሁሉም ጊዜ (All Time)')}</span>
+            <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 self-start md:self-auto flex items-center gap-1.5">
+              <span>የተመረጠው ቀን፡</span>
+              <span className="font-black text-slate-900">
+                {ownerDateRange === 'today' ? orderEthDate.formatted : (ownerSelectedCustomDate || 'ሁሉም ቀናት (All Days)')}
+              </span>
             </div>
           </div>
 
@@ -2588,29 +2628,156 @@ export default function App() {
 
             </div>
 
-            {/* FILTER TABS (All, Day, Night, BEU, Home, Takeaway) */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-              {[
-                { id: 'all', label: `ሁሉም (${dateFilteredOrders.length})` },
-                { id: 'Day', label: `☀️ የቀን (${dayOrders.length})` },
-                { id: 'Night', label: `🌙 የማታ (${nightOrders.length})` },
-                { id: 'BEU', label: `🛵 ቢዩ (${beuOrders.length})` },
-                { id: 'Home', label: `🏠 ቤት ውስጥ (${homeOrders.length})` },
-                { id: 'Takeaway', label: `🥡 ቴክአዌይ (${takeawayOrders.length})` }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setOwnerShiftFilter(tab.id)}
-                  className={`px-3 py-1.5 rounded-xl font-black whitespace-nowrap transition-all ${
-                    ownerShiftFilter === tab.id
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            {/* INTERACTIVE CALENDAR & SHIFT SELECTOR */}
+            <div className="bg-slate-50 p-4 rounded-3xl border border-slate-200/80 space-y-3">
+              
+              {/* Row 1: Select Day from Calendar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>1. ቀን ይምረጡ (Choose Day):</span>
+                  </span>
+
+                  {/* Today Button */}
+                  <button
+                    type="button"
+                    onClick={() => { setOwnerDateRange('today'); setOwnerSelectedCustomDate(''); }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                      ownerDateRange === 'today'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
+                    }`}
+                  >
+                    📅 ዛሬ ({sentOrders.filter(o => o.ethiopianDate === orderEthDate.formatted).length})
+                  </button>
+
+                  {/* All Days Button */}
+                  <button
+                    type="button"
+                    onClick={() => { setOwnerDateRange('all'); setOwnerSelectedCustomDate(''); }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                      ownerDateRange === 'all'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
+                    }`}
+                  >
+                    🗓️ ሁሉም ቀናት ({sentOrders.length})
+                  </button>
+
+                  {/* Open Calendar Picker Button */}
+                  <button
+                    type="button"
+                    onClick={() => openEthDateModal('filter')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border shadow-xs ${
+                      ownerDateRange === 'custom'
+                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
+                        : 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50'
+                    }`}
+                    title="ከቀን መቁጠሪያ ቀን ይምረጡ / Open Ethiopian Calendar"
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>ከቀን መቁጠሪያ ምረጥ (Calendar)</span>
+                  </button>
+
+                  {/* Selected Custom Date Pill with clear button */}
+                  {ownerDateRange === 'custom' && ownerSelectedCustomDate && (
+                    <div className="flex items-center gap-1.5 bg-amber-100 text-amber-950 border border-amber-300 px-3 py-1 rounded-xl text-xs font-black animate-in fade-in">
+                      <span>📅 {ownerSelectedCustomDate}</span>
+                      <button
+                        type="button"
+                        onClick={() => { setOwnerDateRange('today'); setOwnerSelectedCustomDate(''); }}
+                        className="text-amber-800 hover:text-rose-600 font-black ml-0.5"
+                        title="ወደ ዛሬ መልስ (Clear)"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Date Dropdown if past dates exist */}
+                {availableDates.length > 0 && (
+                  <select
+                    value={ownerDateRange === 'custom' ? ownerSelectedCustomDate : (ownerDateRange === 'today' ? orderEthDate.formatted : '')}
+                    onChange={(e) => {
+                      if (e.target.value === 'all') {
+                        setOwnerDateRange('all');
+                        setOwnerSelectedCustomDate('');
+                      } else if (e.target.value) {
+                        setOwnerSelectedCustomDate(e.target.value);
+                        setOwnerDateRange('custom');
+                      }
+                    }}
+                    className="bg-white border border-slate-200 text-slate-800 text-xs font-black px-2.5 py-1.5 rounded-xl outline-none shadow-xs self-start sm:self-auto"
+                  >
+                    <option value="">-- የተመዘገቡ ቀኖች (Recorded Days) --</option>
+                    <option value="all">🗓️ ሁሉም ቀናት (All Days)</option>
+                    {availableDates.map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Row 2: Select Shift */}
+              <div className="pt-2 border-t border-slate-200/60">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5 flex-shrink-0">
+                    <Sun className="w-3.5 h-3.5 text-amber-500" />
+                    <span>2. ፈረቃ ይምረጡ (Choose Shift):</span>
+                  </span>
+
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs flex-wrap">
+                    {[
+                      { id: 'all', label: `🌟 ሁሉም ፈረቃ (${dateFilteredOrders.length})` },
+                      { id: 'Day', label: `☀️ የቀን (${dayOrders.length})` },
+                      { id: 'Night', label: `🌙 የማታ (${nightOrders.length})` },
+                      { id: 'BEU', label: `🛵 ቢዩ (${beuOrders.length})` },
+                      { id: 'Home', label: `🏠 ቤት ውስጥ (${homeOrders.length})` },
+                      { id: 'Takeaway', label: `🥡 ቴክአዌይ (${takeawayOrders.length})` }
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setOwnerShiftFilter(tab.id)}
+                        className={`px-3 py-1.5 rounded-xl font-black whitespace-nowrap transition-all ${
+                          ownerShiftFilter === tab.id
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 3: Active Filter Feedback & Financial Totals */}
+              <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black text-emerald-950 flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>{displayOrders.length} Orders Match</span>
+                  </span>
+                  <span className="text-emerald-800 font-bold">
+                    • ቀን፡ <span className="font-black text-slate-900">{ownerDateRange === 'today' ? orderEthDate.formatted : (ownerSelectedCustomDate || 'ሁሉም ቀናት')}</span>
+                  </span>
+                  <span className="text-emerald-800 font-bold">
+                    • ፈረቃ፡ <span className="font-black text-slate-900">
+                      {ownerShiftFilter === 'all' ? 'ሁሉም ፈረቃ' : (ownerShiftFilter === 'Day' ? 'የቀን ፈረቃ' : (ownerShiftFilter === 'Night' ? 'የማታ ፈረቃ' : ownerShiftFilter))}
+                    </span>
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 text-xs font-black text-slate-800 self-end sm:self-auto">
+                  <span>💰 ድምር ሽያጭ: <span className="text-emerald-800 font-black">{displayOrders.reduce((s, o) => s + o.totalAmount, 0).toLocaleString()} ETB</span></span>
+                  <span>•</span>
+                  <span>🥡 የወጣ ቦክስ: <span className="text-emerald-800 font-black">{displayOrders.reduce((s, o) => s + (o.boxesCount || 0), 0)} ቦክስ</span></span>
+                </div>
+              </div>
+
             </div>
 
             {/* THE ORDERS LIST (NO LIMIT - SHOWS ALL FILTERED ORDERS!) */}
@@ -3211,8 +3378,16 @@ export default function App() {
                   <Calendar className="w-5 h-5 text-emerald-700" />
                 </div>
                 <div>
-                  <h3 className="font-black text-sm text-slate-900">የኢትዮጵያ ቀን መምረጫ</h3>
-                  <span className="text-[10px] text-slate-400 font-bold block">Ethiopian Calendar Date</span>
+                  <h3 className="font-black text-sm text-slate-900">
+                    {editingDateTarget === 'filter' 
+                      ? '📅 ከቀን መቁጠሪያ ትዕዛዝ ፈልግ (Filter Orders by Date)' 
+                      : 'የኢትዮጵያ ቀን መምረጫ'}
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-bold block">
+                    {editingDateTarget === 'filter' 
+                      ? 'Pick any day from Ethiopian calendar to view all orders' 
+                      : 'Ethiopian Calendar Date'}
+                  </span>
                 </div>
               </div>
 
@@ -3344,7 +3519,7 @@ export default function App() {
                 onClick={handleSaveEthDate}
                 className="flex-1 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-lg shadow-emerald-700/20 transition-all"
               >
-                ✓ አጽድቅ (Save Date)
+                {editingDateTarget === 'filter' ? '🔍 ትዕዛዞቹን አሳይ (Show Orders)' : '✓ አጽድቅ (Save Date)'}
               </button>
             </div>
 
