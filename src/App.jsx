@@ -2255,11 +2255,11 @@ export default function App() {
           </div>
 
           {/* DATE RANGE FILTER TABS FOR THE DASHBOARD */}
-          <div className="bg-white p-3.5 rounded-3xl border border-emerald-100 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1 mr-1">
                 <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                <span>ቀን ምረጥ (Select Day):</span>
+                <span>የሪፖርት ቀን (Report Date):</span>
               </span>
 
               {/* Today */}
@@ -2269,7 +2269,7 @@ export default function App() {
                 className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
                   ownerDateRange === 'today'
                     ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
                 📅 ዛሬ ({sentOrders.filter(o => o.ethiopianDate === orderEthDate.formatted).length})
@@ -2282,7 +2282,7 @@ export default function App() {
                 className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
                   ownerDateRange === 'all'
                     ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
                 🗓️ ሁሉም ቀናት ({sentOrders.length})
@@ -2294,49 +2294,29 @@ export default function App() {
                 onClick={() => openEthDateModal('filter')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border ${
                   ownerDateRange === 'custom'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                    ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
                     : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
                 }`}
                 title="ከቀን መቁጠሪያ ቀን ይምረጡ / Pick any day from calendar"
               >
                 <Calendar className="w-3.5 h-3.5" />
-                <span>ከቀን መቁጠሪያ ምረጥ (Calendar)</span>
+                {ownerDateRange === 'custom' && ownerSelectedCustomDate ? (
+                  <span>📅 {ownerSelectedCustomDate}</span>
+                ) : (
+                  <span>ከቀን መቁጠሪያ ምረጥ (Calendar)</span>
+                )}
               </button>
 
               {/* Selected Custom Date Pill */}
               {ownerDateRange === 'custom' && ownerSelectedCustomDate && (
-                <div className="flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-xl text-xs font-black">
-                  <span>📅 {ownerSelectedCustomDate}</span>
-                  <button
-                    type="button"
-                    onClick={() => { setOwnerDateRange('today'); setOwnerSelectedCustomDate(''); }}
-                    className="hover:text-rose-600 ml-1 font-black"
-                    title="ወደ ዛሬ መልስ (Reset to Today)"
-                  >
-                    ✕
-                  </button>
-                </div>
-              )}
-
-              {/* Other Specific Days if exist */}
-              {availableDates.filter(d => d !== orderEthDate.formatted).length > 0 && (
-                <div className="flex items-center gap-1">
-                  <select
-                    value={ownerDateRange === 'custom' ? ownerSelectedCustomDate : ''}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        setOwnerSelectedCustomDate(e.target.value);
-                        setOwnerDateRange('custom');
-                      }
-                    }}
-                    className="bg-slate-100 border border-slate-200 text-slate-800 text-xs font-black px-2.5 py-1.5 rounded-xl outline-none"
-                  >
-                    <option value="">-- ያለፉ ቀኖች (Recorded Days) --</option>
-                    {availableDates.map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => { setOwnerDateRange('today'); setOwnerSelectedCustomDate(''); }}
+                  className="w-6 h-6 rounded-full bg-slate-200 hover:bg-rose-100 hover:text-rose-600 text-slate-600 flex items-center justify-center text-xs font-black transition-all"
+                  title="ወደ ዛሬ መልስ (Reset to Today)"
+                >
+                  ✕
+                </button>
               )}
             </div>
 
@@ -2544,99 +2524,93 @@ export default function App() {
           <div className="bg-white rounded-3xl p-5 sm:p-6 border border-emerald-100 shadow-sm space-y-5">
             
             {/* Header Title with live counter */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center flex-shrink-0 border border-emerald-100">
                   <Receipt className="w-5 h-5 text-emerald-600" />
-                  <span>ሁሉንም የተዘጋጁና የተወሰዱ ትዕዛዞች መቆጣጠሪያ (Full Orders Audit Log)</span>
-                </h3>
-                <p className="text-xs text-slate-400 font-bold mt-0.5">
-                  በሲስተሙ የተዘጋጁና የተወሰዱ {displayOrders.length} ትዕዛዞች ተገኝተዋል (ማን እንደወሰደው፣ በስንት ሰዓትና ሙሉ ደረሰኝ)
-                </p>
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <span>የትዕዛዞች መቆጣጠሪያ</span>
+                    <span className="text-xs font-bold text-slate-400 font-sans">(Orders Log)</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 font-bold">
+                    በቀን፣ በፈረቃና በአስተናጋጅ የተመዘገቡ {sentOrders.length} ጠቅላላ ትዕዛዞች
+                  </p>
+                </div>
               </div>
 
-              {/* Status / Waiter Filter Reset */}
-              {(ownerShiftFilter !== 'all' || ownerWaiterFilter !== 'all' || ownerSearchQuery || ownerStatusFilter !== 'all') && (
+              {/* Status / Waiter / Date Filter Reset */}
+              {(ownerShiftFilter !== 'all' || ownerWaiterFilter !== 'all' || ownerSearchQuery || ownerStatusFilter !== 'all' || ownerDateRange !== 'today' || ownerSelectedCustomDate) && (
                 <button
                   type="button"
                   onClick={() => {
+                    setOwnerDateRange('today');
+                    setOwnerSelectedCustomDate('');
                     setOwnerShiftFilter('all');
                     setOwnerWaiterFilter('all');
                     setOwnerSearchQuery('');
                     setOwnerStatusFilter('all');
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black self-start sm:self-auto flex items-center gap-1"
+                  className="px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-xs font-black self-start sm:self-auto flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
                 >
                   <X className="w-3.5 h-3.5" />
-                  <span>ማጣሪያዎችን አጥፋ (Reset Filters)</span>
+                  <span>ማጣሪያዎችን አጥፋ (Reset)</span>
                 </button>
               )}
             </div>
 
-            {/* SEARCH AND FILTER BAR */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-1">
+            {/* UNIFIED STREAMLINED FILTER TOOLBAR */}
+            <div className="space-y-3">
               
-              {/* 1. Live Search Input */}
-              <div className="md:col-span-5 relative">
-                <input
-                  type="text"
-                  placeholder="በምግብ ስም፣ በአስተናጋጅ ወይም በትዕዛዝ ቁጥር ፈልግ..."
-                  value={ownerSearchQuery}
-                  onChange={(e) => setOwnerSearchQuery(e.target.value)}
-                  className="w-full bg-slate-50 border border-emerald-200 focus:border-emerald-500 rounded-2xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all placeholder:text-slate-400"
-                />
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                {ownerSearchQuery && (
-                  <button 
-                    type="button"
-                    onClick={() => setOwnerSearchQuery('')}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 text-xs font-bold"
-                  >
-                    ✕
-                  </button>
-                )}
+              {/* ROW 1: SHIFT TABS (FULL-WIDTH MODERN SEGMENTED BAR) */}
+              <div className="bg-slate-100/90 p-1.5 rounded-2xl flex items-center gap-1.5 overflow-x-auto border border-slate-200/50">
+                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider px-2 flex items-center gap-1 flex-shrink-0">
+                  <Sun className="w-3.5 h-3.5 text-amber-500" />
+                  <span>ፈረቃ (Shift):</span>
+                </span>
+
+                <div className="flex items-center gap-1.5 flex-1 min-w-max">
+                  {[
+                    { id: 'all', label: '🌟 ሁሉም', count: dateFilteredOrders.length },
+                    { id: 'Day', label: '☀️ የቀን', count: dayOrders.length },
+                    { id: 'Night', label: '🌙 የማታ', count: nightOrders.length },
+                    { id: 'BEU', label: '🛵 ቢዩ ዲሊቨሪ', count: beuOrders.length },
+                    { id: 'Home', label: '🏠 ቤት ውስጥ', count: homeOrders.length },
+                    { id: 'Takeaway', label: '🥡 ቴክአዌይ', count: takeawayOrders.length }
+                  ].map(tab => {
+                    const isActive = ownerShiftFilter === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setOwnerShiftFilter(tab.id)}
+                        className={`flex-1 min-w-[95px] py-2 px-3 rounded-xl text-xs font-black whitespace-nowrap transition-all flex items-center justify-center gap-1.5 ${
+                          isActive
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/60'
+                        }`}
+                      >
+                        <span>{tab.label}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-black ${
+                          isActive ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {tab.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* 2. Waiter Filter Dropdown */}
-              <div className="md:col-span-4">
-                <select
-                  value={ownerWaiterFilter}
-                  onChange={(e) => setOwnerWaiterFilter(e.target.value)}
-                  className="w-full bg-slate-50 border border-emerald-200 focus:border-emerald-500 rounded-2xl py-2.5 px-3 text-xs font-black text-slate-800 outline-none transition-all"
-                >
-                  <option value="all">👤 ሁሉም አስተናጋጆች (All Waiters)</option>
-                  {waitersList.map(w => (
-                    <option key={w.fullName} value={w.amharic}>
-                      {w.amharic} ({w.english})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 3. Status Filter (Cooked vs Taken) */}
-              <div className="md:col-span-3">
-                <select
-                  value={ownerStatusFilter}
-                  onChange={(e) => setOwnerStatusFilter(e.target.value)}
-                  className="w-full bg-slate-50 border border-emerald-200 focus:border-emerald-500 rounded-2xl py-2.5 px-3 text-xs font-black text-slate-800 outline-none transition-all"
-                >
-                  <option value="all">⚡ ሁሉም ሁኔታዎች (All Statuses)</option>
-                  <option value="cooked">🍳 በኩሽና የተዘጋጀ (Cooked)</option>
-                  <option value="taken">🏃 በአስተናጋጅ የተወሰደ (Taken)</option>
-                </select>
-              </div>
-
-            </div>
-
-            {/* INTERACTIVE CALENDAR & SHIFT SELECTOR */}
-            <div className="bg-slate-50 p-4 rounded-3xl border border-slate-200/80 space-y-3">
-              
-              {/* Row 1: Select Day from Calendar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              {/* ROW 2: DATE SELECTOR + SEARCH + WAITER/STATUS CONTROLS */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5">
+                
+                {/* 1. Date Selector (Pills) */}
+                <div className="lg:col-span-5 bg-slate-50 p-1.5 rounded-2xl border border-slate-200/70 flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider px-1.5 flex items-center gap-1 flex-shrink-0">
                     <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>1. ቀን ይምረጡ (Choose Day):</span>
+                    <span>ቀን:</span>
                   </span>
 
                   {/* Today Button */}
@@ -2646,10 +2620,10 @@ export default function App() {
                     className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
                       ownerDateRange === 'today'
                         ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
                     }`}
                   >
-                    📅 ዛሬ ({sentOrders.filter(o => o.ethiopianDate === orderEthDate.formatted).length})
+                    ዛሬ ({sentOrders.filter(o => o.ethiopianDate === orderEthDate.formatted).length})
                   </button>
 
                   {/* All Days Button */}
@@ -2659,123 +2633,149 @@ export default function App() {
                     className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
                       ownerDateRange === 'all'
                         ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
                     }`}
                   >
-                    🗓️ ሁሉም ቀናት ({sentOrders.length})
+                    ሁሉም ({sentOrders.length})
                   </button>
 
-                  {/* Open Calendar Picker Button */}
+                  {/* Calendar Modal Trigger / Active Custom Date Badge */}
                   <button
                     type="button"
                     onClick={() => openEthDateModal('filter')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border shadow-xs ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border shadow-2xs ${
                       ownerDateRange === 'custom'
-                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
-                        : 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50'
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                        : 'bg-white hover:bg-emerald-50 text-emerald-800 border-emerald-300'
                     }`}
                     title="ከቀን መቁጠሪያ ቀን ይምረጡ / Open Ethiopian Calendar"
                   >
-                    <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>ከቀን መቁጠሪያ ምረጥ (Calendar)</span>
+                    <Calendar className="w-3.5 h-3.5" />
+                    {ownerDateRange === 'custom' && ownerSelectedCustomDate ? (
+                      <span>{ownerSelectedCustomDate}</span>
+                    ) : (
+                      <span>ቀን ምረጥ (Calendar)</span>
+                    )}
                   </button>
 
-                  {/* Selected Custom Date Pill with clear button */}
+                  {/* Reset Custom Date to Today button */}
                   {ownerDateRange === 'custom' && ownerSelectedCustomDate && (
-                    <div className="flex items-center gap-1.5 bg-amber-100 text-amber-950 border border-amber-300 px-3 py-1 rounded-xl text-xs font-black animate-in fade-in">
-                      <span>📅 {ownerSelectedCustomDate}</span>
-                      <button
-                        type="button"
-                        onClick={() => { setOwnerDateRange('today'); setOwnerSelectedCustomDate(''); }}
-                        className="text-amber-800 hover:text-rose-600 font-black ml-0.5"
-                        title="ወደ ዛሬ መልስ (Clear)"
-                      >
-                        ✕
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setOwnerDateRange('today'); setOwnerSelectedCustomDate(''); }}
+                      className="w-5 h-5 rounded-full bg-slate-200 hover:bg-rose-100 hover:text-rose-600 text-slate-600 flex items-center justify-center text-xs font-black transition-all"
+                      title="ወደ ዛሬ ቀን መልስ"
+                    >
+                      ✕
+                    </button>
                   )}
                 </div>
 
-                {/* Date Dropdown if past dates exist */}
-                {availableDates.length > 0 && (
+                {/* 2. Live Search Input */}
+                <div className="lg:col-span-3 relative">
+                  <input
+                    type="text"
+                    placeholder="በምግብ ስም፣ በአስተናጋጅ ፈልግ..."
+                    value={ownerSearchQuery}
+                    onChange={(e) => setOwnerSearchQuery(e.target.value)}
+                    className="w-full h-full min-h-[38px] bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-2xl py-2 pl-9 pr-8 text-xs font-bold text-slate-900 outline-none transition-all placeholder:text-slate-400 shadow-2xs"
+                  />
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                  {ownerSearchQuery && (
+                    <button 
+                      type="button"
+                      onClick={() => setOwnerSearchQuery('')}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* 3. Waiter Filter Dropdown */}
+                <div className="lg:col-span-2">
                   <select
-                    value={ownerDateRange === 'custom' ? ownerSelectedCustomDate : (ownerDateRange === 'today' ? orderEthDate.formatted : '')}
-                    onChange={(e) => {
-                      if (e.target.value === 'all') {
-                        setOwnerDateRange('all');
-                        setOwnerSelectedCustomDate('');
-                      } else if (e.target.value) {
-                        setOwnerSelectedCustomDate(e.target.value);
-                        setOwnerDateRange('custom');
-                      }
-                    }}
-                    className="bg-white border border-slate-200 text-slate-800 text-xs font-black px-2.5 py-1.5 rounded-xl outline-none shadow-xs self-start sm:self-auto"
+                    value={ownerWaiterFilter}
+                    onChange={(e) => setOwnerWaiterFilter(e.target.value)}
+                    className="w-full h-full min-h-[38px] bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-2xl py-2 px-3 text-xs font-black text-slate-700 outline-none transition-all shadow-2xs"
                   >
-                    <option value="">-- የተመዘገቡ ቀኖች (Recorded Days) --</option>
-                    <option value="all">🗓️ ሁሉም ቀናት (All Days)</option>
-                    {availableDates.map(d => (
-                      <option key={d} value={d}>{d}</option>
+                    <option value="all">👤 ሁሉም አስተናጋጅ</option>
+                    {waitersList.map(w => (
+                      <option key={w.fullName} value={w.amharic}>
+                        {w.amharic}
+                      </option>
                     ))}
                   </select>
-                )}
-              </div>
-
-              {/* Row 2: Select Shift */}
-              <div className="pt-2 border-t border-slate-200/60">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5 flex-shrink-0">
-                    <Sun className="w-3.5 h-3.5 text-amber-500" />
-                    <span>2. ፈረቃ ይምረጡ (Choose Shift):</span>
-                  </span>
-
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs flex-wrap">
-                    {[
-                      { id: 'all', label: `🌟 ሁሉም ፈረቃ (${dateFilteredOrders.length})` },
-                      { id: 'Day', label: `☀️ የቀን (${dayOrders.length})` },
-                      { id: 'Night', label: `🌙 የማታ (${nightOrders.length})` },
-                      { id: 'BEU', label: `🛵 ቢዩ (${beuOrders.length})` },
-                      { id: 'Home', label: `🏠 ቤት ውስጥ (${homeOrders.length})` },
-                      { id: 'Takeaway', label: `🥡 ቴክአዌይ (${takeawayOrders.length})` }
-                    ].map(tab => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setOwnerShiftFilter(tab.id)}
-                        className={`px-3 py-1.5 rounded-xl font-black whitespace-nowrap transition-all ${
-                          ownerShiftFilter === tab.id
-                            ? 'bg-emerald-600 text-white shadow-sm'
-                            : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                        }`}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
                 </div>
+
+                {/* 4. Status Filter Dropdown */}
+                <div className="lg:col-span-2">
+                  <select
+                    value={ownerStatusFilter}
+                    onChange={(e) => setOwnerStatusFilter(e.target.value)}
+                    className="w-full h-full min-h-[38px] bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-2xl py-2 px-3 text-xs font-black text-slate-700 outline-none transition-all shadow-2xs"
+                  >
+                    <option value="all">⚡ ሁሉም ሁኔታ</option>
+                    <option value="cooked">🍳 የተዘጋጀ (Cooked)</option>
+                    <option value="taken">🏃 የተወሰደ (Taken)</option>
+                  </select>
+                </div>
+
               </div>
 
-              {/* Row 3: Active Filter Feedback & Financial Totals */}
-              <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-black text-emerald-950 flex items-center gap-1">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>{displayOrders.length} Orders Match</span>
+              {/* ROW 3: ELEGANT LIVE METRICS & ACTIVE FILTERS STRIP */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 px-3.5 py-2.5 bg-emerald-50/70 border border-emerald-100 rounded-2xl text-xs">
+                
+                {/* Active Filter Indicators */}
+                <div className="flex items-center gap-2 flex-wrap text-emerald-950 font-bold">
+                  <span className="flex items-center gap-1 font-black bg-emerald-600 text-white px-2 py-0.5 rounded-lg text-[11px] shadow-2xs">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{displayOrders.length} ትዕዛዞች</span>
                   </span>
-                  <span className="text-emerald-800 font-bold">
-                    • ቀን፡ <span className="font-black text-slate-900">{ownerDateRange === 'today' ? orderEthDate.formatted : (ownerSelectedCustomDate || 'ሁሉም ቀናት')}</span>
+
+                  <span className="text-slate-300">•</span>
+
+                  <span className="text-slate-700 text-xs">
+                    ቀን፡ <span className="font-black text-slate-900">{ownerDateRange === 'today' ? orderEthDate.formatted : (ownerSelectedCustomDate || 'ሁሉም ቀናት')}</span>
                   </span>
-                  <span className="text-emerald-800 font-bold">
-                    • ፈረቃ፡ <span className="font-black text-slate-900">
-                      {ownerShiftFilter === 'all' ? 'ሁሉም ፈረቃ' : (ownerShiftFilter === 'Day' ? 'የቀን ፈረቃ' : (ownerShiftFilter === 'Night' ? 'የማታ ፈረቃ' : ownerShiftFilter))}
+
+                  <span className="text-slate-300">•</span>
+
+                  <span className="text-slate-700 text-xs">
+                    ፈረቃ፡ <span className="font-black text-slate-900">
+                      {ownerShiftFilter === 'all' ? 'ሁሉም ፈረቃ' : (ownerShiftFilter === 'Day' ? 'የቀን ፈረቃ' : (ownerShiftFilter === 'Night' ? 'የማታ ፈረቃ' : (ownerShiftFilter === 'BEU' ? 'ቢዩ ዲሊቨሪ' : (ownerShiftFilter === 'Home' ? 'ቤት ውስጥ' : 'ቴክአዌይ'))))}
                     </span>
                   </span>
+
+                  {ownerWaiterFilter !== 'all' && (
+                    <>
+                      <span className="text-slate-300">•</span>
+                      <span className="text-slate-700 text-xs">
+                        አስተናጋጅ፡ <span className="font-black text-emerald-800">{ownerWaiterFilter}</span>
+                      </span>
+                    </>
+                  )}
+
+                  {ownerStatusFilter !== 'all' && (
+                    <>
+                      <span className="text-slate-300">•</span>
+                      <span className="text-slate-700 text-xs">
+                        ሁኔታ፡ <span className="font-black text-emerald-800">{ownerStatusFilter === 'cooked' ? 'የተዘጋጀ' : 'የተወሰደ'}</span>
+                      </span>
+                    </>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-3 text-xs font-black text-slate-800 self-end sm:self-auto">
-                  <span>💰 ድምር ሽያጭ: <span className="text-emerald-800 font-black">{displayOrders.reduce((s, o) => s + o.totalAmount, 0).toLocaleString()} ETB</span></span>
-                  <span>•</span>
-                  <span>🥡 የወጣ ቦክስ: <span className="text-emerald-800 font-black">{displayOrders.reduce((s, o) => s + (o.boxesCount || 0), 0)} ቦክስ</span></span>
+                {/* Financial & Box Totals for Active Filters */}
+                <div className="flex items-center gap-2.5 font-black text-slate-800 self-end sm:self-auto text-xs">
+                  <span className="bg-white px-2.5 py-1 rounded-xl border border-emerald-200/80 shadow-2xs text-slate-700">
+                    💰 ድምር፡ <span className="text-emerald-700 font-black">{displayOrders.reduce((s, o) => s + o.totalAmount, 0).toLocaleString()} ETB</span>
+                  </span>
+                  <span className="bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs text-slate-700">
+                    🥡 ቦክስ፡ <span className="text-slate-900 font-black">{displayOrders.reduce((s, o) => s + (o.boxesCount || 0), 0)}</span>
+                  </span>
                 </div>
+
               </div>
 
             </div>
