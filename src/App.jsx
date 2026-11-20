@@ -39,7 +39,14 @@ import {
   LogOut,
   Settings,
   Smartphone,
-  Download
+  Download,
+  Printer,
+  Filter,
+  FileText,
+  Package,
+  TrendingUp,
+  Award,
+  X
 } from 'lucide-react';
 import { dbService, isSupabaseConfigured } from './lib/supabaseClient';
 
@@ -450,6 +457,20 @@ export default function App() {
   const [wasteCountInput, setWasteCountInput] = useState(1);
   const [wasteReason, setWasteReason] = useState('Box Damaged / Dropped');
 
+  // --- OWNER DASHBOARD FILTERS & CONTROLS ---
+  const [ownerDateRange, setOwnerDateRange] = useState('today'); // 'today' | 'all' | 'custom'
+  const [ownerSelectedCustomDate, setOwnerSelectedCustomDate] = useState('');
+  const [ownerSearchQuery, setOwnerSearchQuery] = useState('');
+  const [ownerShiftFilter, setOwnerShiftFilter] = useState('all'); // 'all' | 'Day' | 'Night' | 'BEU' | 'Takeaway' | 'Home'
+  const [ownerWaiterFilter, setOwnerWaiterFilter] = useState('all');
+  const [ownerStatusFilter, setOwnerStatusFilter] = useState('all'); // 'all' | 'cooked' | 'taken'
+  const [selectedOrderForView, setSelectedOrderForView] = useState(null); // Full Ticket Modal viewer
+  const [boxInventoryInitial, setBoxInventoryInitial] = useState(() => {
+    return Number(localStorage.getItem('maraki_box_starting_stock')) || 500;
+  });
+  const [showBoxStockModal, setShowBoxStockModal] = useState(false);
+  const [boxStockInput, setBoxStockInput] = useState('');
+
   // Toast message
   const [toastMessage, setToastMessage] = useState(null);
   const showToast = (msg) => {
@@ -542,6 +563,9 @@ export default function App() {
       channel: channelLabel,
       orderType: finalOrderType, // 'Takeaway' | 'Home'
       waiterName: effectiveWaiter,
+      status: 'ተዘጋጅቶ ተወስዷል (Cooked & Taken)',
+      cookedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      takenByWaiter: effectiveWaiter,
       ethiopianDate: orderEthDate.formatted,
       ethiopianDay: orderEthDate.day,
       ethiopianMonth: orderEthDate.monthName,
@@ -775,29 +799,51 @@ export default function App() {
   });
 
   // --- STATS FOR OWNER REPORTS ---
-  const dayOrders = sentOrders.filter(o => o.shift === 'Day Shift' && o.channel !== 'BEU Delivery');
-  const nightOrders = sentOrders.filter(o => o.shift === 'Night Shift' && o.channel !== 'BEU Delivery');
-  const beuOrders = sentOrders.filter(o => o.channel === 'BEU Delivery');
-  const takeawayOrders = sentOrders.filter(o => o.orderType !== 'Home' && o.channel !== 'In-Store Home');
-  const homeOrders = sentOrders.filter(o => o.orderType === 'Home' || o.channel === 'In-Store Home');
+  // Unique Ethiopian dates present in orders
+  const availableDates = Array.from(new Set(sentOrders.map(o => o.ethiopianDate).filter(Boolean)));
+
+  // 1. Date Range Filtering for Owner Dashboard
+  const dateFilteredOrders = sentOrders.filter(order => {
+    if (ownerDateRange === 'today') {
+      return order.ethiopianDate === orderEthDate.formatted;
+    }
+    if (ownerDateRange === 'yesterday') {
+      return order.ethiopianDate !== orderEthDate.formatted;
+    }
+    if (ownerDateRange === 'custom' && ownerSelectedCustomDate) {
+      return order.ethiopianDate === ownerSelectedCustomDate;
+    }
+    return true; // 'all'
+  });
+
+  const dayOrders = dateFilteredOrders.filter(o => o.shift === 'Day Shift' && o.channel !== 'BEU Delivery');
+  const nightOrders = dateFilteredOrders.filter(o => o.shift === 'Night Shift' && o.channel !== 'BEU Delivery');
+  const beuOrders = dateFilteredOrders.filter(o => o.channel === 'BEU Delivery');
+  const takeawayOrders = dateFilteredOrders.filter(o => o.orderType !== 'Home' && o.channel !== 'In-Store Home');
+  const homeOrders = dateFilteredOrders.filter(o => o.orderType === 'Home' || o.channel === 'In-Store Home');
 
   const dayBoxes = dayOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
   const nightBoxes = nightOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
   const beuBoxes = beuOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
-  const totalBoxesAll = sentOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
+  const totalBoxesAll = dateFilteredOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
 
   const dayRevenue = dayOrders.reduce((sum, o) => sum + o.totalAmount, 0);
   const nightRevenue = nightOrders.reduce((sum, o) => sum + o.totalAmount, 0);
   const beuRevenue = beuOrders.reduce((sum, o) => sum + o.totalAmount, 0);
   const homeRevenue = homeOrders.reduce((sum, o) => sum + o.totalAmount, 0);
-  const totalRevenueAll = sentOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+  const totalRevenueAll = dateFilteredOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+
+  // Box Inventory Metrics
+  const allTimeBoxesUsed = sentOrders.reduce((sum, o) => sum + (o.boxesCount || 0), 0);
+  const remainingBoxes = Math.max(0, boxInventoryInitial - allTimeBoxesUsed);
+  const boxStockPercent = Math.min(100, Math.round((remainingBoxes / (boxInventoryInitial || 1)) * 100));
 
   // Breakdown by Food Dishes (All 16)
   const dishBreakdown = foodMenu.map(dish => {
     let countSold = 0;
     let boxesUsed = 0;
     let revenue = 0;
-    sentOrders.forEach(order => {
+    dateFilteredOrders.forEach(order => {
       order.items?.forEach(i => {
         if (i.id === dish.id || i.name === dish.name) {
           countSold += i.qty;
@@ -818,9 +864,15 @@ export default function App() {
     };
   });
 
+  // Top 5 Best Selling Dishes
+  const topSellingDishes = [...dishBreakdown]
+    .filter(d => d.countSold > 0)
+    .sort((a, b) => b.countSold - a.countSold)
+    .slice(0, 5);
+
   // Breakdown by Waiter
   const waiterStats = {};
-  sentOrders.forEach(order => {
+  dateFilteredOrders.forEach(order => {
     const w = order.waiterName || 'Unassigned';
     if (!waiterStats[w]) {
       waiterStats[w] = { ordersCount: 0, boxesCount: 0, totalETB: 0 };
@@ -830,11 +882,142 @@ export default function App() {
     waiterStats[w].totalETB += order.totalAmount;
   });
 
+  // Full Search & Filtered Orders for the Audit Log
+  const displayOrders = dateFilteredOrders.filter(order => {
+    if (ownerSearchQuery.trim()) {
+      const q = ownerSearchQuery.toLowerCase().trim();
+      const matchId = order.id.toLowerCase().includes(q);
+      const matchWaiter = (order.waiterName || '').toLowerCase().includes(q);
+      const matchDate = (order.ethiopianDate || '').toLowerCase().includes(q);
+      const matchGreg = (order.gregorianDateFormatted || '').toLowerCase().includes(q);
+      const matchTime = (order.timestamp || '').toLowerCase().includes(q);
+      const matchItems = (order.items || []).some(i => 
+        i.name.toLowerCase().includes(q) || 
+        (i.englishName && i.englishName.toLowerCase().includes(q))
+      );
+      if (!matchId && !matchWaiter && !matchDate && !matchGreg && !matchTime && !matchItems) return false;
+    }
+
+    if (ownerShiftFilter === 'Day' && (order.shift !== 'Day Shift' || order.channel === 'BEU Delivery')) return false;
+    if (ownerShiftFilter === 'Night' && (order.shift !== 'Night Shift' || order.channel === 'BEU Delivery')) return false;
+    if (ownerShiftFilter === 'BEU' && order.channel !== 'BEU Delivery') return false;
+    if (ownerShiftFilter === 'Home' && order.orderType !== 'Home' && order.channel !== 'In-Store Home') return false;
+    if (ownerShiftFilter === 'Takeaway' && (order.orderType === 'Home' || order.channel === 'In-Store Home')) return false;
+
+    if (ownerWaiterFilter !== 'all') {
+      const wName = order.waiterName || '';
+      if (!wName.includes(ownerWaiterFilter)) return false;
+    }
+
+    if (ownerStatusFilter === 'cooked') {
+      const st = order.status || '';
+      if (!st.includes('Cooked') && !st.includes('ተዘጋጅቷል')) return false;
+    }
+    if (ownerStatusFilter === 'taken') {
+      const st = order.status || '';
+      if (!st.includes('Taken') && !st.includes('ተወስዷል')) return false;
+    }
+
+    return true;
+  });
+
   // Delete Order (Owner correction)
   const handleDeleteOrder = (orderId) => {
     if (window.confirm('ይህን ትዕዛዝ በእርግጥ መሰረዝ ይፈልጋሉ? (Are you sure you want to delete this order?)')) {
       setSentOrders(prev => prev.filter(o => o.id !== orderId));
-      showToast('Order deleted');
+      showToast('ትዕዛዙ ተሰርዟል (Order deleted)');
+    }
+  };
+
+  // Toggle Order Status (Cooked vs Taken)
+  const handleToggleOrderStatus = (orderId) => {
+    setSentOrders(prev => prev.map(o => {
+      if (o.id === orderId) {
+        const isCooked = (o.status || '').includes('ተዘጋጅቷል');
+        const nextStatus = isCooked 
+          ? '🏃 በአስተጋጅ ተወስዷል (Taken by Waiter)' 
+          : '🍳 በኩሽና ተዘጋጅቷል (Cooked by Chef)';
+        return { ...o, status: nextStatus };
+      }
+      return o;
+    }));
+    showToast('የምግብ ሁኔታ ተቀይሯል!');
+  };
+
+  // Export to CSV
+  const handleExportCSV = () => {
+    if (dateFilteredOrders.length === 0) {
+      showToast('⚠️ ምንም የሚወርድ ትዕዛዝ አልተገኘም (No orders to export)');
+      return;
+    }
+    const headers = [
+      'Order ID',
+      'Ethiopian Date',
+      'Gregorian Date',
+      'Time',
+      'Shift',
+      'Channel',
+      'Service Type',
+      'Waiter',
+      'Dishes & Quantities',
+      'Takeaway Boxes',
+      'Total Amount (ETB)',
+      'Status'
+    ];
+    const rows = dateFilteredOrders.map(o => [
+      `"${o.id}"`,
+      `"${o.ethiopianDate || ''}"`,
+      `"${o.gregorianDateFormatted || ''}"`,
+      `"${o.timestamp || ''}"`,
+      `"${o.shift || ''}"`,
+      `"${o.channel || ''}"`,
+      `"${o.orderType === 'Home' ? 'ቤት ውስጥ (Home)' : 'ቴክአዌይ (Takeaway)'}"`,
+      `"${o.waiterName || ''}"`,
+      `"${(o.items || []).map(i => `${i.qty}x ${i.name}`).join('; ')}"`,
+      o.orderType === 'Home' ? 0 : (o.boxesCount || 0),
+      o.totalAmount || 0,
+      `"${o.status || 'ተዘጋጅቶ ተወስዷል (Cooked & Taken)'}"`
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `maraki_sales_orders_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('📥 የትዕዛዞች ዝርዝር በኤክሴል (CSV) ወርዷል!');
+  };
+
+  // Print Daily Summary
+  const handlePrintSummary = () => {
+    window.print();
+  };
+
+  // Save Box Stock
+  const handleSaveBoxInventory = (e) => {
+    if (e) e.preventDefault();
+    const val = Number(boxStockInput);
+    if (!isNaN(val) && val >= 0) {
+      setBoxInventoryInitial(val);
+      localStorage.setItem('maraki_box_starting_stock', val.toString());
+      setShowBoxStockModal(false);
+      showToast(`📦 የሳጥን መነሻ ክምችት ወደ ${val} ተስተካክሏል!`);
+    }
+  };
+
+  // Reset Day Orders (Protected)
+  const handleResetDayOrders = () => {
+    if (window.confirm('የዛሬውን ትዕዛዞች በሙሉ አጥፍተው አዲስ ቀን መጀመር ይፈልጋሉ? (Are you sure you want to reset today\'s orders?)')) {
+      const pass = window.prompt('እባክዎ የባለቤት ይለፍ ቃል ያስገቡ (Enter Owner Password):');
+      if (pass === ownerPassword) {
+        setSentOrders(prev => prev.filter(o => o.ethiopianDate !== orderEthDate.formatted));
+        showToast('የዕለቱ ትዕዛዞች ተሰርዘዋል / አዲስ ቀን ተጀምሯል!');
+      } else if (pass !== null) {
+        alert('የተሳሳተ የይለፍ ቃል! (Incorrect Password)');
+      }
     }
   };
 
@@ -1970,132 +2153,330 @@ export default function App() {
       )}
 
       {/* ============================================================== */}
-      {/* 2. OWNER DASHBOARD & REPORT VIEW                                */}
+      {/* 2. OWNER DASHBOARD & AUDIT COMMAND CENTER                       */}
       {/* ============================================================== */}
       {viewMode === 'reports' && (
         <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6 animate-in fade-in duration-200">
           
-          {/* Header Title */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm">
+          {/* Header Action Bar */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm">
             <div>
-              <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-emerald-600" />
-                <span>የባለቤት መቆጣጠሪያና ሪፖርት (Owner Shift & Food Report)</span>
-              </h2>
-              <p className="text-xs text-slate-400 font-bold mt-0.5">
-                የቀን፣ የማታ እና የቢዩ ፈረቃዎች፣ የተሸጡ ምግቦች እና የወጡ ቴክአዌይ ሳጥኖች ቆጠራ
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-black text-sm">
+                  👑
+                </span>
+                <h2 className="text-lg font-black text-slate-900">
+                  የባለቤት መቆጣጠሪያ ማዕከል (Owner Command Center & Audit)
+                </h2>
+              </div>
+              <p className="text-xs text-slate-400 font-bold mt-1">
+                የተዘጋጁ እና የተወሰዱ ትዕዛዞች፣ የፈረቃ ገቢ፣ የሳጥን ክምችት እና የአስተናጋጆች ሙሉ ቁጥጥር
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setViewMode('order')}
-              className="px-4 py-2 rounded-2xl bg-emerald-600 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-700/20 hover:bg-emerald-700 transition-all"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>+ አዲስ ትዕዛዝ አስገባ</span>
-            </button>
+            {/* Quick Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Export to CSV */}
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                className="px-3.5 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                title="ሪፖርቱን በኤክሴል አውርድ / Export Orders to CSV"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-700" />
+                <span>ኤክሴል (CSV)</span>
+              </button>
+
+              {/* Print Summary */}
+              <button
+                type="button"
+                onClick={handlePrintSummary}
+                className="px-3.5 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                title="የዕለቱን ሪፖርት አትም / Print Daily Summary"
+              >
+                <Printer className="w-3.5 h-3.5 text-teal-700" />
+                <span>ሪፖርት አትም</span>
+              </button>
+
+              {/* Box Inventory Modal Trigger */}
+              <button
+                type="button"
+                onClick={() => {
+                  setBoxStockInput(boxInventoryInitial.toString());
+                  setShowBoxStockModal(true);
+                }}
+                className="px-3.5 py-2 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-black text-xs flex items-center gap-1.5 transition-all shadow-sm border border-emerald-200 active:scale-95"
+                title="የሳጥን ክምችት መቆጣጠሪያ / Box Inventory Tracker"
+              >
+                <Package className="w-3.5 h-3.5 text-emerald-700" />
+                <span>የሳጥን ክምችት</span>
+              </button>
+
+              {/* Reset Day Orders */}
+              <button
+                type="button"
+                onClick={handleResetDayOrders}
+                className="px-3 py-2 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-black text-xs flex items-center gap-1 transition-all border border-rose-200 active:scale-95"
+                title="የዕለቱን ትዕዛዞች አጥፍተህ አዲስ ቀን ጀምር / Reset Daily Shift"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-rose-600" />
+                <span>አዲስ ቀን</span>
+              </button>
+
+              {/* Switch to New Order */}
+              <button
+                type="button"
+                onClick={() => setViewMode('order')}
+                className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-700/20 transition-all active:scale-95"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>+ አዲስ ትዕዛዝ</span>
+              </button>
+            </div>
           </div>
 
-          {/* 5 SUMMARY STAT CARDS: DAY, NIGHT, BEU, HOME & TOTAL BOXES */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+          {/* DATE RANGE FILTER TABS FOR THE DASHBOARD */}
+          <div className="bg-white p-3 rounded-2xl border border-emerald-100 shadow-sm flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider mr-1">
+                የሪፖርት ጊዜ (Date Filter):
+              </span>
+
+              {/* Today */}
+              <button
+                type="button"
+                onClick={() => { setOwnerDateRange('today'); setOwnerSelectedCustomDate(''); }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                  ownerDateRange === 'today'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                📅 የዛሬ ትዕዛዞች ({sentOrders.filter(o => o.ethiopianDate === orderEthDate.formatted).length})
+              </button>
+
+              {/* All Time */}
+              <button
+                type="button"
+                onClick={() => { setOwnerDateRange('all'); setOwnerSelectedCustomDate(''); }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                  ownerDateRange === 'all'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                🗓️ ሁሉም ትዕዛዞች ({sentOrders.length})
+              </button>
+
+              {/* Other Specific Days if exist */}
+              {availableDates.filter(d => d !== orderEthDate.formatted).length > 0 && (
+                <div className="flex items-center gap-1">
+                  <select
+                    value={ownerSelectedCustomDate}
+                    onChange={(e) => {
+                      setOwnerSelectedCustomDate(e.target.value);
+                      if (e.target.value) setOwnerDateRange('custom');
+                    }}
+                    className="bg-slate-100 border border-slate-200 text-slate-800 text-xs font-black px-2.5 py-1.5 rounded-xl outline-none"
+                  >
+                    <option value="">-- ያለፉ ቀኖች ይምረጡ (Past Days) --</option>
+                    {availableDates.filter(d => d !== orderEthDate.formatted).map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-100">
+              የተመረጠው ቀን፡ <span className="font-black">{ownerDateRange === 'today' ? orderEthDate.formatted : (ownerSelectedCustomDate || 'ሁሉም ጊዜ (All Time)')}</span>
+            </div>
+          </div>
+
+          {/* 6 EXECUTIVE STAT CARDS: DAY, NIGHT, BEU, HOME, TOTAL BOXES & TOTAL REVENUE */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             
             {/* 1. Day Shift Card */}
-            <div className="bg-white p-4 rounded-3xl border border-amber-200 shadow-sm flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl flex-shrink-0">
-                ☀️
-              </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+            <div className="bg-white p-4 rounded-3xl border border-amber-200 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
                   የቀን ፈረቃ (Day)
                 </span>
-                <p className="text-base font-black text-slate-900 mt-0.5">{dayOrders.length} Orders</p>
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-700 mt-0.5">
-                  <span>🥡 {dayBoxes} ቦክስ</span>
-                  <span>•</span>
-                  <span>{dayRevenue.toLocaleString()} ETB</span>
-                </div>
+                <span className="text-xl">☀️</span>
+              </div>
+              <p className="text-lg font-black text-slate-900 mt-2">{dayOrders.length} <span className="text-xs font-bold text-slate-400">ትዕዛዝ</span></p>
+              <div className="mt-1 pt-2 border-t border-slate-100 text-[10px] font-bold text-amber-800 flex items-center justify-between">
+                <span>🥡 {dayBoxes} ቦክስ</span>
+                <span>{dayRevenue.toLocaleString()} ETB</span>
               </div>
             </div>
 
             {/* 2. Night Shift Card */}
-            <div className="bg-white p-4 rounded-3xl border border-indigo-200 shadow-sm flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl flex-shrink-0">
-                🌙
-              </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+            <div className="bg-white p-4 rounded-3xl border border-indigo-200 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
                   የማታ ፈረቃ (Night)
                 </span>
-                <p className="text-base font-black text-slate-900 mt-0.5">{nightOrders.length} Orders</p>
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-700 mt-0.5">
-                  <span>🥡 {nightBoxes} ቦክስ</span>
-                  <span>•</span>
-                  <span>{nightRevenue.toLocaleString()} ETB</span>
-                </div>
+                <span className="text-xl">🌙</span>
+              </div>
+              <p className="text-lg font-black text-slate-900 mt-2">{nightOrders.length} <span className="text-xs font-bold text-slate-400">ትዕዛዝ</span></p>
+              <div className="mt-1 pt-2 border-t border-slate-100 text-[10px] font-bold text-indigo-800 flex items-center justify-between">
+                <span>🥡 {nightBoxes} ቦክስ</span>
+                <span>{nightRevenue.toLocaleString()} ETB</span>
               </div>
             </div>
 
             {/* 3. BEU Delivery Card */}
-            <div className="bg-white p-4 rounded-3xl border border-teal-200 shadow-sm flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl flex-shrink-0">
-                🛵
-              </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                  ቢዩ (BEU Delivery)
+            <div className="bg-white p-4 rounded-3xl border border-teal-200 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  ቢዩ (BEU)
                 </span>
-                <p className="text-base font-black text-slate-900 mt-0.5">{beuOrders.length} Orders</p>
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-teal-700 mt-0.5">
-                  <span>🥡 {beuBoxes} ቦክስ</span>
-                  <span>•</span>
-                  <span>{beuRevenue.toLocaleString()} ETB</span>
-                </div>
+                <span className="text-xl">🛵</span>
+              </div>
+              <p className="text-lg font-black text-slate-900 mt-2">{beuOrders.length} <span className="text-xs font-bold text-slate-400">ትዕዛዝ</span></p>
+              <div className="mt-1 pt-2 border-t border-slate-100 text-[10px] font-bold text-teal-800 flex items-center justify-between">
+                <span>🥡 {beuBoxes} ቦክስ</span>
+                <span>{beuRevenue.toLocaleString()} ETB</span>
               </div>
             </div>
 
             {/* 4. Home (Dine-in) Card */}
-            <div className="bg-white p-4 rounded-3xl border border-amber-300 shadow-sm flex items-center gap-3 bg-amber-50/20">
-              <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center text-xl flex-shrink-0">
-                🏠
-              </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 block">
+            <div className="bg-white p-4 rounded-3xl border border-amber-300 shadow-sm flex flex-col justify-between bg-amber-50/20">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-800">
                   ቤት ውስጥ (Home)
                 </span>
-                <p className="text-base font-black text-slate-900 mt-0.5">{homeOrders.length} Orders</p>
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-800 mt-0.5">
-                  <span>🍽️ 0 ቦክስ</span>
-                  <span>•</span>
-                  <span>{homeRevenue.toLocaleString()} ETB</span>
-                </div>
+                <span className="text-xl">🏠</span>
+              </div>
+              <p className="text-lg font-black text-slate-900 mt-2">{homeOrders.length} <span className="text-xs font-bold text-slate-400">ትዕዛዝ</span></p>
+              <div className="mt-1 pt-2 border-t border-slate-100 text-[10px] font-bold text-amber-900 flex items-center justify-between">
+                <span>🍽️ 0 ቦክስ</span>
+                <span>{homeRevenue.toLocaleString()} ETB</span>
               </div>
             </div>
 
             {/* 5. Total Packaging Boxes */}
-            <div className="bg-white p-4 rounded-3xl border border-emerald-200 shadow-sm flex items-center gap-3 col-span-2 lg:col-span-1">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl flex-shrink-0">
-                🥡
-              </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+            <div className="bg-white p-4 rounded-3xl border border-emerald-200 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
                   የወጡ ቦክሶች
                 </span>
-                <p className="text-base font-black text-emerald-800 mt-0.5">{totalBoxesAll} Boxes</p>
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 mt-0.5">
-                  <span>ድምር: {totalRevenueAll.toLocaleString()} ETB</span>
-                </div>
+                <span className="text-xl">🥡</span>
+              </div>
+              <p className="text-lg font-black text-emerald-800 mt-2">{totalBoxesAll} <span className="text-xs font-bold text-slate-400">ቦክስ</span></p>
+              <div className="mt-1 pt-2 border-t border-slate-100 text-[10px] font-bold text-emerald-700 flex items-center justify-between">
+                <span>ቀሪ ክምችት፡</span>
+                <span className="font-black">{remainingBoxes} ቀሪ</span>
+              </div>
+            </div>
+
+            {/* 6. Total Revenue */}
+            <div className="bg-gradient-to-br from-emerald-700 to-teal-800 p-4 rounded-3xl text-white shadow-md shadow-emerald-900/20 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-200">
+                  ጠቅላላ ሽያጭ
+                </span>
+                <span className="text-xl">💰</span>
+              </div>
+              <p className="text-xl font-black text-white mt-2 tracking-tight">
+                {totalRevenueAll.toLocaleString()} <span className="text-xs font-bold text-emerald-200">ETB</span>
+              </p>
+              <div className="mt-1 pt-2 border-t border-white/20 text-[10px] font-bold text-emerald-100 flex items-center justify-between">
+                <span>ትዕዛዞች፡ {dateFilteredOrders.length}</span>
+                <span>100% ጸድቋል</span>
               </div>
             </div>
 
           </div>
+
+          {/* BOX INVENTORY TRACKER BANNER */}
+          <div className="bg-white p-4 sm:p-5 rounded-3xl border border-emerald-100 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-2xl flex-shrink-0">
+                📦
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-black text-sm text-slate-900">
+                    የቴክአዌይ ሳጥን ክምችት ቁጥጥር (Takeaway Packaging Box Tracker)
+                  </h3>
+                  {remainingBoxes < 50 && (
+                    <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 text-[10px] font-black">
+                      ⚠️ ሳጥን ሊያልቅ ነው!
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400 font-bold mt-0.5">
+                  የመነሻ ክምችት: <span className="text-slate-700 font-black">{boxInventoryInitial} ቦክስ</span> | 
+                  የወጣው: <span className="text-emerald-700 font-black">{allTimeBoxesUsed} ቦክስ</span> | 
+                  ቀሪ ሳጥን: <span className={`font-black ${remainingBoxes < 50 ? 'text-rose-600' : 'text-emerald-800'}`}>{remainingBoxes} ቦክስ ({boxStockPercent}%)</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="w-32 bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${remainingBoxes < 50 ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                  style={{ width: `${boxStockPercent}%` }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setBoxStockInput(boxInventoryInitial.toString());
+                  setShowBoxStockModal(true);
+                }}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-sm transition-all"
+              >
+                ክምችት አሻሽል
+              </button>
+            </div>
+          </div>
+
+          {/* TOP 5 BEST SELLING FOOD DISHES (ተወዳጅ ምግቦች) */}
+          {topSellingDishes.length > 0 && (
+            <div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                  <h3 className="text-sm font-black text-slate-900">
+                    ተወዳጅ ምግቦች ደረጃ (Top Selling Food Dishes)
+                  </h3>
+                </div>
+                <span className="text-xs text-slate-400 font-bold">በብዛት የተዘጋጁት</span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+                {topSellingDishes.map((dish, idx) => {
+                  const medals = ['🥇 #1', '🥈 #2', '🥉 #3', '⭐ #4', '⭐ #5'];
+                  return (
+                    <div key={dish.id} className="p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100/80 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[10px] font-black text-emerald-800 bg-white px-1.5 py-0.5 rounded-md border border-emerald-200">
+                          {medals[idx]}
+                        </span>
+                        <h4 className="font-black text-xs text-slate-900 mt-1.5 truncate">{dish.name}</h4>
+                        <span className="text-[10px] text-slate-400 font-bold block">{dish.englishName}</span>
+                      </div>
+                      <div className="mt-2 pt-1.5 border-t border-emerald-100/60 flex items-center justify-between text-[11px] font-black">
+                        <span className="text-emerald-800">{dish.countSold} ሳህን</span>
+                        <span className="text-slate-700">{dish.revenueGenerated.toLocaleString()} ETB</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* FOOD TYPES BREAKDOWN TABLE (ALL 16 DISHES) */}
           <div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-black text-slate-900">
-                  🍲 የምግቦች ዝርዝር ቆጠራ (Food Types Breakdown)
+                  🍲 የምግቦች ዝርዝር ቆጠራ (Food Types Breakdown - All 16 Dishes)
                 </h3>
                 <p className="text-xs text-slate-400 font-bold mt-0.5">
                   ከ16ቱ ምግቦች እያንዳንዱ ስንት ሳህን እንደተሸጠና የወጣው ቦክስ
@@ -2116,7 +2497,7 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-emerald-50">
-                  {dishBreakdown.map((item, index) => (
+                  {dishBreakdown.map((item) => (
                     <tr key={item.id} className="hover:bg-emerald-50/40 transition-colors">
                       <td className="py-2.5 px-3 font-black text-slate-900 flex items-center gap-2">
                         <span>{item.emoji || '🍲'}</span>
@@ -2147,74 +2528,259 @@ export default function App() {
             </div>
           </div>
 
-          {/* WAITERS BREAKDOWN */}
+          {/* WAITERS PERFORMANCE BREAKDOWN */}
           <div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-sm space-y-4">
-            <h3 className="text-sm font-black text-slate-900">
-              👤 በአስተናጋጆች የተወሰደ (Orders by Waiter)
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <Users className="w-4 h-4 text-emerald-600" />
+                <span>👤 በአስተናጋጆች የተወሰደ (Orders Taken by Waiter)</span>
+              </h3>
+              <span className="text-xs text-slate-400 font-bold">የአስተናጋጆች አፈጻጸም</span>
+            </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {Object.keys(waiterStats).length > 0 ? (
-                Object.entries(waiterStats).map(([waiter, stats]) => (
-                  <div key={waiter} className="bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-100">
-                    <span className="font-black text-xs text-slate-900 block truncate">{waiter}</span>
-                    <div className="mt-1 space-y-0.5 text-[11px] font-bold text-slate-500">
-                      <p>ትዕዛዞች: <span className="font-black text-slate-900">{stats.ordersCount}</span></p>
-                      <p>ቦክሶች: <span className="font-black text-emerald-800">{stats.boxesCount} 🥡</span></p>
-                      <p>ድምር: <span className="font-black text-slate-900">{stats.totalETB.toLocaleString()} ETB</span></p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+              {waitersList.map(waiter => {
+                const stats = waiterStats[waiter.fullName] || 
+                              waiterStats[waiter.amharic] || 
+                              waiterStats[waiter.english] || 
+                              { ordersCount: 0, boxesCount: 0, totalETB: 0 };
+                const isSelected = ownerWaiterFilter === waiter.amharic || ownerWaiterFilter === waiter.english;
+                return (
+                  <div 
+                    key={waiter.fullName}
+                    onClick={() => setOwnerWaiterFilter(isSelected ? 'all' : waiter.amharic)}
+                    className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                      isSelected 
+                        ? 'bg-emerald-100 border-emerald-500 shadow-md ring-2 ring-emerald-500/20' 
+                        : 'bg-emerald-50/40 border-emerald-100 hover:border-emerald-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-base">{waiter.emoji || '👤'}</span>
+                      {isSelected && (
+                        <span className="text-[9px] bg-emerald-600 text-white font-black px-1.5 py-0.5 rounded">
+                          ተመርጧል
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-black text-xs text-slate-900 block truncate mt-1">{waiter.amharic}</span>
+                    <span className="text-[10px] text-slate-400 font-bold block truncate">{waiter.english}</span>
+                    <div className="mt-2 pt-1.5 border-t border-emerald-100 space-y-0.5 text-[11px] font-bold text-slate-600">
+                      <p>ትዕዛዞች፡ <span className="font-black text-slate-900">{stats.ordersCount}</span></p>
+                      <p>ቦክሶች፡ <span className="font-black text-emerald-800">{stats.boxesCount} 🥡</span></p>
+                      <p>ድምር፡ <span className="font-black text-slate-900">{stats.totalETB.toLocaleString()} ETB</span></p>
                     </div>
                   </div>
-                ))
-              ) : (
-                <p className="text-xs text-slate-400 font-bold col-span-full">እስካሁን ምንም ትዕዛዝ አልተመዘገበም</p>
-              )}
+                );
+              })}
             </div>
           </div>
 
-          {/* RECENT ORDERS FEED */}
-          <div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-sm space-y-3">
-            <h3 className="text-sm font-black text-slate-900">
-              📋 የቅርብ ጊዜ ትዕዛዞች ዝርዝር (Recent Orders Log)
-            </h3>
+          {/* ============================================================== */}
+          {/* COMPLETE ORDERS AUDIT & MANAGEMENT LOG (EVERY ORDER VISIBLE!)   */}
+          {/* ============================================================== */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-emerald-100 shadow-sm space-y-5">
+            
+            {/* Header Title with live counter */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <Receipt className="w-5 h-5 text-emerald-600" />
+                  <span>ሁሉንም የተዘጋጁና የተወሰዱ ትዕዛዞች መቆጣጠሪያ (Full Orders Audit Log)</span>
+                </h3>
+                <p className="text-xs text-slate-400 font-bold mt-0.5">
+                  በሲስተሙ የተዘጋጁና የተወሰዱ {displayOrders.length} ትዕዛዞች ተገኝተዋል (ማን እንደወሰደው፣ በስንት ሰዓትና ሙሉ ደረሰኝ)
+                </p>
+              </div>
 
-            {sentOrders.length === 0 ? (
-              <p className="text-xs text-slate-400 font-bold py-4 text-center">ምንም ትዕዛዝ የለም</p>
+              {/* Status / Waiter Filter Reset */}
+              {(ownerShiftFilter !== 'all' || ownerWaiterFilter !== 'all' || ownerSearchQuery || ownerStatusFilter !== 'all') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOwnerShiftFilter('all');
+                    setOwnerWaiterFilter('all');
+                    setOwnerSearchQuery('');
+                    setOwnerStatusFilter('all');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black self-start sm:self-auto flex items-center gap-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>ማጣሪያዎችን አጥፋ (Reset Filters)</span>
+                </button>
+              )}
+            </div>
+
+            {/* SEARCH AND FILTER BAR */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-1">
+              
+              {/* 1. Live Search Input */}
+              <div className="md:col-span-5 relative">
+                <input
+                  type="text"
+                  placeholder="በምግብ ስም፣ በአስተናጋጅ ወይም በትዕዛዝ ቁጥር ፈልግ..."
+                  value={ownerSearchQuery}
+                  onChange={(e) => setOwnerSearchQuery(e.target.value)}
+                  className="w-full bg-slate-50 border border-emerald-200 focus:border-emerald-500 rounded-2xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                {ownerSearchQuery && (
+                  <button 
+                    type="button"
+                    onClick={() => setOwnerSearchQuery('')}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* 2. Waiter Filter Dropdown */}
+              <div className="md:col-span-4">
+                <select
+                  value={ownerWaiterFilter}
+                  onChange={(e) => setOwnerWaiterFilter(e.target.value)}
+                  className="w-full bg-slate-50 border border-emerald-200 focus:border-emerald-500 rounded-2xl py-2.5 px-3 text-xs font-black text-slate-800 outline-none transition-all"
+                >
+                  <option value="all">👤 ሁሉም አስተናጋጆች (All Waiters)</option>
+                  {waitersList.map(w => (
+                    <option key={w.fullName} value={w.amharic}>
+                      {w.amharic} ({w.english})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 3. Status Filter (Cooked vs Taken) */}
+              <div className="md:col-span-3">
+                <select
+                  value={ownerStatusFilter}
+                  onChange={(e) => setOwnerStatusFilter(e.target.value)}
+                  className="w-full bg-slate-50 border border-emerald-200 focus:border-emerald-500 rounded-2xl py-2.5 px-3 text-xs font-black text-slate-800 outline-none transition-all"
+                >
+                  <option value="all">⚡ ሁሉም ሁኔታዎች (All Statuses)</option>
+                  <option value="cooked">🍳 በኩሽና የተዘጋጀ (Cooked)</option>
+                  <option value="taken">🏃 በአስተናጋጅ የተወሰደ (Taken)</option>
+                </select>
+              </div>
+
+            </div>
+
+            {/* FILTER TABS (All, Day, Night, BEU, Home, Takeaway) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+              {[
+                { id: 'all', label: `ሁሉም (${dateFilteredOrders.length})` },
+                { id: 'Day', label: `☀️ የቀን (${dayOrders.length})` },
+                { id: 'Night', label: `🌙 የማታ (${nightOrders.length})` },
+                { id: 'BEU', label: `🛵 ቢዩ (${beuOrders.length})` },
+                { id: 'Home', label: `🏠 ቤት ውስጥ (${homeOrders.length})` },
+                { id: 'Takeaway', label: `🥡 ቴክአዌይ (${takeawayOrders.length})` }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setOwnerShiftFilter(tab.id)}
+                  className={`px-3 py-1.5 rounded-xl font-black whitespace-nowrap transition-all ${
+                    ownerShiftFilter === tab.id
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* THE ORDERS LIST (NO LIMIT - SHOWS ALL FILTERED ORDERS!) */}
+            {displayOrders.length === 0 ? (
+              <div className="py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <p className="text-sm font-black text-slate-500">ምንም የተገኘ ትዕዛዝ የለም (No orders found)</p>
+                <p className="text-xs text-slate-400 mt-1">የፍለጋ ቃሉን ወይም ማጣሪያውን ይቀይሩ</p>
+              </div>
             ) : (
-              <div className="space-y-2">
-                {sentOrders.slice(0, 20).map(order => {
+              <div className="space-y-3">
+                {displayOrders.map(order => {
                   const isHome = order.orderType === 'Home' || order.channel === 'In-Store Home';
+                  const isCooked = (order.status || '').includes('ተዘጋጅቷል');
+
                   return (
                     <div 
                       key={order.id}
-                      className="p-3 bg-slate-50 rounded-2xl flex items-center justify-between gap-3 text-xs"
+                      className="p-4 bg-slate-50/80 hover:bg-emerald-50/40 rounded-3xl border border-slate-200/80 hover:border-emerald-300 transition-all shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4"
                     >
-                      <div className="flex items-center gap-3">
-                        <span className={`w-8 h-8 rounded-xl font-black flex items-center justify-center text-xs ${
-                          isHome ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                      {/* Left Block: Order Info & Food Items */}
+                      <div className="flex items-start gap-3.5">
+                        
+                        {/* Packaging Icon Badge */}
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 shadow-inner ${
+                          isHome ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900'
                         }`}>
                           {isHome ? '🍽️' : '🥡'}
-                        </span>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-black text-slate-900">
-                              {order.items?.map(i => `${i.qty}x ${i.name}`).join(', ')}
+                        </div>
+
+                        {/* Order Details */}
+                        <div className="space-y-1.5">
+                          {/* Order Badges Row */}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="font-mono font-black text-xs text-slate-900 bg-white px-2 py-0.5 rounded-lg border border-slate-200">
+                              #{order.id.slice(-6).toUpperCase()}
                             </span>
-                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-1.5 py-0.5 rounded">
+
+                            {/* Shift */}
+                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2 py-0.5 rounded-lg">
                               {order.shift}
                             </span>
-                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
-                              isHome ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700'
+
+                            {/* Channel / Order Type */}
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg ${
+                              isHome ? 'bg-amber-100 text-amber-900' : 'bg-slate-200 text-slate-800'
                             }`}>
                               {isHome ? '🏠 ቤት ውስጥ' : '🥡 ቴክአዌይ'}
                             </span>
+
                             {order.channel === 'BEU Delivery' && (
-                              <span className="text-[10px] bg-teal-100 text-teal-800 font-black px-1.5 py-0.5 rounded">
-                                {order.beuOrderId || 'BEU'}
+                              <span className="text-[10px] bg-teal-100 text-teal-800 font-black px-2 py-0.5 rounded-lg">
+                                {order.beuOrderId || 'BEU Delivery'}
                               </span>
                             )}
+
+                            {/* Cooking / Taken Status Badge */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleOrderStatus(order.id)}
+                              className={`text-[10px] font-black px-2 py-0.5 rounded-lg border transition-all flex items-center gap-1 ${
+                                isCooked 
+                                  ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200' 
+                                  : 'bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200'
+                              }`}
+                              title="የምግብ ሁኔታ ለመቀየር ይጫኑ / Click to toggle cooked vs taken"
+                            >
+                              <span>{order.status || '✅ ተዘጋጅቶ ተወስዷል (Cooked & Taken)'}</span>
+                              <RefreshCw className="w-2.5 h-2.5 opacity-60" />
+                            </button>
                           </div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold mt-0.5">
-                            <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-black flex items-center gap-1">
+
+                          {/* Food Dishes List with Quantities */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                            {order.items?.map((item, idx) => (
+                              <span 
+                                key={idx} 
+                                className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-slate-200 text-xs font-black text-slate-900 shadow-2xs"
+                              >
+                                <span className="text-emerald-700 font-black">{item.qty}×</span>
+                                <span>{item.name}</span>
+                                <span className="text-[10px] text-slate-400 font-bold">({item.price} ETB)</span>
+                              </span>
+                            ))}
+                          </div>
+
+                          {/* Metadata row: Waiter, Time, Date, Box Count */}
+                          <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 font-bold pt-0.5">
+                            <span className="text-slate-800 font-black flex items-center gap-1 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                              👤 ወሳጅ፡ {order.waiterName || 'አልተጠቀሰም'}
+                            </span>
+                            <span>•</span>
+                            <span className="text-emerald-900 font-black flex items-center gap-1">
                               📅 {order.ethiopianDate || orderEthDate.formatted}
                             </span>
                             <button
@@ -2226,36 +2792,312 @@ export default function App() {
                               ✏️ ቀይር
                             </button>
                             <span>•</span>
-                            <span>{order.timestamp}</span>
+                            <span>🕒 {order.timestamp}</span>
                             <span>•</span>
-                            <span>ወሳጅ፡ {order.waiterName || 'አልተጠቀሰም'}</span>
-                            <span>•</span>
-                            <span>{isHome ? '🍽️ 0 ቦክስ (Home)' : `${order.boxesCount || 0} ቦክስ`}</span>
+                            <span className="font-black text-slate-700">
+                              {isHome ? '🍽️ 0 ቦክስ (Home)' : `📦 ${order.boxesCount || 0} ቴክአዌይ ቦክስ`}
+                            </span>
                           </div>
                         </div>
+
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <span className="font-black text-slate-900 text-sm">
-                          {order.totalAmount} ETB
-                        </span>
+                      {/* Right Block: Total Price & Actions */}
+                      <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-200/60">
+                        
+                        <div className="text-right">
+                          <span className="text-lg font-black text-slate-900 block leading-tight">
+                            {order.totalAmount?.toLocaleString()} <span className="text-xs font-black text-emerald-700">ETB</span>
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-400">
+                            {order.items?.reduce((s, i) => s + i.qty, 0)} የተዘጋጁ ምግቦች
+                          </span>
+                        </div>
+
+                        {/* View Receipt Ticket Button */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOrderForView(order)}
+                          className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-1 shadow-sm transition-all active:scale-95"
+                          title="የዚህን ትዕዛዝ ሙሉ ደረሰኝ/ቲኬት እይ / View Receipt Ticket"
+                        >
+                          <Receipt className="w-3.5 h-3.5" />
+                          <span>ቲኬት እይ</span>
+                        </button>
+
+                        {/* Delete Order Button */}
                         <button
                           type="button"
                           onClick={() => handleDeleteOrder(order.id)}
-                          className="text-slate-300 hover:text-rose-500 p-1"
-                          title="ሰርዝ"
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                          title="ትዕዛዙን ሰርዝ / Delete Order"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
+
                       </div>
                     </div>
                   );
                 })}
               </div>
             )}
+
           </div>
 
         </main>
+      )}
+
+      {/* ============================================================== */}
+      {/* OWNER TICKET VIEWER MODAL (INSPECT ANY HISTORICAL ORDER)        */}
+      {/* ============================================================== */}
+      {selectedOrderForView && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#F8F6F0] flex flex-col items-center justify-center p-4 sm:p-6 min-h-screen animate-in fade-in duration-200">
+          
+          {/* Subtle Dot Matrix Background Texture */}
+          <div 
+            className="fixed inset-0 opacity-40 pointer-events-none"
+            style={{
+              backgroundImage: 'radial-gradient(#C8BFAD 1.5px, transparent 1.5px)',
+              backgroundSize: '20px 20px'
+            }}
+          />
+
+          <div className="relative z-10 w-full flex flex-col items-center max-w-sm sm:max-w-md my-auto py-6">
+            
+            {/* Top Close Button */}
+            <div className="w-full flex items-center justify-between mb-2">
+              <span className="text-xs font-black text-slate-600 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full border border-slate-200">
+                👑 የባለቤት መርማሪ (Ticket Audit)
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedOrderForView(null)}
+                className="w-8 h-8 rounded-full bg-white shadow-sm border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Glowing Checkmark Badge */}
+            <div className="relative inline-flex items-center justify-center mb-1">
+              <div className="w-20 h-20 rounded-full bg-[#D4EFE2] flex items-center justify-center shadow-inner">
+                <div className="w-14 h-14 rounded-full bg-[#107049] flex items-center justify-center text-white shadow-md">
+                  <Check className="w-8 h-8 stroke-[3.5] text-white" />
+                </div>
+              </div>
+            </div>
+
+            {/* Header Titles */}
+            <h2 className="text-2xl sm:text-3xl font-black text-[#1C201D] tracking-tight text-center mt-3">
+              ትዕዛዝ #{selectedOrderForView.id.slice(-6).toUpperCase()}
+            </h2>
+            <p className="text-xs sm:text-sm font-semibold text-[#666E67] text-center mt-1 tracking-wide">
+              {selectedOrderForView.status || 'ተዘጋጅቶ ተወስዷል (Cooked & Taken)'}
+            </p>
+
+            {/* Ticket Card */}
+            <div className="w-full bg-white rounded-[32px] shadow-sm border border-[#E9E4D6] overflow-hidden text-left mt-6">
+              
+              {/* Food Items List */}
+              <div className="p-5 sm:p-6 space-y-3">
+                {selectedOrderForView.items?.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between pb-2.5 border-b border-[#F2EEE4] last:border-b-0 last:pb-0">
+                    <div className="flex items-center gap-3.5">
+                      <span className="bg-[#E2F4EB] text-[#126848] font-black text-xs px-2.5 py-1 rounded-xl flex-shrink-0">
+                        {item.qty}×
+                      </span>
+                      <span className="font-black text-sm sm:text-base text-[#1C201D] tracking-tight">
+                        {item.name}
+                      </span>
+                    </div>
+                    <span className="font-black text-xs text-[#1C201D]">
+                      {item.price * item.qty} ETB
+                    </span>
+                  </div>
+                ))}
+
+                {/* Total Price Box */}
+                <div className="bg-[#EBF6F0] rounded-2xl p-4 flex items-center justify-between mt-3">
+                  <span className="font-black text-sm text-[#1C201D]">ድምር ዋጋ</span>
+                  <div className="flex items-baseline">
+                    <span className="text-3xl font-black text-[#1C201D] tracking-tight">
+                      {selectedOrderForView.totalAmount?.toLocaleString()}
+                    </span>
+                    <span className="text-xs font-black text-[#107049] ml-1.5">
+                      ETB
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dashed Tear Line with Circular Notches */}
+              <div className="relative py-1 bg-white">
+                <div className="border-t-2 border-dashed border-[#DDD7C8] w-full" />
+                <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#F8F6F0] border-r border-[#DDD7C8]" />
+                <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#F8F6F0] border-l border-[#DDD7C8]" />
+              </div>
+
+              {/* Metadata Details Rows */}
+              <div className="p-5 sm:p-6 space-y-4 bg-white">
+                
+                {/* 1. Date */}
+                <div className="flex items-start justify-between text-xs">
+                  <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                    <Calendar className="w-4 h-4 text-[#7A837C]" />
+                    <span>ቀን</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-black text-xs text-[#1D211E] block">
+                      {selectedOrderForView.ethiopianDate}
+                    </span>
+                    <span className="text-[11px] font-semibold text-[#7D847E] block mt-0.5">
+                      {selectedOrderForView.gregorianDateFormatted || selectedOrderForView.timestamp}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Shift */}
+                <div className="flex items-start justify-between text-xs">
+                  <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                    <Sun className="w-4 h-4 text-[#7A837C]" />
+                    <span>ፈረቃ</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-black text-xs text-[#1D211E] block">
+                      {selectedOrderForView.shift}
+                    </span>
+                    <span className="text-[11px] font-semibold text-[#7D847E] block mt-0.5">
+                      {selectedOrderForView.channel}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3. Service / Order Type */}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                    <ShoppingBag className="w-4 h-4 text-[#7A837C]" />
+                    <span>አገልግሎት</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-black text-xs text-[#1C201D]">
+                      {selectedOrderForView.orderType === 'Home' ? 'ቤት ውስጥ  Home (300 ETB)' : 'ቴክአዌይ  Takeaway'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4. Waiter */}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                    <User className="w-4 h-4 text-[#7A837C]" />
+                    <span>የወሰደው አስተናጋጅ</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-black text-xs text-[#1D211E]">
+                      {formatWaiterDisplayName(selectedOrderForView.waiterName)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 5. Boxes count */}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-[#5A625B] font-bold">
+                    <Box className="w-4 h-4 text-[#7A837C]" />
+                    <span>የወጣ ቦክስ</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-black text-xs text-[#1D211E]">
+                      {selectedOrderForView.orderType === 'Home' 
+                        ? '0  Takeaway Box' 
+                        : `${selectedOrderForView.boxesCount}  Takeaway Box`}
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Action Buttons: Print & Close */}
+            <div className="grid grid-cols-2 gap-3 w-full mt-6">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="bg-slate-800 hover:bg-slate-900 text-white rounded-2xl py-3.5 px-4 font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+              >
+                <Printer className="w-4 h-4" />
+                <span>ቲኬቱን አትም (Print)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedOrderForView(null)}
+                className="bg-[#107049] hover:bg-[#0D5B3B] text-white rounded-2xl py-3.5 px-4 font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+              >
+                <span>ዝጋ (Close)</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* BOX INVENTORY CONFIGURATION MODAL                               */}
+      {/* ============================================================== */}
+      {showBoxStockModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                <Package className="w-5 h-5 text-emerald-600" />
+                <span>የሳጥን መነሻ ክምችት (Box Inventory)</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowBoxStockModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 font-bold">
+              በሲስተሙ ውስጥ ያለውን አጠቃላይ የመነሻ ሳጥን ብዛት እዚህ ያስገቡ (ለምሳሌ፡ 500 ወይም 1000 ሳጥን)። ሲስተሙ የወጡትን ሳጥኖች በቀጥታ ቀንሶ ቀሪውን ያሳየዎታል።
+            </p>
+
+            <form onSubmit={handleSaveBoxInventory} className="space-y-4">
+              <div>
+                <label className="block text-xs font-black text-slate-700 mb-1">
+                  የመነሻ ሳጥን ብዛት (Total Initial Boxes):
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={boxStockInput}
+                  onChange={(e) => setBoxStockInput(e.target.value)}
+                  className="w-full bg-slate-50 border-2 border-emerald-200 focus:border-emerald-500 rounded-2xl py-3 px-4 font-black text-lg text-slate-900 outline-none"
+                  placeholder="500"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBoxStockModal(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-black text-slate-500 hover:bg-slate-100"
+                >
+                  ተመለስ
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md"
+                >
+                  አስቀምጥ (Save)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* ============================================================== */}
