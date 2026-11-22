@@ -233,6 +233,12 @@ export default function BusinessManagement({
   const [plansSubTab, setPlansSubTab] = useState('goals'); // 'goals' | 'tasks' | 'notes'
   const [reportsSubTab, setReportsSubTab] = useState('budget'); // 'budget' | 'audit' | 'closes'
 
+  // Inline Quick Expense Entry Form State
+  const [inlineExpenseTitle, setInlineExpenseTitle] = useState('');
+  const [inlineExpenseAmount, setInlineExpenseAmount] = useState('');
+  const [inlineExpenseCategory, setInlineExpenseCategory] = useState('Ingredients');
+  const [inlineExpenseMethod, setInlineExpenseMethod] = useState('Cash');
+
   // ==============================================================
   // VERSION 2.0 RECALCULATED EXACT FINANCIAL FORMULAS
   // ==============================================================
@@ -505,20 +511,49 @@ export default function BusinessManagement({
     });
   };
 
+  // Inline Quick Expense Submission (Zero modal latency)
+  const handleInlineExpenseSubmit = (e) => {
+    e.preventDefault();
+    const amt = Number(inlineExpenseAmount);
+    if (!inlineExpenseTitle.trim() || isNaN(amt) || amt <= 0) return;
+    const newId = 'exp-' + Date.now();
+    const newExp = {
+      id: newId,
+      title: inlineExpenseTitle.trim(),
+      category: inlineExpenseCategory,
+      amount: amt,
+      date: new Date().toISOString().split('T')[0],
+      paymentMethod: inlineExpenseMethod,
+      linkedPlan: 'Quick Entry'
+    };
+    setActualExpenses(prev => [newExp, ...prev]);
+    setInlineExpenseTitle('');
+    setInlineExpenseAmount('');
+    triggerUndoableAction(`${newExp.title} (${amt.toLocaleString()} ETB) ተመዝግቧል!`, () => {
+      setActualExpenses(prev => prev.filter(e => e.id !== newId));
+    });
+  };
+
   // Quick Add Submissions
   const handleQuickAddSubmit = (e) => {
     e.preventDefault();
     if (activeQuickAddModal === 'expense') {
+      const amt = Number(formInputs.amount) || 0;
+      const title = formInputs.title || 'Other Expense';
+      const expId = 'exp-' + Date.now();
       const exp = {
-        id: 'exp-' + Date.now(),
-        title: formInputs.title || 'Other Expense',
+        id: expId,
+        title,
         category: formInputs.category || 'General',
-        amount: Number(formInputs.amount) || 0,
+        amount: amt,
         date: formInputs.date || new Date().toISOString().split('T')[0],
         paymentMethod: formInputs.paymentMethod || 'Cash',
         linkedPlan: 'Custom'
       };
       setActualExpenses(prev => [exp, ...prev]);
+      triggerUndoableAction(`${title} (${amt.toLocaleString()} ETB) ተመዝግቧል!`, () => {
+        setActualExpenses(prev => prev.filter(e => e.id !== expId));
+      });
     } else if (activeQuickAddModal === 'purchase') {
       const qty = Number(formInputs.quantity) || 1;
       const unitPrice = Number(formInputs.unitPrice) || 0;
@@ -840,13 +875,26 @@ export default function BusinessManagement({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('topay')}
-              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs rounded-2xl whitespace-nowrap active:scale-95 transition-all self-end md:self-center"
-            >
-              ክፍያዎችን እይ →
-            </button>
+            <div className="flex flex-wrap items-center gap-2 self-end md:self-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setFormInputs({ date: new Date().toISOString().split('T')[0], paymentMethod: 'Cash', category: 'Ingredients' });
+                  setActiveQuickAddModal('expense');
+                }}
+                className="px-3.5 py-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black text-xs rounded-2xl flex items-center gap-1.5 shadow-md shadow-rose-700/20 active:scale-95 transition-all whitespace-nowrap"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <span>+ ወጪ መዝግብ</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('topay')}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs rounded-2xl whitespace-nowrap active:scale-95 transition-all"
+              >
+                ክፍያዎችን እይ →
+              </button>
+            </div>
           </div>
 
           {/* 3.3 ACTION REQUIRED (AT MOST 4 ALERTS WITH PRE-FILLED CONFIRM SHEET) */}
@@ -1359,6 +1407,145 @@ export default function BusinessManagement({
               </p>
               <p className="text-[11px] text-slate-400 font-bold">ዲጂታል ዝውውር</p>
             </div>
+          </div>
+
+          {/* INLINE QUICK EXPENSE ENTRY (ZERO MODAL LATENCY) */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-3.5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-black text-sm">
+                  💸
+                </div>
+                <div>
+                  <h4 className="font-black text-sm text-slate-900">
+                    ቀጥታ ወጪ መዝግብ (Quick Record Expense)
+                  </h4>
+                  <p className="text-[11px] text-slate-400 font-bold">
+                    ያለ ምንም ተጨማሪ ገጽ እዚሁ ይመዝግቡ (በ10 ሰከንድ ቀልብስ አለው)
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormInputs({ date: new Date().toISOString().split('T')[0], paymentMethod: 'Cash', category: 'Ingredients' });
+                  setActiveQuickAddModal('expense');
+                }}
+                className="text-xs font-black text-emerald-700 hover:text-emerald-800 flex items-center gap-1 active:scale-95 transition-all"
+              >
+                <span>ሙሉ ፎርም (Detailed Form)</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleInlineExpenseSubmit} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                {/* Title Input */}
+                <div className="sm:col-span-5">
+                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                    የወጪው ስም (Description)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ለምሳሌ፡ አቮካዶ፣ ወተት፣ ሰራተኛ ምሳ፣ በረዶ..."
+                    value={inlineExpenseTitle}
+                    onChange={(e) => setInlineExpenseTitle(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none transition-all"
+                  />
+                </div>
+
+                {/* Amount Input */}
+                <div className="sm:col-span-3">
+                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                    መጠን (Amount ETB)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      step="any"
+                      placeholder="0.00"
+                      value={inlineExpenseAmount}
+                      onChange={(e) => setInlineExpenseAmount(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl pl-3.5 pr-12 py-2.5 text-xs font-black text-slate-900 outline-none transition-all"
+                    />
+                    <span className="absolute right-3.5 top-2.5 text-[11px] font-black text-slate-400">
+                      ETB
+                    </span>
+                  </div>
+                </div>
+
+                {/* Category Select */}
+                <div className="sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                    ዘርፍ (Category)
+                  </label>
+                  <select
+                    value={inlineExpenseCategory}
+                    onChange={(e) => setInlineExpenseCategory(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl px-3 py-2.5 text-xs font-bold text-slate-800 outline-none transition-all"
+                  >
+                    <option value="Ingredients">🥑 ፍራፍሬ/ግብአት</option>
+                    <option value="Transport">🚕 ትራንስፖርት</option>
+                    <option value="Maintenance">🧹 ጽዳት/ጥገና</option>
+                    <option value="Supplies">📦 ማሸጊያ</option>
+                    <option value="Utilities">⚡ መብራት/ውሃ</option>
+                    <option value="Rent">🏢 ኪራይ</option>
+                    <option value="Salary">👥 ደመወዝ</option>
+                    <option value="General">✨ ጠቅላላ</option>
+                  </select>
+                </div>
+
+                {/* Submit Button */}
+                <div className="sm:col-span-2 flex flex-col justify-end">
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 shadow-md shadow-rose-700/20 active:scale-95 transition-all"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3]" />
+                    <span>ወጪ መዝግብ</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Preset Pills & Payment Method Selector */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-black text-slate-400 uppercase mr-1">ፈጣን መጠን:</span>
+                  {[50, 100, 200, 300, 500, 1000].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setInlineExpenseAmount(amt.toString())}
+                      className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-black transition-all active:scale-95"
+                    >
+                      +{amt} ETB
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl self-stretch sm:self-auto justify-center">
+                  {[
+                    { id: 'Cash', label: '💵 ጥሬ ገንዘብ' },
+                    { id: 'Telebirr', label: '📱 ቴሌብር' },
+                    { id: 'CBE Birr', label: '🏦 ሲቢኢ' }
+                  ].map(m => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setInlineExpenseMethod(m.id)}
+                      className={`px-3 py-1 rounded-xl text-[11px] font-black transition-all ${
+                        inlineExpenseMethod === m.id ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </form>
           </div>
 
           {/* ONE-TAP QUICK EXPENSE PRESETS WITH 10S UNDO */}
@@ -2258,14 +2445,238 @@ export default function BusinessManagement({
       )}
 
       {/* ============================================================== */}
-      {/* GLOBAL QUICK ADD MODAL (EXPENSE, PURCHASE, SALARY, TASK...)    */}
+      {/* 1. DEDICATED RESPONSIVE RECORD EXPENSE MODAL / BOTTOM SHEET    */}
       {/* ============================================================== */}
-      {activeQuickAddModal && (
+      {activeQuickAddModal === 'expense' && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center font-black text-base shadow-sm">
+                  💸
+                </div>
+                <div>
+                  <h3 className="font-black text-sm sm:text-base text-slate-900">
+                    አዲስ ወጪ መዝግብ (Record Business Expense)
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-bold">
+                    የዕለት ወጪዎችን በካዝና ወይም በቴሌብር ወዲያውኑ ይመዝግቡ
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setActiveQuickAddModal(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Form with Sticky Bottom Action Bar for 100% Mobile & Desktop Fit */}
+            <form onSubmit={handleQuickAddSubmit} className="flex flex-col flex-1 overflow-hidden">
+              
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs">
+                
+                {/* Description Input & Suggestion Chips */}
+                <div className="space-y-1.5">
+                  <label className="font-black text-slate-700 block text-xs">
+                    የወጪው ስም ወይም ዝርዝር (Description):
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ለምሳሌ፡ የበረዶ ግዢ፣ አቮካዶ፣ ወተት፣ ሰራተኛ ምሳ..."
+                    value={formInputs.title || ''}
+                    onChange={(e) => setFormInputs({ ...formInputs, title: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none transition-all"
+                  />
+                  
+                  {/* Suggestions */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase">ፈጣን ምርጫ:</span>
+                    {[
+                      { title: 'የበረዶ ግዢ', cat: 'Ingredients', emoji: '🧊' },
+                      { title: 'የሎሚ ግዢ', cat: 'Ingredients', emoji: '🍋' },
+                      { title: 'የወተት ግዢ', cat: 'Ingredients', emoji: '🥛' },
+                      { title: 'የአቮካዶ ግዢ', cat: 'Ingredients', emoji: '🥑' },
+                      { title: 'ታክሲና ትራንስፖርት', cat: 'Transport', emoji: '🚕' },
+                      { title: 'ሳሙናና ጽዳት', cat: 'Maintenance', emoji: '🧹' },
+                      { title: 'ኩባያና ማሸጊያ', cat: 'Supplies', emoji: '📦' },
+                      { title: 'የሰራተኛ ምሳ', cat: 'Salary', emoji: '🍲' }
+                    ].map((sug, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setFormInputs({ ...formInputs, title: sug.title, category: sug.cat })}
+                        className="px-2 py-0.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200/60 transition-all active:scale-95 flex items-center gap-1"
+                      >
+                        <span>{sug.emoji}</span>
+                        <span>{sug.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Amount Input with Quick Increment Pills */}
+                <div className="space-y-1.5">
+                  <label className="font-black text-slate-700 block text-xs">
+                    የወጣው የገንዘብ መጠን (Amount in ETB):
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      step="any"
+                      placeholder="0.00"
+                      value={formInputs.amount || ''}
+                      onChange={(e) => setFormInputs({ ...formInputs, amount: e.target.value })}
+                      className="w-full bg-slate-50 border-2 border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl pl-4 pr-14 py-2 text-base sm:text-lg font-black text-slate-900 outline-none transition-all"
+                    />
+                    <span className="absolute right-4 top-2.5 text-xs font-black text-slate-400">
+                      ETB
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                    <span className="text-[10px] font-black text-slate-400 uppercase">መጠን ጨምር:</span>
+                    {[50, 100, 200, 500, 1000].map(amt => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => {
+                          const cur = Number(formInputs.amount) || 0;
+                          setFormInputs({ ...formInputs, amount: (cur + amt).toString() });
+                        }}
+                        className="px-2.5 py-0.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-black border border-rose-200/80 transition-all active:scale-95"
+                      >
+                        +{amt} ETB
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Visual Category Selection Grid (8 chips, no clipped select!) */}
+                <div className="space-y-1.5">
+                  <label className="font-black text-slate-700 block text-xs">
+                    የወጪ ዘርፍ (Category):
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    {[
+                      { id: 'Ingredients', label: 'ፍራፍሬ/ግብአት', emoji: '🥑' },
+                      { id: 'Transport', label: 'ትራንስፖርት', emoji: '🚕' },
+                      { id: 'Maintenance', label: 'ጽዳትና ጥገና', emoji: '🧹' },
+                      { id: 'Supplies', label: 'ማሸጊያ', emoji: '📦' },
+                      { id: 'Utilities', label: 'መብራት/ውሃ', emoji: '⚡' },
+                      { id: 'Rent', label: 'የቤት ኪራይ', emoji: '🏢' },
+                      { id: 'Salary', label: 'ደመወዝ/አበል', emoji: '👥' },
+                      { id: 'General', label: 'ጠቅላላ ወጪ', emoji: '✨' }
+                    ].map(cat => {
+                      const isSel = (formInputs.category || 'Ingredients') === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setFormInputs({ ...formInputs, category: cat.id })}
+                          className={`p-1.5 sm:p-2 rounded-xl text-left border transition-all flex items-center gap-1.5 ${
+                            isSel
+                              ? 'bg-slate-900 border-slate-900 text-white shadow-2xs font-black'
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
+                          }`}
+                        >
+                          <span className="text-sm">{cat.emoji}</span>
+                          <span className="text-[10px] sm:text-[11px] truncate">{cat.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Payment Method Cards */}
+                <div className="space-y-1.5">
+                  <label className="font-black text-slate-700 block text-xs">
+                    የክፍያ ዘዴ (Payment Method):
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    {[
+                      { id: 'Cash', label: 'ጥሬ ገንዘብ', emoji: '💵' },
+                      { id: 'Telebirr', label: 'ቴሌብር', emoji: '📱' },
+                      { id: 'CBE Birr', label: 'ሲቢኢ ብር', emoji: '🏦' },
+                      { id: 'Bank / Telebirr', label: 'ባንክ ዝውውር', emoji: '💳' }
+                    ].map(pm => {
+                      const isSel = (formInputs.paymentMethod || 'Cash') === pm.id;
+                      return (
+                        <button
+                          key={pm.id}
+                          type="button"
+                          onClick={() => setFormInputs({ ...formInputs, paymentMethod: pm.id })}
+                          className={`p-1.5 sm:p-2 rounded-xl text-center border transition-all flex items-center justify-center gap-1.5 ${
+                            isSel
+                              ? 'bg-emerald-600 border-emerald-600 text-white shadow-2xs font-black'
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
+                          }`}
+                        >
+                          <span>{pm.emoji}</span>
+                          <span className="text-[10px] sm:text-[11px] truncate">{pm.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Date with Ethiopian Calendar helper */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                  <div>
+                    <label className="font-black text-slate-700 block text-[11px] mb-1">ቀን (Date):</label>
+                    <input
+                      type="date"
+                      value={formInputs.date || new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setFormInputs({ ...formInputs, date: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-rose-500"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <div className="w-full p-2 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200 text-[10px] font-black flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                      <span className="truncate">የኢትዮጵያ ቀን፡ {toEthiopianDateString(formInputs.date || new Date().toISOString().split('T')[0])}</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Sticky Action Footer */}
+              <div className="p-3 sm:p-4 bg-slate-50/90 border-t border-slate-200/80 flex items-center justify-between gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setActiveQuickAddModal(null)}
+                  className="w-1/3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 font-black text-slate-600 text-xs transition-all active:scale-95"
+                >
+                  ሰርዝ (Cancel)
+                </button>
+                <button
+                  type="submit"
+                  className="w-2/3 py-2.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black text-xs sm:text-sm rounded-xl shadow-md shadow-rose-700/20 transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                >
+                  <Check className="w-4 h-4 stroke-[3]" />
+                  <span>ወጪ መዝግብ (Save Expense)</span>
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* 2. OTHER QUICK ADD MODALS (PURCHASE, SALARY, TASK, GOAL...)    */}
+      {/* ============================================================== */}
+      {activeQuickAddModal && activeQuickAddModal !== 'expense' && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-sm text-slate-900 capitalize">
-                {activeQuickAddModal === 'expense' && '💸 አዲስ ወጪ መዝግብ (Record Actual Expense)'}
                 {activeQuickAddModal === 'purchase' && '🍏 አዲስ የፍራፍሬ ግዢ ዕቅድ (Add Purchase Plan)'}
                 {activeQuickAddModal === 'salary' && '👥 አዲስ የደመወዝ ግዴታ (Add Salary Plan)'}
                 {activeQuickAddModal === 'task' && '✅ አዲስ ተግባር መዝግብ (Add New Task)'}
@@ -2282,76 +2693,6 @@ export default function BusinessManagement({
             </div>
 
             <form onSubmit={handleQuickAddSubmit} className="space-y-3 text-xs">
-              {activeQuickAddModal === 'expense' && (
-                <>
-                  <div>
-                    <label className="font-black text-slate-700 block mb-1">የወጪው ስም (Description):</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="ለምሳሌ፡ የበረዶ ግዢ፣ የሎሚ ግዢ..."
-                      value={formInputs.title || ''}
-                      onChange={(e) => setFormInputs({ ...formInputs, title: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="font-black text-slate-700 block mb-1">መጠን (Amount ETB):</label>
-                      <input
-                        type="number"
-                        required
-                        placeholder="500"
-                        value={formInputs.amount || ''}
-                        onChange={(e) => setFormInputs({ ...formInputs, amount: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-black text-slate-700 block mb-1">ዘርፍ (Category):</label>
-                      <select
-                        value={formInputs.category || 'Ingredients'}
-                        onChange={(e) => setFormInputs({ ...formInputs, category: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                      >
-                        <option value="Ingredients">Ingredients (ፍራፍሬና ግብአት)</option>
-                        <option value="Transport">Transport (ታክሲና ትራንስፖርት)</option>
-                        <option value="Maintenance">Maintenance (ጽዳትና ጥገና)</option>
-                        <option value="Utilities">Utilities (መብራት/ውሃ)</option>
-                        <option value="Supplies">Supplies (ኩባያና ቦክስ)</option>
-                        <option value="Rent">Rent (ኪራይ)</option>
-                        <option value="Salary">Salary (ደመወዝ/አበል)</option>
-                        <option value="General">General (ጠቅላላ ወጪ)</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="font-black text-slate-700 block mb-1">ቀን (Date):</label>
-                      <input
-                        type="date"
-                        value={formInputs.date || new Date().toISOString().split('T')[0]}
-                        onChange={(e) => setFormInputs({ ...formInputs, date: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-black text-slate-700 block mb-1">የክፍያ ዘዴ (Method):</label>
-                      <select
-                        value={formInputs.paymentMethod || 'Cash'}
-                        onChange={(e) => setFormInputs({ ...formInputs, paymentMethod: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                      >
-                        <option value="Cash">💵 ጥሬ ገንዘብ (Cash)</option>
-                        <option value="Telebirr">📱 ቴሌብር (Telebirr)</option>
-                        <option value="CBE Birr">🏦 ሲቢኢ ብር (CBE Birr)</option>
-                        <option value="Bank / Telebirr">💳 የባንክ ዝውውር (Bank)</option>
-                      </select>
-                    </div>
-                  </div>
-                </>
-              )}
-
               {activeQuickAddModal === 'purchase' && (
                 <>
                   <div>
