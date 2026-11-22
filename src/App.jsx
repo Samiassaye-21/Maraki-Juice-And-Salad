@@ -331,13 +331,28 @@ export function formatWaiterDisplayName(waiterStr) {
 }
 
 export default function App() {
-  // --- SECURITY & PASSWORD AUTHENTICATION STATE ---
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('maraki_is_authenticated') === 'true';
+  // --- SYSTEM SEPARATION: CHEF KITCHEN POS vs OWNER COMMAND CENTER ---
+  const [systemMode, setSystemMode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sys = params.get('system') || params.get('role');
+    if (sys === 'chef' || sys === 'owner') return sys;
+    const saved = localStorage.getItem('maraki_system_mode');
+    if (saved === 'chef' || saved === 'owner') return saved;
+    return 'portal'; // Default to portal selection gateway
   });
-  const [authRole, setAuthRole] = useState(() => {
-    return localStorage.getItem('maraki_auth_role') || 'owner'; // 'owner' or 'chef'
+
+  const [isChefAuth, setIsChefAuth] = useState(() => {
+    if (localStorage.getItem('maraki_chef_authenticated') === 'true') return true;
+    if (localStorage.getItem('maraki_is_authenticated') === 'true' && localStorage.getItem('maraki_auth_role') === 'chef') return true;
+    return false;
   });
+
+  const [isOwnerAuth, setIsOwnerAuth] = useState(() => {
+    if (localStorage.getItem('maraki_owner_authenticated') === 'true') return true;
+    if (localStorage.getItem('maraki_is_authenticated') === 'true' && localStorage.getItem('maraki_auth_role') === 'owner') return true;
+    return false;
+  });
+
   const [ownerPassword, setOwnerPassword] = useState(() => {
     return localStorage.getItem('maraki_owner_password') || '1234';
   });
@@ -345,25 +360,15 @@ export default function App() {
     return localStorage.getItem('maraki_chef_pin') || '0000';
   });
 
-  // Login Form States
+  // Dedicated PIN/Password Entry States
   const [pinInput, setPinInput] = useState('');
   const [loginError, setLoginError] = useState(null);
   const [showPasswordText, setShowPasswordText] = useState(false);
 
-  // Password Settings Modal
+  // Password Settings Modal (Managed by Owner)
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [newOwnerPassInput, setNewOwnerPassInput] = useState('');
   const [newChefPinInput, setNewChefPinInput] = useState('');
-
-  // Owner Authorization Prompt (When Chef clicks Reports)
-  const [showOwnerAuthPrompt, setShowOwnerAuthPrompt] = useState(false);
-  const [ownerPromptInput, setOwnerPromptInput] = useState('');
-  const [ownerPromptError, setOwnerPromptError] = useState(null);
-
-  // Navigation: 'order' (Simple Stepper POS) vs 'reports' (Owner Dashboard)
-  const [viewMode, setViewMode] = useState(() => {
-    return localStorage.getItem('maraki_auth_role') === 'owner' ? 'reports' : 'order';
-  });
 
   // --- PWA MOBILE / DESKTOP APP INSTALL STATE ---
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -697,35 +702,60 @@ export default function App() {
     showToast(`ወደ ዛሬ ቀን ተመልሷል፡ ${today.formatted}`);
   };
 
-  // --- AUTHENTICATION & LOCK HANDLERS ---
-  const handleLoginSubmit = (e) => {
-    if (e) e.preventDefault();
-    const entered = pinInput.trim();
-    if (!entered) {
-      setLoginError('እባክዎ የይለፍ ቃል ያስገቡ (Please enter password)');
-      return;
-    }
-
-    if (entered === ownerPassword) {
-      setIsAuthenticated(true);
-      setAuthRole('owner');
-      setViewMode('reports');
-      localStorage.setItem('maraki_is_authenticated', 'true');
-      localStorage.setItem('maraki_auth_role', 'owner');
-      setPinInput('');
-      setLoginError(null);
-      showToast('👑 Logged in as Owner (የባለቤት መቆጣጠሪያ)');
-    } else if (entered === chefPin) {
-      setIsAuthenticated(true);
-      setAuthRole('chef');
-      setViewMode('order');
-      localStorage.setItem('maraki_is_authenticated', 'true');
-      localStorage.setItem('maraki_auth_role', 'chef');
-      setPinInput('');
-      setLoginError(null);
-      showToast('👩‍🍳 እንደ ሼፍ ገብተዋል (Logged in as Chef)');
+  // --- SYSTEM NAVIGATION & AUTHENTICATION HANDLERS ---
+  const navigateToSystem = (mode) => {
+    setSystemMode(mode);
+    setPinInput('');
+    setLoginError(null);
+    localStorage.setItem('maraki_system_mode', mode);
+    const url = new URL(window.location.href);
+    if (mode === 'portal') {
+      url.searchParams.delete('system');
+      url.searchParams.delete('role');
     } else {
-      setLoginError('❌ የተሳሳተ የይለፍ ቃል ነው፤ እባክዎ እንደገና ይሞክሩ');
+      url.searchParams.set('system', mode);
+      url.searchParams.delete('role');
+    }
+    window.history.pushState({}, '', url);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const sys = params.get('system') || params.get('role');
+      if (sys === 'chef' || sys === 'owner') {
+        setSystemMode(sys);
+      } else {
+        setSystemMode('portal');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleChefLoginSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (pinInput.trim() === chefPin) {
+      setIsChefAuth(true);
+      localStorage.setItem('maraki_chef_authenticated', 'true');
+      setPinInput('');
+      setLoginError(null);
+      showToast('👩‍🍳 እንደ ሼፍ ገብተዋል (Welcome to Chef Station)');
+    } else {
+      setLoginError('❌ የተሳሳተ የኩሽና ፒን ነው፤ እባክዎ እንደገና ይሞክሩ (Default: 0000)');
+    }
+  };
+
+  const handleOwnerLoginSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (pinInput.trim() === ownerPassword) {
+      setIsOwnerAuth(true);
+      localStorage.setItem('maraki_owner_authenticated', 'true');
+      setPinInput('');
+      setLoginError(null);
+      showToast('👑 የባለቤት መቆጣጠሪያ ማዕከል ተከፍቷል (Welcome to Owner Center)');
+    } else {
+      setLoginError('❌ የተሳሳተ የባለቤት ይለፍ ቃል ነው፤ እባክዎ እንደገና ይሞክሩ (Default: 1234)');
     }
   };
 
@@ -740,35 +770,20 @@ export default function App() {
     }
   };
 
-  const handleLockApp = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem('maraki_is_authenticated');
+  const handleLockChef = () => {
+    setIsChefAuth(false);
+    localStorage.removeItem('maraki_chef_authenticated');
     setPinInput('');
     setLoginError(null);
-    showToast('🔒 ሲስተሙ ተቆልፏል (App Locked)');
+    showToast('🔒 የኩሽና ሲስተም ተቆልፏል (Chef Station Locked)');
   };
 
-  const handleSwitchToReports = () => {
-    if (authRole === 'owner') {
-      setViewMode('reports');
-    } else {
-      setOwnerPromptInput('');
-      setOwnerPromptError(null);
-      setShowOwnerAuthPrompt(true);
-    }
-  };
-
-  const handleVerifyOwnerForReports = (e) => {
-    e.preventDefault();
-    if (ownerPromptInput.trim() === ownerPassword) {
-      setShowOwnerAuthPrompt(false);
-      setAuthRole('owner');
-      localStorage.setItem('maraki_auth_role', 'owner');
-      setViewMode('reports');
-      showToast('👑 የባለቤት ሪፖርት ተከፍቷል (Reports Unlocked)');
-    } else {
-      setOwnerPromptError('❌ የተሳሳተ የባለቤት የይለፍ ቃል ነው');
-    }
+  const handleLockOwner = () => {
+    setIsOwnerAuth(false);
+    localStorage.removeItem('maraki_owner_authenticated');
+    setPinInput('');
+    setLoginError(null);
+    showToast('🔒 የባለቤት ሲስተም ተቆልፏል (Owner Command Center Locked)');
   };
 
   const handleSaveNewPasswords = (e) => {
@@ -1029,140 +1044,371 @@ export default function App() {
   };
 
   // ==============================================================
-  // 🔒 LOCK SCREEN / PASSWORD LOGIN SCREEN
+  // 1. SYSTEM GATEWAY: PORTAL SELECTOR (CHEF vs OWNER)
   // ==============================================================
-  if (!isAuthenticated) {
+  if (systemMode === 'portal') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-teal-900 to-slate-950 flex flex-col items-center justify-center p-4 selection:bg-emerald-500 selection:text-white">
-        <div className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/30 text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-900 flex flex-col items-center justify-center p-4 sm:p-6 text-white selection:bg-emerald-500 selection:text-white">
+        
+        {/* Branding & Welcome */}
+        <div className="text-center max-w-md mx-auto space-y-2 mb-8 animate-in fade-in">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white text-4xl shadow-2xl shadow-emerald-500/30 mb-2">
+            🥗
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">MARAKI</h1>
+          <p className="text-xs font-black text-emerald-400 uppercase tracking-widest">
+            Juice & Salad Restaurant System
+          </p>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-slate-300 text-xs font-bold mt-2 border border-white/10">
+            <span>የስራ ክፍል ይምረጡ (Choose Work Station)</span>
+          </div>
+        </div>
+
+        {/* Two Dedicated Portal Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl w-full">
           
-          {/* Logo & Header */}
-          <div className="flex flex-col items-center">
-            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center text-3xl shadow-lg shadow-emerald-900/30 mb-2.5">
-              👩‍🍳
+          {/* Portal 1: Chef Kitchen Station */}
+          <div 
+            onClick={() => navigateToSystem('chef')}
+            className="group bg-white/10 hover:bg-white/15 backdrop-blur-xl border-2 border-emerald-500/40 hover:border-emerald-400 rounded-3xl p-6 sm:p-7 transition-all cursor-pointer shadow-xl hover:shadow-2xl hover:scale-[1.02] flex flex-col justify-between space-y-5"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center text-3xl shadow-inner">
+                  👩‍🍳
+                </div>
+                <span className={`text-[11px] font-black px-3 py-1 rounded-full border ${
+                  isChefAuth 
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30' 
+                    : 'bg-white/10 text-slate-300 border-white/20'
+                }`}>
+                  {isChefAuth ? '🔓 ክፍት ነው (Active)' : '🔒 PIN ያስፈልጋል'}
+                </span>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-black text-white group-hover:text-emerald-300 transition-colors flex items-center gap-2">
+                  <span>የሼፍ / ኩሽና ሲስተም</span>
+                </h2>
+                <p className="text-xs font-black text-emerald-400 tracking-wide mt-0.5">
+                  CHEF KITCHEN STATION (POS)
+                </p>
+                <p className="text-xs text-slate-300 font-bold mt-2 leading-relaxed">
+                  ምግብ ማዘዣ፣ የቴክአዌይና የቤት ውስጥ ዋጋ ቅነሳ፣ የቀንና የማታ ፈረቃ፣ የቢዩ ዲሊቨሪና የአስተናጋጅ ደረሰኝ ማዘጋጃ።
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-white/10 space-y-1.5 text-xs text-slate-300 font-bold">
+                <div className="flex items-center gap-2 text-emerald-300">
+                  <span>✓</span> <span>ምግብ መምረጫና ትዕዛዝ መመዝገቢያ</span>
+                </div>
+                <div className="flex items-center gap-2 text-emerald-300">
+                  <span>✓</span> <span>የደረሰኝ ህትመትና የኩሽና ትዕዛዞች</span>
+                </div>
+              </div>
             </div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">MARAKI</h1>
-            <p className="text-xs font-black text-emerald-700 uppercase tracking-wider">
-              Food Station & Management
-            </p>
-            <div className="flex items-center gap-1.5 mt-2 text-[11px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-              <Lock className="w-3 h-3 text-emerald-600" />
-              <span>የደህንነት መግቢያ (Security Passcode)</span>
-            </div>
+
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); navigateToSystem('chef'); }}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 transition-all group-hover:shadow-emerald-500/30 active:scale-98"
+            >
+              <span>ወደ ኩሽና ሲስተም ግባ (Enter Chef Station)</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
 
-          {/* Password Input Form */}
-          <form onSubmit={handleLoginSubmit} className="space-y-3">
+          {/* Portal 2: Owner Command Center */}
+          <div 
+            onClick={() => navigateToSystem('owner')}
+            className="group bg-white/10 hover:bg-white/15 backdrop-blur-xl border-2 border-amber-500/40 hover:border-amber-400 rounded-3xl p-6 sm:p-7 transition-all cursor-pointer shadow-xl hover:shadow-2xl hover:scale-[1.02] flex flex-col justify-between space-y-5"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-400/30 flex items-center justify-center text-3xl shadow-inner">
+                  👑
+                </div>
+                <span className={`text-[11px] font-black px-3 py-1 rounded-full border ${
+                  isOwnerAuth 
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-400/30' 
+                    : 'bg-white/10 text-slate-300 border-white/20'
+                }`}>
+                  {isOwnerAuth ? '🔓 ክፍት ነው (Active)' : '🔒 Password ያስፈልጋል'}
+                </span>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-black text-white group-hover:text-amber-300 transition-colors flex items-center gap-2">
+                  <span>የባለቤት መቆጣጠሪያ ማዕከል</span>
+                </h2>
+                <p className="text-xs font-black text-amber-400 tracking-wide mt-0.5">
+                  OWNER COMMAND CENTER & AUDIT
+                </p>
+                <p className="text-xs text-slate-300 font-bold mt-2 leading-relaxed">
+                  የዕለት ሽያጭ፣ የፈረቃ ገቢ፣ የቦክስ ክምችት፣ የአስተናጋጆች አፈጻጸምና በኢትዮጵያ ቀን መቁጠሪያና ፈረቃ ሙሉ ትዕዛዞች ማጣሪያ።
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-white/10 space-y-1.5 text-xs text-slate-300 font-bold">
+                <div className="flex items-center gap-2 text-amber-300">
+                  <span>✓</span> <span>የዕለት ሽያጭና የፈረቃ ገቢ ሪፖርት</span>
+                </div>
+                <div className="flex items-center gap-2 text-amber-300">
+                  <span>✓</span> <span>ከቀን መቁጠሪያና ፈረቃ ትዕዛዝ መቆጣጠሪያ</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); navigateToSystem('owner'); }}
+              className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-900/30 flex items-center justify-center gap-2 transition-all group-hover:shadow-amber-500/30 active:scale-98"
+            >
+              <span>ወደ ባለቤት ማዕከል ግባ (Enter Owner Center)</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+        </div>
+
+        {/* Install App Link */}
+        <div className="mt-8">
+          <button
+            type="button"
+            onClick={handleInstallApp}
+            className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-black flex items-center gap-2 transition-all border border-white/15 backdrop-blur-md"
+          >
+            <Smartphone className="w-4 h-4 text-emerald-400" />
+            <span>📲 አፑን በስልክዎ ወይም በኮምፒውተርዎ ላይ ይጫኑ (Install App)</span>
+          </button>
+        </div>
+
+      </div>
+    );
+  }
+
+  // ==============================================================
+  // 2. CHEF PIN LOCK SCREEN (WHEN IN CHEF MODE & NOT AUTHENTICATED)
+  // ==============================================================
+  if (systemMode === 'chef' && !isChefAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-teal-950 to-slate-950 flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/30 text-center space-y-4">
+          
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => navigateToSystem('portal')}
+              className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>ተመለስ (Portals)</span>
+            </button>
+            <span className="text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
+              Kitchen Station
+            </span>
+          </div>
+
+          <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center text-3xl shadow-lg shadow-emerald-900/30 mx-auto">
+            👩‍🍳
+          </div>
+          <h2 className="text-xl font-black text-slate-900">የሼፍ / ኩሽና መግቢያ</h2>
+          <p className="text-xs text-slate-500 font-bold">Chef Kitchen POS Station</p>
+
+          <form onSubmit={handleChefLoginSubmit} className="space-y-3">
             <div className="relative">
               <input
                 type={showPasswordText ? "text" : "password"}
-                placeholder="የይለፍ ቃል / PIN ያስገቡ..."
+                placeholder="የኩሽና ፒን ያስገቡ (Chef PIN)..."
                 value={pinInput}
                 onChange={(e) => { setPinInput(e.target.value); setLoginError(null); }}
-                className="w-full bg-slate-50 border-2 border-emerald-200 focus:border-emerald-500 rounded-2xl py-3.5 pl-10 pr-10 text-center font-black text-lg text-slate-900 tracking-widest placeholder:tracking-normal placeholder:font-bold placeholder:text-xs placeholder:text-slate-400 outline-none transition-all shadow-inner"
+                className="w-full bg-slate-50 border-2 border-emerald-300 focus:border-emerald-600 rounded-2xl py-3 pl-10 pr-10 text-center font-black text-lg text-slate-900 tracking-widest outline-none"
                 autoFocus
               />
-              <Key className="w-4 h-4 text-emerald-600 absolute left-3.5 top-4" />
+              <Key className="w-4 h-4 text-emerald-600 absolute left-3.5 top-3.5" />
               <button
                 type="button"
                 onClick={() => setShowPasswordText(!showPasswordText)}
-                className="absolute right-3.5 top-4 text-slate-400 hover:text-slate-600"
+                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
               >
                 {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
 
-            {/* Error Message */}
             {loginError && (
-              <p className="text-xs font-black text-rose-600 bg-rose-50 py-1.5 px-3 rounded-xl border border-rose-200 animate-in shake">
+              <p className="text-xs font-black text-rose-600 bg-rose-50 py-1.5 px-3 rounded-xl border border-rose-200">
                 {loginError}
               </p>
             )}
 
-            {/* Touch Keypad */}
+            {/* Keypad */}
             <div className="grid grid-cols-3 gap-2 pt-1">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                 <button
                   key={num}
                   type="button"
                   onClick={() => handleKeypadPress(num.toString())}
-                  className="py-3 bg-slate-100 hover:bg-emerald-50 active:bg-emerald-100 text-slate-800 hover:text-emerald-900 font-black text-lg rounded-2xl border border-slate-200/80 transition-all active:scale-95 shadow-sm"
+                  className="py-3 bg-slate-100 hover:bg-emerald-50 text-slate-800 font-black text-lg rounded-2xl border border-slate-200 transition-all active:scale-95"
                 >
                   {num}
                 </button>
               ))}
-
               <button
                 type="button"
                 onClick={() => handleKeypadPress('clear')}
-                className="py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 font-black text-xs rounded-2xl border border-rose-200 transition-all active:scale-95"
+                className="py-3 bg-rose-50 text-rose-700 font-black text-xs rounded-2xl border border-rose-200"
               >
                 አጥፋ
               </button>
-
               <button
                 type="button"
                 onClick={() => handleKeypadPress('0')}
-                className="py-3 bg-slate-100 hover:bg-emerald-50 active:bg-emerald-100 text-slate-800 hover:text-emerald-900 font-black text-lg rounded-2xl border border-slate-200/80 transition-all active:scale-95 shadow-sm"
+                className="py-3 bg-slate-100 hover:bg-emerald-50 text-slate-800 font-black text-lg rounded-2xl border border-slate-200"
               >
                 0
               </button>
-
               <button
                 type="button"
                 onClick={() => handleKeypadPress('backspace')}
-                className="py-3 bg-amber-50 hover:bg-amber-100 text-amber-800 font-black text-sm rounded-2xl border border-amber-200 transition-all active:scale-95 flex items-center justify-center"
+                className="py-3 bg-amber-50 text-amber-800 font-black text-sm rounded-2xl border border-amber-200"
               >
                 ⌫
               </button>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-800/25 active:scale-95 transition-all flex items-center justify-center gap-2 mt-2"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-700/25 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <Unlock className="w-4 h-4" />
-              <span>ክፈት / ግባ (Unlock)</span>
+              <span>ወደ ኩሽና ግባ (Unlock Station)</span>
             </button>
           </form>
 
-          {/* Quick Default Passwords Guide */}
-          <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-100/80 text-left text-[11px] font-bold text-slate-600 space-y-1">
-            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 block">
-              💡 የመጀመሪያ ይለፍ ቃሎች (Default Passwords):
-            </span>
-            <div className="flex items-center justify-between text-slate-700">
-              <span>👑 የባለቤት መግቢያ (Owner):</span>
-              <button 
-                type="button" 
-                onClick={() => setPinInput(ownerPassword)} 
-                className="font-black text-emerald-800 hover:underline bg-white px-2 py-0.5 rounded border border-emerald-200"
-              >
-                {ownerPassword}
-              </button>
-            </div>
-            <div className="flex items-center justify-between text-slate-700">
-              <span>👩‍🍳 የሼፍ / ኩሽና መግቢያ (Chef):</span>
-              <button 
-                type="button" 
-                onClick={() => setPinInput(chefPin)} 
-                className="font-black text-emerald-800 hover:underline bg-white px-2 py-0.5 rounded border border-emerald-200"
-              >
-                {chefPin}
-              </button>
-            </div>
+          <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 text-xs font-bold text-slate-600 flex items-center justify-between">
+            <span>💡 ነባሪ የኩሽና ፒን (Default PIN):</span>
+            <button 
+              type="button" 
+              onClick={() => setPinInput(chefPin)}
+              className="font-black text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-300"
+            >
+              {chefPin}
+            </button>
           </div>
 
-          {/* Install App Link */}
-          <button
-            type="button"
-            onClick={handleInstallApp}
-            className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-black flex items-center justify-center gap-1.5 transition-all border border-slate-200"
-          >
-            <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
-            <span>📲 አፑን በስልክዎ ላይ ይጫኑ (Install App)</span>
-          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ==============================================================
+  // 3. OWNER PASSWORD LOCK SCREEN (WHEN IN OWNER MODE & NOT AUTH)
+  // ==============================================================
+  if (systemMode === 'owner' && !isOwnerAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-900 flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/30 text-center space-y-4">
+          
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => navigateToSystem('portal')}
+              className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>ተመለስ (Portals)</span>
+            </button>
+            <span className="text-[10px] font-black uppercase bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full">
+              Owner Center
+            </span>
+          </div>
+
+          <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center text-3xl shadow-lg shadow-amber-900/30 mx-auto">
+            👑
+          </div>
+          <h2 className="text-xl font-black text-slate-900">የባለቤት መቆጣጠሪያ መግቢያ</h2>
+          <p className="text-xs text-slate-500 font-bold">Owner Command Center & Audit</p>
+
+          <form onSubmit={handleOwnerLoginSubmit} className="space-y-3">
+            <div className="relative">
+              <input
+                type={showPasswordText ? "text" : "password"}
+                placeholder="የባለቤት ይለፍ ቃል (Password)..."
+                value={pinInput}
+                onChange={(e) => { setPinInput(e.target.value); setLoginError(null); }}
+                className="w-full bg-slate-50 border-2 border-amber-300 focus:border-amber-500 rounded-2xl py-3 pl-10 pr-10 text-center font-black text-lg text-slate-900 tracking-widest outline-none"
+                autoFocus
+              />
+              <Key className="w-4 h-4 text-amber-600 absolute left-3.5 top-3.5" />
+              <button
+                type="button"
+                onClick={() => setShowPasswordText(!showPasswordText)}
+                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
+              >
+                {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {loginError && (
+              <p className="text-xs font-black text-rose-600 bg-rose-50 py-1.5 px-3 rounded-xl border border-rose-200">
+                {loginError}
+              </p>
+            )}
+
+            {/* Keypad */}
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => handleKeypadPress(num.toString())}
+                  className="py-3 bg-slate-100 hover:bg-amber-50 text-slate-800 font-black text-lg rounded-2xl border border-slate-200 transition-all active:scale-95"
+                >
+                  {num}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => handleKeypadPress('clear')}
+                className="py-3 bg-rose-50 text-rose-700 font-black text-xs rounded-2xl border border-rose-200"
+              >
+                አጥፋ
+              </button>
+              <button
+                type="button"
+                onClick={() => handleKeypadPress('0')}
+                className="py-3 bg-slate-100 hover:bg-amber-50 text-slate-800 font-black text-lg rounded-2xl border border-slate-200"
+              >
+                0
+              </button>
+              <button
+                type="button"
+                onClick={() => handleKeypadPress('backspace')}
+                className="py-3 bg-amber-50 text-amber-800 font-black text-sm rounded-2xl border border-amber-200"
+              >
+                ⌫
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-700/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <Unlock className="w-4 h-4" />
+              <span>ወደ ባለቤት ማዕከል ግባ (Unlock Center)</span>
+            </button>
+          </form>
+
+          <div className="bg-amber-50 p-2.5 rounded-xl border border-amber-200 text-xs font-bold text-slate-600 flex items-center justify-between">
+            <span>💡 ነባሪ የባለቤት ይለፍ ቃል (Default):</span>
+            <button 
+              type="button" 
+              onClick={() => setPinInput(ownerPassword)}
+              className="font-black text-amber-900 bg-white px-2 py-0.5 rounded border border-amber-300"
+            >
+              {ownerPassword}
+            </button>
+          </div>
 
         </div>
       </div>
@@ -1175,107 +1421,131 @@ export default function App() {
       {/* ============================================================== */}
       {/* VIBRANT TOP APP BAR                                             */}
       {/* ============================================================== */}
-      <header className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white sticky top-0 z-50 shadow-lg shadow-emerald-800/10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
-          
-          {/* Logo & Brand */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-xl shadow-inner">
-              👩‍🍳
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-black text-lg tracking-tight text-white drop-shadow-sm">MARAKI</h1>
-                <span className="text-[10px] font-black uppercase tracking-wider bg-white text-emerald-800 px-2 py-0.5 rounded-full shadow-sm">
-                  Food Station
-                </span>
+      {/* ============================================================== */}
+      {/* CHEF APP HEADER (VIBRANT EMERALD POS THEME)                      */}
+      {/* ============================================================== */}
+      {systemMode === 'chef' && (
+        <header className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white sticky top-0 z-50 shadow-lg shadow-emerald-800/10">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+            
+            {/* Logo & Brand */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-xl shadow-inner">
+                👩‍🍳
               </div>
-              <p className="text-[11px] text-emerald-100 flex items-center gap-1 font-bold">
-                <span>🥡 ቴክአዌይና 🏠 ቤት ውስጥ</span>
-                <span className="text-white/40">•</span>
-                <span>የምግብ ቤት ሲስተም</span>
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="font-black text-lg tracking-tight text-white drop-shadow-sm">MARAKI</h1>
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-white text-emerald-800 px-2 py-0.5 rounded-full shadow-sm">
+                    Chef Station
+                  </span>
+                </div>
+                <p className="text-[11px] text-emerald-100 flex items-center gap-1 font-bold">
+                  <span>የኩሽና ምግብ ማዘዣና ማዘጋጃ (Kitchen POS)</span>
+                </p>
+              </div>
             </div>
+
+            {/* Date & Shift */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => openEthDateModal('current')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl border border-white/25 text-white font-black text-xs shadow-inner transition-all hover:scale-[1.02]"
+                title="የኢትዮጵያ ቀን ቀይር"
+              >
+                <Calendar className="w-3.5 h-3.5 text-amber-300" />
+                <span>{orderEthDate.formatted}</span>
+                <span className="text-[10px] bg-black/20 text-emerald-200 px-1.5 py-0.5 rounded-lg border border-white/10 flex items-center gap-0.5 font-bold">
+                  <Edit3 className="w-2.5 h-2.5" />
+                  <span>ቀይር</span>
+                </span>
+              </button>
+
+              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 bg-black/20 text-white text-xs font-black rounded-2xl border border-white/10">
+                <span>{orderEthDate.shift}</span>
+              </span>
+            </div>
+
+            {/* Chef Station Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleInstallApp}
+                className="px-2.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1 shadow-md transition-all active:scale-95"
+                title="አፑን ጫን"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">አፑን ጫን</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLockChef}
+                className="px-2.5 py-1.5 bg-rose-500/80 hover:bg-rose-600 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-rose-400/30 transition-all shadow-sm"
+                title="ኩሽናውን ቆልፍ (Lock)"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>ቆልፍ</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigateToSystem('portal')}
+                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/20 transition-all shadow-sm"
+                title="ወደ ሲስተም ምርጫ ተመለስ (Switch Portal)"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">ውጣ / Switch</span>
+              </button>
+            </div>
+
           </div>
+        </header>
+      )}
 
-          {/* Automatic Ethiopian Date Badge (Click to Edit) */}
-          <button
-            type="button"
-            onClick={() => openEthDateModal('current')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl border border-white/25 text-white font-black text-xs shadow-inner transition-all hover:scale-[1.02]"
-            title="የኢትዮጵያ ቀን ቀይር / Edit Ethiopian Date"
-          >
-            <Calendar className="w-3.5 h-3.5 text-amber-300" />
-            <span>{orderEthDate.formatted}</span>
-            <span className="text-[10px] bg-black/20 text-emerald-200 px-1.5 py-0.5 rounded-lg border border-white/10 flex items-center gap-0.5 font-bold">
-              <Edit3 className="w-2.5 h-2.5" />
-              <span>ቀይር</span>
-            </span>
-          </button>
-
-          {/* Top Bar Navigation */}
-          <div className="flex items-center gap-2">
-            {authRole === 'chef' ? (
-              <div className="flex bg-black/20 p-1 rounded-2xl border border-white/20">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('order')}
-                  className={`px-3.5 py-1.5 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all ${
-                    viewMode === 'order'
-                      ? 'bg-white text-emerald-800 shadow-md scale-[1.02]'
-                      : 'text-white hover:text-emerald-100'
-                  }`}
-                >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  <span>Order (ትዕዛዝ አስገባ)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSwitchToReports}
-                  className={`px-3.5 py-1.5 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all ${
-                    viewMode === 'reports'
-                      ? 'bg-white text-emerald-800 shadow-md scale-[1.02]'
-                      : 'text-white hover:text-emerald-100'
-                  }`}
-                >
-                  <BarChart3 className="w-3.5 h-3.5" />
-                  <span>Reports (የባለቤት ሪፖርት)</span>
-                </button>
+      {/* ============================================================== */}
+      {/* OWNER APP HEADER (EXECUTIVE SLATE & GOLD THEME)                 */}
+      {/* ============================================================== */}
+      {systemMode === 'owner' && (
+        <header className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white sticky top-0 z-50 shadow-lg shadow-black/20 border-b border-amber-500/30">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+            
+            {/* Logo & Brand */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-400/30 flex items-center justify-center text-xl shadow-inner">
+                👑
               </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="px-3.5 py-1.5 rounded-xl bg-black/20 border border-white/20 text-white font-black text-xs flex items-center gap-1.5 shadow-inner">
-                  <BarChart3 className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Owner Command Center</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthRole('chef');
-                    setViewMode('order');
-                    localStorage.setItem('maraki_auth_role', 'chef');
-                    showToast('Switched to Chef Ordering Mode');
-                  }}
-                  className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/90 text-xs font-bold transition-all border border-white/10"
-                  title="Switch to Chef ordering menu"
-                >
-                  👩‍🍳 Chef Mode
-                </button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="font-black text-lg tracking-tight text-white drop-shadow-sm">MARAKI</h1>
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full shadow-sm">
+                    Owner Center
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-200/80 flex items-center gap-1 font-bold">
+                  <span>የባለቤት መቆጣጠሪያና የሪፖርት ማዕከል</span>
+                </p>
               </div>
-            )}
+            </div>
 
-            {/* Role Badge */}
-            <span className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 border shadow-sm ${
-              authRole === 'owner'
-                ? 'bg-amber-400 text-slate-950 border-amber-300'
-                : 'bg-white/20 text-white border-white/20'
-            }`}>
-              {authRole === 'owner' ? '👑 Owner' : '👩‍🍳 Chef'}
-            </span>
+            {/* Date Badge */}
+            <button
+              type="button"
+              onClick={() => openEthDateModal('current')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl border border-white/20 text-white font-black text-xs shadow-inner transition-all hover:scale-[1.02]"
+              title="የኢትዮጵያ ቀን ቀይር"
+            >
+              <Calendar className="w-3.5 h-3.5 text-amber-300" />
+              <span>{orderEthDate.formatted}</span>
+              <span className="text-[10px] bg-black/40 text-amber-300 px-1.5 py-0.5 rounded-lg border border-amber-400/20 flex items-center gap-0.5 font-bold">
+                <Edit3 className="w-2.5 h-2.5" />
+                <span>ቀይር</span>
+              </span>
+            </button>
 
-            {/* If Owner: Settings Button to Change Passwords */}
-            {authRole === 'owner' && (
+            {/* Owner Actions */}
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -1283,38 +1553,47 @@ export default function App() {
                   setNewChefPinInput(chefPin);
                   setShowSettingsModal(true);
                 }}
-                className="p-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black border border-white/20 transition-all shadow-sm"
-                title="የይለፍ ቃል ቀይር / Change Passwords"
+                className="p-1.5 bg-white/10 hover:bg-white/20 text-amber-300 rounded-xl text-xs font-black border border-amber-400/30 transition-all shadow-sm flex items-center gap-1 px-2.5 py-1.5"
+                title="የይለፍ ቃሎች ቅንብር / Change Passwords"
               >
-                <Settings className="w-4 h-4" />
+                <Settings className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">ቅንብሮች</span>
               </button>
-            )}
 
-            {/* Install App Button */}
-            <button
-              type="button"
-              onClick={handleInstallApp}
-              className="px-2.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1 shadow-md transition-all active:scale-95"
-              title="አፕሊኬሽኑን በስልክዎ ወይም በኮምፒውተርዎ ላይ ይጫኑ / Install App"
-            >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">አፑን ጫን</span>
-            </button>
+              <button
+                type="button"
+                onClick={handleInstallApp}
+                className="px-2.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1 shadow-md transition-all active:scale-95"
+                title="አፑን ጫን"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">አፑን ጫን</span>
+              </button>
 
-            {/* Lock App Button */}
-            <button
-              type="button"
-              onClick={handleLockApp}
-              className="px-2.5 py-1.5 bg-rose-500/80 hover:bg-rose-600 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-rose-400/30 transition-all shadow-sm"
-              title="ሲስተሙን ቆልፍ / Lock App"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">ቆልፍ</span>
-            </button>
+              <button
+                type="button"
+                onClick={handleLockOwner}
+                className="px-2.5 py-1.5 bg-rose-500/80 hover:bg-rose-600 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-rose-400/30 transition-all shadow-sm"
+                title="ባለቤትን ቆልፍ (Lock)"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>ቆልፍ</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigateToSystem('portal')}
+                className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/20 transition-all shadow-sm"
+                title="ወደ ሲስተም ምርጫ ተመለስ (Switch Portal)"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">ውጣ / Switch</span>
+              </button>
+            </div>
+
           </div>
-
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Global Toast */}
       {toastMessage && (
@@ -1327,7 +1606,7 @@ export default function App() {
       {/* ============================================================== */}
       {/* 1. SIMPLE 4-STEP ORDERING WIZARD                                */}
       {/* ============================================================== */}
-      {viewMode === 'order' && (
+      {systemMode === 'chef' && (
         <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full pb-28">
           
           {/* STEP PROGRESS INDICATOR */}
@@ -2184,7 +2463,7 @@ export default function App() {
       {/* ============================================================== */}
       {/* 2. OWNER DASHBOARD & AUDIT COMMAND CENTER                       */}
       {/* ============================================================== */}
-      {viewMode === 'reports' && (
+      {systemMode === 'owner' && (
         <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6 animate-in fade-in duration-200">
           
           {/* Header Action Bar */}
