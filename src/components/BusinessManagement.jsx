@@ -574,11 +574,11 @@ export default function BusinessManagement({
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-black uppercase">
-                      Overdue (ቀኑ ያለፈበት)
+                      ቀኑ ያለፈበት (Overdue)
                     </span>
                     <span className="font-black text-sm text-slate-900">የመብራት ክፍያ (Electricity)</span>
                   </div>
-                  <p className="text-xs text-rose-700 font-bold">ኖቬምበር 20 ማለቅ ነበረበት • 2,500 ETB</p>
+                  <p className="text-xs text-rose-700 font-bold">የመክፈያ ቀኑ ያለፈበት (ኅዳር 11) • 2,500 ETB</p>
                 </div>
                 <button
                   type="button"
@@ -594,11 +594,11 @@ export default function BusinessManagement({
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase">
-                      Due Soon (ቀኑ የቀረበ)
+                      ቀኑ የቀረበ (Due Soon)
                     </span>
                     <span className="font-black text-sm text-slate-900">የቤት ኪራይ (Shop Rent)</span>
                   </div>
-                  <p className="text-xs text-amber-800 font-bold">ዲሴምበር 1 ይደርሳል • 15,000 ETB</p>
+                  <p className="text-xs text-amber-800 font-bold">የመክፈያ ቀን፡ ኅዳር 22 (ቀሪ 9 ቀናት) • 15,000 ETB</p>
                 </div>
                 <button
                   type="button"
@@ -635,14 +635,14 @@ export default function BusinessManagement({
 
               <div className="space-y-2.5">
                 {[
-                  { date: 'Dec 1', label: 'የቤት ኪራይ (Rent)', amount: '15,000 ETB', type: 'Rent', color: 'border-l-4 border-amber-500' },
-                  { date: 'Dec 1', label: 'የሰራተኞች ደመወዝ (Salaries)', amount: '14,100 ETB', type: 'Payroll', color: 'border-l-4 border-teal-500' },
-                  { date: 'Dec 1', label: 'የብርቱካን ግዢ (Orange 50kg)', amount: '6,000 ETB', type: 'Fruit', color: 'border-l-4 border-emerald-500' },
-                  { date: 'Dec 2', label: 'የማንጎ ግዢ (Mango 30kg)', amount: '4,200 ETB', type: 'Fruit', color: 'border-l-4 border-emerald-500' }
+                  { date: 'ኅዳር 22', label: 'የቤት ኪራይ (Rent - Dec 1)', amount: '15,000 ETB', type: 'Rent', color: 'border-l-4 border-amber-500' },
+                  { date: 'ኅዳር 22', label: 'የሰራተኞች ደመወዝ (Salaries - Dec 1)', amount: '14,100 ETB', type: 'Payroll', color: 'border-l-4 border-teal-500' },
+                  { date: 'ኅዳር 22', label: 'የብርቱካን ግዢ (Orange 50kg)', amount: '6,000 ETB', type: 'Fruit', color: 'border-l-4 border-emerald-500' },
+                  { date: 'ኅዳር 23', label: 'የማንጎ ግዢ (Mango 30kg)', amount: '4,200 ETB', type: 'Fruit', color: 'border-l-4 border-emerald-500' }
                 ].map((item, idx) => (
                   <div key={idx} className={`p-3 rounded-2xl bg-slate-50 flex items-center justify-between ${item.color}`}>
                     <div className="flex items-center gap-3">
-                      <span className="w-12 text-center text-xs font-black text-slate-900 bg-white py-1 px-1.5 rounded-lg border border-slate-200">
+                      <span className="w-16 text-center text-xs font-black text-slate-900 bg-white py-1 px-1 rounded-lg border border-slate-200">
                         {item.date}
                       </span>
                       <div>
@@ -887,7 +887,7 @@ export default function BusinessManagement({
                   <td className="py-3.5 px-4 text-rose-600">{plannedSalariesTotal.toLocaleString()} ETB</td>
                   <td className="py-3.5 px-4 text-right">
                     <span className="px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-black">
-                      Due Dec 1
+                      እስከ ኅዳር 22 (Dec 1)
                     </span>
                   </td>
                 </tr>
@@ -1598,15 +1598,15 @@ export default function BusinessManagement({
 
           <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
             {[
-              { date: 'Nov 20, 2026', title: 'የመብራት ክፍያ (Electricity Bill)', amount: '2,500 ETB', type: 'Overdue Bill', tagColor: 'bg-rose-100 text-rose-800' },
-              { date: 'Nov 28, 2026', title: 'የውሃ ክፍያ (Water Supply Bill)', amount: '1,200 ETB', type: 'Due Soon', tagColor: 'bg-amber-100 text-amber-800' },
-              { date: 'Dec 01, 2026', title: 'የቤት ኪራይ (Shop Rent Payment)', amount: '15,000 ETB', type: 'Rent Obligation', tagColor: 'bg-slate-100 text-slate-900' },
-              { date: 'Dec 01, 2026', title: 'የሰራተኞች ወርሃዊ ደመወዝ (Staff Salaries)', amount: '14,100 ETB', type: 'Payroll', tagColor: 'bg-teal-100 text-teal-800' },
-              { date: 'Dec 01, 2026', title: 'የብርቱካን ግዢ ከመርካቶ (Orange 50kg)', amount: '6,000 ETB', type: 'Fruit Purchase', tagColor: 'bg-emerald-100 text-emerald-800' },
-              { date: 'Dec 02, 2026', title: 'የማንጎ ግዢ (Mango 30kg)', amount: '4,200 ETB', type: 'Fruit Purchase', tagColor: 'bg-emerald-100 text-emerald-800' },
-              { date: 'Dec 05, 2026', title: 'የጁስ ኩባያ ግዢ (500 pcs Juice Cups)', amount: '4,000 ETB', type: 'Supplies', tagColor: 'bg-slate-100 text-slate-800' },
-              { date: 'Dec 15, 2026', title: 'የማሽን ግብ ቀነ-ገደብ (High-Speed Blenders Deadline)', amount: '25,000 ETB', type: 'Asset Goal', tagColor: 'bg-indigo-100 text-indigo-800' },
-              { date: 'Dec 31, 2026', title: 'የፍሪጅ ግብ ቀነ-ገደብ (Display Refrigerator Deadline)', amount: '75,000 ETB', type: 'Asset Goal', tagColor: 'bg-indigo-100 text-indigo-800' }
+              { date: 'ኅዳር 11', title: 'የመብራት ክፍያ (Electricity Bill)', amount: '2,500 ETB', type: 'የመክፈያ ቀኑ ያለፈበት (Overdue)', tagColor: 'bg-rose-100 text-rose-800' },
+              { date: 'ኅዳር 19', title: 'የውሃ ክፍያ (Water Supply Bill)', amount: '1,200 ETB', type: 'ቀኑ የቀረበ (Due Soon)', tagColor: 'bg-amber-100 text-amber-800' },
+              { date: 'ኅዳር 22', title: 'የቤት ኪራይ (Shop Rent Payment)', amount: '15,000 ETB', type: 'ወርሃዊ ኪራይ (Rent)', tagColor: 'bg-slate-100 text-slate-900' },
+              { date: 'ኅዳር 22', title: 'የሰራተኞች ወርሃዊ ደመወዝ (Staff Salaries)', amount: '14,100 ETB', type: 'የሰራተኛ ደመወዝ (Payroll)', tagColor: 'bg-teal-100 text-teal-800' },
+              { date: 'ኅዳር 22', title: 'የብርቱካን ግዢ ከመርካቶ (Orange 50kg)', amount: '6,000 ETB', type: 'የፍራፍሬ ግዢ (Fruit)', tagColor: 'bg-emerald-100 text-emerald-800' },
+              { date: 'ኅዳር 23', title: 'የማንጎ ግዢ (Mango 30kg)', amount: '4,200 ETB', type: 'የፍራፍሬ ግዢ (Fruit)', tagColor: 'bg-emerald-100 text-emerald-800' },
+              { date: 'ኅዳር 26', title: 'የጁስ ኩባያ ግዢ (500 pcs Juice Cups)', amount: '4,000 ETB', type: 'ማሸጊያ እቃዎች (Supplies)', tagColor: 'bg-slate-100 text-slate-800' },
+              { date: 'ታኅሣሥ 6', title: 'የማሽን ግብ ቀነ-ገደብ (High-Speed Blenders Deadline)', amount: '25,000 ETB', type: 'የዕቃ ግብ (Asset Goal)', tagColor: 'bg-indigo-100 text-indigo-800' },
+              { date: 'ታኅሣሥ 22', title: 'የፍሪጅ ግብ ቀነ-ገደብ (Display Refrigerator Deadline)', amount: '75,000 ETB', type: 'የዕቃ ግብ (Asset Goal)', tagColor: 'bg-indigo-100 text-indigo-800' }
             ].map((event, idx) => (
               <div key={idx} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition-colors">
                 <div className="flex items-center gap-3">
