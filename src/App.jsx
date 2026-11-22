@@ -3926,61 +3926,6 @@ export default function App() {
         </div>
       )}
 
-      {/* ============================================================== */}
-      {/* OWNER PASSCODE PROMPT MODAL (RESTRICT REPORTS FOR STAFF)       */}
-      {/* ============================================================== */}
-      {showOwnerAuthPrompt && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-2 border-amber-500 space-y-4 text-center">
-            
-            <div className="w-14 h-14 rounded-3xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-2xl shadow-inner">
-              🔒
-            </div>
-
-            <div>
-              <h3 className="font-black text-base text-slate-900">የባለቤት የይለፍ ቃል</h3>
-              <p className="text-xs text-slate-400 font-bold mt-1">
-                ይህንን የሂሳብ እና የሽያጭ ሪፖርት ለመክፈት የባለቤት የይለፍ ቃል ያስገቡ።
-              </p>
-            </div>
-
-            <form onSubmit={handleVerifyOwnerForReports} className="space-y-3">
-              <input
-                type="password"
-                placeholder="የባለቤት የይለፍ ቃል ያስገቡ..."
-                value={ownerPromptInput}
-                onChange={(e) => { setOwnerPromptInput(e.target.value); setOwnerPromptError(null); }}
-                className="w-full bg-slate-50 border-2 border-amber-300 focus:border-amber-500 rounded-2xl py-3 px-4 text-center font-black text-base tracking-widest text-slate-900 outline-none"
-                autoFocus
-              />
-
-              {ownerPromptError && (
-                <p className="text-xs font-black text-rose-600 bg-rose-50 py-1.5 px-3 rounded-xl border border-rose-200">
-                  {ownerPromptError}
-                </p>
-              )}
-
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowOwnerAuthPrompt(false)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-black text-xs"
-                >
-                  ተመለስ (Cancel)
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black text-xs shadow-md shadow-amber-500/20"
-                >
-                  ክፈት (Unlock)
-                </button>
-              </div>
-            </form>
-
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
