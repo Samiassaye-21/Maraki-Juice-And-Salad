@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useDeferredValue, useTransition } from 'react';
+import BusinessManagement from './components/BusinessManagement';
 import { 
   Plus, 
   Minus, 
@@ -468,6 +469,12 @@ export default function App() {
   // --- OWNER DASHBOARD FILTERS & CONTROLS ---
   const [ownerDateRange, setOwnerDateRange] = useState('today'); // 'today' | 'all' | 'custom'
   const [ownerSelectedCustomDate, setOwnerSelectedCustomDate] = useState('');
+  const [ownerSection, setOwnerSection] = useState(() => {
+    return localStorage.getItem('maraki_owner_active_section') || 'planning';
+  });
+  useEffect(() => {
+    localStorage.setItem('maraki_owner_active_section', ownerSection);
+  }, [ownerSection]);
   const [ownerSearchQuery, setOwnerSearchQuery] = useState('');
   const deferredOwnerSearchQuery = useDeferredValue(ownerSearchQuery);
   const [isFilterPending, startFilterTransition] = useTransition();
@@ -2565,6 +2572,55 @@ export default function App() {
       {systemMode === 'owner' && (
         <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6 animate-in fade-in duration-200">
           
+          {/* OWNER PRIMARY SECTION SELECTOR (BUSINESS MANAGEMENT vs ORDERS AUDIT) */}
+          <div className="bg-slate-900/90 backdrop-blur-md p-1.5 sm:p-2 rounded-3xl border border-amber-500/30 flex items-center justify-between gap-2 shadow-xl shadow-slate-950/20">
+            <div className="flex items-center gap-2 w-full">
+              
+              {/* Button 1: Business Management & Planning */}
+              <button
+                type="button"
+                onClick={() => setOwnerSection('planning')}
+                className={`flex-1 py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 active:scale-95 ${
+                  ownerSection === 'planning'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md shadow-amber-900/30 scale-[1.01]'
+                    : 'text-slate-300 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-slate-950" />
+                <span>📊 የቢዝነስ እቅድና ማኔጅመንት (Business Management & Planning)</span>
+              </button>
+
+              {/* Button 2: Orders Audit Log */}
+              <button
+                type="button"
+                onClick={() => setOwnerSection('orders')}
+                className={`flex-1 py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 active:scale-95 ${
+                  ownerSection === 'orders'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md shadow-amber-900/30 scale-[1.01]'
+                    : 'text-slate-300 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Receipt className="w-4 h-4" />
+                <span>🧾 የትዕዛዞች ኦዲት (Orders Audit Log)</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                  ownerSection === 'orders' ? 'bg-slate-950 text-amber-300' : 'bg-white/10 text-slate-300'
+                }`}>
+                  {sentOrders.length}
+                </span>
+              </button>
+
+            </div>
+          </div>
+
+          {ownerSection === 'planning' ? (
+            <BusinessManagement 
+              orders={sentOrders}
+              totalRealSales={totalRevenueAll}
+              onSwitchToOrdersLog={() => setOwnerSection('orders')}
+            />
+          ) : (
+            <div className="space-y-6 animate-in fade-in duration-200">
+          
           {/* Header Action Bar */}
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm">
             <div>
@@ -3314,6 +3370,8 @@ export default function App() {
             )}
 
           </div>
+            </div>
+          )}
 
         </main>
       )}
