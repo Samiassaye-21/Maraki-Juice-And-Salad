@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useDeferredValue } from 'react';
 import { 
   Plus, 
   Minus, 
@@ -454,6 +454,7 @@ export default function App() {
   });
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   // Damaged Boxes Tracking
   const [wasteBoxes, setWasteBoxes] = useState(() => {
@@ -604,15 +605,22 @@ export default function App() {
       createdAt: new Date().toISOString()
     };
 
-    // Save locally
+    // 1. OPTIMISTIC UI: Update state & show receipt confirmation instantly (0ms latency!)
     setSentOrders(prev => [orderData, ...prev]);
+    setOrderSuccessModal({
+      ...orderData,
+      foodSummary: cart.map(i => `${i.qty}x ${i.name}`).join(', ')
+    });
+    clearCurrentOrder();
 
-    // Send to Supabase
-    await dbService.saveOrder({
+    // 2. BACKGROUND RECONCILIATION: Sync with cloud asynchronously without blocking the chef
+    dbService.saveOrder({
       ...orderData,
       staffName: 'Chef Almaz',
       cupsCount: 0,
       boxesUsed: totalBoxesInOrder
+    }).catch(err => {
+      console.warn('Background sync warning (order preserved locally):', err);
     });
 
     // If new custom waiter was typed, save to permanent list
@@ -623,15 +631,6 @@ export default function App() {
         setWaitersList(prev => [...prev, { amharic: name, english: name, fullName: name, emoji: '👤' }]);
       }
     }
-
-    // Show big success confirmation modal
-    setOrderSuccessModal({
-      ...orderData,
-      foodSummary: cart.map(i => `${i.qty}x ${i.name}`).join(', ')
-    });
-
-    // Reset current order
-    clearCurrentOrder();
   };
 
   // Add custom waiter permanently
@@ -820,9 +819,9 @@ export default function App() {
     }
   };
 
-  // Filtered dishes for Step 1
+  // Filtered dishes for Step 1 (Optimized with useDeferredValue for 60fps typing)
   const filteredDishes = foodMenu.filter(item => {
-    const q = searchQuery.toLowerCase().trim();
+    const q = deferredSearchQuery.toLowerCase().trim();
     const matchesSearch = !q ||
       item.name.toLowerCase().includes(q) ||
       (item.englishName && item.englishName.toLowerCase().includes(q));
