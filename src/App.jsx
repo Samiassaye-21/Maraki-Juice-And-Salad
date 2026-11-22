@@ -498,6 +498,16 @@ export default function App() {
     localStorage.setItem('maraki_waste_boxes', wasteBoxes.toString());
   }, [wasteBoxes]);
 
+  // Auto-return to menu after successful order submission without needing manual interaction
+  useEffect(() => {
+    if (!orderSuccessModal) return;
+    const timer = setTimeout(() => {
+      setOrderSuccessModal(null);
+      clearCurrentOrder();
+    }, 2500); // 2.5 seconds: confirms order on screen, then smoothly auto-returns straight to the food menu
+    return () => clearTimeout(timer);
+  }, [orderSuccessModal]);
+
   // --- CART / FOOD SELECTION ACTIONS ---
   const toggleOrAddFood = (dish) => {
     setCart(prev => {
@@ -3509,6 +3519,22 @@ export default function App() {
               Order sent & successfully logged
             </p>
 
+            {/* Auto-Return Countdown Progress Indicator */}
+            <div className="mt-3 flex flex-col items-center gap-1.5 w-full max-w-xs animate-in fade-in">
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#E2F4EB] text-[#126848] text-[11px] font-black">
+                <span className="w-2 h-2 rounded-full bg-[#126848] animate-ping" />
+                <span>ወደ ምግብ መምረጫው በራስ-ሰር በመመለስ ላይ...</span>
+              </div>
+              <div className="w-full h-1.5 bg-[#E8E2D5] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-emerald-500 to-[#107049] rounded-full"
+                  style={{
+                    animation: 'marakiAutoProgress 2.5s linear forwards'
+                  }}
+                />
+              </div>
+            </div>
+
             {/* Ticket Card */}
             <div className="w-full bg-white rounded-[32px] shadow-sm border border-[#E9E4D6] overflow-hidden text-left mt-6">
               
@@ -3625,7 +3651,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Bottom Next Order Button */}
+            {/* Bottom Next Order / Back to Menu Button */}
             <button
               type="button"
               onClick={() => {
@@ -3635,14 +3661,14 @@ export default function App() {
               className="w-full bg-[#107049] hover:bg-[#0D5B3B] active:scale-[0.98] transition-all text-white rounded-3xl py-4 px-6 flex items-center justify-center gap-3.5 shadow-xl shadow-[#107049]/25 mt-6 select-none"
             >
               <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                <Plus className="w-5 h-5 text-white stroke-[3]" />
+                <ArrowLeft className="w-5 h-5 text-white stroke-[3]" />
               </div>
               <div className="text-left">
                 <span className="font-black text-sm sm:text-base text-white block leading-tight">
-                  ቀጣይ አዲስ ትዕዛዝ አስገባ
+                  ወደ ምግብ መምረጫው ተመለስ
                 </span>
                 <span className="text-[11px] font-semibold text-white/80 block mt-0.5">
-                  Next Order
+                  Back to Food Menu (or auto-returns in 2.5s)
                 </span>
               </div>
             </button>
