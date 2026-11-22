@@ -108,7 +108,7 @@ export const MARAKI_REAL_FOOD_MENU = [
     containerType: 'box', 
     isAvailable: true, 
     emoji: '🍝🥦',
-    imageUrl: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281691?auto=format&fit=crop&w=600&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=600&q=80',
     description: 'ፓስታ ከተለያዩ ትኩስ አትክልቶች ጋር'
   },
   { 
@@ -1833,17 +1833,24 @@ export default function App() {
                       <div>
                         {/* Food Image */}
                         <div className="w-full h-32 rounded-2xl overflow-hidden relative bg-emerald-50 mb-2.5 shadow-inner">
-                          {dish.imageUrl ? (
+                          {dish.imageUrl && (
                             <img 
                               src={dish.imageUrl} 
                               alt={dish.name} 
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.parentElement.querySelector('.image-emoji-fallback');
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-4xl">
-                              {dish.emoji}
-                            </div>
                           )}
+                          <div 
+                            className="image-emoji-fallback w-full h-full items-center justify-center text-4xl bg-emerald-50"
+                            style={{ display: dish.imageUrl ? 'none' : 'flex' }}
+                          >
+                            {dish.emoji}
+                          </div>
 
                           {/* Packaging Tag */}
                           <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-white text-[9px] font-black px-2 py-0.5 rounded-lg border border-white/20">
