@@ -1619,11 +1619,11 @@ export default function App() {
       {systemMode === 'chef' && (
         <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full pb-28">
           
-          {/* STEP PROGRESS INDICATOR */}
-          <div className="mb-6 bg-white p-3.5 rounded-3xl shadow-md shadow-emerald-900/5 border border-emerald-100">
-            <div className="grid grid-cols-4 gap-2 text-center">
+          {/* STEP PROGRESS INDICATOR (5-STEP SEQUENTIAL WIZARD) */}
+          <div className="mb-6 bg-white p-3 sm:p-3.5 rounded-3xl shadow-md shadow-emerald-900/5 border border-emerald-100">
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2 text-center">
               
-              {/* Step 1 Pill */}
+              {/* Step 1 Pill: Food */}
               <button
                 type="button"
                 onClick={() => setOrderStep(1)}
@@ -1635,18 +1635,18 @@ export default function App() {
                       : 'text-slate-400 font-semibold'
                 }`}
               >
-                <div className="flex items-center gap-1.5 text-xs">
+                <div className="flex items-center gap-1 text-[11px] sm:text-xs">
                   <span>1. ምግብ</span>
                   {cart.length > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-amber-400 text-slate-900 text-[10px] font-black flex items-center justify-center">
+                    <span className="w-3.5 h-3.5 rounded-full bg-amber-400 text-slate-900 text-[9px] font-black flex items-center justify-center">
                       {cart.reduce((s, i) => s + i.qty, 0)}
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] opacity-80 hidden sm:inline">Choose Food</span>
+                <span className="text-[9px] opacity-80 hidden sm:inline">Food</span>
               </button>
 
-              {/* Step 2 Pill */}
+              {/* Step 2 Pill: Service (Takeaway vs Home) - Cannot be jumped */}
               <button
                 type="button"
                 disabled={cart.length === 0}
@@ -1659,17 +1659,17 @@ export default function App() {
                       : 'text-slate-400 font-semibold disabled:opacity-40'
                 }`}
               >
-                <div className="flex items-center gap-1.5 text-xs">
-                  <span>2. ፈረቃ / ቢዩ</span>
+                <div className="flex items-center gap-1 text-[11px] sm:text-xs">
+                  <span>2. አገልግሎት</span>
                 </div>
-                <span className="text-[10px] opacity-80 hidden sm:inline">Day, Night or BEU</span>
+                <span className="text-[9px] opacity-80 hidden sm:inline">🥡 / 🏠</span>
               </button>
 
-              {/* Step 3 Pill */}
+              {/* Step 3 Pill: Shift */}
               <button
                 type="button"
-                disabled={cart.length === 0}
-                onClick={() => cart.length > 0 && setOrderStep(3)}
+                disabled={orderStep < 3 && cart.length === 0}
+                onClick={() => orderStep >= 3 && setOrderStep(3)}
                 className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all ${
                   orderStep === 3 
                     ? 'bg-emerald-600 text-white font-black shadow-md shadow-emerald-600/30' 
@@ -1678,27 +1678,46 @@ export default function App() {
                       : 'text-slate-400 font-semibold disabled:opacity-40'
                 }`}
               >
-                <div className="flex items-center gap-1.5 text-xs">
-                  <span>3. አስተናጋጅ</span>
+                <div className="flex items-center gap-1 text-[11px] sm:text-xs">
+                  <span>3. ፈረቃ</span>
                 </div>
-                <span className="text-[10px] opacity-80 hidden sm:inline">Waiter</span>
+                <span className="text-[9px] opacity-80 hidden sm:inline">Shift</span>
               </button>
 
-              {/* Step 4 Pill */}
+              {/* Step 4 Pill: Waiter */}
               <button
                 type="button"
-                disabled={cart.length === 0}
-                onClick={() => cart.length > 0 && setOrderStep(4)}
+                disabled={orderStep < 4}
+                onClick={() => orderStep >= 4 && setOrderStep(4)}
                 className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all ${
                   orderStep === 4 
+                    ? 'bg-emerald-600 text-white font-black shadow-md shadow-emerald-600/30' 
+                    : orderStep > 4 
+                      ? 'bg-emerald-50 text-emerald-800 font-bold hover:bg-emerald-100' 
+                      : 'text-slate-400 font-semibold disabled:opacity-40'
+                }`}
+              >
+                <div className="flex items-center gap-1 text-[11px] sm:text-xs">
+                  <span>4. አስተናጋጅ</span>
+                </div>
+                <span className="text-[9px] opacity-80 hidden sm:inline">Waiter</span>
+              </button>
+
+              {/* Step 5 Pill: Submit */}
+              <button
+                type="button"
+                disabled={orderStep < 5}
+                onClick={() => orderStep >= 5 && setOrderStep(5)}
+                className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all ${
+                  orderStep === 5 
                     ? 'bg-emerald-600 text-white font-black shadow-md shadow-emerald-600/30' 
                     : 'text-slate-400 font-semibold disabled:opacity-40'
                 }`}
               >
-                <div className="flex items-center gap-1.5 text-xs">
-                  <span>4. አስገባ</span>
+                <div className="flex items-center gap-1 text-[11px] sm:text-xs">
+                  <span>5. አስገባ</span>
                 </div>
-                <span className="text-[10px] opacity-80 hidden sm:inline">Submit</span>
+                <span className="text-[9px] opacity-80 hidden sm:inline">Submit</span>
               </button>
 
             </div>
@@ -1710,67 +1729,6 @@ export default function App() {
           {orderStep === 1 && (
             <div className="space-y-4 animate-in fade-in duration-200">
               
-              {/* Takeaway vs. Home Selector Banner */}
-              <div className="bg-white p-3.5 sm:p-4 rounded-3xl border-2 border-emerald-200/90 shadow-md shadow-emerald-900/5">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-black text-slate-900">
-                        የአገልግሎት ዓይነት ይምረጡ (Order Type)
-                      </span>
-                      {orderType === 'Home' && (
-                        <span className="bg-amber-100 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-300">
-                          ✨ የ 320 ብር ምግቦች በ 300 ብር ብቻ!
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-400 font-bold mt-0.5">
-                      {orderType === 'Takeaway' 
-                        ? '🥡 ቴክአዌይ፡ መደበኛ ዋጋና 1 ቦክስ በምግብ' 
-                        : '🏠 ቤት ውስጥ፡ የ 320 ብር ምግቦች ወደ 300 ብር ዝቅ ይላሉ፤ የቴክአዌይ ቦክስ አይወጣም'}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 w-full sm:w-80">
-                    <button
-                      type="button"
-                      onClick={() => setOrderType('Takeaway')}
-                      className={`py-2.5 px-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 transition-all ${
-                        orderType === 'Takeaway'
-                          ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/25 scale-[1.02]'
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
-                      }`}
-                    >
-                      <span className="text-base">🥡</span>
-                      <div className="text-left">
-                        <span className="block leading-none">ቴክአዌይ</span>
-                        <span className={`text-[9px] font-bold block mt-0.5 ${orderType === 'Takeaway' ? 'text-emerald-100' : 'text-slate-400'}`}>
-                          Takeaway
-                        </span>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setOrderType('Home')}
-                      className={`py-2.5 px-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 transition-all ${
-                        orderType === 'Home'
-                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-600/25 scale-[1.02]'
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
-                      }`}
-                    >
-                      <span className="text-base">🏠</span>
-                      <div className="text-left">
-                        <span className="block leading-none">ቤት ውስጥ</span>
-                        <span className={`text-[9px] font-bold block mt-0.5 ${orderType === 'Home' ? 'text-amber-100' : 'text-slate-400'}`}>
-                          Home (300 ETB)
-                        </span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
               {/* Header Title & Search */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-emerald-100 shadow-sm">
                 <div>
@@ -1782,7 +1740,7 @@ export default function App() {
                   </h2>
                   <p className="text-xs text-slate-400 font-bold mt-0.5">
                     {orderType === 'Takeaway'
-                      ? 'የሚፈልጉትን ምግብ ይጫኑ፤ እያንዳንዱ ምግብ 1 🥡 ቴክአዌይ ቦክስ ያሰላል'
+                      ? 'የሚፈልጉትን ምግብ ይጫኑ፤ ቀጥሎ ቴክአዌይ ወይም ቤት ውስጥ መሆኑን ይመርጣሉ'
                       : 'የሚፈልጉትን ምግብ ይጫኑ፤ በቤት ውስጥ (🍽️) ስለቀረበ የቦክስ እቃ አይወጣም'}
                   </p>
                 </div>
@@ -1950,6 +1908,165 @@ export default function App() {
           )}
 
           {/* ============================================================== */}
+          {/* ============================================================== */}
+          {/* STEP 2: CHOOSE SERVICE TYPE (TAKEAWAY vs HOME 300 ETB)         */}
+          {/* ============================================================== */}
+          {orderStep === 2 && (
+            <div className="space-y-6 animate-in fade-in duration-200 max-w-2xl mx-auto">
+              
+              <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm text-center">
+                <span className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 font-black inline-flex items-center justify-center text-sm mb-2 shadow-sm">
+                  2
+                </span>
+                <h2 className="text-xl font-black text-slate-900">
+                  የአገልግሎት ዓይነት ይምረጡ (Choose Service Type)
+                </h2>
+                <p className="text-xs text-slate-500 font-bold mt-1">
+                  ትዕዛዙ ቴክአዌይ (Takeaway) ነው ወይስ በሬስቶራንት ውስጥ የሚበላ (Home)?
+                </p>
+              </div>
+
+              {/* 2 Big Visual Touch-Friendly Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                
+                {/* 1. Takeaway Card */}
+                <div
+                  onClick={() => setOrderType('Takeaway')}
+                  className={`p-6 sm:p-7 rounded-3xl border-2 text-left transition-all flex flex-col justify-between gap-5 cursor-pointer active:scale-[0.98] ${
+                    orderType === 'Takeaway'
+                      ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-700/15 ring-4 ring-emerald-500/20'
+                      : 'border-slate-200 bg-white hover:border-emerald-300 hover:shadow-md'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-3xl shadow-inner">
+                      🥡
+                    </div>
+                    {orderType === 'Takeaway' ? (
+                      <span className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-sm">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>ተመርጧል (Selected)</span>
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
+                        ይምረጡ
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <h3 className="text-xl font-black text-slate-900">
+                      🥡 ቴክአዌይ (Takeaway)
+                    </h3>
+                    <p className="text-xs font-bold text-slate-500 leading-relaxed">
+                      ለደጃፍ ወይም ይዘውት ለሚሄዱ ደንበኞች። የምግብ ማሸጊያ ቦክስ በየምግቡ ይቆጠራል (1 Box per item)።
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-emerald-200/60 flex items-center justify-between text-xs font-black">
+                    <span className="text-slate-600">ዋጋ (Pricing):</span>
+                    <span className="text-emerald-800 bg-emerald-100/80 px-2.5 py-1 rounded-xl">
+                      መደበኛ ዋጋ (Normal)
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Home (Dine-In 300 ETB) Card */}
+                <div
+                  onClick={() => setOrderType('Home')}
+                  className={`p-6 sm:p-7 rounded-3xl border-2 text-left transition-all flex flex-col justify-between gap-5 cursor-pointer active:scale-[0.98] ${
+                    orderType === 'Home'
+                      ? 'border-amber-500 bg-amber-50/90 shadow-xl shadow-amber-600/15 ring-4 ring-amber-500/20'
+                      : 'border-slate-200 bg-white hover:border-amber-300 hover:shadow-md'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-900 flex items-center justify-center text-3xl shadow-inner">
+                      🏠
+                    </div>
+                    {orderType === 'Home' ? (
+                      <span className="inline-flex items-center gap-1.5 bg-amber-500 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-sm">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>ተመርጧል (Selected)</span>
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
+                        ይምረጡ
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-black text-slate-900">
+                        🏠 ቤት ውስጥ (Home)
+                      </h3>
+                      <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm">
+                        300 ETB
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-500 leading-relaxed">
+                      በሬስቶራንት ውስጥ ተቀምጠው ለሚመገቡ ደንበኞች። ቦክስ አይወጣም (0 Boxes)።
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-amber-200/60 flex items-center justify-between text-xs font-black">
+                    <span className="text-slate-600">ልዩ ቅናሽ (Discount):</span>
+                    <span className="text-amber-900 bg-amber-200/80 px-2.5 py-1 rounded-xl">
+                      ✨ የ 320 ብር ምግቦች በ 300 ብር!
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Order Pricing Preview Box */}
+              <div className="bg-white p-4 sm:p-5 rounded-3xl border border-emerald-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xl">
+                    {orderType === 'Home' ? '🏠' : '🥡'}
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-400 block">የተመረጠው አገልግሎት</span>
+                    <span className="text-sm font-black text-slate-900">
+                      {orderType === 'Home' ? 'ቤት ውስጥ (Home) • የ 300 ብር ቅናሽ ተተግብሯል' : 'ቴክአዌይ (Takeaway) • የማሸጊያ ቦክስ ይቆጠራል'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-xs font-bold text-slate-400 block">የአሁን ድምር ዋጋ (Total)</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-slate-900">{totalSubtotal.toLocaleString()}</span>
+                    <span className="text-xs font-black text-emerald-700">ETB</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2 Back & Next Action Buttons */}
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  type="button"
+                  onClick={() => setOrderStep(1)}
+                  className="px-5 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-black text-xs sm:text-sm flex items-center gap-2 transition-all"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>ወደ ምግብ መረጣ (Back to Food)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderStep(3)}
+                  className="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-700/20 transition-all scale-[1.02]"
+                >
+                  <span>ቀጣይ ወደ ፈረቃ (Next: Shift) →</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
+            </div>
+          )}
+
           {/* STEP 2: IS IT DAY, NIGHT, OR BEU?                              */}
           {/* ============================================================== */}
           {orderStep === 2 && (
@@ -1957,7 +2074,7 @@ export default function App() {
               
               <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm text-center max-w-xl mx-auto">
                 <span className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 font-black inline-flex items-center justify-center text-sm mb-2">
-                  2
+                  4
                 </span>
                 <h2 className="text-lg font-black text-slate-900">
                   ቀን፣ ማታ ወይስ ቢዩ? (Day, Night or BEU?)
@@ -2048,42 +2165,6 @@ export default function App() {
 
               </div>
 
-              {/* Takeaway vs. Home Toggle in Step 2 */}
-              {selectedShiftType !== 'BEU' ? (
-                <div className="max-w-md mx-auto bg-white p-3.5 rounded-3xl border border-emerald-100 shadow-sm flex items-center justify-between gap-3">
-                  <div>
-                    <span className="text-[10px] font-black uppercase text-slate-400 block">አገልግሎት (Order Type)</span>
-                    <span className="font-black text-xs text-slate-900">
-                      {orderType === 'Takeaway' ? '🥡 ቴክአዌይ (Takeaway)' : '🏠 ቤት ውስጥ (Home - 300 ETB)'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl">
-                    <button
-                      type="button"
-                      onClick={() => setOrderType('Takeaway')}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
-                        orderType === 'Takeaway' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      🥡 ቴክአዌይ
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setOrderType('Home')}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
-                        orderType === 'Home' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      🏠 ቤት ውስጥ
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="max-w-md mx-auto bg-teal-50 border border-teal-200 p-3 rounded-2xl text-center text-xs font-black text-teal-800">
-                  🛵 የቢዩ ዴሊቨሪ ትዕዛዝ ሁልጊዜ ቴክአዌይ ነው (BEU Delivery is 100% Takeaway)
-                </div>
-              )}
-
               {/* If BEU Delivery is selected, optional BEU Order # input */}
               {selectedShiftType === 'BEU' && (
                 <div className="max-w-md mx-auto bg-teal-50 border border-teal-200 p-4 rounded-3xl animate-in fade-in">
@@ -2104,16 +2185,16 @@ export default function App() {
               <div className="flex items-center justify-between max-w-2xl mx-auto pt-4">
                 <button
                   type="button"
-                  onClick={() => setOrderStep(1)}
+                  onClick={() => setOrderStep(2)}
                   className="px-5 py-3 rounded-2xl bg-white hover:bg-emerald-50 text-slate-700 border border-emerald-200 font-black text-xs flex items-center gap-2 transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>ወደ ምግብ መረጣ (Back)</span>
+                  <span>ወደ አገልግሎት (Back: Service)</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setOrderStep(3)}
+                  onClick={() => setOrderStep(4)}
                   className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-700/20 transition-all scale-[1.02]"
                 >
                   <span>ቀጥል ወደ አስተናጋጅ (Next: Waiter)</span>
@@ -2212,16 +2293,16 @@ export default function App() {
               <div className="flex items-center justify-between max-w-2xl mx-auto pt-4">
                 <button
                   type="button"
-                  onClick={() => setOrderStep(2)}
+                  onClick={() => setOrderStep(3)}
                   className="px-5 py-3 rounded-2xl bg-white hover:bg-emerald-50 text-slate-700 border border-emerald-200 font-black text-xs flex items-center gap-2 transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>ወደ ፈረቃ (Back)</span>
+                  <span>ወደ ፈረቃ (Back: Shift)</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setOrderStep(4)}
+                  onClick={() => setOrderStep(5)}
                   className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-700/20 transition-all scale-[1.02]"
                 >
                   <span>ቀጥል ወደ ማረጋገጫ (Next: Submit)</span>
@@ -2240,7 +2321,7 @@ export default function App() {
               
               <div>
                 <span className="w-9 h-9 rounded-2xl bg-[#E2F4EB] text-[#126848] font-black inline-flex items-center justify-center text-sm mb-2 shadow-sm">
-                  4
+                  5
                 </span>
                 <h2 className="text-xl sm:text-2xl font-black text-[#1C201D] tracking-tight">
                   ትዕዛዙን አረጋግጠው ያስገቡ
@@ -2398,11 +2479,11 @@ export default function App() {
 
                 <button
                   type="button"
-                  onClick={() => setOrderStep(3)}
+                  onClick={() => setOrderStep(4)}
                   className="w-full py-3 rounded-2xl bg-white hover:bg-emerald-50 text-slate-600 border border-emerald-100 font-black text-xs flex items-center justify-center gap-1.5 transition-all"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>ወደ ኋላ ተመለስና አስተካክል (Back to Edit)</span>
+                  <span>ወደ አስተናጋጅ ተመለስ (Back: Waiter)</span>
                 </button>
               </div>
 
@@ -2465,7 +2546,7 @@ export default function App() {
                     onClick={() => setOrderStep(2)}
                     className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 text-white disabled:text-slate-400 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-700/20 disabled:shadow-none transition-all active:scale-95"
                   >
-                    <span>ቀጥል (Next: Shift & Waiter)</span>
+                    <span>ቀጥል (Next: 🥡 Takeaway / 🏠 Home)</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
