@@ -2075,14 +2075,15 @@ export default function App() {
             </div>
           )}
 
-          {/* STEP 2: IS IT DAY, NIGHT, OR BEU?                              */}
           {/* ============================================================== */}
-          {orderStep === 2 && (
+          {/* STEP 3: IS IT DAY, NIGHT, OR BEU?                              */}
+          {/* ============================================================== */}
+          {orderStep === 3 && (
             <div className="space-y-6 animate-in fade-in duration-200">
               
               <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm text-center max-w-xl mx-auto">
                 <span className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 font-black inline-flex items-center justify-center text-sm mb-2">
-                  4
+                  3
                 </span>
                 <h2 className="text-lg font-black text-slate-900">
                   ቀን፣ ማታ ወይስ ቢዩ? (Day, Night or BEU?)
@@ -2214,14 +2215,14 @@ export default function App() {
           )}
 
           {/* ============================================================== */}
-          {/* STEP 3: WHO IS THE WAITER THAT TAKES IT?                        */}
+          {/* STEP 4: WHO IS THE WAITER THAT TAKES IT?                        */}
           {/* ============================================================== */}
-          {orderStep === 3 && (
+          {orderStep === 4 && (
             <div className="space-y-6 animate-in fade-in duration-200">
               
               <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm text-center max-w-xl mx-auto">
                 <span className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 font-black inline-flex items-center justify-center text-sm mb-2">
-                  3
+                  4
                 </span>
                 <h2 className="text-lg font-black text-slate-900">
                   ምግቡን የወሰደው አስተናጋጅ ማን ነው?
@@ -2322,9 +2323,9 @@ export default function App() {
           )}
 
           {/* ============================================================== */}
-          {/* STEP 4: REVIEW & SUBMIT TO OWNER                               */}
+          {/* STEP 5: REVIEW & SUBMIT TO OWNER                               */}
           {/* ============================================================== */}
-          {orderStep === 4 && (
+          {orderStep === 5 && (
             <div className="space-y-5 animate-in fade-in duration-200 max-w-sm sm:max-w-md mx-auto text-center">
               
               <div>
