@@ -137,19 +137,15 @@ const INITIAL_NOTES = [
   { id: 'not-2', title: 'የክረምት የፍራፍሬ ዋጋ ትንበያ (Seasonal price forecast)', content: 'የማንጎ ዋጋ በታህሳስ ስለሚጨምር አስቀድሞ በብዛት መያዝ ይመረጣል።', tag: 'Idea', createdAt: '2026-11-21' }
 ];
 
-const INITIAL_ACTUAL_EXPENSES = [
-  { id: 'exp-1', title: 'የዕለት በረዶ ግዢ (Ice purchase)', category: 'Ingredients', amount: 350, date: '2026-11-22', paymentMethod: 'Cash', linkedPlan: 'Daily Ice' },
-  { id: 'exp-2', title: 'የማጽጃ ሳሙናና ፎጣ (Cleaning supplies)', category: 'Maintenance', amount: 480, date: '2026-11-22', paymentMethod: 'Telebirr', linkedPlan: 'Shop Cleaning' }
-];
+const INITIAL_ACTUAL_EXPENSES = [];
 
-const INITIAL_DAY_CLOSES = [
-  { id: 'dc-1', date: '2026-11-21', expectedCash: 25000, countedCash: 25000, difference: 0, note: 'ቀኑ ሙሉ በሙሉ ተመጣጥኗል' }
-];
+const INITIAL_DAY_CLOSES = [];
 
 export default function BusinessManagement({ 
   orders = [], 
   totalRealSales = 0,
-  onSwitchToOrdersLog
+  onSwitchToOrdersLog,
+  onClearOrders
 }) {
   // Navigation: 5 TABS (Home, To Pay, Expenses, Plans, Reports)
   const [activeTab, setActiveTab] = useState('home');
@@ -196,13 +192,25 @@ export default function BusinessManagement({
   });
 
   const [actualExpenses, setActualExpenses] = useState(() => {
+    const cleared = localStorage.getItem('maraki_actual_expenses_cleared_v3');
+    if (!cleared) {
+      localStorage.removeItem('maraki_actual_expenses');
+      localStorage.setItem('maraki_actual_expenses_cleared_v3', 'true');
+      return [];
+    }
     const saved = localStorage.getItem('maraki_actual_expenses');
-    return saved ? JSON.parse(saved) : INITIAL_ACTUAL_EXPENSES;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [dayCloses, setDayCloses] = useState(() => {
+    const cleared = localStorage.getItem('maraki_day_closes_cleared_v3');
+    if (!cleared) {
+      localStorage.removeItem('maraki_day_closes');
+      localStorage.setItem('maraki_day_closes_cleared_v3', 'true');
+      return [];
+    }
     const saved = localStorage.getItem('maraki_day_closes');
-    return saved ? JSON.parse(saved) : INITIAL_DAY_CLOSES;
+    return saved ? JSON.parse(saved) : [];
   });
 
   // LocalStorage Sync Effects
@@ -727,6 +735,93 @@ export default function BusinessManagement({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Data Clearing & Reset Handlers
+  const handleClearAllExpenses = () => {
+    if (actualExpenses.length === 0) return;
+    if (!window.confirm('ሁሉንም የተመዘገቡ ወጪዎች ማጽዳት ይፈልጋሉ? (Are you sure you want to clear all recorded expenses?)')) {
+      return;
+    }
+    const backup = [...actualExpenses];
+    setActualExpenses([]);
+    localStorage.setItem('maraki_actual_expenses', JSON.stringify([]));
+    triggerUndoableAction('ሁሉም የተመዘገቡ ወጪዎች ተሰርዘዋል (All recorded expenses cleared)', () => {
+      setActualExpenses(backup);
+      localStorage.setItem('maraki_actual_expenses', JSON.stringify(backup));
+    });
+  };
+
+  const handleClearAllOrders = () => {
+    if (!window.confirm('የትዕዛዞች ታሪክን ሙሉ ለሙሉ ማጽዳት ይፈልጋሉ? (Clear all orders log?)')) {
+      return;
+    }
+    if (onClearOrders) {
+      onClearOrders();
+    }
+    triggerUndoableAction('የትዕዛዞች ታሪክ ተሰርዟል (All order history cleared)');
+  };
+
+  const handleClearAllPlans = () => {
+    if (!window.confirm('ሁሉንም የታቀዱ ክፍያዎች፣ ግዢዎችና ደመወዞች ማጽዳት ይፈልጋሉ? (Clear all plans?)')) {
+      return;
+    }
+    setRecurringExpenses([]);
+    setPurchasePlans([]);
+    setSalaryPlans([]);
+    setTasks([]);
+    setGoals([]);
+    setNotes([]);
+    localStorage.setItem('maraki_plan_recurring', '[]');
+    localStorage.setItem('maraki_plan_purchases', '[]');
+    localStorage.setItem('maraki_plan_salaries', '[]');
+    localStorage.setItem('maraki_plan_tasks', '[]');
+    localStorage.setItem('maraki_plan_goals', '[]');
+    localStorage.setItem('maraki_plan_notes', '[]');
+    triggerUndoableAction('ሁሉም የታቀዱ ክፍያዎችና እቅዶች ተሰርዘዋል (All plans cleared)');
+  };
+
+  const handleFullSystemReset = () => {
+    if (!window.confirm('⚠️ ማስጠንቀቂያ፡ መላው የሲስተም መረጃ (ወጪዎች፣ እቅዶች፣ ግቦች፣ ተግባራት) ሙሉ ለሙሉ ባዶ ይሆናል። እርግጠኛ ነዎት? (WARNING: Full wipe of all system data. Continue?)')) {
+      return;
+    }
+    setActualExpenses([]);
+    setRecurringExpenses([]);
+    setPurchasePlans([]);
+    setSalaryPlans([]);
+    setTasks([]);
+    setGoals([]);
+    setNotes([]);
+    setDayCloses([]);
+    if (onClearOrders) onClearOrders();
+    localStorage.setItem('maraki_actual_expenses', '[]');
+    localStorage.setItem('maraki_plan_recurring', '[]');
+    localStorage.setItem('maraki_plan_purchases', '[]');
+    localStorage.setItem('maraki_plan_salaries', '[]');
+    localStorage.setItem('maraki_plan_tasks', '[]');
+    localStorage.setItem('maraki_plan_goals', '[]');
+    localStorage.setItem('maraki_plan_notes', '[]');
+    localStorage.setItem('maraki_day_closes', '[]');
+    triggerUndoableAction('መላው ሲስተም ባዶ ተደርጓል (Full system reset to clean slate)');
+  };
+
+  const handleRestoreDefaults = () => {
+    if (!window.confirm('ወደ ማራኪ መደበኛ እቅዶች (የቤት ኪራይ፣ ደመወዝ፣ ፍራፍሬ) መመለስ ይፈልጋሉ?')) {
+      return;
+    }
+    setRecurringExpenses(INITIAL_RECURRING_EXPENSES);
+    setPurchasePlans(INITIAL_PURCHASE_PLANS);
+    setSalaryPlans(INITIAL_SALARY_PLANS);
+    setTasks(INITIAL_TASKS);
+    setGoals(INITIAL_GOALS);
+    setNotes(INITIAL_NOTES);
+    localStorage.setItem('maraki_plan_recurring', JSON.stringify(INITIAL_RECURRING_EXPENSES));
+    localStorage.setItem('maraki_plan_purchases', JSON.stringify(INITIAL_PURCHASE_PLANS));
+    localStorage.setItem('maraki_plan_salaries', JSON.stringify(INITIAL_SALARY_PLANS));
+    localStorage.setItem('maraki_plan_tasks', JSON.stringify(INITIAL_TASKS));
+    localStorage.setItem('maraki_plan_goals', JSON.stringify(INITIAL_GOALS));
+    localStorage.setItem('maraki_plan_notes', JSON.stringify(INITIAL_NOTES));
+    triggerUndoableAction('ወደ ማራኪ መደበኛ እቅዶች ተመልሷል (Restored Maraki business plans)');
   };
 
   // ==============================================================
@@ -1712,14 +1807,28 @@ export default function BusinessManagement({
                 ))}
               </div>
 
-              <div className="relative w-full md:w-56">
-                <input
-                  type="text"
-                  placeholder="ፈልግ / Search expense..."
-                  value={expenseSearch}
-                  onChange={(e) => setExpenseSearch(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1.5 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="relative flex-1 md:w-56">
+                  <input
+                    type="text"
+                    placeholder="ፈልግ / Search expense..."
+                    value={expenseSearch}
+                    onChange={(e) => setExpenseSearch(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1.5 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                {actualExpenses.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearAllExpenses}
+                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all whitespace-nowrap shadow-2xs"
+                    title="ሁሉንም የተመዘገቡ ወጪዎች አጽዳ"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    <span>ወጪዎችን አጽዳ ({actualExpenses.length})</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1736,7 +1845,21 @@ export default function BusinessManagement({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-bold text-slate-700">
-                  {actualExpenses
+                  {actualExpenses.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                          <CheckCircle2 className="w-6 h-6" />
+                        </div>
+                        <h4 className="font-black text-sm text-slate-800">
+                          እስካሁን የተመዘገበ ወጪ የለም (No Expenses Recorded)
+                        </h4>
+                        <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto font-medium">
+                          የቢዝነሱ የሂሳብ መዝገብ ንፁህ ነው። አዲስ ወጪዎችን ለመመዝገብ ከላይ ያለውን ፈጣን መመዝገቢያ ወይም "+ አዲስ ወጪ መዝግብ" ይጠቀሙ።
+                        </p>
+                      </td>
+                    </tr>
+                  ) : actualExpenses
                     .filter(exp => {
                       if (expenseCategoryFilter !== 'all' && exp.category !== expenseCategoryFilter) return false;
                       if (expenseSearch.trim()) {
@@ -1744,52 +1867,68 @@ export default function BusinessManagement({
                         return (exp.title || '').toLowerCase().includes(q) || (exp.category || '').toLowerCase().includes(q) || (exp.date || '').includes(q);
                       }
                       return true;
-                    })
-                    .map(exp => (
-                      <tr key={exp.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3.5 px-4 text-slate-500 whitespace-nowrap">{toEthiopianShortDate(exp.date)}</td>
-                        <td className="py-3.5 px-4">
-                          <span className="font-black text-slate-900 block">{exp.title}</span>
-                          {exp.linkedPlan && (
-                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-block mt-0.5">
-                              {exp.linkedPlan}
+                    }).length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400 text-xs font-bold">
+                        ለዚህ ፈልጎ የተገኘ ወጪ የለም
+                      </td>
+                    </tr>
+                  ) : (
+                    actualExpenses
+                      .filter(exp => {
+                        if (expenseCategoryFilter !== 'all' && exp.category !== expenseCategoryFilter) return false;
+                        if (expenseSearch.trim()) {
+                          const q = expenseSearch.toLowerCase().trim();
+                          return (exp.title || '').toLowerCase().includes(q) || (exp.category || '').toLowerCase().includes(q) || (exp.date || '').includes(q);
+                        }
+                        return true;
+                      })
+                      .map(exp => (
+                        <tr key={exp.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3.5 px-4 text-slate-500 whitespace-nowrap">{toEthiopianShortDate(exp.date)}</td>
+                          <td className="py-3.5 px-4">
+                            <span className="font-black text-slate-900 block">{exp.title}</span>
+                            {exp.linkedPlan && (
+                              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-block mt-0.5">
+                                {exp.linkedPlan}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-200">
+                              {exp.category}
                             </span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-200">
-                            {exp.category}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-600">
-                          <span className="inline-flex items-center gap-1">
-                            {exp.paymentMethod === 'Telebirr' && '📱'}
-                            {exp.paymentMethod === 'Cash' && '💵'}
-                            {exp.paymentMethod === 'CBE Birr' && '🏦'}
-                            <span>{exp.paymentMethod || 'Cash'}</span>
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 font-black text-rose-600">
-                          -{exp.amount.toLocaleString()} ETB
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const deleted = exp;
-                              setActualExpenses(prev => prev.filter(e => e.id !== exp.id));
-                              triggerUndoableAction(`${deleted.title} ተሰርዟል!`, () => {
-                                setActualExpenses(prev => [deleted, ...prev]);
-                              });
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                            title="ወጪውን ሰርዝ"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-600">
+                            <span className="inline-flex items-center gap-1">
+                              {exp.paymentMethod === 'Telebirr' && '📱'}
+                              {exp.paymentMethod === 'Cash' && '💵'}
+                              {exp.paymentMethod === 'CBE Birr' && '🏦'}
+                              <span>{exp.paymentMethod || 'Cash'}</span>
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 font-black text-rose-600">
+                            -{exp.amount.toLocaleString()} ETB
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const deleted = exp;
+                                setActualExpenses(prev => prev.filter(e => e.id !== exp.id));
+                                triggerUndoableAction(`${deleted.title} ተሰርዟል!`, () => {
+                                  setActualExpenses(prev => [deleted, ...prev]);
+                                });
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                              title="ወጪውን ሰርዝ"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -2931,8 +3070,59 @@ export default function BusinessManagement({
                 />
               </div>
 
-              <div className="pt-2 border-t border-slate-100 space-y-2">
-                <h4 className="font-black text-xs text-slate-900">የመረጃ ምትኬ (Backup & Data):</h4>
+              <div className="pt-2 border-t border-slate-100 space-y-2.5">
+                <h4 className="font-black text-xs text-slate-900 flex items-center justify-between">
+                  <span>የዳታ አያያዝና ማጽጃ (Data & Clear Controls):</span>
+                  <span className="text-[10px] text-slate-400 font-bold">እርምጃዎች</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleClearAllExpenses}
+                    className="py-2 px-3 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-800 border border-rose-200 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    <span>ወጪዎችን አጽዳ ({actualExpenses.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleClearAllOrders}
+                    className="py-2 px-3 bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-800 border border-amber-200 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-amber-600" />
+                    <span>ትዕዛዞችን አጽዳ ({orders.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleClearAllPlans}
+                    className="py-2 px-3 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 border border-slate-200 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-slate-600" />
+                    <span>እቅዶችን አጽዳ (Clear Plans)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleRestoreDefaults}
+                    className="py-2 px-3 bg-blue-50 hover:bg-blue-100 active:scale-95 text-blue-800 border border-blue-200 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
+                    <span>መደበኛ እቅዶች መልስ</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleFullSystemReset}
+                  className="w-full py-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm shadow-red-700/20"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>⚠️ መላውን ዳታ ሙሉ በሙሉ አጽዳ (Full System Wipe)</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={handleDownloadAllData}

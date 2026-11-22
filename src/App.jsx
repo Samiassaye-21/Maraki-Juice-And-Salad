@@ -444,6 +444,12 @@ export default function App() {
 
   // Database of Sent Orders
   const [sentOrders, setSentOrders] = useState(() => {
+    const cleared = localStorage.getItem('maraki_sent_orders_cleared_v3');
+    if (!cleared) {
+      localStorage.removeItem('maraki_chef_sent_orders');
+      localStorage.setItem('maraki_sent_orders_cleared_v3', 'true');
+      return [];
+    }
     const saved = localStorage.getItem('maraki_chef_sent_orders');
     return saved ? JSON.parse(saved) : [];
   });
@@ -2618,6 +2624,10 @@ export default function App() {
               orders={sentOrders}
               totalRealSales={totalRevenueAll}
               onSwitchToOrdersLog={() => setOwnerSection('orders')}
+              onClearOrders={() => {
+                setSentOrders([]);
+                localStorage.removeItem('maraki_chef_sent_orders');
+              }}
             />
           ) : (
             <div className="space-y-6 animate-in fade-in duration-200">
