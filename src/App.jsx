@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useDeferredValue } from 'react';
+import React, { useState, useEffect, useRef, useDeferredValue, useTransition } from 'react';
 import { 
   Plus, 
   Minus, 
@@ -469,6 +469,8 @@ export default function App() {
   const [ownerDateRange, setOwnerDateRange] = useState('today'); // 'today' | 'all' | 'custom'
   const [ownerSelectedCustomDate, setOwnerSelectedCustomDate] = useState('');
   const [ownerSearchQuery, setOwnerSearchQuery] = useState('');
+  const deferredOwnerSearchQuery = useDeferredValue(ownerSearchQuery);
+  const [isFilterPending, startFilterTransition] = useTransition();
   const [ownerShiftFilter, setOwnerShiftFilter] = useState('all'); // 'all' | 'Day' | 'Night' | 'BEU' | 'Takeaway' | 'Home'
   const [ownerWaiterFilter, setOwnerWaiterFilter] = useState('all');
   const [ownerStatusFilter, setOwnerStatusFilter] = useState('all'); // 'all' | 'cooked' | 'taken'
@@ -913,10 +915,10 @@ export default function App() {
     waiterStats[w].totalETB += order.totalAmount;
   });
 
-  // Full Search & Filtered Orders for the Audit Log
+  // Full Search & Filtered Orders for the Audit Log (Optimized with useDeferredValue)
   const displayOrders = dateFilteredOrders.filter(order => {
-    if (ownerSearchQuery.trim()) {
-      const q = ownerSearchQuery.toLowerCase().trim();
+    if (deferredOwnerSearchQuery.trim()) {
+      const q = deferredOwnerSearchQuery.toLowerCase().trim();
       const matchId = order.id.toLowerCase().includes(q);
       const matchWaiter = (order.waiterName || '').toLowerCase().includes(q);
       const matchDate = (order.ethiopianDate || '').toLowerCase().includes(q);
@@ -2960,7 +2962,11 @@ export default function App() {
                       <button
                         key={tab.id}
                         type="button"
-                        onClick={() => setOwnerShiftFilter(tab.id)}
+                        onClick={() => {
+                          startFilterTransition(() => {
+                            setOwnerShiftFilter(tab.id);
+                          });
+                        }}
                         className={`flex-1 min-w-[95px] py-2 px-3 rounded-xl text-xs font-black whitespace-nowrap transition-all flex items-center justify-center gap-1.5 ${
                           isActive
                             ? 'bg-emerald-600 text-white shadow-sm'
