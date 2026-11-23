@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useDeferredValue, useTransition } from 'react';
 import BusinessManagement from './components/BusinessManagement';
+import ShiftReconciliation from './components/ShiftReconciliation';
 import { 
   Plus, 
   Minus, 
   Trash2, 
   Check, 
   CheckCircle2, 
+  ClipboardCheck,
   Clock, 
   ShoppingBag, 
   Truck, 
@@ -237,12 +239,118 @@ export const MARAKI_REAL_FOOD_MENU = [
     name: 'ቴስቲሶያ', 
     englishName: 'Tasty Soya', 
     category: 'Eggs & Firfir',
+    itemType: 'food',
     price: 200, 
     containerType: 'box', 
     isAvailable: true, 
     emoji: '🍲🌱',
     imageUrl: 'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=600&q=80',
     description: 'በጥሩ ቅመም የተዘጋጀ ጣፋጭ የአኩሪ አተር ወጥ (ቴስቲሶያ)'
+  },
+  // Authentic Maraki Juices & Smoothies
+  { 
+    id: 'j1', 
+    name: 'ማራኪ ስፔሻል ጁስ', 
+    englishName: 'Maraki Special Mixed Juice', 
+    category: 'Juices',
+    itemType: 'juice',
+    price: 180, 
+    containerType: 'cup', 
+    isAvailable: true, 
+    emoji: '🥤✨',
+    imageUrl: 'https://images.unsplash.com/photo-1546173159-315724a31696?auto=format&fit=crop&w=600&q=80',
+    description: 'በአቮካዶ፣ ማንጎ፣ ፓፓያና ብርቱካን የተዘጋጀ ልዩ ማራኪ ስፔሻል ጁስ'
+  },
+  { 
+    id: 'j2', 
+    name: 'ስፕሪስ ጁስ', 
+    englishName: 'Spris Juice (Layered)', 
+    category: 'Juices',
+    itemType: 'juice',
+    price: 150, 
+    containerType: 'cup', 
+    isAvailable: true, 
+    emoji: '🍹',
+    imageUrl: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=600&q=80',
+    description: 'ጣፋጭ የማንጎና አቮካዶ ባለሁለት ቀለም ስፕሪስ'
+  },
+  { 
+    id: 'j3', 
+    name: 'አቮካዶ ጁስ', 
+    englishName: 'Avocado Juice', 
+    category: 'Juices',
+    itemType: 'juice',
+    price: 140, 
+    containerType: 'cup', 
+    isAvailable: true, 
+    emoji: '🥑🥤',
+    imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+    description: 'ወፍራም ትኩስ አቮካዶ በሎሚና በቪምቶ'
+  },
+  { 
+    id: 'j4', 
+    name: 'ማንጎ ጁስ', 
+    englishName: 'Mango Juice', 
+    category: 'Juices',
+    itemType: 'juice',
+    price: 150, 
+    containerType: 'cup', 
+    isAvailable: true, 
+    emoji: '🥭🥤',
+    imageUrl: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=600&q=80',
+    description: 'የሀዋሳ የተመረጠ ትኩስና ጣፋጭ ማንጎ ጁስ'
+  },
+  { 
+    id: 'j5', 
+    name: 'ፓፓያ ጁስ', 
+    englishName: 'Papaya Juice', 
+    category: 'Juices',
+    itemType: 'juice',
+    price: 130, 
+    containerType: 'cup', 
+    isAvailable: true, 
+    emoji: '🍈🥤',
+    imageUrl: 'https://images.unsplash.com/photo-1517456793572-1d8efd6dc135?auto=format&fit=crop&w=600&q=80',
+    description: 'በሎሚና በበረዶ የተዘጋጀ ትኩስ ፓፓያ ጁስ'
+  },
+  { 
+    id: 'j6', 
+    name: 'ብርቱካን ጁስ', 
+    englishName: 'Fresh Orange Juice', 
+    category: 'Juices',
+    itemType: 'juice',
+    price: 160, 
+    containerType: 'cup', 
+    isAvailable: true, 
+    emoji: '🍊🥤',
+    imageUrl: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=600&q=80',
+    description: '100% ንፁህ የተጨመቀ የብርቱካን ጭማቂ'
+  },
+  { 
+    id: 'j7', 
+    name: 'ሐባብ ጁስ', 
+    englishName: 'Watermelon Juice', 
+    category: 'Juices',
+    itemType: 'juice',
+    price: 140, 
+    containerType: 'cup', 
+    isAvailable: true, 
+    emoji: '🍉🥤',
+    imageUrl: 'https://images.unsplash.com/photo-1589733955941-5eeaf752f6dd?auto=format&fit=crop&w=600&q=80',
+    description: 'ትኩስ የበጋ ቀዝቃዛ የሐባብ ጭማቂ'
+  },
+  { 
+    id: 'j8', 
+    name: 'አናናስ ጁስ', 
+    englishName: 'Pineapple Juice', 
+    category: 'Juices',
+    itemType: 'juice',
+    price: 150, 
+    containerType: 'cup', 
+    isAvailable: true, 
+    emoji: '🍍🥤',
+    imageUrl: 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba?auto=format&fit=crop&w=600&q=80',
+    description: 'የተመረጠ ትኩስ አናናስ በበረዶ'
   }
 ];
 
@@ -332,13 +440,15 @@ export function formatWaiterDisplayName(waiterStr) {
 }
 
 export default function App() {
-  // --- SYSTEM SEPARATION: CHEF KITCHEN POS vs OWNER COMMAND CENTER ---
+  // --- SYSTEM SEPARATION: CHEF KITCHEN POS vs OWNER COMMAND CENTER vs SHIFT RECONCILIATION ---
   const [systemMode, setSystemMode] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const sys = params.get('system') || params.get('role');
-    if (sys === 'chef' || sys === 'owner') return sys;
+    if (sys === 'chef' || sys === 'owner' || sys === 'reconciliation' || sys === 'shift') {
+      return sys === 'shift' ? 'reconciliation' : sys;
+    }
     const saved = localStorage.getItem('maraki_system_mode');
-    if (saved === 'chef' || saved === 'owner') return saved;
+    if (saved === 'chef' || saved === 'owner' || saved === 'reconciliation') return saved;
     return 'portal'; // Default to portal selection gateway
   });
 
@@ -747,8 +857,8 @@ export default function App() {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       const sys = params.get('system') || params.get('role');
-      if (sys === 'chef' || sys === 'owner') {
-        setSystemMode(sys);
+      if (sys === 'chef' || sys === 'owner' || sys === 'reconciliation' || sys === 'shift') {
+        setSystemMode(sys === 'shift' ? 'reconciliation' : sys);
       } else {
         setSystemMode('portal');
       }
@@ -1088,8 +1198,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* Two Dedicated Portal Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl w-full">
+        {/* Three Dedicated Portal Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 max-w-5xl w-full">
           
           {/* Portal 1: Chef Kitchen Station */}
           <div 
@@ -1189,6 +1299,53 @@ export default function App() {
               className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-900/30 flex items-center justify-center gap-2 transition-all group-hover:shadow-amber-500/30 active:scale-98"
             >
               <span>ወደ ባለቤት ማዕከል ግባ (Enter Owner Center)</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Portal 3: Shift Reconciliation & Waiter Cash Audit (Internal System) */}
+          <div 
+            onClick={() => navigateToSystem('reconciliation')}
+            className="group bg-white/10 hover:bg-white/15 backdrop-blur-xl border-2 border-indigo-500/40 hover:border-indigo-400 rounded-3xl p-6 sm:p-7 transition-all cursor-pointer shadow-xl hover:shadow-2xl hover:scale-[1.02] flex flex-col justify-between space-y-5"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 flex items-center justify-center text-3xl shadow-inner">
+                  📋
+                </div>
+                <span className="text-[11px] font-black px-3 py-1 rounded-full border bg-indigo-500/20 text-indigo-300 border-indigo-400/30">
+                  🌟 ክፍት ነው (Active)
+                </span>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-black text-white group-hover:text-indigo-300 transition-colors flex items-center gap-2">
+                  <span>የፈረቃና የገቢ ማስታረቂያ</span>
+                </h2>
+                <p className="text-xs font-black text-indigo-400 tracking-wide mt-0.5">
+                  SHIFT RECONCILIATION & CASH AUDIT
+                </p>
+                <p className="text-xs text-slate-300 font-bold mt-2 leading-relaxed">
+                  ከአስተናጋጆች የተረከቡት የቀንና የማታ ፈረቃ ገቢ፣ የተሸጡ ጁሶችና ምግቦች ብዛት፣ የጥሬ ገንዘብና የቴሌብር ማስታረቂያና የርክክብ ደረሰኝ ማዘጋጃ።
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-white/10 space-y-1.5 text-xs text-slate-300 font-bold">
+                <div className="flex items-center gap-2 text-indigo-300">
+                  <span>✓</span> <span>🥤 የተሸጡ ጁሶች vs 🥗 ምግቦች ብዛት</span>
+                </div>
+                <div className="flex items-center gap-2 text-indigo-300">
+                  <span>✓</span> <span>💰 የጥሬ ገንዘብ፣ ቴሌብርና ባንክ ርክክብ</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); navigateToSystem('reconciliation'); }}
+              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-indigo-900/30 flex items-center justify-center gap-2 transition-all group-hover:shadow-indigo-500/30 active:scale-98"
+            >
+              <span>ወደ ፈረቃ ማስታረቂያ ግባ (Enter Shift Audit)</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -1439,6 +1596,22 @@ export default function App() {
     );
   }
 
+  // ==============================================================
+  // 4. SHIFT RECONCILIATION & WAITER CASH AUDIT STATION
+  // ==============================================================
+  if (systemMode === 'reconciliation' || systemMode === 'shift') {
+    return (
+      <ShiftReconciliation
+        orders={sentOrders}
+        waiters={waitersList}
+        foodMenu={MARAKI_REAL_FOOD_MENU}
+        onBackToPortal={() => navigateToSystem('portal')}
+        onSwitchToChef={() => navigateToSystem('chef')}
+        onSwitchToOwner={() => navigateToSystem('owner')}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex flex-col font-sans text-slate-800 antialiased selection:bg-emerald-600 selection:text-white">
       
@@ -1493,6 +1666,16 @@ export default function App() {
 
             {/* Chef Station Actions */}
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigateToSystem('reconciliation')}
+                className="px-2.5 py-1.5 bg-indigo-500/80 hover:bg-indigo-600 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-indigo-400/30 transition-all shadow-sm"
+                title="የፈረቃና የገቢ ማስታረቂያ (Shift Reconciliation)"
+              >
+                <ClipboardCheck className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">የፈረቃ ርክክብ</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleInstallApp}
@@ -1570,6 +1753,16 @@ export default function App() {
 
             {/* Owner Actions */}
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigateToSystem('reconciliation')}
+                className="px-2.5 py-1.5 bg-indigo-500/80 hover:bg-indigo-600 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-indigo-400/30 transition-all shadow-sm"
+                title="የፈረቃና የገቢ ማስታረቂያ (Shift Reconciliation)"
+              >
+                <ClipboardCheck className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">የፈረቃ ርክክብ</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
@@ -1775,7 +1968,8 @@ export default function App() {
               {/* Category Filter Tabs */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
                 {[
-                  { id: 'All', label: '🌟 ሁሉም (All 16)' },
+                  { id: 'All', label: '🌟 ሁሉም (All)' },
+                  { id: 'Juices', label: '🥤 ጁሶች (Juices)' },
                   { id: 'Salad', label: '🥗 ሳላድና ፍራፍሬ' },
                   { id: 'Pasta & Rice', label: '🍝 ፓስታ እና ሩዝ' },
                   { id: 'Eggs & Firfir', label: '🍳 እንቁላል እና ፍርፍር' },
@@ -2614,6 +2808,17 @@ export default function App() {
                 }`}>
                   {sentOrders.length}
                 </span>
+              </button>
+
+              {/* Button 3: Shift Reconciliation */}
+              <button
+                type="button"
+                onClick={() => navigateToSystem('reconciliation')}
+                className="py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 text-indigo-300 hover:text-white hover:bg-indigo-600/30 border border-indigo-500/30 active:scale-95"
+                title="የፈረቃና የገቢ ማስታረቂያ (Shift Audit)"
+              >
+                <ClipboardCheck className="w-4 h-4 text-indigo-400" />
+                <span>📋 የፈረቃ ርክክብ</span>
               </button>
 
             </div>
