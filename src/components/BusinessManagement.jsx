@@ -93,18 +93,18 @@ export function toEthiopianShortDate(dateStr) {
 }
 
 // ==============================================================
-// VERSION 2.0 INITIAL SEED DATA (AUTHENTIC MARAKI BUSINESS DATA)
+// OPTIONAL REFERENCE TEMPLATES (ONLY LOADED IF USER RESTORES SAMPLES)
 // ==============================================================
 
-const INITIAL_RECURRING_EXPENSES = [
+const SAMPLE_RECURRING_EXPENSES = [
   { id: 'rec-1', name: 'የቤት ኪራይ (Shop Rent)', category: 'Rent', amount: 15000, frequency: 'Monthly', dueDay: 1, nextDueDate: '2026-12-01', reminderDays: 10, active: true, calendar: 'Ethiopian' },
-  { id: 'rec-2', name: 'የመብራት ክፍያ (Electricity)', category: 'Utilities', amount: 2500, frequency: 'Monthly', dueDay: 20, nextDueDate: '2026-11-20', reminderDays: 3, active: true, calendar: 'Ethiopian' }, // Overdue
-  { id: 'rec-3', name: 'የውሃ ክፍያ (Water Supply)', category: 'Utilities', amount: 1200, frequency: 'Monthly', dueDay: 28, nextDueDate: '2026-11-28', reminderDays: 5, active: true, calendar: 'Ethiopian' }, // Due soon
+  { id: 'rec-2', name: 'የመብራት ክፍያ (Electricity)', category: 'Utilities', amount: 2500, frequency: 'Monthly', dueDay: 20, nextDueDate: '2026-11-20', reminderDays: 3, active: true, calendar: 'Ethiopian' },
+  { id: 'rec-3', name: 'የውሃ ክፍያ (Water Supply)', category: 'Utilities', amount: 1200, frequency: 'Monthly', dueDay: 28, nextDueDate: '2026-11-28', reminderDays: 5, active: true, calendar: 'Ethiopian' },
   { id: 'rec-4', name: 'ዋይፋይ / ኢንተርኔት (WiFi Internet)', category: 'Bills', amount: 1800, frequency: 'Monthly', dueDay: 5, nextDueDate: '2026-12-05', reminderDays: 3, active: true, calendar: 'Ethiopian' },
   { id: 'rec-5', name: 'የንግድ ፈቃድና ግብር (Trade License & Tax)', category: 'License', amount: 6000, frequency: 'Yearly', dueDay: 15, nextDueDate: '2027-01-15', reminderDays: 14, active: true, calendar: 'Ethiopian' }
 ];
 
-const INITIAL_PURCHASE_PLANS = [
+const SAMPLE_PURCHASE_PLANS = [
   { id: 'pur-1', itemName: 'ብርቱካን (Orange)', quantity: 50, unit: 'kg', estimatedUnitPrice: 120, estimatedTotal: 6000, supplier: 'አትክልት ተራ መርካቶ', plannedDate: '2026-12-01', status: 'Planned' },
   { id: 'pur-2', itemName: 'ማንጎ (Mango)', quantity: 30, unit: 'kg', estimatedUnitPrice: 140, estimatedTotal: 4200, supplier: 'ሀዋሳ ፍሬሽ', plannedDate: '2026-12-02', status: 'Planned' },
   { id: 'pur-3', itemName: 'አቮካዶ (Avocado)', quantity: 25, unit: 'kg', estimatedUnitPrice: 110, estimatedTotal: 2750, supplier: 'ቡታጅራ ፍራፍሬ', plannedDate: '2026-12-03', status: 'Planned' },
@@ -112,33 +112,39 @@ const INITIAL_PURCHASE_PLANS = [
   { id: 'pur-5', itemName: 'ሙዝ (Banana)', quantity: 40, unit: 'kg', estimatedUnitPrice: 95, estimatedTotal: 3800, supplier: 'አርባምንጭ ሙዝ', plannedDate: '2026-12-07', status: 'Planned' }
 ];
 
-const INITIAL_SALARY_PLANS = [
+const SAMPLE_SALARY_PLANS = [
   { id: 'sal-1', employeeName: 'አልማዝ በቀለ (Chef Almaz)', role: 'Head Chef', baseSalary: 5000, bonus: 500, deduction: 0, netSalary: 5500, paidAmount: 0, payDate: '2026-12-01', status: 'Pending' },
   { id: 'sal-2', employeeName: 'ሀብታሙ (Habtamu)', role: 'Waiter & Barista', baseSalary: 3500, bonus: 0, deduction: 0, netSalary: 3500, paidAmount: 0, payDate: '2026-12-01', status: 'Pending' },
   { id: 'sal-3', employeeName: 'ትዕግስት (Tigist)', role: 'Cashier & Waitress', baseSalary: 3800, bonus: 0, deduction: 0, netSalary: 3800, paidAmount: 0, payDate: '2026-12-01', status: 'Pending' },
   { id: 'sal-4', employeeName: 'ቻላ (Chala)', role: 'Prep Assistant', baseSalary: 2500, bonus: 0, deduction: 200, netSalary: 2300, paidAmount: 0, payDate: '2026-12-01', status: 'Pending' }
 ];
 
-const INITIAL_TASKS = [
+const SAMPLE_TASKS = [
   { id: 'tsk-1', title: 'የብርቱካንና ማንጎ ዋጋ ከመርካቶ አወዳድር (Compare suppliers)', priority: 'High', dueDate: '2026-12-02', estimatedCost: 0, status: 'To do' },
   { id: 'tsk-2', title: 'የመስታወት ማቀዝቀዣ ዋጋ ፒያሳ ጠይቅ (Check refrigerator prices)', priority: 'High', dueDate: '2026-12-08', estimatedCost: 45000, status: 'To do' },
   { id: 'tsk-3', title: 'የታህሳስ ወር በጀትና የሽያጭ ግብ ገምግም (Review December budget)', priority: 'Medium', dueDate: '2026-11-30', estimatedCost: 0, status: 'To do' },
   { id: 'tsk-4', title: 'የጁስ ማሽኖች ሰርቪስ ማድረግ (Service blenders)', priority: 'Normal', dueDate: '2026-12-10', estimatedCost: 1500, status: 'To do' }
 ];
 
-const INITIAL_GOALS = [
+const SAMPLE_GOALS = [
   { id: 'gol-1', title: 'አዲስ ከፍተኛ ፍጥነት ጁስ ማሽን (Commercial Blenders)', targetAmount: 25000, currentAmount: 18500, deadline: '2026-12-15', status: 'Active' },
   { id: 'gol-2', title: 'የመስታወት ማቀዝቀዣ ፍሪጅ (Display Refrigerator)', targetAmount: 75000, currentAmount: 30000, deadline: '2026-12-31', status: 'Active' },
   { id: 'gol-3', title: 'የመቀመጫ ቦታ ማስፋፊያ (Outdoor Seating Expansion)', targetAmount: 40000, currentAmount: 8000, deadline: '2027-01-30', status: 'Active' }
 ];
 
-const INITIAL_NOTES = [
+const SAMPLE_NOTES = [
   { id: 'not-1', title: 'አትክልት ተራ የብርቱካን ደላላ (Merkato Orange Broker)', content: 'አቶ አበበ ስልክ 0911-234567፤ በሳምንት 50 ኪ.ግ በ120 ብር ያቀርባል።', tag: 'Supplier', createdAt: '2026-11-20' },
   { id: 'not-2', title: 'የክረምት የፍራፍሬ ዋጋ ትንበያ (Seasonal price forecast)', content: 'የማንጎ ዋጋ በታህሳስ ስለሚጨምር አስቀድሞ በብዛት መያዝ ይመረጣል።', tag: 'Idea', createdAt: '2026-11-21' }
 ];
 
+// 100% CLEAN BASELINE (NO DUMMY DATA)
+const INITIAL_RECURRING_EXPENSES = [];
+const INITIAL_PURCHASE_PLANS = [];
+const INITIAL_SALARY_PLANS = [];
+const INITIAL_TASKS = [];
+const INITIAL_GOALS = [];
+const INITIAL_NOTES = [];
 const INITIAL_ACTUAL_EXPENSES = [];
-
 const INITIAL_DAY_CLOSES = [];
 
 export default function BusinessManagement({ 
@@ -150,68 +156,99 @@ export default function BusinessManagement({
   // Navigation: 5 TABS (Home, To Pay, Expenses, Plans, Reports)
   const [activeTab, setActiveTab] = useState('home');
 
-  // Business Balances & Settings
+  // One-time client wipe of all legacy sample/seed data
+  const CLEAN_KEY = 'maraki_all_sample_data_cleared_v5';
+  const isMigrated = typeof window !== 'undefined' && localStorage.getItem(CLEAN_KEY) === 'true';
+
+  // Business Balances & Settings (Clean default)
   const [openingBalance, setOpeningBalance] = useState(() => {
+    if (!isMigrated) return 0;
     const saved = localStorage.getItem('maraki_opening_cash_balance');
-    return saved ? Number(saved) : 25000;
+    return saved ? Number(saved) : 0;
   });
   const [expectedMonthlyIncome, setExpectedMonthlyIncome] = useState(() => {
+    if (!isMigrated) return 0;
     const saved = localStorage.getItem('maraki_expected_income');
-    return saved ? Number(saved) : 85000;
+    return saved ? Number(saved) : 0;
   });
 
-  // Data Collections
+  // Data Collections (100% empty by default)
   const [recurringExpenses, setRecurringExpenses] = useState(() => {
+    if (!isMigrated) return [];
     const saved = localStorage.getItem('maraki_plan_recurring');
-    return saved ? JSON.parse(saved) : INITIAL_RECURRING_EXPENSES;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [purchasePlans, setPurchasePlans] = useState(() => {
+    if (!isMigrated) return [];
     const saved = localStorage.getItem('maraki_plan_purchases');
-    return saved ? JSON.parse(saved) : INITIAL_PURCHASE_PLANS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [salaryPlans, setSalaryPlans] = useState(() => {
+    if (!isMigrated) return [];
     const saved = localStorage.getItem('maraki_plan_salaries');
-    return saved ? JSON.parse(saved) : INITIAL_SALARY_PLANS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [tasks, setTasks] = useState(() => {
+    if (!isMigrated) return [];
     const saved = localStorage.getItem('maraki_plan_tasks');
-    return saved ? JSON.parse(saved) : INITIAL_TASKS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [goals, setGoals] = useState(() => {
+    if (!isMigrated) return [];
     const saved = localStorage.getItem('maraki_plan_goals');
-    return saved ? JSON.parse(saved) : INITIAL_GOALS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [notes, setNotes] = useState(() => {
+    if (!isMigrated) return [];
     const saved = localStorage.getItem('maraki_plan_notes');
-    return saved ? JSON.parse(saved) : INITIAL_NOTES;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [actualExpenses, setActualExpenses] = useState(() => {
-    const cleared = localStorage.getItem('maraki_actual_expenses_cleared_v3');
-    if (!cleared) {
-      localStorage.removeItem('maraki_actual_expenses');
-      localStorage.setItem('maraki_actual_expenses_cleared_v3', 'true');
-      return [];
-    }
+    if (!isMigrated) return [];
     const saved = localStorage.getItem('maraki_actual_expenses');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [dayCloses, setDayCloses] = useState(() => {
-    const cleared = localStorage.getItem('maraki_day_closes_cleared_v3');
-    if (!cleared) {
-      localStorage.removeItem('maraki_day_closes');
-      localStorage.setItem('maraki_day_closes_cleared_v3', 'true');
-      return [];
-    }
+    if (!isMigrated) return [];
     const saved = localStorage.getItem('maraki_day_closes');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Execute migration on mount
+  useEffect(() => {
+    if (localStorage.getItem(CLEAN_KEY) !== 'true') {
+      localStorage.removeItem('maraki_plan_recurring');
+      localStorage.removeItem('maraki_plan_purchases');
+      localStorage.removeItem('maraki_plan_salaries');
+      localStorage.removeItem('maraki_plan_tasks');
+      localStorage.removeItem('maraki_plan_goals');
+      localStorage.removeItem('maraki_plan_notes');
+      localStorage.removeItem('maraki_actual_expenses');
+      localStorage.removeItem('maraki_day_closes');
+      localStorage.removeItem('maraki_chef_sent_orders');
+      localStorage.removeItem('maraki_opening_cash_balance');
+      localStorage.removeItem('maraki_expected_income');
+      localStorage.setItem(CLEAN_KEY, 'true');
+      setRecurringExpenses([]);
+      setPurchasePlans([]);
+      setSalaryPlans([]);
+      setTasks([]);
+      setGoals([]);
+      setNotes([]);
+      setActualExpenses([]);
+      setDayCloses([]);
+      setOpeningBalance(0);
+      setExpectedMonthlyIncome(0);
+      if (onClearOrders) onClearOrders();
+    }
+  }, []);
 
   // LocalStorage Sync Effects
   useEffect(() => { localStorage.setItem('maraki_plan_recurring', JSON.stringify(recurringExpenses)); }, [recurringExpenses]);
@@ -394,23 +431,91 @@ export default function BusinessManagement({
   }, [currentBalance, remainingExpectedIncome, totalPlannedExpenses]);
 
   // 6. Cash Check (የገንዘብ ፍተሻ) Calculation
-  // Target: Next salary & rent day (ኅዳር 22, 2019 / 2026-12-01) -> 9 days remaining
   const cashCheckObligations = useMemo(() => {
-    // Overdue or due up to ኅዳር 22:
-    // Electricity (2,500) + Water (1,200) + Rent (15,000) + Salaries (15,100) + Orange (6,000) = 39,800
-    const need = 2500 + 1200 + 15000 + 15100 + 6000;
+    // Calculate REAL obligations from user's active recurring bills, pending salaries, and planned purchases
+    const activeBills = recurringExpenses.filter(r => r.active);
+    const pendingSalaries = salaryPlans.filter(s => s.status === 'Pending');
+    const plannedPurchases = purchasePlans.filter(p => p.status === 'Planned');
+
+    const billsTotal = activeBills.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+    const salariesTotal = pendingSalaries.reduce((sum, s) => sum + (Number(s.netSalary ?? s.baseSalary) || 0), 0);
+    const purchasesTotal = plannedPurchases.reduce((sum, p) => sum + (Number(p.estimatedTotal) || 0), 0);
+    
+    const need = billsTotal + salariesTotal + purchasesTotal;
     const gap = need - currentBalance;
     const daysLeft = 9;
     const salesPerDayNeeded = gap > 0 ? Math.ceil((gap / daysLeft) / 10) * 10 : 0;
+
+    // Build brief breakdown list
+    const breakdown = [];
+    if (billsTotal > 0) breakdown.push(`ክፍያዎች፡ ${billsTotal.toLocaleString()} ETB`);
+    if (salariesTotal > 0) breakdown.push(`ደመወዝ፡ ${salariesTotal.toLocaleString()} ETB`);
+    if (purchasesTotal > 0) breakdown.push(`ግዢዎች፡ ${purchasesTotal.toLocaleString()} ETB`);
+
     return {
       need,
       gap,
       daysLeft,
       salesPerDayNeeded,
-      isCovered: gap <= 0,
-      safeToSpend: Math.max(0, currentBalance - need)
+      breakdownText: breakdown.length > 0 ? `(${breakdown.join(' · ')})` : '',
+      isCovered: need === 0 || gap <= 0,
+      safeToSpend: Math.max(0, currentBalance - need),
+      hasObligations: need > 0
     };
-  }, [currentBalance]);
+  }, [recurringExpenses, salaryPlans, purchasePlans, currentBalance]);
+
+  // 7. Dynamic Action Required Items (Overdue or Due Soon)
+  const actionRequiredItems = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const items = [];
+
+    recurringExpenses.forEach(bill => {
+      if (!bill.active) return;
+      const isOverdue = bill.nextDueDate && bill.nextDueDate < today;
+      const isDueSoon = bill.nextDueDate && bill.nextDueDate >= today;
+      if (isOverdue || isDueSoon) {
+        items.push({
+          type: 'bill',
+          item: bill,
+          isOverdue,
+          title: bill.name,
+          amount: bill.amount,
+          dueDate: bill.nextDueDate,
+          paymentMethod: 'Cash'
+        });
+      }
+    });
+
+    salaryPlans.forEach(sal => {
+      if (sal.status === 'Pending') {
+        items.push({
+          type: 'salary',
+          item: sal,
+          isOverdue: sal.payDate && sal.payDate < today,
+          title: `ደመወዝ፡ ${sal.employeeName}`,
+          amount: sal.netSalary || sal.baseSalary,
+          dueDate: sal.payDate,
+          paymentMethod: 'Cash'
+        });
+      }
+    });
+
+    purchasePlans.forEach(pur => {
+      if (pur.status === 'Planned') {
+        items.push({
+          type: 'fruit',
+          item: pur,
+          isOverdue: pur.plannedDate && pur.plannedDate < today,
+          title: `ግዢ፡ ${pur.itemName}`,
+          amount: pur.estimatedTotal,
+          dueDate: pur.plannedDate,
+          paymentMethod: 'Cash'
+        });
+      }
+    });
+
+    return items;
+  }, [recurringExpenses, salaryPlans, purchasePlans]);
 
   // ==============================================================
   // FAST ACTION HANDLERS WITH 10S UNDO AND DOUBLE-TAP LOCK
@@ -809,18 +914,18 @@ export default function BusinessManagement({
     if (!window.confirm('ወደ ማራኪ መደበኛ እቅዶች (የቤት ኪራይ፣ ደመወዝ፣ ፍራፍሬ) መመለስ ይፈልጋሉ?')) {
       return;
     }
-    setRecurringExpenses(INITIAL_RECURRING_EXPENSES);
-    setPurchasePlans(INITIAL_PURCHASE_PLANS);
-    setSalaryPlans(INITIAL_SALARY_PLANS);
-    setTasks(INITIAL_TASKS);
-    setGoals(INITIAL_GOALS);
-    setNotes(INITIAL_NOTES);
-    localStorage.setItem('maraki_plan_recurring', JSON.stringify(INITIAL_RECURRING_EXPENSES));
-    localStorage.setItem('maraki_plan_purchases', JSON.stringify(INITIAL_PURCHASE_PLANS));
-    localStorage.setItem('maraki_plan_salaries', JSON.stringify(INITIAL_SALARY_PLANS));
-    localStorage.setItem('maraki_plan_tasks', JSON.stringify(INITIAL_TASKS));
-    localStorage.setItem('maraki_plan_goals', JSON.stringify(INITIAL_GOALS));
-    localStorage.setItem('maraki_plan_notes', JSON.stringify(INITIAL_NOTES));
+    setRecurringExpenses(SAMPLE_RECURRING_EXPENSES);
+    setPurchasePlans(SAMPLE_PURCHASE_PLANS);
+    setSalaryPlans(SAMPLE_SALARY_PLANS);
+    setTasks(SAMPLE_TASKS);
+    setGoals(SAMPLE_GOALS);
+    setNotes(SAMPLE_NOTES);
+    localStorage.setItem('maraki_plan_recurring', JSON.stringify(SAMPLE_RECURRING_EXPENSES));
+    localStorage.setItem('maraki_plan_purchases', JSON.stringify(SAMPLE_PURCHASE_PLANS));
+    localStorage.setItem('maraki_plan_salaries', JSON.stringify(SAMPLE_SALARY_PLANS));
+    localStorage.setItem('maraki_plan_tasks', JSON.stringify(SAMPLE_TASKS));
+    localStorage.setItem('maraki_plan_goals', JSON.stringify(SAMPLE_GOALS));
+    localStorage.setItem('maraki_plan_notes', JSON.stringify(SAMPLE_NOTES));
     triggerUndoableAction('ወደ ማራኪ መደበኛ እቅዶች ተመልሷል (Restored Maraki business plans)');
   };
 
@@ -1042,24 +1147,36 @@ export default function BusinessManagement({
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="font-black text-sm">
-                    የገንዘብ ፍተሻ — Cash Check until ኅዳር 22 (ደመወዝና ኪራይ ቀን)
+                    የገንዘብ ፍተሻ — Cash Check
                   </h4>
                   <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                    cashCheckObligations.isCovered ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900'
+                    cashCheckObligations.hasObligations 
+                      ? (cashCheckObligations.isCovered ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900')
+                      : 'bg-emerald-200 text-emerald-900'
                   }`}>
-                    {cashCheckObligations.isCovered ? '✅ Covered' : '⚠️ Short'}
+                    {cashCheckObligations.hasObligations 
+                      ? (cashCheckObligations.isCovered ? '✅ Covered' : '⚠️ Short')
+                      : '✓ ንፁህ (Clean)'}
                   </span>
                 </div>
-                <p className="text-xs font-bold mt-1 text-slate-700">
-                  የሚከፈል፡ <span className="font-black text-slate-900">{cashCheckObligations.need.toLocaleString()} ETB</span> (መብራት 2,500 · ውሃ 1,200 · ኪራይ 15,000 · ደመወዝ 15,100 · ብርቱካን 6,000) · ያለዎት ጥሬ ገንዘብ፡ <span className="font-black text-slate-900">{currentBalance.toLocaleString()} ETB</span>
-                </p>
-                <p className="text-xs font-black mt-1 text-slate-900">
-                  {cashCheckObligations.isCovered ? (
-                    <span className="text-emerald-700">✓ የተሟላ ሽፋን — ለተጨማሪ ወጪ ነፃ የተተወ ጥሬ ገንዘብ: {cashCheckObligations.safeToSpend.toLocaleString()} ETB</span>
-                  ) : (
-                    <span className="text-amber-900">⚠️ ጉድለት: {cashCheckObligations.gap.toLocaleString()} ETB — በቀጣዮቹ 9 ቀናት በቀን ቢያንስ ~{cashCheckObligations.salesPerDayNeeded.toLocaleString()} ETB ሽያጭ ያስፈልጋል</span>
-                  )}
-                </p>
+                {cashCheckObligations.hasObligations ? (
+                  <>
+                    <p className="text-xs font-bold mt-1 text-slate-700">
+                      የሚከፈል፡ <span className="font-black text-slate-900">{cashCheckObligations.need.toLocaleString()} ETB</span> {cashCheckObligations.breakdownText} · ያለዎት ጥሬ ገንዘብ፡ <span className="font-black text-slate-900">{currentBalance.toLocaleString()} ETB</span>
+                    </p>
+                    <p className="text-xs font-black mt-1 text-slate-900">
+                      {cashCheckObligations.isCovered ? (
+                        <span className="text-emerald-700">✓ የተሟላ ሽፋን — ለተጨማሪ ወጪ ነፃ የተተወ ጥሬ ገንዘብ: {cashCheckObligations.safeToSpend.toLocaleString()} ETB</span>
+                      ) : (
+                        <span className="text-amber-900">⚠️ ጉድለት: {cashCheckObligations.gap.toLocaleString()} ETB — በቀጣዮቹ 9 ቀናት በቀን ቢያንስ ~{cashCheckObligations.salesPerDayNeeded.toLocaleString()} ETB ሽያጭ ያስፈልጋል</span>
+                      )}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs font-bold mt-1 text-emerald-800">
+                    ምንም ያልተከፈለ ወይም አስቸኳይ ዕዳ የለም • ያለዎት ጥሬ ገንዘብ፡ <span className="font-black">{currentBalance.toLocaleString()} ETB</span>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -1085,11 +1202,11 @@ export default function BusinessManagement({
             </div>
           </div>
 
-          {/* 3.3 ACTION REQUIRED (AT MOST 4 ALERTS WITH PRE-FILLED CONFIRM SHEET) */}
+          {/* 3.3 ACTION REQUIRED */}
           <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-600" />
+                <AlertTriangle className={`w-4 h-4 ${actionRequiredItems.length > 0 ? 'text-rose-600' : 'text-slate-400'}`} />
                 <h3 className="text-sm font-black text-slate-900">አስቸኳይ እርምጃ የሚሹ (Action Required)</h3>
               </div>
               <button 
@@ -1097,63 +1214,57 @@ export default function BusinessManagement({
                 onClick={() => setActiveTab('topay')}
                 className="text-xs font-black text-emerald-700 hover:underline"
               >
-                ሁሉንም እይ ({recurringExpenses.length}) →
+                ሁሉንም እይ ({actionRequiredItems.length}) →
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Overdue: Electricity */}
-              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200/80 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-black uppercase">
-                      ቀኑ ያለፈበት (Overdue)
-                    </span>
-                    <span className="font-black text-sm text-slate-900">የመብራት ክፍያ (Electricity)</span>
-                  </div>
-                  <p className="text-xs text-rose-700 font-bold">የመክፈያ ቀኑ ያለፈበት (ኅዳር 11) • 2,500 ETB</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActivePaymentSheet({
-                    type: 'bill',
-                    item: recurringExpenses.find(r => r.id === 'rec-2') || recurringExpenses[1],
-                    amount: 2500,
-                    date: new Date().toISOString().split('T')[0],
-                    paymentMethod: 'Telebirr'
-                  })}
-                  className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-sm transition-all active:scale-95"
-                >
-                  አሁን ክፈል
-                </button>
+            {actionRequiredItems.length === 0 ? (
+              <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+                <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto mb-1.5" />
+                <p className="font-black text-xs text-slate-800">ምንም ቀኑ ያለፈበት ወይም አስቸኳይ ክፍያ የለም (No Action Required)</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">ሁሉም እቅዶችና ክፍያዎች ንፁህ ናቸው።</p>
               </div>
-
-              {/* Due Soon: Shop Rent */}
-              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase">
-                      ቀኑ የቀረበ (Due Soon)
-                    </span>
-                    <span className="font-black text-sm text-slate-900">የቤት ኪራይ (Shop Rent)</span>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {actionRequiredItems.slice(0, 4).map((alert, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`p-4 rounded-2xl border flex items-center justify-between ${
+                      alert.isOverdue ? 'bg-rose-50 border-rose-200/80' : 'bg-amber-50 border-amber-200/80'
+                    }`}
+                  >
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full text-white text-[10px] font-black uppercase ${
+                          alert.isOverdue ? 'bg-rose-600' : 'bg-amber-500'
+                        }`}>
+                          {alert.isOverdue ? 'ቀኑ ያለፈበት (Overdue)' : 'ቀኑ የቀረበ (Due Soon)'}
+                        </span>
+                        <span className="font-black text-sm text-slate-900">{alert.title}</span>
+                      </div>
+                      <p className={`text-xs font-bold ${alert.isOverdue ? 'text-rose-700' : 'text-amber-800'}`}>
+                        የመክፈያ ቀን፡ {toEthiopianShortDate(alert.dueDate)} • {alert.amount.toLocaleString()} ETB
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActivePaymentSheet({
+                        type: alert.type,
+                        item: alert.item,
+                        amount: alert.amount,
+                        date: new Date().toISOString().split('T')[0],
+                        paymentMethod: alert.paymentMethod || 'Cash'
+                      })}
+                      className={`px-3.5 py-1.5 rounded-xl font-black text-xs shadow-sm transition-all active:scale-95 ${
+                        alert.isOverdue ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+                      }`}
+                    >
+                      {alert.isOverdue ? 'አሁን ክፈል' : 'ክፈል'}
+                    </button>
                   </div>
-                  <p className="text-xs text-amber-800 font-bold">የመክፈያ ቀን፡ ኅዳር 22 (ቀሪ 9 ቀናት) • 15,000 ETB</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActivePaymentSheet({
-                    type: 'bill',
-                    item: recurringExpenses.find(r => r.id === 'rec-1') || recurringExpenses[0],
-                    amount: 15000,
-                    date: new Date().toISOString().split('T')[0],
-                    paymentMethod: 'Cash'
-                  })}
-                  className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-sm transition-all active:scale-95"
-                >
-                  ክፈል
-                </button>
+                ))}
               </div>
-            </div>
+            )}
           </div>
 
           {/* TWO COLUMNS: MY TASKS & CLOSE THE DAY BANNER */}
@@ -1175,34 +1286,42 @@ export default function BusinessManagement({
                 </button>
               </div>
 
-              <div className="space-y-2">
-                {tasks.slice(0, 3).map(task => (
-                  <div key={task.id} className="p-3 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: t.status === 'Done' ? 'To do' : 'Done' } : t))}
-                        className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
-                          task.status === 'Done' ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
-                        }`}
-                      >
-                        {task.status === 'Done' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                      </button>
-                      <div>
-                        <span className={`text-xs font-black block ${task.status === 'Done' ? 'line-through text-slate-400' : 'text-slate-900'}`}>
-                          {task.title}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-bold">
-                          ቀነ-ገደብ: {toEthiopianShortDate(task.dueDate)} · {task.priority}
-                        </span>
+              {tasks.length === 0 ? (
+                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+                  <CheckSquare className="w-7 h-7 text-slate-300 mx-auto mb-1.5" />
+                  <p className="font-black text-xs text-slate-700">ምንም ተግባር አልተመዘገበም (No Tasks Recorded)</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">አዲስ ተግባር ለማከል "+ አዲስ እቅድ/ወጪ" ይጠቀሙ።</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {tasks.slice(0, 3).map(task => (
+                    <div key={task.id} className="p-3 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: t.status === 'Done' ? 'To do' : 'Done' } : t))}
+                          className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
+                            task.status === 'Done' ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
+                          }`}
+                        >
+                          {task.status === 'Done' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </button>
+                        <div>
+                          <span className={`text-xs font-black block ${task.status === 'Done' ? 'line-through text-slate-400' : 'text-slate-900'}`}>
+                            {task.title}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-bold">
+                            ቀነ-ገደብ: {toEthiopianShortDate(task.dueDate)} · {task.priority}
+                          </span>
+                        </div>
                       </div>
+                      {task.estimatedCost > 0 && (
+                        <span className="text-xs font-bold text-slate-600">{task.estimatedCost.toLocaleString()} ETB</span>
+                      )}
                     </div>
-                    {task.estimatedCost > 0 && (
-                      <span className="text-xs font-bold text-slate-600">{task.estimatedCost.toLocaleString()} ETB</span>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Column 2: Close the Day Call-out (ቀኑን ዝጋ) */}
@@ -1326,6 +1445,21 @@ export default function BusinessManagement({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-bold text-slate-700">
+                  {recurringExpenses.length === 0 && purchasePlans.length === 0 && salaryPlans.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                          <CheckCircle2 className="w-6 h-6" />
+                        </div>
+                        <h4 className="font-black text-sm text-slate-800">
+                          ምንም የታቀደ ክፍያ የለም (No Scheduled Payables)
+                        </h4>
+                        <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto font-medium">
+                          የቢዝነሱ የክፍያዎች መዝገብ ንፁህ ነው። የቤት ኪራይ፣ የመብራት ወይም የፍራፍሬ ግዢ እቅድ ለማከል ከላይ ያለውን "+ አዲስ እቅድ/ወጪ" ይጠቀሙ።
+                        </p>
+                      </td>
+                    </tr>
+                  )}
                   
                   {/* Recurring Bills */}
                   {(toPayFilter === 'all' || toPayFilter === 'bills') && recurringExpenses.map(item => {
@@ -1969,44 +2103,54 @@ export default function BusinessManagement({
           {/* SUB-SECTION 1: GOALS */}
           {plansSubTab === 'goals' && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {goals.map(goal => {
-                  const pct = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
-                  const stillNeeded = Math.max(0, goal.targetAmount - goal.currentAmount);
-                  return (
-                    <div key={goal.id} className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4 flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <span className="text-[10px] font-black uppercase text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                          {goal.status}
-                        </span>
-                        <h4 className="font-black text-sm text-slate-900">{goal.title}</h4>
-                        <div className="flex items-baseline justify-between text-xs pt-1">
-                          <span className="font-bold text-slate-500">ዒላማ: {goal.targetAmount.toLocaleString()} ETB</span>
-                          <span className="font-black text-emerald-600">{pct}%</span>
+              {goals.length === 0 ? (
+                <div className="bg-white rounded-3xl p-8 border border-slate-200/80 text-center">
+                  <Target className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <h4 className="font-black text-sm text-slate-800">ምንም የንግድ ግብ አልተመዘገበም (No Goals Yet)</h4>
+                  <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                    የመሳሪያ ግዢ ወይም የማስፋፊያ ግብ ለማስቀመጥ ከላይ "+ አዲስ እቅድ/ወጪ" ይጠቀሙ።
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {goals.map(goal => {
+                    const pct = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
+                    const stillNeeded = Math.max(0, goal.targetAmount - goal.currentAmount);
+                    return (
+                      <div key={goal.id} className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4 flex flex-col justify-between">
+                        <div className="space-y-2">
+                          <span className="text-[10px] font-black uppercase text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                            {goal.status}
+                          </span>
+                          <h4 className="font-black text-sm text-slate-900">{goal.title}</h4>
+                          <div className="flex items-baseline justify-between text-xs pt-1">
+                            <span className="font-bold text-slate-500">ዒላማ: {goal.targetAmount.toLocaleString()} ETB</span>
+                            <span className="font-black text-emerald-600">{pct}%</span>
+                          </div>
+                          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                          </div>
+                          <p className="text-[11px] font-bold text-slate-400">
+                            ቀሪ: {stillNeeded.toLocaleString()} ETB · ቀነ-ገደብ: {toEthiopianShortDate(goal.deadline)}
+                          </p>
                         </div>
-                        <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                          <div className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
-                        </div>
-                        <p className="text-[11px] font-bold text-slate-400">
-                          ቀሪ: {stillNeeded.toLocaleString()} ETB · ቀነ-ገደብ: {toEthiopianShortDate(goal.deadline)}
-                        </p>
-                      </div>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const amt = prompt('ምን ያህል ገንዘብ መመደብ ይፈልጋሉ? (Amount in ETB):', '1000');
-                          if (amt && Number(amt) > 0) handleAllocateGoalFunds(goal.id, Number(amt));
-                        }}
-                        className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>+ ገንዘብ መድብ (Allocate Funds)</span>
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const amt = prompt('ምን ያህል ገንዘብ መመደብ ይፈልጋሉ? (Amount in ETB):', '1000');
+                            if (amt && Number(amt) > 0) handleAllocateGoalFunds(goal.id, Number(amt));
+                          }}
+                          className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>+ ገንዘብ መድብ (Allocate Funds)</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -2025,32 +2169,40 @@ export default function BusinessManagement({
               </div>
 
               <div className="space-y-2">
-                {tasks.map(task => (
-                  <div key={task.id} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: t.status === 'Done' ? 'To do' : 'Done' } : t))}
-                        className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
-                          task.status === 'Done' ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
-                        }`}
-                      >
-                        {task.status === 'Done' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                      </button>
-                      <div>
-                        <span className={`text-xs font-black block ${task.status === 'Done' ? 'line-through text-slate-400' : 'text-slate-900'}`}>
-                          {task.title}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-bold">
-                          ቀን: {toEthiopianShortDate(task.dueDate)} · ቅድሚያ: {task.priority}
-                        </span>
-                      </div>
-                    </div>
-                    {task.estimatedCost > 0 && (
-                      <span className="text-xs font-black text-slate-700">{task.estimatedCost.toLocaleString()} ETB</span>
-                    )}
+                {tasks.length === 0 ? (
+                  <div className="py-8 text-center text-slate-400">
+                    <CheckSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="font-black text-xs text-slate-700">ምንም የስራ ተግባር አልተመዘገበም (No Tasks Yet)</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">አዲስ ተግባር ለማከል "+ አዲስ ተግባር" ይጫኑ።</p>
                   </div>
-                ))}
+                ) : (
+                  tasks.map(task => (
+                    <div key={task.id} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: t.status === 'Done' ? 'To do' : 'Done' } : t))}
+                          className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
+                            task.status === 'Done' ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
+                          }`}
+                        >
+                          {task.status === 'Done' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </button>
+                        <div>
+                          <span className={`text-xs font-black block ${task.status === 'Done' ? 'line-through text-slate-400' : 'text-slate-900'}`}>
+                            {task.title}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-bold">
+                            ቀን: {toEthiopianShortDate(task.dueDate)} · ቅድሚያ: {task.priority}
+                          </span>
+                        </div>
+                      </div>
+                      {task.estimatedCost > 0 && (
+                        <span className="text-xs font-black text-slate-700">{task.estimatedCost.toLocaleString()} ETB</span>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -2069,40 +2221,48 @@ export default function BusinessManagement({
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {notes.map(note => (
-                  <div key={note.id} className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-3 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700">
-                          {note.tag}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-bold">{toEthiopianShortDate(note.createdAt)}</span>
+              {notes.length === 0 ? (
+                <div className="bg-white rounded-3xl p-8 border border-slate-200/80 text-center">
+                  <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="font-black text-xs text-slate-700">ምንም ማስታወሻ የለም (No Notes Yet)</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">የአቅራቢዎች አድራሻ ወይም አዳዲስ ሀሳቦችን ለማስቀመጥ "+ ማስታወሻ ጻፍ" ይጫኑ።</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {notes.map(note => (
+                    <div key={note.id} className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-3 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700">
+                            {note.tag}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-bold">{toEthiopianShortDate(note.createdAt)}</span>
+                        </div>
+                        <h4 className="font-black text-sm text-slate-900">{note.title}</h4>
+                        <p className="text-xs text-slate-600 font-bold mt-1 whitespace-pre-wrap">{note.content}</p>
                       </div>
-                      <h4 className="font-black text-sm text-slate-900">{note.title}</h4>
-                      <p className="text-xs text-slate-600 font-bold mt-1 whitespace-pre-wrap">{note.content}</p>
-                    </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                      <button
-                        type="button"
-                        onClick={() => handleConvertNoteToTask(note)}
-                        className="text-xs font-black text-emerald-700 hover:underline flex items-center gap-1"
-                      >
-                        <CheckSquare className="w-3.5 h-3.5" />
-                        <span>ወደ ተግባር ቀይር (Make Task)</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setNotes(prev => prev.filter(n => n.id !== note.id))}
-                        className="text-slate-400 hover:text-rose-600 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => handleConvertNoteToTask(note)}
+                          className="text-xs font-black text-emerald-700 hover:underline flex items-center gap-1"
+                        >
+                          <CheckSquare className="w-3.5 h-3.5" />
+                          <span>ወደ ተግባር ቀይር (Make Task)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNotes(prev => prev.filter(n => n.id !== note.id))}
+                          className="text-xs text-slate-400 hover:text-rose-600"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
