@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { toEthiopianDateString, toEthiopianShortDate } from './BusinessManagement';
 import { DEFAULT_JUICE_PRICE, DEFAULT_RECONCILIATION_DISHES } from './ShiftReconciliation';
+import ShiftSlipModal from './ShiftSlipModal';
 import {
   getOrderIsoDate,
   getOrderShift,
@@ -1588,40 +1589,11 @@ export default function OwnerIncomeAnalysisReport({
         <div>{ordersAuditContent}</div>
       )}
 
-      {/* PRINT & INSPECT MODALS (PRESERVED) */}
-      {activePrintSlip && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white text-slate-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto font-mono text-xs">
-            <div className="flex items-center justify-between border-b pb-2">
-              <span className="font-bold text-slate-500 text-[11px]">Shift Settlement Receipt</span>
-              <button type="button" onClick={() => setActivePrintSlip(null)} className="text-slate-400 hover:text-slate-900 p-1 rounded-xl"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="border border-slate-300 p-4 rounded-xl space-y-2 bg-slate-50 text-[11px]">
-              <div className="text-center space-y-0.5 border-b pb-2">
-                <h3 className="font-black text-sm">MARAKI JUICE & SALAD</h3>
-                <p className="text-[10px] text-slate-600">DAILY SHIFT SETTLEMENT SLIP</p>
-                <p className="text-[10px] text-slate-500">{activePrintSlip.date} • {toEthiopianDateString(`${activePrintSlip.date}T12:00:00`)}</p>
-              </div>
-              <div className="flex justify-between"><span>Shift:</span><strong>{activePrintSlip.shift}</strong></div>
-              <div className="flex justify-between border-t pt-1"><span>🥤 Juice ({activePrintSlip.juiceSold} cups):</span><span>{(activePrintSlip.grossJuiceRevenue || 0).toLocaleString()} ETB</span></div>
-              <div className="flex justify-between text-[10px] text-slate-500 pl-2"><span>- beU ({activePrintSlip.beuDeliveryCups} cups):</span><span>-{(activePrintSlip.beuDeliveryDeduction || 0).toLocaleString()} ETB</span></div>
-              <div className="flex justify-between border-t pt-1"><span>🍱 Food ({activePrintSlip.assignedBoxes || activePrintSlip.targetFoodSold} boxes):</span><span>{(activePrintSlip.totalFoodRevenue || 0).toLocaleString()} ETB</span></div>
-              <div className="flex justify-between border-t pt-1 font-black"><span>Gross Sales:</span><span>{(activePrintSlip.totalGrossSales || 0).toLocaleString()} ETB</span></div>
-              <div className="flex justify-between text-rose-600"><span>- New Pending:</span><span>-{(activePrintSlip.deductedPendingDebt || 0).toLocaleString()} ETB</span></div>
-              <div className="flex justify-between text-emerald-700"><span>+ Recovered:</span><span>+{(activePrintSlip.recoveredCashAdded || 0).toLocaleString()} ETB</span></div>
-              <div className="flex justify-between text-rose-600"><span>- Expenses:</span><span>-{(activePrintSlip.totalDailyExpenses || 0).toLocaleString()} ETB</span></div>
-              <div className="flex justify-between text-emerald-800"><span>- Transfers:</span><span>-{(activePrintSlip.totalBankTransfers || 0).toLocaleString()} ETB</span></div>
-              <div className="border-t-2 border-dashed pt-2 flex justify-between font-black text-xs">
-                <span>💵 Drawer Cash:</span>
-                <span className="text-sm text-emerald-800">{(activePrintSlip.physicalCashInDrawer || 0).toLocaleString()} ETB</span>
-              </div>
-            </div>
-            <button type="button" onClick={() => window.print()} className="w-full py-2.5 bg-emerald-600 text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5">
-              <Printer className="w-4 h-4" /><span>Print Slip</span>
-            </button>
-          </div>
-        </div>
-      )}
+      {/* DIGITAL & PRINT SLIP MODAL */}
+      <ShiftSlipModal
+        slip={activePrintSlip}
+        onClose={() => setActivePrintSlip(null)}
+      />
 
       {inspectSettlement && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">

@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { toEthiopianDateString, toEthiopianShortDate } from './BusinessManagement';
 import WaiterPendingLedgerModal from './WaiterPendingLedgerModal';
+import ShiftSlipModal from './ShiftSlipModal';
 import { aggregateChefOrders, compareChefVsIncomeSheet, toLocalIsoDate } from '../utils/reconciliationHelpers';
 
 // Standard Maraki price per juice cup
@@ -2097,102 +2098,12 @@ export default function ShiftReconciliation({
       </div>
 
       {/* ============================================================== */}
-      {/* MODAL 1: THERMAL SHIFT RECONCILIATION SLIP (80mm)               */}
+      {/* MODAL 1: THERMAL & DIGITAL SHIFT RECONCILIATION SLIP           */}
       {/* ============================================================== */}
-      {activePrintTicket && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white text-slate-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto font-mono text-xs">
-            
-            <div className="flex items-center justify-between border-b pb-2">
-              <span className="font-bold text-slate-500 text-[11px]">Shift Settlement Slip (80mm)</span>
-              <button 
-                type="button"
-                onClick={() => setActivePrintTicket(null)}
-                className="text-slate-400 hover:text-slate-900 p-1 rounded-xl"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Receipt Content */}
-            <div className="border border-slate-300 p-4 rounded-xl space-y-2 bg-slate-50 text-[11px] leading-relaxed">
-              <div className="text-center space-y-0.5 border-b pb-2">
-                <h3 className="font-black text-sm tracking-tight text-slate-900">MARAKI JUICE & SALAD</h3>
-                <p className="text-[10px] text-slate-600 font-bold">DAILY SHIFT SETTLEMENT SLIP</p>
-                <p className="text-[10px] text-slate-500">{toEthiopianDateString(activePrintTicket.date)}</p>
-              </div>
-
-              <div className="flex justify-between">
-                <span>Shift:</span>
-                <strong>{activePrintTicket.shift === 'Day' ? '☀️ Day Shift' : '🌙 Night Shift'}</strong>
-              </div>
-
-              <div className="flex justify-between border-t pt-1">
-                <span>🥤 Juice Sales ({activePrintTicket.juiceSold} cups):</span>
-                <span>{activePrintTicket.grossJuiceRevenue.toLocaleString()} ETB</span>
-              </div>
-              <div className="flex justify-between text-[10px] text-slate-500 pl-2">
-                <span>- beU Delivery ({activePrintTicket.beuDeliveryCups}):</span>
-                <span>-{activePrintTicket.beuDeliveryDeduction.toLocaleString()} ETB</span>
-              </div>
-
-              <div className="flex justify-between border-t pt-1">
-                <span>🍱 Food Sales ({activePrintTicket.assignedBoxes} boxes):</span>
-                <span>{activePrintTicket.totalFoodRevenue.toLocaleString()} ETB</span>
-              </div>
-
-              <div className="flex justify-between border-t pt-1 font-black">
-                <span>Total Gross Sales:</span>
-                <span>{activePrintTicket.totalGrossSales.toLocaleString()} ETB</span>
-              </div>
-
-              <div className="flex justify-between text-rose-600">
-                <span>- Uncollected Debts (Pending):</span>
-                <span>-{activePrintTicket.deductedPendingDebt.toLocaleString()} ETB</span>
-              </div>
-              <div className="flex justify-between text-teal-700">
-                <span>+ Recovered Debts:</span>
-                <span>+{activePrintTicket.recoveredCashAdded.toLocaleString()} ETB</span>
-              </div>
-              <div className="flex justify-between text-rose-600">
-                <span>- Operating Expenses:</span>
-                <span>-{activePrintTicket.totalDailyExpenses.toLocaleString()} ETB</span>
-              </div>
-              <div className="flex justify-between text-purple-700">
-                <span>- Bank & Telebirr Transfers:</span>
-                <span>-{activePrintTicket.totalBankTransfers.toLocaleString()} ETB</span>
-              </div>
-
-              <div className="border-t-2 border-dashed pt-2 flex justify-between font-black text-xs text-slate-900">
-                <span>💵 Physical Cash in Drawer:</span>
-                <span className="text-sm">{activePrintTicket.physicalCashInDrawer.toLocaleString()} ETB</span>
-              </div>
-
-              {/* Signatures */}
-              <div className="pt-6 grid grid-cols-2 gap-4 text-center text-[10px] text-slate-500 border-t border-slate-300">
-                <div>
-                  <div className="border-b border-dashed border-slate-400 mb-1 h-6"></div>
-                  <span>Cashier (አስረካቢ)</span>
-                </div>
-                <div>
-                  <div className="border-b border-dashed border-slate-400 mb-1 h-6"></div>
-                  <span>Manager (ተረካቢ)</span>
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="w-full py-2.5 bg-slate-900 text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 hover:bg-slate-800 transition-all shadow-md"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Print Slip (80mm)</span>
-            </button>
-
-          </div>
-        </div>
-      )}
+      <ShiftSlipModal
+        slip={activePrintTicket}
+        onClose={() => setActivePrintTicket(null)}
+      />
 
 
 
