@@ -606,29 +606,29 @@ export default function ShiftReconciliation({
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 pb-28 selection:bg-amber-500 selection:text-slate-950 font-sans">
+    <div className="min-h-screen bg-[#FDFBF7] text-slate-800 pb-28 selection:bg-emerald-600 selection:text-white font-sans antialiased">
       
       {/* ============================================================== */}
-      {/* 1. TOP HEADER & SHIFT / DATE NAVIGATION                         */}
+      {/* 1. TOP HEADER & SHIFT / DATE NAVIGATION (EMERALD POS THEME)     */}
       {/* ============================================================== */}
-      <header className="bg-slate-950/90 backdrop-blur-md sticky top-0 z-40 border-b border-slate-800 shadow-xl">
+      <header className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white sticky top-0 z-40 shadow-lg shadow-emerald-800/10">
         <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           
           {/* Brand & Manual Module Indicator */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-400/30 flex items-center justify-center text-xl shadow-inner">
+            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-xl shadow-inner">
               📋
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-black text-base sm:text-lg tracking-tight text-white">
+                <h1 className="font-black text-base sm:text-lg tracking-tight text-white drop-shadow-sm">
                   DAILY INCOME SHEET
                 </h1>
-                <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full shadow-sm">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-white text-emerald-800 px-2 py-0.5 rounded-full shadow-sm">
                   የፈረቃ ገቢ ማጠቃለያ
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-bold">
+              <p className="text-[11px] text-emerald-100 font-bold">
                 Anti-Skimming Settlement Engine & Drawer Cash Lock
               </p>
             </div>
@@ -641,12 +641,12 @@ export default function ShiftReconciliation({
             <button
               type="button"
               onClick={() => setShowPendingLedgerModal(true)}
-              className="px-2.5 py-1.5 bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 rounded-xl text-xs font-black flex items-center gap-1.5 border border-cyan-500/40 transition-all shadow-sm active:scale-95"
-              title="የአስተናጋጆች ዕዳ ሙሉ መዝገብ (Pending Debts Ledger Page)"
+              className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1.5 border border-white/25 transition-all shadow-sm active:scale-95"
+              title="የአስተጋጆች ዕዳ ሙሉ መዝገብ (Pending Debts Ledger Page)"
             >
-              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+              <Clock className="w-3.5 h-3.5 text-emerald-200" />
               <span className="hidden sm:inline">የአስተናጋጆች ዕዳ</span>
-              <span className="text-[10px] bg-cyan-900 px-1.5 py-0.2 rounded-full text-cyan-200 border border-cyan-700/50">
+              <span className="text-[10px] bg-emerald-900/60 px-1.5 py-0.2 rounded-full text-emerald-200 border border-white/20">
                 {activeDebtsForShift.length}
               </span>
             </button>
@@ -654,12 +654,12 @@ export default function ShiftReconciliation({
             <button
               type="button"
               onClick={() => setShowHistoryModal(true)}
-              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-black flex items-center gap-1 border border-slate-700 transition-all"
+              className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/25 transition-all shadow-sm"
               title="ያለፉ ፈረቃዎች"
             >
-              <History className="w-3.5 h-3.5 text-amber-400" />
+              <History className="w-3.5 h-3.5 text-emerald-200" />
               <span className="hidden sm:inline">ያለፉ ፈረቃዎች</span>
-              <span className="text-[10px] bg-slate-900 px-1.5 py-0.2 rounded-full text-amber-300">
+              <span className="text-[10px] bg-emerald-900/60 px-1.5 py-0.2 rounded-full text-emerald-200 border border-white/20">
                 {settlementsHistory.length}
               </span>
             </button>
@@ -668,7 +668,7 @@ export default function ShiftReconciliation({
               <button
                 type="button"
                 onClick={onSwitchToChef}
-                className="px-2.5 py-1.5 bg-emerald-600/30 hover:bg-emerald-600/40 text-emerald-300 rounded-xl text-xs font-black flex items-center gap-1 border border-emerald-500/30 transition-all"
+                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/25 transition-all shadow-sm"
               >
                 <span>👩‍🍳 Chef POS</span>
               </button>
@@ -678,7 +678,7 @@ export default function ShiftReconciliation({
               <button
                 type="button"
                 onClick={onSwitchToOwner}
-                className="px-2.5 py-1.5 bg-amber-600/30 hover:bg-amber-600/40 text-amber-300 rounded-xl text-xs font-black flex items-center gap-1 border border-amber-500/30 transition-all"
+                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/25 transition-all shadow-sm"
               >
                 <span>👑 Owner Center</span>
               </button>
@@ -688,7 +688,7 @@ export default function ShiftReconciliation({
               <button
                 type="button"
                 onClick={onBackToPortal}
-                className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-black flex items-center gap-1 border border-slate-700 transition-all"
+                className="px-2.5 py-1.5 bg-black/20 hover:bg-black/30 text-emerald-100 rounded-xl text-xs font-black flex items-center gap-1 border border-white/15 transition-all shadow-sm"
               >
                 <span>← ፖርታል</span>
               </button>
@@ -698,7 +698,7 @@ export default function ShiftReconciliation({
         </div>
 
         {/* Date Navigator & Shift Toggle (☀️ Day vs 🌙 Night) */}
-        <div className="bg-slate-950 border-t border-slate-800/80 px-4 py-2">
+        <div className="bg-white/95 backdrop-blur-md border-b border-emerald-100 px-4 py-2 text-slate-800">
           <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
             
             {/* Ethiopian Date Navigator */}
@@ -706,22 +706,22 @@ export default function ShiftReconciliation({
               <button
                 type="button"
                 onClick={() => handleShiftDate(-1)}
-                className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300"
+                className="p-1.5 bg-slate-100 hover:bg-emerald-50 rounded-xl text-slate-700 transition-colors"
                 title="ቀዳሚ ቀን"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <div className="flex items-center gap-2 px-3 py-1 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-black text-amber-300">
-                <Calendar className="w-3.5 h-3.5 text-amber-400" />
+              <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs font-black text-emerald-900">
+                <Calendar className="w-3.5 h-3.5 text-emerald-700" />
                 <span>{toEthiopianDateString(selectedDate)}</span>
-                <span className="text-[10px] text-slate-500 font-bold">({selectedDate})</span>
+                <span className="text-[10px] text-slate-400 font-bold">({selectedDate})</span>
               </div>
 
               <button
                 type="button"
                 onClick={() => handleShiftDate(1)}
-                className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300"
+                className="p-1.5 bg-slate-100 hover:bg-emerald-50 rounded-xl text-slate-700 transition-colors"
                 title="ቀጣይ ቀን"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -730,21 +730,21 @@ export default function ShiftReconciliation({
               <button
                 type="button"
                 onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
-                className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-slate-300 rounded-xl"
+                className="px-2.5 py-1 bg-slate-100 hover:bg-emerald-50 text-[11px] font-bold text-slate-700 rounded-xl transition-colors"
               >
                 ዛሬ (Today)
               </button>
             </div>
 
             {/* Shift Filter: ( ☀️ Day ) [ 🌙 Night ] */}
-            <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-2xl border border-slate-800">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200">
               <button
                 type="button"
                 onClick={() => setSelectedShift('Day')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
                   selectedShift === 'Day'
-                    ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Sun className="w-3.5 h-3.5" />
@@ -756,8 +756,8 @@ export default function ShiftReconciliation({
                 onClick={() => setSelectedShift('Night')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
                   selectedShift === 'Night'
-                    ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Moon className="w-3.5 h-3.5" />
@@ -794,23 +794,23 @@ export default function ShiftReconciliation({
         {/* ============================================================== */}
         {/* CARD 1: 🥤 JUICE CUPS (170 ETB / cup) & beU Delivery            */}
         {/* ============================================================== */}
-        <section className="bg-slate-950 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-emerald-100 shadow-md shadow-emerald-900/5 space-y-4 text-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100/70 pb-3">
             <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg">
+              <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg">
                 🥤
               </span>
               <div>
-                <h2 className="text-sm sm:text-base font-black text-white">
+                <h2 className="text-sm sm:text-base font-black text-slate-900">
                   1. JUICE CUPS INVENTORY & beU DELIVERY
                 </h2>
-                <p className="text-[11px] text-slate-400 font-bold">
+                <p className="text-[11px] text-slate-500 font-bold">
                   የጁስ ኩባያዎች ቁጥጥርና የቢዩ ዲሊቨሪ ተቀናሽ (Standard: {DEFAULT_JUICE_PRICE} ETB / cup)
                 </p>
               </div>
             </div>
             {selectedShift === 'Night' && carryOverCups !== null && (
-              <span className="text-[11px] font-black text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-xl">
+              <span className="text-[11px] font-black text-emerald-800 bg-emerald-100/80 border border-emerald-300 px-2.5 py-1 rounded-xl">
                 🔄 ከቀን ፈረቃ የተላለፈ፡ {carryOverCups} ኩባያ
               </span>
             )}
@@ -819,8 +819,8 @@ export default function ShiftReconciliation({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             
             {/* Cups Given */}
-            <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-1.5">
-              <label className="text-xs font-black text-slate-300 block">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
+              <label className="text-xs font-black text-slate-700 block">
                 የተሰጡ ኩባያዎች (Cups Given)
               </label>
               <input
@@ -828,17 +828,17 @@ export default function ShiftReconciliation({
                 min="0"
                 value={cupsGiven}
                 onChange={(e) => setCupsGiven(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-lg font-black text-amber-300 outline-none focus:border-amber-400"
+                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10"
                 placeholder="100"
               />
-              <span className="text-[10px] text-slate-500 font-bold block">
+              <span className="text-[10px] text-slate-400 font-bold block">
                 ለፈረቃው የገቡ ፕላስቲክ ኩባያዎች
               </span>
             </div>
 
             {/* Cups Left */}
-            <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-1.5">
-              <label className="text-xs font-black text-slate-300 block">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
+              <label className="text-xs font-black text-slate-700 block">
                 የተረፉ ኩባያዎች (Cups Left)
               </label>
               <input
@@ -846,29 +846,29 @@ export default function ShiftReconciliation({
                 min="0"
                 value={cupsLeft}
                 onChange={(e) => setCupsLeft(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-lg font-black text-cyan-300 outline-none focus:border-cyan-400"
+                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10"
                 placeholder="20"
               />
-              <span className="text-[10px] text-slate-500 font-bold block">
+              <span className="text-[10px] text-slate-400 font-bold block">
                 ሳይሸጡ በመደርደሪያ የቀሩ
               </span>
             </div>
 
             {/* beU Delivery Cups */}
-            <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-1.5">
-              <label className="text-xs font-black text-slate-300 block flex items-center justify-between">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
+              <label className="text-xs font-black text-slate-700 block flex items-center justify-between">
                 <span>beU Delivery (በቢዩ የተላኩ)</span>
-                <span className="text-amber-400 text-[10px]">ባንክ ገቢ</span>
+                <span className="text-emerald-700 text-[10px] font-black">ባንክ ገቢ</span>
               </label>
               <input
                 type="number"
                 min="0"
                 value={beuDeliveryCups}
                 onChange={(e) => setBeuDeliveryCups(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-lg font-black text-rose-300 outline-none focus:border-rose-400"
+                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10"
                 placeholder="10"
               />
-              <span className="text-[10px] text-slate-500 font-bold block">
+              <span className="text-[10px] text-slate-400 font-bold block">
                 ገንዘቡ ቀጥታ ወደ ድርጅት ባንክ የሚገባ
               </span>
             </div>
@@ -876,21 +876,21 @@ export default function ShiftReconciliation({
           </div>
 
           {/* Section 1 Output Calculation Bar */}
-          <div className="bg-slate-900/90 rounded-2xl p-3.5 border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="bg-emerald-50/70 rounded-2xl p-3.5 border border-emerald-200/60 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-700">
             <div className="flex items-center gap-2">
-              <span className="font-black text-white">
-                የተሸጠ፡ <span className="text-amber-300 font-black">{juiceSold} ኩባያ</span>
+              <span className="font-black text-slate-900">
+                የተሸጠ፡ <span className="text-emerald-800 font-black">{juiceSold} ኩባያ</span>
               </span>
-              <span className="text-slate-500">•</span>
-              <span className="text-slate-300 font-bold">
+              <span className="text-slate-400">•</span>
+              <span className="text-slate-600 font-bold">
                 ({inStoreJuiceSold} በቤት ውስጥ + {beuDeliveryCups} በቢዩ)
               </span>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-slate-300">
-                ጠቅላላ ጁስ ገቢ፡ <strong className="text-white text-sm">{grossJuiceRevenue.toLocaleString()} ETB</strong>
+              <span className="text-slate-700">
+                ጠቅላላ ጁስ ገቢ፡ <strong className="text-slate-900 text-sm font-black">{grossJuiceRevenue.toLocaleString()} ETB</strong>
               </span>
-              <span className="text-rose-400 font-bold">
+              <span className="text-rose-600 font-bold">
                 (ቢዩ ተቀናሽ፡ -{beuDeliveryDeduction.toLocaleString()} ETB)
               </span>
             </div>
@@ -900,17 +900,17 @@ export default function ShiftReconciliation({
         {/* ============================================================== */}
         {/* CARD 2: 🍱 FOOD BOX RECONCILIATION ("Anti-Skimming Engine")     */}
         {/* ============================================================== */}
-        <section className="bg-slate-950 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-emerald-100 shadow-md shadow-emerald-900/5 space-y-4 text-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100/70 pb-3">
             <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-lg">
+              <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg">
                 🍱
               </span>
               <div>
-                <h2 className="text-sm sm:text-base font-black text-white">
+                <h2 className="text-sm sm:text-base font-black text-slate-900">
                   2. FOOD BOX RECONCILIATION ("THE ANTI-SKIMMING ENGINE")
                 </h2>
-                <p className="text-[11px] text-slate-400 font-bold">
+                <p className="text-[11px] text-slate-500 font-bold">
                   የኩሽና ቦክስ ፍጆታ ከሽያጭ ጋር ማስታረቂያ (Chef output ≡ Waitstaff sales)
                 </p>
               </div>
@@ -920,8 +920,8 @@ export default function ShiftReconciliation({
           {/* Boxes Given, Boxes Left, Target Food Sold */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             
-            <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-1.5">
-              <label className="text-xs font-black text-slate-300 block">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
+              <label className="text-xs font-black text-slate-700 block">
                 የተሰጡ ቦክሶች (Boxes Given)
               </label>
               <input
@@ -929,16 +929,16 @@ export default function ShiftReconciliation({
                 min="0"
                 value={boxesGiven}
                 onChange={(e) => setBoxesGiven(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-lg font-black text-amber-300 outline-none focus:border-amber-400"
+                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10"
                 placeholder="50"
               />
-              <span className="text-[10px] text-slate-500 font-bold block">
+              <span className="text-[10px] text-slate-400 font-bold block">
                 ወደ ኩሽና የገቡ ባዶ ቦክሶች
               </span>
             </div>
 
-            <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-1.5">
-              <label className="text-xs font-black text-slate-300 block">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
+              <label className="text-xs font-black text-slate-700 block">
                 የተረፉ ቦክሶች (Boxes Left)
               </label>
               <input
@@ -946,22 +946,22 @@ export default function ShiftReconciliation({
                 min="0"
                 value={boxesLeft}
                 onChange={(e) => setBoxesLeft(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-lg font-black text-cyan-300 outline-none focus:border-cyan-400"
+                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10"
                 placeholder="15"
               />
-              <span className="text-[10px] text-slate-500 font-bold block">
+              <span className="text-[10px] text-slate-400 font-bold block">
                 በኩሽና የተረፉ ባዶ ቦክሶች
               </span>
             </div>
 
-            <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-1.5">
-              <label className="text-xs font-black text-slate-300 block">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
+              <label className="text-xs font-black text-slate-700 block">
                 የሚጠበቅ ምግብ ሽያጭ (Target Food Sold)
               </label>
-              <div className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3.5 py-2 text-lg font-black text-emerald-300">
-                {targetFoodSold} <span className="text-xs text-slate-400 font-bold">ቦክስ</span>
+              <div className="w-full bg-emerald-100/60 border border-emerald-300 rounded-xl px-3.5 py-2 text-lg font-black text-emerald-900">
+                {targetFoodSold} <span className="text-xs text-emerald-700 font-bold">ቦክስ</span>
               </div>
-              <span className="text-[10px] text-slate-500 font-bold block">
+              <span className="text-[10px] text-slate-400 font-bold block">
                 የተሰጡ - የተረፉ = ከኩሽና የወጡ ምግቦች
               </span>
             </div>
@@ -970,7 +970,7 @@ export default function ShiftReconciliation({
 
           {/* Dish Category Selector */}
           <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs font-black text-slate-300">
+            <span className="text-xs font-black text-slate-700">
               የተሸጡ ምግቦችን ይመድቡ (Assign Sold Food):
             </span>
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
@@ -979,10 +979,10 @@ export default function ShiftReconciliation({
                   key={cat}
                   type="button"
                   onClick={() => setActiveFoodCategory(cat)}
-                  className={`px-2.5 py-1 rounded-xl text-[11px] font-black transition-all ${
+                  className={`px-3 py-1 rounded-xl text-[11px] font-black transition-all ${
                     activeFoodCategory === cat
-                      ? 'bg-amber-400 text-slate-950'
-                      : 'bg-slate-900 text-slate-400 hover:text-white'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   {cat === 'All' ? '🌟 ሁሉም (All)' : cat}
@@ -992,7 +992,7 @@ export default function ShiftReconciliation({
           </div>
 
           {/* Stepper Dishes Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-72 overflow-y-auto p-1 border border-slate-800/80 rounded-2xl bg-slate-900/50">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-72 overflow-y-auto p-2 border border-slate-200 rounded-2xl bg-slate-50/70">
             {filteredDishes.map(dish => {
               const qty = foodAssignments[dish.id] || 0;
               const subtotal = qty * dish.price;
@@ -1001,36 +1001,36 @@ export default function ShiftReconciliation({
                   key={dish.id}
                   className={`p-2.5 rounded-2xl border transition-all flex items-center justify-between gap-2 ${
                     qty > 0 
-                      ? 'bg-slate-900 border-amber-500/40 shadow-sm' 
-                      : 'bg-slate-950/60 border-slate-800/80 text-slate-400'
+                      ? 'bg-white border-2 border-emerald-500 shadow-sm' 
+                      : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-200'
                   }`}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black text-white truncate">
+                    <p className="text-xs font-black text-slate-900 truncate">
                       {dish.name}
                     </p>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-[10px] text-emerald-700 font-bold">
                       {dish.price} ETB {qty > 0 && `• ${subtotal.toLocaleString()} ETB`}
                     </p>
                   </div>
 
                   {/* Stepper: [-] Qty [+] */}
-                  <div className="flex items-center gap-1.5 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800">
+                  <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-xl border border-slate-200">
                     <button
                       type="button"
                       onClick={() => updateDishQty(dish.id, -1)}
                       disabled={qty === 0}
-                      className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white flex items-center justify-center font-black active:scale-90"
+                      className="w-6 h-6 rounded-lg bg-slate-200 hover:bg-slate-300 disabled:opacity-30 text-slate-800 flex items-center justify-center font-black active:scale-90"
                     >
                       <Minus className="w-3 h-3" />
                     </button>
-                    <span className="w-6 text-center text-xs font-black text-amber-300">
+                    <span className="w-6 text-center text-xs font-black text-emerald-900">
                       {qty}
                     </span>
                     <button
                       type="button"
                       onClick={() => updateDishQty(dish.id, 1)}
-                      className="w-6 h-6 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center font-black active:scale-90"
+                      className="w-6 h-6 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center font-black active:scale-90"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
@@ -1043,60 +1043,60 @@ export default function ShiftReconciliation({
           {/* THE 3 ANTI-SKIMMING RECONCILIATION STATES (STATE A, B, C) */}
           <div className="pt-1">
             {isFoodBoxesBalanced ? (
-              <div className="bg-emerald-950/80 border-2 border-emerald-500/50 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-2 text-emerald-300 animate-in fade-in">
+              <div className="bg-emerald-50 border-2 border-emerald-500/70 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-2 text-emerald-900 animate-in fade-in shadow-xs">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+                  <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg">
                     ✔
                   </span>
                   <div>
-                    <h3 className="text-xs sm:text-sm font-black">
+                    <h3 className="text-xs sm:text-sm font-black text-emerald-900">
                       Food Boxes Balanced: {totalAssignedBoxes} / {targetFoodSold} assigned ({totalFoodRevenue.toLocaleString()} ETB)
                     </h3>
-                    <p className="text-[11px] text-emerald-200/80 font-bold">
+                    <p className="text-[11px] text-emerald-700 font-bold">
                       የኩሽና ቦክስና የአስተናጋጆች ትዕዛዝ ሙሉ በሙሉ ተመጣጥኗል (Save Settlement Enabled)
                     </p>
                   </div>
                 </div>
-                <span className="text-xs font-black px-3 py-1 bg-emerald-500/20 rounded-xl border border-emerald-400/30">
+                <span className="text-xs font-black px-3 py-1 bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-300">
                   STATE A: BALANCED ✔
                 </span>
               </div>
             ) : isUnderAssigned ? (
-              <div className="bg-amber-950/80 border-2 border-amber-500/50 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-2 text-amber-300 animate-in fade-in">
+              <div className="bg-amber-50 border-2 border-amber-500/70 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-2 text-amber-900 animate-in fade-in shadow-xs">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
+                  <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center text-lg">
                     ⚠️
                   </span>
                   <div>
-                    <h3 className="text-xs sm:text-sm font-black">
+                    <h3 className="text-xs sm:text-sm font-black text-amber-900">
                       Under-assigned: {Math.abs(boxDifference)} boxes remaining to assign
                     </h3>
-                    <p className="text-[11px] text-amber-200/80 font-bold">
+                    <p className="text-[11px] text-amber-700 font-bold">
                       ከኩሽና ከወጡት ቦክሶች {Math.abs(boxDifference)} የሚሆኑት አልተመደቡም፤ እባክዎ ምግቦቹን ይመድቡ
                     </p>
                   </div>
                 </div>
-                <span className="text-xs font-black px-3 py-1 bg-amber-500/20 rounded-xl border border-amber-400/30 flex items-center gap-1">
+                <span className="text-xs font-black px-3 py-1 bg-amber-100 text-amber-800 rounded-xl border border-amber-300 flex items-center gap-1">
                   <Lock className="w-3.5 h-3.5" />
                   <span>STATE B: UNDER-ASSIGNED ⚠️</span>
                 </span>
               </div>
             ) : (
-              <div className="bg-rose-950/80 border-2 border-rose-500/50 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-2 text-rose-300 animate-in fade-in">
+              <div className="bg-rose-50 border-2 border-rose-500/70 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-2 text-rose-900 animate-in fade-in shadow-xs">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-lg">
+                  <span className="w-8 h-8 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center text-lg">
                     ❌
                   </span>
                   <div>
-                    <h3 className="text-xs sm:text-sm font-black">
+                    <h3 className="text-xs sm:text-sm font-black text-rose-900">
                       Over-assigned: Assigned exceeds physical boxes by {boxDifference}
                     </h3>
-                    <p className="text-[11px] text-rose-200/80 font-bold">
+                    <p className="text-[11px] text-rose-700 font-bold">
                       የተመደቡት ምግቦች ብዛት በኩሽና ከተፈጁት ቦክሶች በ {boxDifference} በልጠዋል
                     </p>
                   </div>
                 </div>
-                <span className="text-xs font-black px-3 py-1 bg-rose-500/20 rounded-xl border border-rose-400/30 flex items-center gap-1">
+                <span className="text-xs font-black px-3 py-1 bg-rose-100 text-rose-800 rounded-xl border border-rose-300 flex items-center gap-1">
                   <Lock className="w-3.5 h-3.5" />
                   <span>STATE C: OVER-ASSIGNED ❌</span>
                 </span>
@@ -1109,17 +1109,17 @@ export default function ShiftReconciliation({
         {/* CARD 3: ⏳ PENDING PAYMENTS (UNPAID WITH WAITERS)               */}
         {/* Multi-Dish Itemized Food & Juice Pending Debts Engine          */}
         {/* ============================================================== */}
-        <section className="bg-slate-950 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-emerald-100 shadow-md shadow-emerald-900/5 space-y-4 text-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100/70 pb-3">
             <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg">
+              <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg">
                 ⏳
               </span>
               <div>
-                <h2 className="text-sm sm:text-base font-black text-white">
+                <h2 className="text-sm sm:text-base font-black text-slate-900">
                   3. PENDING PAYMENTS (UNPAID WITH WAITERS)
                 </h2>
-                <p className="text-[11px] text-slate-400 font-bold">
+                <p className="text-[11px] text-slate-500 font-bold">
                   በአስተናጋጆች እጅ የቀሩ ሳይሰበሰቡ የወጡ ልዩ ልዩ ምግቦችና ጁሶች (Itemized Multi-Dish Waiter Debts)
                 </p>
               </div>
@@ -1127,11 +1127,11 @@ export default function ShiftReconciliation({
 
             {/* Quick Live Summary Pills */}
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-slate-300">
-                🥤 ጁስ፡ <strong className="text-amber-400">{pendingJuiceCupsInput || 0} ኩባያ</strong> ({pendingJuiceAmount.toLocaleString()} ETB)
+              <span className="px-3 py-1 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-bold text-slate-600">
+                🥤 ጁስ፡ <strong className="text-emerald-700">{pendingJuiceCupsInput || 0} ኩባያ</strong> ({pendingJuiceAmount.toLocaleString()} ETB)
               </span>
-              <span className="px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-slate-300">
-                🍱 ምግብ፡ <strong className="text-amber-400">{totalPendingFoodBoxes} ቦክስ</strong> ({totalPendingFoodAmount.toLocaleString()} ETB)
+              <span className="px-3 py-1 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-bold text-slate-600">
+                🍱 ምግብ፡ <strong className="text-emerald-700">{totalPendingFoodBoxes} ቦክስ</strong> ({totalPendingFoodAmount.toLocaleString()} ETB)
               </span>
             </div>
           </div>
@@ -1139,25 +1139,25 @@ export default function ShiftReconciliation({
           {/* Top Row: Waiter Selection & Juice Cups Input */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {/* Waiter Name */}
-            <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 space-y-1">
-              <label className="text-xs font-black text-slate-300 block">
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-1">
+              <label className="text-xs font-black text-slate-700 block">
                 Waiter Name (ባለዕዳ አስተናጋጅ) *
               </label>
               <input
                 type="text"
                 value={pendingWaiterName}
                 onChange={(e) => setPendingWaiterName(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-white outline-none focus:border-amber-400"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
                 placeholder="ለምሳሌ፡ አቤል (Waiter Abel)"
               />
-              <span className="text-[10px] text-slate-500 block">
+              <span className="text-[10px] text-slate-400 block">
                 ሳይሰበሰብ የወጣውን ትዕዛዝ የወሰደው አስተናጋጅ ስም
               </span>
             </div>
 
             {/* Pending Juice (Cups) */}
-            <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 space-y-1">
-              <label className="text-xs font-black text-slate-300 block">
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-1">
+              <label className="text-xs font-black text-slate-700 block">
                 Pending Juice (ሳይሰበሰቡ የቀሩ የጁስ ኩባያዎች)
               </label>
               <div className="flex items-center gap-2">
@@ -1166,44 +1166,44 @@ export default function ShiftReconciliation({
                   min="0"
                   value={pendingJuiceCupsInput}
                   onChange={(e) => setPendingJuiceCupsInput(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-amber-300 outline-none focus:border-amber-400"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-emerald-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
                   placeholder="0"
                 />
-                <span className="text-xs font-bold text-slate-400 whitespace-nowrap bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
+                <span className="text-xs font-black text-slate-700 whitespace-nowrap bg-white px-3 py-2 rounded-xl border border-slate-200">
                   {pendingJuiceAmount.toLocaleString()} ETB
                 </span>
               </div>
-              <span className="text-[10px] text-slate-500 block">
+              <span className="text-[10px] text-slate-400 block">
                 {DEFAULT_JUICE_PRICE} ETB / ኩባያ ተባዝቶ ከካዝና ጥሬ ገንዘብ ይቀነሳል
               </span>
             </div>
           </div>
 
           {/* ITEMIZE PENDING FOOD DISHES CONTAINER */}
-          <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800/90 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm">🍱</span>
-                <span className="text-xs font-black text-white uppercase tracking-wider">
+                <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
                   የምግብ ዕዳዎች ዝርዝር (Pending Food Dishes — Different Items)
                 </span>
               </div>
-              <span className="text-[11px] font-black text-amber-300 bg-amber-950/60 border border-amber-500/30 px-2.5 py-0.5 rounded-lg">
+              <span className="text-[11px] font-black text-emerald-800 bg-emerald-100/80 border border-emerald-200 px-2.5 py-0.5 rounded-lg">
                 ድምር: {totalPendingFoodBoxes} ቦክስ • {totalPendingFoodAmount.toLocaleString()} ETB
               </span>
             </div>
 
             {/* Add Dish Line Form */}
-            <form onSubmit={handleAddPendingFoodItem} className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <form onSubmit={handleAddPendingFoodItem} className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
               {/* Select Dish (6 cols) */}
               <div className="sm:col-span-6">
-                <label className="text-[10px] font-black text-slate-400 block mb-1">
+                <label className="text-[10px] font-black text-slate-500 block mb-1">
                   የምግብ ዓይነት ይምረጡ (Choose Food Dish)
                 </label>
                 <select
                   value={selectedPendingDishId}
                   onChange={(e) => setSelectedPendingDishId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none focus:border-amber-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500"
                 >
                   {dishesList.map(d => (
                     <option key={d.id} value={d.id}>
@@ -1215,7 +1215,7 @@ export default function ShiftReconciliation({
 
               {/* Quantity (3 cols) */}
               <div className="sm:col-span-3">
-                <label className="text-[10px] font-black text-slate-400 block mb-1">
+                <label className="text-[10px] font-black text-slate-500 block mb-1">
                   የቦክስ ብዛት (Qty)
                 </label>
                 <input
@@ -1223,7 +1223,7 @@ export default function ShiftReconciliation({
                   min="1"
                   value={selectedPendingDishQty}
                   onChange={(e) => setSelectedPendingDishQty(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-black text-amber-300 outline-none focus:border-amber-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-black text-emerald-800 outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -1231,7 +1231,7 @@ export default function ShiftReconciliation({
               <div className="sm:col-span-3">
                 <button
                   type="submit"
-                  className="w-full py-1.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black text-xs rounded-lg flex items-center justify-center gap-1 shadow-md shadow-amber-900/30 transition-all active:scale-95"
+                  className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-lg flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
                   <span>+ ምግብ ጨምር</span>
@@ -1242,23 +1242,23 @@ export default function ShiftReconciliation({
             {/* Itemized Food List */}
             <div className="space-y-2">
               {pendingFoodItems.length === 0 ? (
-                <div className="p-3 bg-slate-950/60 rounded-xl border border-dashed border-slate-800 text-center text-[11px] text-slate-400 font-bold">
+                <div className="p-3 bg-white rounded-xl border border-dashed border-slate-200 text-center text-[11px] text-slate-500 font-bold">
                   ምንም ያልተመረጠ ምግብ የለም። ከላይ ካለው ሳጥን ምግቡንና ብዛቱን መርጠው "+ ምግብ ጨምር" ይጫኑ።
                 </div>
               ) : (
                 pendingFoodItems.map((item) => (
                   <div
                     key={item.dishId}
-                    className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3 text-xs hover:border-slate-700 transition-all"
+                    className="p-2.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-3 text-xs hover:border-emerald-300 transition-all shadow-xs"
                   >
                     {/* Item Info */}
                     <div className="flex items-center gap-2.5 truncate">
-                      <span className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-300 flex items-center justify-center text-xs font-black shrink-0">
+                      <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-black shrink-0">
                         🍱
                       </span>
                       <div className="truncate">
-                        <span className="font-black text-white block truncate">{item.name}</span>
-                        <span className="text-[10px] text-slate-400 font-bold block">
+                        <span className="font-black text-slate-900 block truncate">{item.name}</span>
+                        <span className="text-[10px] text-slate-500 font-bold block">
                           {item.price} ETB / ቦክስ
                         </span>
                       </div>
@@ -1266,36 +1266,36 @@ export default function ShiftReconciliation({
 
                     {/* Stepper & Total */}
                     <div className="flex items-center gap-3 shrink-0">
-                      <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800">
+                      <div className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-200">
                         <button
                           type="button"
                           onClick={() => handleUpdatePendingFoodQty(item.dishId, -1)}
-                          className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center font-black"
+                          className="w-5 h-5 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 flex items-center justify-center font-black"
                           title="ቀንስ"
                         >
                           <Minus className="w-2.5 h-2.5" />
                         </button>
-                        <span className="px-2 font-black text-amber-300 min-w-6 text-center">
+                        <span className="px-2 font-black text-emerald-900 min-w-6 text-center">
                           {item.qty}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleUpdatePendingFoodQty(item.dishId, 1)}
-                          className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center font-black"
+                          className="w-5 h-5 rounded bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center font-black"
                           title="ጨምር"
                         >
                           <Plus className="w-2.5 h-2.5" />
                         </button>
                       </div>
 
-                      <span className="font-black text-amber-300 min-w-16 text-right">
+                      <span className="font-black text-emerald-900 min-w-16 text-right">
                         {(item.qty * item.price).toLocaleString()} ETB
                       </span>
 
                       <button
                         type="button"
                         onClick={() => handleRemovePendingFoodItem(item.dishId)}
-                        className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
+                        className="p-1 text-slate-400 hover:text-rose-500 transition-colors"
                         title="ይህን ምግብ አስወግድ"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1308,19 +1308,19 @@ export default function ShiftReconciliation({
           </div>
 
           {/* Pending Deduction Banner */}
-          <div className="bg-rose-950/60 border border-rose-500/40 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-rose-300">
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-rose-900">
             <div className="font-bold flex items-center gap-2">
               <span className="text-base">⛔</span>
               <div>
                 <span>
                   የሚቀነስ ጠቅላላ ዕዳ ({pendingJuiceCupsInput || 0} ኩባያ ጁስ + {totalPendingFoodBoxes} ቦክስ ምግብ):
                 </span>
-                <p className="text-[10px] text-rose-300/80 font-normal mt-0.5">
+                <p className="text-[10px] text-rose-700 font-normal mt-0.5">
                   ባለዕዳ፡ {pendingWaiterName} {pendingFoodItems.length > 0 && `(${pendingFoodItems.map(i => `${i.qty}x ${i.name.split(' ')[0]}`).join(', ')})`}
                 </p>
               </div>
             </div>
-            <span className="text-base font-black text-rose-200 whitespace-nowrap self-end sm:self-auto">
+            <span className="text-base font-black text-rose-700 whitespace-nowrap self-end sm:self-auto">
               - {deductedPendingDebt.toLocaleString()} ETB
             </span>
           </div>
@@ -1329,17 +1329,17 @@ export default function ShiftReconciliation({
         {/* ============================================================== */}
         {/* CARD 4: 🔄 RECOVERING PENDING PAYMENTS FROM WAITERS            */}
         {/* ============================================================== */}
-        <section className="bg-slate-950 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-emerald-100 shadow-md shadow-emerald-900/5 space-y-4 text-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100/70 pb-3">
             <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-lg">
+              <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg">
                 🔄
               </span>
               <div>
-                <h2 className="text-sm sm:text-base font-black text-white">
+                <h2 className="text-sm sm:text-base font-black text-slate-900">
                   4. RECOVERING PENDING PAYMENTS FROM WAITERS
                 </h2>
-                <p className="text-[11px] text-slate-400 font-bold">
+                <p className="text-[11px] text-slate-500 font-bold">
                   ከቀደምት ፈረቃዎች በአስተናጋጆች የተመለሱ የገንዘብ ዕዳዎች (Adds directly to cash drawer)
                 </p>
               </div>
@@ -1349,12 +1349,12 @@ export default function ShiftReconciliation({
               <button
                 type="button"
                 onClick={() => setShowPendingLedgerModal(true)}
-                className="px-3 py-1.5 bg-cyan-900/60 hover:bg-cyan-800 text-cyan-300 border border-cyan-500/40 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
               >
-                <FileText className="w-3.5 h-3.5" />
+                <FileText className="w-3.5 h-3.5 text-emerald-700" />
                 <span>📋 የዕዳዎች ሙሉ መዝገብ (Open Pending Ledger Page) →</span>
               </button>
-              <span className="text-xs font-black text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 px-3 py-1.5 rounded-xl">
+              <span className="text-xs font-black text-emerald-900 bg-emerald-100/80 border border-emerald-200 px-3 py-1.5 rounded-xl">
                 + {recoveredCashAdded.toLocaleString()} ETB ተሰብስቧል
               </span>
             </div>
@@ -1363,8 +1363,8 @@ export default function ShiftReconciliation({
           {/* List of Pending Debt Tickets with Steppers */}
           <div className="space-y-3">
             {activeDebtsForShift.length === 0 ? (
-              <div className="p-5 bg-slate-900/80 rounded-2xl border border-slate-800 text-center space-y-2">
-                <p className="text-xs text-slate-300 font-bold">
+              <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-2">
+                <p className="text-xs text-slate-700 font-bold">
                   ✓ ምንም ያልተሰበሰበ የአስተናጋጅ ዕዳ የለም (No pending debts across shifts)
                 </p>
                 <p className="text-[11px] text-slate-500">
@@ -1373,7 +1373,7 @@ export default function ShiftReconciliation({
                 <button
                   type="button"
                   onClick={() => setShowPendingLedgerModal(true)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl text-xs font-black inline-flex items-center gap-1.5 transition-all"
+                  className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-black inline-flex items-center gap-1.5 transition-all shadow-xs"
                 >
                   <span>የዕዳዎች ሙሉ ገጽን ክፈት (Open Pending Ledger)</span>
                   <ArrowRight className="w-3 h-3" />
@@ -1391,8 +1391,8 @@ export default function ShiftReconciliation({
                     key={debt.id}
                     className={`p-3.5 rounded-2xl border transition-all flex flex-wrap items-center justify-between gap-3 ${
                       isSelected 
-                        ? 'bg-slate-900 border-cyan-500/40 shadow-sm' 
-                        : 'bg-slate-950 border-slate-800 text-slate-400'
+                        ? 'bg-emerald-50/90 border-2 border-emerald-500 text-slate-900 shadow-sm' 
+                        : 'bg-slate-50 border border-slate-200 text-slate-600 hover:border-emerald-200'
                     }`}
                   >
                     {/* Checkbox & Waiter Info */}
@@ -1401,18 +1401,18 @@ export default function ShiftReconciliation({
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleDebtSelection(debt.id)}
-                        className="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-500 bg-slate-950 border-slate-700 cursor-pointer"
+                        className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 bg-white border-slate-300 cursor-pointer accent-emerald-600"
                       />
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-black text-xs text-white">
+                          <span className="font-black text-xs text-slate-900">
                             Waiter: {debt.waiterName}
                           </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-cyan-300 border border-slate-700">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-emerald-800 border border-slate-200 shadow-2xs">
                             {debt.itemType === 'food' ? '🍱 Food' : '🥤 Juice'}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-[11px] text-slate-500 font-medium">
                           {debt.remainingUnits} {debt.itemType === 'food' ? 'boxes' : 'cups'} • {debt.remainingAmount} ETB • {debt.shift} ({debt.dishName})
                         </p>
                       </div>
@@ -1421,31 +1421,31 @@ export default function ShiftReconciliation({
                     {/* Stepper: Recover Units [-] chosen / max [+] */}
                     {isSelected && (
                       <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-slate-400 font-bold">
+                        <span className="text-[11px] text-slate-600 font-bold">
                           Recover Units:
                         </span>
-                        <div className="flex items-center gap-1.5 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800">
+                        <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-xl border border-slate-200 shadow-2xs">
                           <button
                             type="button"
                             onClick={() => updateDebtUnitsToRecover(debt.id, -1)}
                             disabled={unitsToRecover <= 1}
-                            className="w-5 h-5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white flex items-center justify-center font-black"
+                            className="w-5 h-5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-800 flex items-center justify-center font-black"
                           >
                             <Minus className="w-2.5 h-2.5" />
                           </button>
-                          <span className="px-2 text-xs font-black text-cyan-300">
+                          <span className="px-2 text-xs font-black text-emerald-900">
                             {unitsToRecover} / {debt.remainingUnits}
                           </span>
                           <button
                             type="button"
                             onClick={() => updateDebtUnitsToRecover(debt.id, 1)}
                             disabled={unitsToRecover >= debt.remainingUnits}
-                            className="w-5 h-5 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white flex items-center justify-center font-black"
+                            className="w-5 h-5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white flex items-center justify-center font-black"
                           >
                             <Plus className="w-2.5 h-2.5" />
                           </button>
                         </div>
-                        <span className="font-black text-xs text-cyan-300 min-w-16 text-right">
+                        <span className="font-black text-xs text-emerald-900 min-w-16 text-right">
                           + {recoveredAmt.toLocaleString()} ETB
                         </span>
                       </div>
@@ -1457,9 +1457,9 @@ export default function ShiftReconciliation({
           </div>
 
           {/* Section 4 Footer helper bar */}
-          <div className="bg-slate-900/60 rounded-2xl p-3 border border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="text-slate-400 font-bold flex items-center gap-2">
-              <span className="text-cyan-400">ℹ️</span>
+          <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="text-slate-600 font-bold flex items-center gap-2">
+              <span className="text-emerald-700">ℹ️</span>
               <span>
                 በክፍል 4 ምልክት የተደረገባቸው ዕዳዎች በቀጥታ ወደ ካዝና ጥሬ ገንዘብ ይደመራሉ። ሂሳቡ ሲዘጋ የዕዳው መጠን ይቀነሳል።
               </span>
@@ -1467,7 +1467,7 @@ export default function ShiftReconciliation({
             <button
               type="button"
               onClick={() => setShowPendingLedgerModal(true)}
-              className="text-cyan-300 hover:text-cyan-200 font-black underline flex items-center gap-1"
+              className="text-emerald-700 hover:text-emerald-800 font-black underline flex items-center gap-1"
             >
               <span>ሁሉንም የአስተናጋጆች ዕዳ መዝገብ እይ (Manage All Debts) →</span>
             </button>
@@ -1477,22 +1477,22 @@ export default function ShiftReconciliation({
         {/* ============================================================== */}
         {/* CARD 5: 💸 DAILY OPERATING EXPENSES                             */}
         {/* ============================================================== */}
-        <section className="bg-slate-950 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-emerald-100 shadow-md shadow-emerald-900/5 space-y-4 text-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100/70 pb-3">
             <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-300 flex items-center justify-center text-lg">
+              <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg">
                 💸
               </span>
               <div>
-                <h2 className="text-sm sm:text-base font-black text-white">
+                <h2 className="text-sm sm:text-base font-black text-slate-900">
                   5. DAILY OPERATING EXPENSES
                 </h2>
-                <p className="text-[11px] text-slate-400 font-bold">
+                <p className="text-[11px] text-slate-500 font-bold">
                   ከጥሬ ገንዘብ መመዝገቢያ የወጡ የዕለት ወጪዎች (Deducted from drawer cash)
                 </p>
               </div>
             </div>
-            <span className="text-xs font-black text-rose-400 bg-rose-950/60 border border-rose-500/30 px-3 py-1 rounded-xl">
+            <span className="text-xs font-black text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1 rounded-xl">
               - {totalDailyExpenses.toLocaleString()} ETB
             </span>
           </div>
@@ -1502,22 +1502,22 @@ export default function ShiftReconciliation({
             {dailyExpenses.map(exp => (
               <div 
                 key={exp.id}
-                className="bg-slate-900 px-4 py-2.5 rounded-2xl border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                className="bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 text-xs"
               >
                 <div className="flex items-center gap-2">
-                  <span className="font-black text-white">{exp.name}</span>
-                  <span className="text-[10px] text-slate-400 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
+                  <span className="font-black text-slate-900">{exp.name}</span>
+                  <span className="text-[10px] text-slate-500 bg-white px-2 py-0.5 rounded-lg border border-slate-200 font-bold">
                     {exp.category}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-black text-rose-300">
+                  <span className="font-black text-rose-700">
                     {exp.amount.toLocaleString()} ETB
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRemoveExpense(exp.id)}
-                    className="text-slate-500 hover:text-rose-400 transition-colors p-1"
+                    className="text-slate-400 hover:text-rose-500 transition-colors p-1"
                     title="ወጪ ሰርዝ"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -1528,19 +1528,19 @@ export default function ShiftReconciliation({
           </div>
 
           {/* Inline Add Expense Form */}
-          <form onSubmit={handleAddExpense} className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-800/80">
+          <form onSubmit={handleAddExpense} className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-200">
             <input
               type="text"
               required
               value={newExpName}
               onChange={(e) => setNewExpName(e.target.value)}
               placeholder="የወጪ ስም (e.g. በረዶ / Ice, ፌስታል)"
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-amber-400"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500 focus:bg-white"
             />
             <select
               value={newExpCategory}
               onChange={(e) => setNewExpCategory(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-xs font-bold text-slate-300 outline-none"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs font-bold text-slate-700 outline-none focus:border-emerald-500 focus:bg-white"
             >
               {EXPENSE_CATEGORIES.map(c => (
                 <option key={c} value={c}>{c}</option>
@@ -1553,11 +1553,11 @@ export default function ShiftReconciliation({
               value={newExpAmount}
               onChange={(e) => setNewExpAmount(e.target.value)}
               placeholder="መጠን (ETB)"
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-amber-300 outline-none focus:border-amber-400"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-emerald-900 outline-none focus:border-emerald-500 focus:bg-white"
             />
             <button
               type="submit"
-              className="py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1 transition-all"
+              className="py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1 transition-all shadow-sm active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>ወጪ መዝግብ</span>
@@ -1568,17 +1568,17 @@ export default function ShiftReconciliation({
         {/* ============================================================== */}
         {/* CARD 6: 💳 BANK & TELEBIRR TRANSFERS (MANUAL ONE-BY-ONE INPUT) */}
         {/* ============================================================== */}
-        <section className="bg-slate-950 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-emerald-100 shadow-md shadow-emerald-900/5 space-y-4 text-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100/70 pb-3">
             <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center text-lg">
+              <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg">
                 💳
               </span>
               <div>
-                <h2 className="text-sm sm:text-base font-black text-white">
+                <h2 className="text-sm sm:text-base font-black text-slate-900">
                   6. BANK & TELEBIRR TRANSFERS (የባንክና ቴሌብር ዝውውር መመዝገቢያ)
                 </h2>
-                <p className="text-[11px] text-slate-400 font-bold">
+                <p className="text-[11px] text-slate-500 font-bold">
                   በእጅ የሚመዘገብ የባንክና ቴሌብር ዝውውር — አንድ በአንድ እራስዎ ያስገቡ (Manual One-by-One Input)
                 </p>
               </div>
@@ -1588,12 +1588,12 @@ export default function ShiftReconciliation({
                 <button
                   type="button"
                   onClick={handleClearAllTransfers}
-                  className="text-[11px] text-slate-400 hover:text-rose-400 underline font-bold px-2 py-1"
+                  className="text-[11px] text-slate-500 hover:text-rose-600 underline font-bold px-2 py-1"
                 >
                   ሁሉንም አጽዳ (Clear All)
                 </button>
               )}
-              <span className="text-xs font-black text-purple-400 bg-purple-950/60 border border-purple-500/30 px-3 py-1 rounded-xl">
+              <span className="text-xs font-black text-emerald-900 bg-emerald-100/80 border border-emerald-200 px-3 py-1 rounded-xl">
                 - {totalBankTransfers.toLocaleString()} ETB ({bankTransfers.length} ዝውውሮች)
               </span>
             </div>
@@ -1601,7 +1601,7 @@ export default function ShiftReconciliation({
 
           {/* Quick Preset Amount Buttons */}
           <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="text-[11px] text-slate-400 font-bold mr-1">
+            <span className="text-[11px] text-slate-500 font-bold mr-1">
               ፈጣን መጠን (Quick Presets):
             </span>
             {[100, 150, 180, 200, 250, 300, 430, 500, 1000].map(amt => (
@@ -1609,7 +1609,7 @@ export default function ShiftReconciliation({
                 key={amt}
                 type="button"
                 onClick={() => setNewTxnAmount(amt.toString())}
-                className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-purple-300 border border-purple-500/30 rounded-xl text-xs font-black transition-all active:scale-95"
+                className="px-2.5 py-1 bg-slate-50 hover:bg-emerald-50 text-emerald-900 border border-slate-200 hover:border-emerald-300 rounded-xl text-xs font-black transition-all active:scale-95"
               >
                 +{amt}
               </button>
@@ -1617,10 +1617,10 @@ export default function ShiftReconciliation({
           </div>
 
           {/* Inline Manual Add Transfer Form (Fast: Amount + Channel Only) */}
-          <form onSubmit={handleAddTransfer} className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <form onSubmit={handleAddTransfer} className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
             {/* Amount */}
             <div className="sm:col-span-5">
-              <label className="text-[11px] font-black text-purple-300 block mb-1">
+              <label className="text-[11px] font-black text-slate-700 block mb-1">
                 የተከፈለ መጠን (Amount ETB) *
               </label>
               <input
@@ -1631,19 +1631,19 @@ export default function ShiftReconciliation({
                 value={newTxnAmount}
                 onChange={(e) => setNewTxnAmount(e.target.value)}
                 placeholder="ለምሳሌ፡ 250"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-black text-purple-300 outline-none focus:border-purple-400"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-black text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
               />
             </div>
 
             {/* Channel / Service */}
             <div className="sm:col-span-4">
-              <label className="text-[11px] font-black text-slate-300 block mb-1">
+              <label className="text-[11px] font-black text-slate-700 block mb-1">
                 የክፍያ መስመር (Channel / Bank) *
               </label>
               <select
                 value={newTxnChannel}
                 onChange={(e) => setNewTxnChannel(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-200 outline-none focus:border-purple-400"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
               >
                 <option value="Telebirr (ቴሌብር)">📱 Telebirr (ቴሌብር)</option>
                 <option value="CBE Birr (ንግድ ባንክ)">🏦 CBE Birr (ንግድ ባንክ)</option>
@@ -1657,7 +1657,7 @@ export default function ShiftReconciliation({
             <div className="sm:col-span-3">
               <button
                 type="submit"
-                className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-md shadow-purple-900/30 transition-all active:scale-95"
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
                 <span>+ ዝውውር መዝግብ</span>
@@ -1668,9 +1668,9 @@ export default function ShiftReconciliation({
           {/* List of Entered Transfers (One by One) */}
           <div className="space-y-2 pt-1">
             {bankTransfers.length === 0 ? (
-              <div className="p-4 bg-slate-900/50 rounded-2xl border border-slate-800 text-center text-xs text-slate-400 font-bold space-y-1">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-500 font-bold space-y-1">
                 <p>ℹ️ እስካሁን በእጅ የተመዘገበ የባንክ ወይም የቴሌብር ዝውውር የለም።</p>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-400">
                   ደንበኞች በቴሌብር፣ በንግድ ባንክ ወይም በሌላ ባንክ የከፈሉትን መጠኑንና ባንኩን መርጠው ያስገቡ።
                 </p>
               </div>
@@ -1678,13 +1678,13 @@ export default function ShiftReconciliation({
               bankTransfers.map((txn, index) => (
                 <div
                   key={txn.id || index}
-                  className="bg-slate-900 px-4 py-3 rounded-2xl border border-slate-800 hover:border-purple-500/40 transition-all flex items-center justify-between gap-3 text-xs"
+                  className="bg-slate-50 px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 transition-all flex items-center justify-between gap-3 text-xs"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-lg bg-slate-800 text-slate-400 text-[10px] font-black flex items-center justify-center border border-slate-700">
+                    <span className="w-6 h-6 rounded-lg bg-white text-slate-600 text-[10px] font-black flex items-center justify-center border border-slate-200 shadow-2xs">
                       #{index + 1}
                     </span>
-                    <span className="text-xs font-black text-purple-300 bg-purple-950/60 border border-purple-500/30 px-3 py-1 rounded-xl">
+                    <span className="text-xs font-black text-emerald-900 bg-white border border-emerald-200 px-3 py-1 rounded-xl shadow-2xs">
                       {txn.channel}
                     </span>
                     {txn.time && (
@@ -1695,13 +1695,13 @@ export default function ShiftReconciliation({
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="font-black text-base text-purple-300">
-                      {txn.amount.toLocaleString()} <span className="text-xs text-slate-400">ETB</span>
+                    <span className="font-black text-base text-emerald-900">
+                      {txn.amount.toLocaleString()} <span className="text-xs text-slate-500">ETB</span>
                     </span>
                     <button
                       type="button"
                       onClick={() => handleRemoveTransfer(txn.id)}
-                      className="p-1.5 bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 rounded-xl transition-colors border border-slate-700 hover:border-rose-500/40"
+                      className="p-1.5 bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-xl transition-colors border border-slate-200 hover:border-rose-200"
                       title="ዝውውር ሰርዝ"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -1716,16 +1716,16 @@ export default function ShiftReconciliation({
         {/* ============================================================== */}
         {/* CARD 7: 💵 AUTOMATIC CASH DRAWER RECONCILIATION                */}
         {/* ============================================================== */}
-        <section className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 rounded-3xl p-5 sm:p-7 border-2 border-amber-500/30 shadow-2xl space-y-5">
-          <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
-            <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-lg">
+        <section className="bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 text-white rounded-3xl p-5 sm:p-7 border border-emerald-700/50 shadow-2xl space-y-5">
+          <div className="flex items-center gap-2.5 border-b border-emerald-800/80 pb-3">
+            <span className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center text-lg shadow-inner">
               💵
             </span>
             <div>
               <h2 className="text-sm sm:text-base font-black text-white">
                 7. AUTOMATIC CASH DRAWER RECONCILIATION
               </h2>
-              <p className="text-[11px] text-amber-300 font-bold">
+              <p className="text-[11px] text-emerald-200 font-bold">
                 ጥሬ ገንዘብ ማስታረቂያ (Physical Cash Handoff Target)
               </p>
             </div>
@@ -1734,63 +1734,63 @@ export default function ShiftReconciliation({
           {/* Mathematical Formula Breakdown Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-              <span className="text-[10px] text-slate-400 block">Gross Juice</span>
-              <span className="text-emerald-400 font-black">+{grossJuiceRevenue.toLocaleString()} ETB</span>
+            <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
+              <span className="text-[10px] text-emerald-200 block">Gross Juice</span>
+              <span className="text-white font-black">+{grossJuiceRevenue.toLocaleString()} ETB</span>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-              <span className="text-[10px] text-slate-400 block">Food Sales</span>
-              <span className="text-emerald-400 font-black">+{totalFoodRevenue.toLocaleString()} ETB</span>
+            <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
+              <span className="text-[10px] text-emerald-200 block">Food Sales</span>
+              <span className="text-white font-black">+{totalFoodRevenue.toLocaleString()} ETB</span>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-              <span className="text-[10px] text-slate-400 block">beU Deduction</span>
-              <span className="text-rose-400 font-black">-{beuDeliveryDeduction.toLocaleString()} ETB</span>
+            <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
+              <span className="text-[10px] text-rose-300 block">beU Deduction</span>
+              <span className="text-rose-200 font-black">-{beuDeliveryDeduction.toLocaleString()} ETB</span>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-              <span className="text-[10px] text-slate-400 block">New Pending</span>
-              <span className="text-rose-400 font-black">-{deductedPendingDebt.toLocaleString()} ETB</span>
+            <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
+              <span className="text-[10px] text-rose-300 block">New Pending</span>
+              <span className="text-rose-200 font-black">-{deductedPendingDebt.toLocaleString()} ETB</span>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-              <span className="text-[10px] text-slate-400 block">Recovered Debts</span>
-              <span className="text-cyan-400 font-black">+{recoveredCashAdded.toLocaleString()} ETB</span>
+            <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
+              <span className="text-[10px] text-emerald-200 block">Recovered Debts</span>
+              <span className="text-emerald-300 font-black">+{recoveredCashAdded.toLocaleString()} ETB</span>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-              <span className="text-[10px] text-slate-400 block">Daily Expenses</span>
-              <span className="text-rose-400 font-black">-{totalDailyExpenses.toLocaleString()} ETB</span>
+            <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
+              <span className="text-[10px] text-rose-300 block">Daily Expenses</span>
+              <span className="text-rose-200 font-black">-{totalDailyExpenses.toLocaleString()} ETB</span>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-              <span className="text-[10px] text-slate-400 block">Bank Transfers</span>
-              <span className="text-purple-400 font-black">-{totalBankTransfers.toLocaleString()} ETB</span>
+            <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
+              <span className="text-[10px] text-emerald-200 block">Bank Transfers</span>
+              <span className="text-emerald-200 font-black">-{totalBankTransfers.toLocaleString()} ETB</span>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-              <span className="text-[10px] text-amber-400 block font-bold">Total Gross Sales</span>
+            <div className="bg-white/15 backdrop-blur-md p-3 rounded-2xl border border-white/20">
+              <span className="text-[10px] text-emerald-200 block font-bold">Total Gross Sales</span>
               <span className="text-white font-black">{totalGrossSales.toLocaleString()} ETB</span>
             </div>
 
           </div>
 
           {/* Prominent Physical Cash Display */}
-          <div className="bg-slate-950 rounded-2xl p-5 border border-amber-500/40 flex flex-wrap items-center justify-between gap-4">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-emerald-400/40 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-black uppercase tracking-wider text-amber-400 block">
+              <span className="text-xs font-black uppercase tracking-wider text-emerald-200 block">
                 በካዝና መገኘት ያለበት ጥሬ ገንዘብ (Physical Cash in Drawer):
               </span>
               <p className="text-3xl sm:text-4xl font-black text-white tracking-tight mt-1">
-                {physicalCashInDrawer.toLocaleString()} <span className="text-lg text-amber-400 font-bold">ETB</span>
+                {physicalCashInDrawer.toLocaleString()} <span className="text-lg text-emerald-300 font-bold">ETB</span>
               </p>
             </div>
             <div className="text-right">
-              <span className={`text-xs font-black px-3 py-1 rounded-full border ${
+              <span className={`text-xs font-black px-3.5 py-1.5 rounded-full border shadow-sm ${
                 isFoodBoxesBalanced
-                  ? 'bg-emerald-950 text-emerald-300 border-emerald-500/40'
-                  : 'bg-amber-950 text-amber-300 border-amber-500/40'
+                  ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40'
+                  : 'bg-amber-500/20 text-amber-200 border-amber-400/40'
               }`}>
                 {isFoodBoxesBalanced ? '✔ ሂሳቡ ሙሉ በሙሉ ተመጣጥኗል' : '⚠️ ቦክሶችን ማስታረቅ ያስፈልጋል'}
               </span>
@@ -1804,20 +1804,20 @@ export default function ShiftReconciliation({
       {/* ============================================================== */}
       {/* FLOATING ACTION BOTTOM BAR (Save Settlement & Total Summary)    */}
       {/* ============================================================== */}
-      <div className="fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 py-3 px-4 shadow-2xl z-40">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-emerald-100 py-3 px-4 shadow-2xl z-40 text-slate-800">
         <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
           
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 font-bold">
+              <span className="text-xs text-slate-500 font-bold">
                 Total Sales ({selectedShift === 'Day' ? 'Day' : 'Night'}):
               </span>
-              <span className="text-base font-black text-white">
+              <span className="text-base font-black text-slate-900">
                 ETB {totalGrossSales.toLocaleString()}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">
-              ጥሬ ገንዘብ፡ <strong className="text-amber-300">{physicalCashInDrawer.toLocaleString()} ETB</strong>
+            <p className="text-[11px] text-slate-500">
+              ጥሬ ገንዘብ፡ <strong className="text-emerald-700 font-black">{physicalCashInDrawer.toLocaleString()} ETB</strong>
             </p>
           </div>
 
@@ -1825,7 +1825,7 @@ export default function ShiftReconciliation({
             <button
               type="button"
               onClick={handleExportCSV}
-              className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all"
+              className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all shadow-xs"
             >
               <Download className="w-3.5 h-3.5" />
               <span>CSV አውርድ</span>
@@ -1835,15 +1835,15 @@ export default function ShiftReconciliation({
               type="button"
               disabled={!isFoodBoxesBalanced}
               onClick={handleSaveSettlement}
-              className={`py-3 px-6 rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-95 shadow-xl ${
+              className={`py-3 px-6 rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-95 shadow-lg ${
                 isFoodBoxesBalanced
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-amber-500/20'
-                  : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30'
+                  : 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed opacity-75'
               }`}
             >
               {isFoodBoxesBalanced ? (
                 <>
-                  <CheckCircle2 className="w-4 h-4 text-slate-950" />
+                  <CheckCircle2 className="w-4 h-4 text-white" />
                   <span>✔ SAVE SETTLEMENT (ርክክቡን አጽድቅ)</span>
                 </>
               ) : (
@@ -1962,17 +1962,19 @@ export default function ShiftReconciliation({
       {/* MODAL 3: PAST SETTLEMENTS HISTORY LOG                          */}
       {/* ============================================================== */}
       {showHistoryModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-slate-950 border border-slate-800 rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <History className="w-5 h-5 text-amber-400" />
-                <h3 className="font-black text-sm text-white">ያለፉ ፈረቃዎች ማጠቃለያ (Settlements History)</h3>
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white border border-emerald-100 rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto text-slate-800">
+            <div className="flex items-center justify-between border-b border-emerald-100/80 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shadow-inner">
+                  <History className="w-4 h-4" />
+                </div>
+                <h3 className="font-black text-sm text-slate-900">ያለፉ ፈረቃዎች ማጠቃለያ (Settlements History)</h3>
               </div>
               <button 
                 type="button" 
                 onClick={() => setShowHistoryModal(false)}
-                className="text-slate-400 hover:text-white p-1"
+                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1987,28 +1989,28 @@ export default function ShiftReconciliation({
                 settlementsHistory.map(item => (
                   <div 
                     key={item.id}
-                    className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                    className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 transition-all flex items-center justify-between gap-3 text-xs"
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-black text-white">
+                        <span className="font-black text-slate-900">
                           {toEthiopianDateString(item.date)}
                         </span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                          item.shift === 'Day' ? 'bg-amber-400/20 text-amber-300' : 'bg-purple-400/20 text-purple-300'
+                          item.shift === 'Day' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-slate-200 text-slate-800 border border-slate-300'
                         }`}>
                           {item.shift === 'Day' ? '☀️ Day' : '🌙 Night'}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        ሽያጭ፡ {item.totalGrossSales.toLocaleString()} ETB • ጥሬ ገንዘብ፡ {item.physicalCashInDrawer.toLocaleString()} ETB
+                      <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
+                        ሽያጭ፡ {item.totalGrossSales.toLocaleString()} ETB • ጥሬ ገንዘብ፡ <strong className="text-emerald-800">{item.physicalCashInDrawer.toLocaleString()} ETB</strong>
                       </p>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => { setActivePrintTicket(item); setShowHistoryModal(false); }}
-                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-xl text-xs font-black flex items-center gap-1 border border-slate-700"
+                      className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 rounded-xl text-xs font-black flex items-center gap-1.5 border border-slate-200 hover:border-emerald-300 shadow-2xs transition-all"
                     >
                       <Printer className="w-3.5 h-3.5" />
                       <span>ደረሰኝ</span>

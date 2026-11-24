@@ -1306,23 +1306,23 @@ export default function App() {
           {/* Portal 3: Shift Reconciliation & Waiter Cash Audit (Internal System) */}
           <div 
             onClick={() => navigateToSystem('reconciliation')}
-            className="group bg-white/10 hover:bg-white/15 backdrop-blur-xl border-2 border-indigo-500/40 hover:border-indigo-400 rounded-3xl p-6 sm:p-7 transition-all cursor-pointer shadow-xl hover:shadow-2xl hover:scale-[1.02] flex flex-col justify-between space-y-5"
+            className="group bg-white/10 hover:bg-white/15 backdrop-blur-xl border-2 border-emerald-500/40 hover:border-emerald-400 rounded-3xl p-6 sm:p-7 transition-all cursor-pointer shadow-xl hover:shadow-2xl hover:scale-[1.02] flex flex-col justify-between space-y-5"
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-14 h-14 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 flex items-center justify-center text-3xl shadow-inner">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center text-3xl shadow-inner">
                   📋
                 </div>
-                <span className="text-[11px] font-black px-3 py-1 rounded-full border bg-indigo-500/20 text-indigo-300 border-indigo-400/30">
+                <span className="text-[11px] font-black px-3 py-1 rounded-full border bg-emerald-500/20 text-emerald-300 border-emerald-400/30">
                   🌟 ክፍት ነው (Active)
                 </span>
               </div>
 
               <div>
-                <h2 className="text-xl font-black text-white group-hover:text-indigo-300 transition-colors flex items-center gap-2">
+                <h2 className="text-xl font-black text-white group-hover:text-emerald-300 transition-colors flex items-center gap-2">
                   <span>የፈረቃና የገቢ ማስታረቂያ</span>
                 </h2>
-                <p className="text-xs font-black text-indigo-400 tracking-wide mt-0.5">
+                <p className="text-xs font-black text-emerald-400 tracking-wide mt-0.5">
                   SHIFT RECONCILIATION & CASH AUDIT
                 </p>
                 <p className="text-xs text-slate-300 font-bold mt-2 leading-relaxed">
@@ -1331,10 +1331,10 @@ export default function App() {
               </div>
 
               <div className="pt-2 border-t border-white/10 space-y-1.5 text-xs text-slate-300 font-bold">
-                <div className="flex items-center gap-2 text-indigo-300">
+                <div className="flex items-center gap-2 text-emerald-300">
                   <span>✓</span> <span>🥤 የተሸጡ ጁሶች vs 🥗 ምግቦች ብዛት</span>
                 </div>
-                <div className="flex items-center gap-2 text-indigo-300">
+                <div className="flex items-center gap-2 text-emerald-300">
                   <span>✓</span> <span>💰 የጥሬ ገንዘብ፣ ቴሌብርና ባንክ ርክክብ</span>
                 </div>
               </div>
@@ -1343,7 +1343,7 @@ export default function App() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); navigateToSystem('reconciliation'); }}
-              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-indigo-900/30 flex items-center justify-center gap-2 transition-all group-hover:shadow-indigo-500/30 active:scale-98"
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-950/30 flex items-center justify-center gap-2 transition-all group-hover:shadow-emerald-500/30 active:scale-98"
             >
               <span>ወደ ፈረቃ ማስታረቂያ ግባ (Enter Shift Audit)</span>
               <ArrowRight className="w-4 h-4" />
@@ -1651,7 +1651,7 @@ export default function App() {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl border border-white/25 text-white font-black text-xs shadow-inner transition-all hover:scale-[1.02]"
                 title="የኢትዮጵያ ቀን ቀይር"
               >
-                <Calendar className="w-3.5 h-3.5 text-amber-300" />
+                <Calendar className="w-3.5 h-3.5 text-emerald-200" />
                 <span>{orderEthDate.formatted}</span>
                 <span className="text-[10px] bg-black/20 text-emerald-200 px-1.5 py-0.5 rounded-lg border border-white/10 flex items-center gap-0.5 font-bold">
                   <Edit3 className="w-2.5 h-2.5" />
@@ -1669,30 +1669,30 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => navigateToSystem('reconciliation')}
-                className="px-2.5 py-1.5 bg-indigo-500/80 hover:bg-indigo-600 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-indigo-400/30 transition-all shadow-sm"
+                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1.5 border border-white/25 transition-all shadow-sm active:scale-95"
                 title="የፈረቃና የገቢ ማስታረቂያ (Shift Reconciliation)"
               >
-                <ClipboardCheck className="w-3.5 h-3.5" />
+                <ClipboardCheck className="w-3.5 h-3.5 text-emerald-200" />
                 <span className="hidden sm:inline">የፈረቃ ርክክብ</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleInstallApp}
-                className="px-2.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1 shadow-md transition-all active:scale-95"
+                className="px-2.5 py-1.5 bg-emerald-800/80 hover:bg-emerald-800 text-white rounded-xl text-xs font-black flex items-center gap-1.5 border border-emerald-400/30 shadow-md transition-all active:scale-95"
                 title="አፑን ጫን"
               >
-                <Smartphone className="w-3.5 h-3.5" />
+                <Smartphone className="w-3.5 h-3.5 text-emerald-300" />
                 <span className="hidden md:inline">አፑን ጫን</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleLockChef}
-                className="px-2.5 py-1.5 bg-rose-500/80 hover:bg-rose-600 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-rose-400/30 transition-all shadow-sm"
+                className="px-2.5 py-1.5 bg-black/20 hover:bg-black/30 text-emerald-100 rounded-xl text-xs font-black flex items-center gap-1 border border-white/15 transition-all shadow-sm"
                 title="ኩሽናውን ቆልፍ (Lock)"
               >
-                <Lock className="w-3.5 h-3.5" />
+                <Lock className="w-3.5 h-3.5 text-emerald-200" />
                 <span>ቆልፍ</span>
               </button>
 
@@ -1845,7 +1845,7 @@ export default function App() {
                 <div className="flex items-center gap-1 text-[11px] sm:text-xs">
                   <span>1. ምግብ</span>
                   {cart.length > 0 && (
-                    <span className="w-3.5 h-3.5 rounded-full bg-amber-400 text-slate-900 text-[9px] font-black flex items-center justify-center">
+                    <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[9px] font-black flex items-center justify-center">
                       {cart.reduce((s, i) => s + i.qty, 0)}
                     </span>
                   )}
@@ -2035,7 +2035,7 @@ export default function App() {
 
                           {/* Discount Badge on Image for 320 ETB dishes when Home */}
                           {isDiscounted && (
-                            <div className="absolute bottom-2 left-2 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-lg shadow-sm border border-amber-300">
+                            <div className="absolute bottom-2 left-2 bg-emerald-700 text-white text-[9px] font-black px-2 py-0.5 rounded-lg shadow-sm border border-emerald-500">
                               🏠 300 ETB
                             </div>
                           )}
@@ -2061,7 +2061,7 @@ export default function App() {
                       <div className="mt-3 pt-2 border-t border-emerald-50 flex items-center justify-between">
                         <div>
                           <div className="flex items-baseline gap-1">
-                            <span className={`font-black text-xs sm:text-sm ${isDiscounted ? 'text-amber-600' : 'text-slate-900'}`}>
+                            <span className={`font-black text-xs sm:text-sm ${isDiscounted ? 'text-emerald-700' : 'text-slate-900'}`}>
                               {effectivePrice}
                             </span>
                             <span className="text-[10px] text-slate-400 font-bold">ETB</span>
@@ -2184,16 +2184,16 @@ export default function App() {
                   onClick={() => setOrderType('Home')}
                   className={`p-6 sm:p-7 rounded-3xl border-2 text-left transition-all flex flex-col justify-between gap-5 cursor-pointer active:scale-[0.98] ${
                     orderType === 'Home'
-                      ? 'border-amber-500 bg-amber-50/90 shadow-xl shadow-amber-600/15 ring-4 ring-amber-500/20'
-                      : 'border-slate-200 bg-white hover:border-amber-300 hover:shadow-md'
+                      ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-600/15 ring-4 ring-emerald-500/20'
+                      : 'border-slate-200 bg-white hover:border-emerald-300 hover:shadow-md'
                   }`}
                 >
                   <div className="flex items-start justify-between">
-                    <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-900 flex items-center justify-center text-3xl shadow-inner">
+                    <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-900 flex items-center justify-center text-3xl shadow-inner">
                       🏠
                     </div>
                     {orderType === 'Home' ? (
-                      <span className="inline-flex items-center gap-1.5 bg-amber-500 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-sm">
+                      <span className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-sm">
                         <Check className="w-3.5 h-3.5 stroke-[3]" />
                         <span>ተመርጧል (Selected)</span>
                       </span>
@@ -2209,7 +2209,7 @@ export default function App() {
                       <h3 className="text-xl font-black text-slate-900">
                         🏠 ቤት ውስጥ (Home)
                       </h3>
-                      <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm">
+                      <span className="bg-emerald-700 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm">
                         300 ETB
                       </span>
                     </div>
@@ -2218,9 +2218,9 @@ export default function App() {
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-amber-200/60 flex items-center justify-between text-xs font-black">
+                  <div className="pt-3 border-t border-emerald-100 flex items-center justify-between text-xs font-black">
                     <span className="text-slate-600">ልዩ ቅናሽ (Discount):</span>
-                    <span className="text-amber-900 bg-amber-200/80 px-2.5 py-1 rounded-xl">
+                    <span className="text-emerald-900 bg-emerald-100/90 border border-emerald-200 px-2.5 py-1 rounded-xl">
                       ✨ የ 320 ብር ምግቦች በ 300 ብር!
                     </span>
                   </div>
@@ -2302,11 +2302,11 @@ export default function App() {
                   onClick={() => setSelectedShiftType('Day')}
                   className={`p-6 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-3 ${
                     selectedShiftType === 'Day'
-                      ? 'border-amber-500 bg-amber-50/80 shadow-xl shadow-amber-500/10 scale-105'
-                      : 'border-emerald-100 bg-white hover:border-amber-200'
+                      ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-600/10 scale-105 ring-2 ring-emerald-500/20'
+                      : 'border-emerald-100/80 bg-white hover:border-emerald-300'
                   }`}
                 >
-                  <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-600 flex items-center justify-center shadow-inner">
+                  <div className="w-16 h-16 rounded-3xl bg-emerald-100 text-emerald-800 flex items-center justify-center shadow-inner">
                     <Sun className="w-9 h-9" />
                   </div>
                   <div>
@@ -2314,7 +2314,7 @@ export default function App() {
                     <p className="text-xs text-slate-400 font-bold mt-0.5">የቀን ፈረቃ ትዕዛዝ</p>
                   </div>
                   {selectedShiftType === 'Day' && (
-                    <span className="text-[11px] font-black text-amber-700 bg-amber-200/60 px-3 py-1 rounded-full">
+                    <span className="text-[11px] font-black text-emerald-800 bg-emerald-200/80 px-3 py-1 rounded-full">
                       ✓ ተመርጧል (Selected)
                     </span>
                   )}
@@ -2326,11 +2326,11 @@ export default function App() {
                   onClick={() => setSelectedShiftType('Night')}
                   className={`p-6 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-3 ${
                     selectedShiftType === 'Night'
-                      ? 'border-indigo-600 bg-indigo-50/80 shadow-xl shadow-indigo-600/10 scale-105'
-                      : 'border-emerald-100 bg-white hover:border-indigo-200'
+                      ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-600/10 scale-105 ring-2 ring-emerald-500/20'
+                      : 'border-emerald-100/80 bg-white hover:border-emerald-300'
                   }`}
                 >
-                  <div className="w-16 h-16 rounded-3xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-inner">
+                  <div className="w-16 h-16 rounded-3xl bg-emerald-100 text-emerald-800 flex items-center justify-center shadow-inner">
                     <Moon className="w-9 h-9" />
                   </div>
                   <div>
@@ -2338,7 +2338,7 @@ export default function App() {
                     <p className="text-xs text-slate-400 font-bold mt-0.5">የማታ ፈረቃ ትዕዛዝ</p>
                   </div>
                   {selectedShiftType === 'Night' && (
-                    <span className="text-[11px] font-black text-indigo-700 bg-indigo-200/60 px-3 py-1 rounded-full">
+                    <span className="text-[11px] font-black text-emerald-800 bg-emerald-200/80 px-3 py-1 rounded-full">
                       ✓ ተመርጧል (Selected)
                     </span>
                   )}
@@ -2720,7 +2720,7 @@ export default function App() {
                             🥡 {totalBoxesInOrder} ቦክስ
                           </span>
                         ) : (
-                          <span className="text-xs font-black text-amber-900 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300">
+                          <span className="text-xs font-black text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded-lg border border-emerald-300">
                             🏠 ቤት ውስጥ (0 ቦክስ)
                           </span>
                         )}

@@ -242,27 +242,27 @@ export default function WaiterPendingLedgerModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in">
-      <div className="bg-slate-900 border border-cyan-500/30 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl shadow-cyan-950/40 text-slate-100 overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in">
+      <div className="bg-white border border-emerald-100 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl shadow-emerald-950/20 text-slate-800 overflow-hidden font-sans">
         
         {/* ============================================================== */}
         {/* MODAL HEADER                                                  */}
         {/* ============================================================== */}
-        <div className="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between gap-4 bg-slate-950/80">
+        <div className="p-4 sm:p-6 border-b border-emerald-100 flex items-center justify-between gap-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center justify-center text-2xl shadow-inner">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 text-white border border-white/30 flex items-center justify-center text-2xl shadow-inner">
               📋
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-white">
+                <h2 className="text-base sm:text-lg font-black text-white drop-shadow-xs">
                   የአስተናጋጆች ዕዳ መዝገብና ክትትል (Waiter Pending Debts Ledger)
                 </h2>
-                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-700/50">
+                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-white text-emerald-900 shadow-xs">
                   {metrics.activeCount} ሳይከፈል የቀረ
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-bold mt-0.5">
+              <p className="text-xs text-emerald-100 font-bold mt-0.5">
                 ከቀደምት ፈረቃዎች በአስተናጋጆች የተወሰዱ ያልተከፈሉ ምግቦችና ጁሶች ሙሉ መቆጣጠሪያ
               </p>
             </div>
@@ -272,7 +272,7 @@ export default function WaiterPendingLedgerModal({
             <button
               type="button"
               onClick={handlePrintLedger}
-              className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all"
+              className="p-2.5 bg-white/20 hover:bg-white/30 text-white border border-white/25 rounded-xl transition-all shadow-xs active:scale-95"
               title="አትም (Print Summary)"
             >
               <Printer className="w-4 h-4" />
@@ -280,7 +280,7 @@ export default function WaiterPendingLedgerModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-2.5 bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-white rounded-xl transition-all"
+              className="p-2.5 bg-black/20 hover:bg-black/30 text-emerald-100 hover:text-white border border-white/15 rounded-xl transition-all active:scale-95"
               title="ዝጋ"
             >
               <X className="w-5 h-5" />
@@ -291,60 +291,60 @@ export default function WaiterPendingLedgerModal({
         {/* ============================================================== */}
         {/* TOP METRICS SUMMARY CARDS                                      */}
         {/* ============================================================== */}
-        <div className="p-4 sm:p-6 bg-slate-950/50 border-b border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="p-4 sm:p-6 bg-slate-50 border-b border-emerald-100/70 grid grid-cols-2 sm:grid-cols-4 gap-3">
           
           {/* Card 1: Total Active Pending ETB */}
-          <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-amber-500/30">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold mb-1">
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-bold mb-1">
               <span>ያልተሰበሰበ ጠቅላላ ዕዳ</span>
-              <span className="text-amber-400">⏳</span>
+              <span className="text-amber-500">⏳</span>
             </div>
-            <div className="text-lg sm:text-xl font-black text-amber-300">
-              {metrics.totalPendingAmount.toLocaleString()} <span className="text-xs font-bold">ETB</span>
+            <div className="text-lg sm:text-xl font-black text-slate-900">
+              {metrics.totalPendingAmount.toLocaleString()} <span className="text-xs font-bold text-slate-500">ETB</span>
             </div>
-            <span className="text-[10px] text-slate-500 font-bold block mt-1">
+            <span className="text-[10px] text-slate-400 font-bold block mt-1">
               {metrics.uniqueWaitersWithDebt} ባለዕዳ አስተናጋጆች
             </span>
           </div>
 
           {/* Card 2: Food Boxes Pending */}
-          <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-cyan-500/30">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold mb-1">
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-bold mb-1">
               <span>ያልተከፈሉ ምግቦች</span>
-              <span className="text-cyan-400">🍱</span>
+              <span className="text-emerald-600">🍱</span>
             </div>
-            <div className="text-lg sm:text-xl font-black text-cyan-300">
-              {metrics.activeFoodUnits} <span className="text-xs font-bold">ቦክስ ምግብ</span>
+            <div className="text-lg sm:text-xl font-black text-emerald-900">
+              {metrics.activeFoodUnits} <span className="text-xs font-bold text-slate-500">ቦክስ ምግብ</span>
             </div>
-            <span className="text-[10px] text-slate-500 font-bold block mt-1">
+            <span className="text-[10px] text-slate-400 font-bold block mt-1">
               በአስተናጋጆች እጅ የቀረ
             </span>
           </div>
 
           {/* Card 3: Juice Cups Pending */}
-          <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-emerald-500/30">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold mb-1">
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-bold mb-1">
               <span>ያልተከፈሉ ጁሶች</span>
-              <span className="text-emerald-400">🥤</span>
+              <span className="text-emerald-600">🥤</span>
             </div>
-            <div className="text-lg sm:text-xl font-black text-emerald-300">
-              {metrics.activeJuiceUnits} <span className="text-xs font-bold">ኩባያ ጁስ</span>
+            <div className="text-lg sm:text-xl font-black text-emerald-900">
+              {metrics.activeJuiceUnits} <span className="text-xs font-bold text-slate-500">ኩባያ ጁስ</span>
             </div>
-            <span className="text-[10px] text-slate-500 font-bold block mt-1">
+            <span className="text-[10px] text-slate-400 font-bold block mt-1">
               {(metrics.activeJuiceUnits * DEFAULT_JUICE_PRICE).toLocaleString()} ETB
             </span>
           </div>
 
           {/* Card 4: Settled / Completed */}
-          <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-purple-500/30">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold mb-1">
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-bold mb-1">
               <span>የተመለሰ / የተከፈለ</span>
-              <span className="text-purple-400">✔</span>
+              <span className="text-emerald-600">✔</span>
             </div>
-            <div className="text-lg sm:text-xl font-black text-purple-300">
-              {metrics.totalRecoveredAmount.toLocaleString()} <span className="text-xs font-bold">ETB</span>
+            <div className="text-lg sm:text-xl font-black text-emerald-800">
+              {metrics.totalRecoveredAmount.toLocaleString()} <span className="text-xs font-bold text-slate-500">ETB</span>
             </div>
-            <span className="text-[10px] text-slate-500 font-bold block mt-1">
+            <span className="text-[10px] text-slate-400 font-bold block mt-1">
               {metrics.completedCount} የተዘጉ ቲኬቶች
             </span>
           </div>
@@ -354,19 +354,19 @@ export default function WaiterPendingLedgerModal({
         {/* ============================================================== */}
         {/* FILTER CONTROLS & ADD BUTTON                                   */}
         {/* ============================================================== */}
-        <div className="p-4 bg-slate-900 border-b border-slate-800 space-y-3">
+        <div className="p-4 bg-white border-b border-slate-200 space-y-3">
           
           <div className="flex flex-wrap items-center justify-between gap-3">
             
             {/* Status Tabs: [ ⏳ ሳይከፈል የቀረ ] [ ✔ የተከፈለ ] [ ሁሉም ] */}
-            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-2xl border border-slate-800">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200">
               <button
                 type="button"
                 onClick={() => setStatusFilter('pending')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
                   statusFilter === 'pending'
-                    ? 'bg-amber-500 text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
@@ -378,11 +378,11 @@ export default function WaiterPendingLedgerModal({
                 onClick={() => setStatusFilter('completed')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
                   statusFilter === 'completed'
-                    ? 'bg-emerald-500 text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-emerald-100 text-emerald-900 shadow-2xs font-black'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <CheckCircle2 className="w-3.5 h-3.5" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
                 <span>የተከፈለ ({metrics.completedCount})</span>
               </button>
 
@@ -391,8 +391,8 @@ export default function WaiterPendingLedgerModal({
                 onClick={() => setStatusFilter('all')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
                   statusFilter === 'all'
-                    ? 'bg-slate-700 text-white'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-white text-slate-900 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 ሁሉም ({pendingDebts.length})
@@ -403,7 +403,7 @@ export default function WaiterPendingLedgerModal({
             <button
               type="button"
               onClick={() => setShowAddForm(prev => !prev)}
-              className="px-3.5 py-1.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md shadow-cyan-900/30 transition-all active:scale-95"
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{showAddForm ? 'ቅጹን ዝጋ (Close Form)' : '+ አዲስ ዕዳ መዝግብ (Add Debt)'}</span>
@@ -415,16 +415,16 @@ export default function WaiterPendingLedgerModal({
           <div className="flex flex-wrap items-center gap-3">
             
             {/* Filter by Waiter */}
-            <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
-              <User className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
+              <User className="w-3.5 h-3.5 text-slate-500" />
               <select
                 value={waiterFilter}
                 onChange={(e) => setWaiterFilter(e.target.value)}
-                className="bg-transparent text-slate-200 font-bold outline-none cursor-pointer"
+                className="bg-transparent text-slate-800 font-bold outline-none cursor-pointer"
               >
                 <option value="all">ሁሉም አስተናጋጆች (All Waiters)</option>
                 {availableWaiters.map(w => (
-                  <option key={w} value={w} className="bg-slate-900 text-white">
+                  <option key={w} value={w} className="bg-white text-slate-900">
                     {w}
                   </option>
                 ))}
@@ -432,31 +432,31 @@ export default function WaiterPendingLedgerModal({
             </div>
 
             {/* Filter by Item Type */}
-            <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
-              <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
+              <Filter className="w-3.5 h-3.5 text-slate-500" />
               <select
                 value={itemTypeFilter}
                 onChange={(e) => setItemTypeFilter(e.target.value)}
-                className="bg-transparent text-slate-200 font-bold outline-none cursor-pointer"
+                className="bg-transparent text-slate-800 font-bold outline-none cursor-pointer"
               >
                 <option value="all">ሁሉም አይነቶች (All Items)</option>
-                <option value="food" className="bg-slate-900 text-white">🍱 ምግብ ብቻ (Food Only)</option>
-                <option value="juice" className="bg-slate-900 text-white">🥤 ጁስ ብቻ (Juice Only)</option>
+                <option value="food" className="bg-white text-slate-900">🍱 ምግብ ብቻ (Food Only)</option>
+                <option value="juice" className="bg-white text-slate-900">🥤 ጁስ ብቻ (Juice Only)</option>
               </select>
             </div>
 
             {/* Search Box */}
-            <div className="flex-1 min-w-[200px] flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+            <div className="flex-1 min-w-[200px] flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
               <Search className="w-3.5 h-3.5 text-slate-400" />
               <input
                 type="text"
                 placeholder="በአስተናጋጅ ስም ወይም ምግብ ፈልግ..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent text-xs font-bold text-slate-200 placeholder-slate-500 outline-none w-full"
+                className="bg-transparent text-xs font-bold text-slate-800 placeholder-slate-400 outline-none w-full"
               />
               {searchQuery && (
-                <button type="button" onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-white">
+                <button type="button" onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-slate-800">
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -470,13 +470,13 @@ export default function WaiterPendingLedgerModal({
         {/* ADD MANUAL DEBT ACCORDION FORM                                 */}
         {/* ============================================================== */}
         {showAddForm && (
-          <form onSubmit={handleCreateManualDebt} className="p-4 sm:p-5 bg-slate-950 border-b border-cyan-500/30 animate-in slide-in-from-top-2 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="text-xs font-black text-cyan-300 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-cyan-400" />
+          <form onSubmit={handleCreateManualDebt} className="p-4 sm:p-5 bg-emerald-50/50 border-b border-emerald-200 animate-in slide-in-from-top-2 space-y-4">
+            <div className="flex items-center justify-between border-b border-emerald-200/60 pb-2">
+              <span className="text-xs font-black text-emerald-900 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-700" />
                 <span>አዲስ የአስተናጋጅ ዕዳ መመዝገቢያ ቅጽ (Direct Manual Debt Entry)</span>
               </span>
-              <span className="text-[11px] text-slate-400 font-bold">
+              <span className="text-[11px] text-slate-500 font-bold">
                 እዳው በቀጥታ ወደ መዝገቡ ገብቶ በፈረቃ ሂሳብ መመለስ ይችላል
               </span>
             </div>
@@ -485,11 +485,11 @@ export default function WaiterPendingLedgerModal({
               
               {/* Waiter Name */}
               <div>
-                <label className="text-slate-300 font-black block mb-1">ባለዕዳ አስተናጋጅ (Waiter):</label>
+                <label className="text-slate-700 font-black block mb-1">ባለዕዳ አስተናጋጅ (Waiter):</label>
                 <select
                   value={newWaiter}
                   onChange={(e) => setNewWaiter(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold outline-none focus:border-cyan-400"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold outline-none focus:border-emerald-500"
                 >
                   {availableWaiters.map(w => (
                     <option key={w} value={w}>{w}</option>
@@ -499,13 +499,13 @@ export default function WaiterPendingLedgerModal({
 
               {/* Item Type: Food or Juice */}
               <div>
-                <label className="text-slate-300 font-black block mb-1">የዕቃው አይነት (Item Type):</label>
-                <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-700">
+                <label className="text-slate-700 font-black block mb-1">የዕቃው አይነት (Item Type):</label>
+                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200">
                   <button
                     type="button"
                     onClick={() => setNewItemType('food')}
-                    className={`flex-1 py-1.5 rounded-lg font-black text-[11px] ${
-                      newItemType === 'food' ? 'bg-cyan-600 text-white' : 'text-slate-400'
+                    className={`flex-1 py-1.5 rounded-lg font-black text-[11px] transition-colors ${
+                      newItemType === 'food' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     🍱 ምግብ (Food)
@@ -513,8 +513,8 @@ export default function WaiterPendingLedgerModal({
                   <button
                     type="button"
                     onClick={() => setNewItemType('juice')}
-                    className={`flex-1 py-1.5 rounded-lg font-black text-[11px] ${
-                      newItemType === 'juice' ? 'bg-amber-600 text-white' : 'text-slate-400'
+                    className={`flex-1 py-1.5 rounded-lg font-black text-[11px] transition-colors ${
+                      newItemType === 'juice' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     🥤 ጁስ (Juice)
@@ -524,14 +524,14 @@ export default function WaiterPendingLedgerModal({
 
               {/* Dish or Juice Selection */}
               <div>
-                <label className="text-slate-300 font-black block mb-1">
+                <label className="text-slate-700 font-black block mb-1">
                   {newItemType === 'food' ? 'የምግብ አይነት (Dish):' : 'ጁስ ኩባያ (Juice Cup):'}
                 </label>
                 {newItemType === 'food' ? (
                   <select
                     value={newDishId}
                     onChange={(e) => handleDishChange(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold outline-none focus:border-cyan-400"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold outline-none focus:border-emerald-500"
                   >
                     {foodMenu.map(d => (
                       <option key={d.id} value={d.id}>
@@ -544,25 +544,25 @@ export default function WaiterPendingLedgerModal({
                     type="text"
                     disabled
                     value={`መደበኛ ጁስ (${DEFAULT_JUICE_PRICE} ETB / cup)`}
-                    className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-400 font-bold outline-none"
+                    className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-slate-600 font-bold outline-none"
                   />
                 )}
               </div>
 
               {/* Units & Total */}
               <div>
-                <label className="text-slate-300 font-black block mb-1">ብዛት (Quantity Units):</label>
+                <label className="text-slate-700 font-black block mb-1">ብዛት (Quantity Units):</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
                     min="1"
                     value={newUnits}
                     onChange={(e) => setNewUnits(e.target.value)}
-                    className="w-20 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-black text-sm outline-none focus:border-cyan-400 text-center"
+                    className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-black text-sm outline-none focus:border-emerald-500 text-center"
                   />
-                  <div className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-right">
-                    <span className="text-[10px] text-slate-400 block font-bold">ጠቅላላ ሂሳብ፡</span>
-                    <span className="text-xs font-black text-amber-300">
+                  <div className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-right">
+                    <span className="text-[10px] text-slate-500 block font-bold">ጠቅላላ ሂሳብ፡</span>
+                    <span className="text-xs font-black text-emerald-800">
                       {((Number(newUnits) || 1) * (newItemType === 'juice' ? DEFAULT_JUICE_PRICE : newCustomPrice)).toLocaleString()} ETB
                     </span>
                   </div>
@@ -577,19 +577,19 @@ export default function WaiterPendingLedgerModal({
                 placeholder="ተጨማሪ ማስታወሻ ወይም ምክንያት (Optional notes)..."
                 value={newNotes}
                 onChange={(e) => setNewNotes(e.target.value)}
-                className="flex-1 min-w-[250px] bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white placeholder-slate-500 outline-none"
+                className="flex-1 min-w-[250px] bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-emerald-500"
               />
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-black"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black"
                 >
                   ተመለስ
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-black shadow-md shadow-cyan-900/30 flex items-center gap-1.5"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-sm flex items-center gap-1.5 active:scale-95"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>ዕዳውን መዝግብ (Save Ticket)</span>
@@ -602,17 +602,17 @@ export default function WaiterPendingLedgerModal({
         {/* ============================================================== */}
         {/* MAIN DEBTS LIST BODY                                           */}
         {/* ============================================================== */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 bg-[#FDFBF7]">
           {filteredDebts.length === 0 ? (
-            <div className="p-8 text-center bg-slate-950/60 rounded-3xl border border-slate-800 space-y-3">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-800 text-slate-400 flex items-center justify-center text-3xl">
+            <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 space-y-3 shadow-xs">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-3xl">
                 ✓
               </div>
               <div>
-                <h4 className="text-sm font-black text-white">
+                <h4 className="text-sm font-black text-slate-900">
                   ምንም ያልተገኘ የአስተናጋጅ ዕዳ መዝገብ የለም (No Debt Records Found)
                 </h4>
-                <p className="text-xs text-slate-400 font-bold mt-1">
+                <p className="text-xs text-slate-500 font-bold mt-1">
                   የተመረጠውን ማጣሪያ ይቀይሩ ወይም አዲስ ዕዳ ለመመዝገብ ከላይ ያለውን ቁልፍ ይጫኑ።
                 </p>
               </div>
@@ -624,7 +624,7 @@ export default function WaiterPendingLedgerModal({
                   setItemTypeFilter('all');
                   setSearchQuery('');
                 }}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl text-xs font-black"
+                className="px-4 py-2 bg-slate-100 hover:bg-emerald-50 text-emerald-800 border border-slate-200 rounded-xl text-xs font-black"
               >
                 ማጣሪያዎችን አጥፋ (Reset Filters)
               </button>
@@ -639,48 +639,48 @@ export default function WaiterPendingLedgerModal({
                   key={debt.id}
                   className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
                     isPending
-                      ? 'bg-slate-950 border-amber-500/30 shadow-md shadow-amber-950/10'
-                      : 'bg-slate-950/40 border-slate-800 opacity-75'
+                      ? 'bg-white border-emerald-200/80 hover:border-emerald-400 shadow-xs'
+                      : 'bg-slate-50/80 border-slate-200 opacity-75'
                   }`}
                 >
                   
                   {/* Left: Waiter & Item Details */}
                   <div className="flex items-start gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black shrink-0 ${
-                      isFood ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      isFood ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     }`}>
                       {isFood ? '🍱' : '🥤'}
                     </div>
 
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-black text-sm text-white">
+                        <span className="font-black text-sm text-slate-900">
                           {debt.waiterName}
                         </span>
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
                           isPending 
-                            ? 'bg-amber-950 text-amber-300 border border-amber-700/50' 
-                            : 'bg-emerald-950 text-emerald-300 border border-emerald-700/50'
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300' 
+                            : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                         }`}>
                           {isPending ? '⏳ ሳይከፈል የቀረ (Pending)' : '✔ ተከፍሏል (Completed)'}
                         </span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                           {debt.shift || 'Day'} ፈረቃ
                         </span>
                       </div>
 
-                      <p className="text-xs text-slate-300 font-bold">
+                      <p className="text-xs text-slate-800 font-bold">
                         {debt.dishName}
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
                         <span>ቀን፡ {toEthiopianDateString(debt.date)} ({debt.date})</span>
                         <span>•</span>
                         <span>ዋጋ፡ {debt.unitPrice} ETB / unit</span>
                         {debt.notes && (
                           <>
                             <span>•</span>
-                            <span className="text-amber-300/80 italic">"{debt.notes}"</span>
+                            <span className="text-amber-700 italic">"{debt.notes}"</span>
                           </>
                         )}
                       </div>
@@ -688,18 +688,18 @@ export default function WaiterPendingLedgerModal({
                   </div>
 
                   {/* Right: Quantities, Amounts & Action Buttons */}
-                  <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
+                  <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200">
                     
                     {/* Units & Remaining Amount */}
                     <div className="text-right">
-                      <div className="text-xs font-black text-white">
+                      <div className="text-xs font-black text-slate-900">
                         {debt.remainingUnits} / {debt.totalUnits} {isFood ? 'ቦክስ' : 'ኩባያ'}
                       </div>
-                      <div className="text-sm font-black text-amber-300">
-                        {debt.remainingAmount.toLocaleString()} <span className="text-[10px]">ETB</span>
+                      <div className="text-sm font-black text-emerald-900">
+                        {debt.remainingAmount.toLocaleString()} <span className="text-[10px] text-slate-500">ETB</span>
                       </div>
                       {debt.remainingAmount < debt.totalAmount && isPending && (
-                        <span className="text-[10px] text-slate-500 line-through block">
+                        <span className="text-[10px] text-slate-400 line-through block">
                           ጠቅላላ፡ {debt.totalAmount.toLocaleString()} ETB
                         </span>
                       )}
@@ -713,7 +713,7 @@ export default function WaiterPendingLedgerModal({
                           <button
                             type="button"
                             onClick={() => handleSettleFull(debt.id)}
-                            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-1 shadow-md shadow-emerald-950/30 transition-all active:scale-95"
+                            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-1 shadow-sm transition-all active:scale-95"
                             title="ሙሉውን ተከፍሏል ብለህ መዝግብ"
                           >
                             <Check className="w-3.5 h-3.5" />
@@ -725,7 +725,7 @@ export default function WaiterPendingLedgerModal({
                             <button
                               type="button"
                               onClick={() => handlePartialSettle(debt.id, 1)}
-                              className="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 rounded-xl text-xs font-black transition-all"
+                              className="px-2.5 py-2 bg-slate-100 hover:bg-emerald-50 text-emerald-900 border border-slate-200 rounded-xl text-xs font-black transition-all"
                               title="የ1 እቃ ክፍያ ብቻ ተቀበል"
                             >
                               -1 {isFood ? 'ቦክስ' : 'ኩባያ'}
@@ -737,7 +737,7 @@ export default function WaiterPendingLedgerModal({
                         <button
                           type="button"
                           onClick={() => handleReopenDebt(debt.id)}
-                          className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold flex items-center gap-1"
+                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 border border-slate-200"
                           title="እንደገና ክፈት"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
@@ -749,7 +749,7 @@ export default function WaiterPendingLedgerModal({
                       <button
                         type="button"
                         onClick={() => handleDeleteDebt(debt.id)}
-                        className="p-2 bg-slate-900 hover:bg-rose-950/80 text-slate-500 hover:text-rose-400 rounded-xl border border-slate-800 hover:border-rose-800/50 transition-all"
+                        className="p-2 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-xl border border-slate-200 hover:border-rose-200 transition-all"
                         title="ሰርዝ (Delete)"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -767,15 +767,15 @@ export default function WaiterPendingLedgerModal({
         {/* ============================================================== */}
         {/* MODAL FOOTER                                                  */}
         {/* ============================================================== */}
-        <div className="p-4 bg-slate-950 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 text-slate-400 font-bold">
-            <span className="text-cyan-400">💡 ማሳሰቢያ፡</span>
+        <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-slate-600 font-bold">
+            <span className="text-emerald-700">💡 ማሳሰቢያ፡</span>
             <span>በፈረቃ መዝጊያ ወቅት (Shift Reconciliation) በክፍል 4 የተመረጡት ዕዳዎች በቀጥታ ወደ ካዝና ጥሬ ገንዘብ (Cash Drawer) ይደመራሉ።</span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-black text-xs transition-all"
+            className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl font-black text-xs transition-all shadow-xs"
           >
             ዝጋ (Close Ledger)
           </button>
