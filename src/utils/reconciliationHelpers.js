@@ -274,43 +274,52 @@ export function compareChefVsIncomeSheet(chefSummary, foodAssignments = {}, dish
 /**
  * Load & compute unified Box & Cup inventory audit stats across localStorage.
  */
-export function computePackagingAudit({ orders = [], settlements = [] } = {}) {
-  let purchases = [];
-  let manualIssues = [];
+export function computePackagingAudit({
+  orders = [],
+  settlements = [],
+  purchasesOverride = null,
+  manualIssuesOverride = null
+} = {}) {
+  let purchases = Array.isArray(purchasesOverride) ? purchasesOverride : [];
+  let manualIssues = Array.isArray(manualIssuesOverride) ? manualIssuesOverride : [];
   let thresholds = { boxLow: 50, cupLow: 100 };
 
-  try {
-    const savedPurchases = localStorage.getItem('maraki_box_purchases_v1');
-    if (savedPurchases) {
-      purchases = JSON.parse(savedPurchases);
-    } else {
-      // Seed seamlessly from legacy maraki_box_starting_stock if available
-      const legacyBoxes = Number(localStorage.getItem('maraki_box_starting_stock'));
-      if (!isNaN(legacyBoxes) && legacyBoxes > 0) {
-        purchases = [
-          {
-            id: 'seed-initial-boxes',
-            itemType: 'box',
-            qty: legacyBoxes,
-            unitCost: 0,
-            totalCost: 0,
-            supplier: 'Opening Stock Balance',
-            note: 'Imported from previous box starting stock',
-            date: new Date().toISOString().split('T')[0],
-            createdAt: new Date().toISOString()
-          }
-        ];
+  if (!Array.isArray(purchasesOverride)) {
+    try {
+      const savedPurchases = localStorage.getItem('maraki_box_purchases_v1');
+      if (savedPurchases) {
+        purchases = JSON.parse(savedPurchases);
+      } else {
+        // Seed seamlessly from legacy maraki_box_starting_stock if available
+        const legacyBoxes = Number(localStorage.getItem('maraki_box_starting_stock'));
+        if (!isNaN(legacyBoxes) && legacyBoxes > 0) {
+          purchases = [
+            {
+              id: 'seed-initial-boxes',
+              itemType: 'box',
+              qty: legacyBoxes,
+              unitCost: 0,
+              totalCost: 0,
+              supplier: 'Opening Stock Balance',
+              note: 'Imported from previous box starting stock',
+              date: toLocalIsoDate(new Date()),
+              createdAt: new Date().toISOString()
+            }
+          ];
+        }
       }
+    } catch (e) {
+      purchases = [];
     }
-  } catch (e) {
-    purchases = [];
   }
 
-  try {
-    const savedIssues = localStorage.getItem('maraki_box_manual_issues_v1');
-    if (savedIssues) manualIssues = JSON.parse(savedIssues);
-  } catch (e) {
-    manualIssues = [];
+  if (!Array.isArray(manualIssuesOverride)) {
+    try {
+      const savedIssues = localStorage.getItem('maraki_box_manual_issues_v1');
+      if (savedIssues) manualIssues = JSON.parse(savedIssues);
+    } catch (e) {
+      manualIssues = [];
+    }
   }
 
   try {
@@ -325,6 +334,8 @@ export function computePackagingAudit({ orders = [], settlements = [] } = {}) {
   const cupsBought = purchases.filter(p => p.itemType === 'cup').reduce((s, p) => s + Number(p.qty || 0), 0);
   const totalBoxSpend = purchases.filter(p => p.itemType === 'box').reduce((s, p) => s + Number(p.totalCost || 0), 0);
   const totalCupSpend = purchases.filter(p => p.itemType === 'cup').reduce((s, p) => s + Number(p.totalCost || 0), 0);
+  const avgBoxPurchaseCost = boxesBought > 0 && totalBoxSpend > 0 ? Math.round((totalBoxSpend / boxesBought) * 100) / 100 : 0;
+  const avgCupPurchaseCost = cupsBought > 0 && totalCupSpend > 0 ? Math.round((totalCupSpend / cupsBought) * 100) / 100 : 0;
 
   const boxesGivenToKitchen = manualIssues.filter(i => i.itemType === 'box').reduce((s, i) => s + Number(i.qty || 0), 0);
   const cupsGivenToBar = manualIssues.filter(i => i.itemType === 'cup').reduce((s, i) => s + Number(i.qty || 0), 0);
@@ -375,6 +386,7 @@ export function computePackagingAudit({ orders = [], settlements = [] } = {}) {
       sold: boxesSoldChef,
       waste: wasteBoxes,
       spend: totalBoxSpend,
+      avgUnitCost: avgBoxPurchaseCost,
       storageRemaining: boxesStorageRemaining,
       expectedInKitchen: boxesExpectedInKitchen,
       totalRemaining: boxesTotalRemaining,
@@ -387,6 +399,7 @@ export function computePackagingAudit({ orders = [], settlements = [] } = {}) {
       sold: cupsSoldSettlements,
       waste: wasteCups,
       spend: totalCupSpend,
+      avgUnitCost: avgCupPurchaseCost,
       storageRemaining: cupsStorageRemaining,
       expectedInBar: cupsExpectedInBar,
       totalRemaining: cupsTotalRemaining,

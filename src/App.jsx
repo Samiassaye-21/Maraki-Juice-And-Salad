@@ -599,8 +599,9 @@ export default function App() {
   // Damaged Boxes Tracking
   const [wasteBoxes, setWasteBoxes] = useState(() => {
     const saved = localStorage.getItem('maraki_waste_boxes');
-    return saved ? Number(saved) : 1;
+    return saved ? Number(saved) : 0;
   });
+  const [stockVersion, setStockVersion] = useState(0);
   const [showWasteModal, setShowWasteModal] = useState(false);
   const [wasteCountInput, setWasteCountInput] = useState(1);
   const [wasteReason, setWasteReason] = useState('Box Damaged / Dropped');
@@ -3739,6 +3740,7 @@ export default function App() {
                 <BoxInventoryAudit
                   orders={sentOrders}
                   settlements={settlementsHistory}
+                  onStockChanged={() => setStockVersion(v => v + 1)}
                 />
               )}
 

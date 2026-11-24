@@ -84,11 +84,17 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
   const [issueDate, setIssueDate] = useState(() => toLocalIsoDate(new Date()));
 
   const [staffClaimCheck, setStaffClaimCheck] = useState(false);
+  const [reportedRemaining, setReportedRemaining] = useState('0');
   const [showThresholdEdit, setShowThresholdEdit] = useState(false);
 
-  // Recompute live audit metrics
+  // Recompute live audit metrics directly from live state (no localStorage lag!)
   const audit = useMemo(() => {
-    return computePackagingAudit({ orders, settlements });
+    return computePackagingAudit({
+      orders,
+      settlements,
+      purchasesOverride: purchases,
+      manualIssuesOverride: manualIssues
+    });
   }, [orders, settlements, purchases, manualIssues, thresholds, wasteBoxes, wasteCups, refreshTick]);
 
   const currentStats = activeItem === 'box' ? audit.boxes : audit.cups;
@@ -121,6 +127,20 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
     return Object.values(map).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
   }, [activeItem, orders, settlements]);
 
+  const persistPurchasesNow = (nextList) => {
+    setPurchases(nextList);
+    localStorage.setItem('maraki_box_purchases_v1', JSON.stringify(nextList));
+    const totalBoxes = nextList.filter(p => p.itemType === 'box').reduce((s, p) => s + Number(p.qty || 0), 0);
+    localStorage.setItem('maraki_box_starting_stock', String(totalBoxes));
+    if (onStockChanged) onStockChanged();
+  };
+
+  const persistIssuesNow = (nextList) => {
+    setManualIssues(nextList);
+    localStorage.setItem('maraki_box_manual_issues_v1', JSON.stringify(nextList));
+    if (onStockChanged) onStockChanged();
+  };
+
   const handleAddPurchase = (e) => {
     e.preventDefault();
     const qty = Number(buyQty);
@@ -137,7 +157,7 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
       date: buyDate,
       createdAt: new Date().toISOString()
     };
-    setPurchases(prev => [entry, ...prev]);
+    persistPurchasesNow([entry, ...purchases]);
     setBuyQty('');
     setBuyCost('');
     setBuyNote('');
@@ -158,7 +178,7 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
       date: issueDate,
       createdAt: new Date().toISOString()
     };
-    setManualIssues(prev => [entry, ...prev]);
+    persistIssuesNow([entry, ...manualIssues]);
     setIssueQty('');
     setIssueNote('');
     setRefreshTick(t => t + 1);
@@ -166,12 +186,12 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
 
   const handleDeletePurchase = (id) => {
     if (!window.confirm('Delete this purchase record?')) return;
-    setPurchases(prev => prev.filter(p => p.id !== id));
+    persistPurchasesNow(purchases.filter(p => p.id !== id));
   };
 
   const handleDeleteIssue = (id) => {
     if (!window.confirm('Delete this kitchen issue record?')) return;
-    setManualIssues(prev => prev.filter(i => i.id !== id));
+    persistIssuesNow(manualIssues.filter(i => i.id !== id));
   };
 
   const filteredPurchases = purchases.filter(p => p.itemType === activeItem);
@@ -383,20 +403,20 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
         </div>
       </div>
 
-      {/* STAFF SAYS FINISHED — INSTANT CROSS-CHECK VERDICT PANEL */}
+      {/* STAFF SAYS FINISHED — CALM EXPECTED COUNT + OPTIONAL CROSS-CHECK */}
       {(staffClaimCheck || currentStats.given > 0) && (
         <div className={`rounded-3xl p-5 border-2 shadow-sm space-y-3 ${
-          (activeItem === 'box' ? currentStats.expectedInKitchen : currentStats.expectedInBar) > 0
-            ? 'bg-white border-amber-300'
-            : 'bg-white border-emerald-300'
+          staffClaimCheck
+            ? 'bg-white border-amber-400'
+            : 'bg-white border-slate-200'
         }`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
               <ClipboardCheck className="w-4 h-4 text-emerald-700" />
-              <span>Kitchen / Bar Cross-Check: Given vs Sold</span>
+              <span>Kitchen / Bar Stock Count: Given vs Sold</span>
             </h3>
             <span className="text-[11px] font-bold text-slate-500">
-              Formula: Given to Staff ({currentStats.given}) − Sold ({currentStats.sold}) − Waste ({currentStats.waste})
+              Given to Staff ({currentStats.given}) − Sold ({currentStats.sold}) − Waste ({currentStats.waste})
             </span>
           </div>
 
@@ -405,44 +425,99 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
             if (currentStats.given === 0) {
               return (
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-600">
-                  Tip: Whenever you hand a pack of {itemUnit} to the chef or waiter (e.g. 50 or 100), log it in <strong>"Give to Kitchen/Bar"</strong> below. Then if they say "{itemUnit} are finished", the system instantly checks if all of them were actually sold!
+                  Tip: Whenever you hand a pack of {itemUnit} to the chef or waiter (e.g. 50 or 100), log it in <strong>"Give to Kitchen/Bar"</strong> below. Then if they say "{itemUnit} are finished", click the Cross-Check button above to verify!
                 </div>
               );
             }
-            if (expectedAtStation > 0) {
+
+            if (!staffClaimCheck) {
               return (
-                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 text-rose-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div>
                     <p className="text-xs sm:text-sm font-black">
-                      🚨 HOLD ON: System expects <span className="underline">{expectedAtStation} {itemUnit}</span> still at the kitchen/bar!
+                      {expectedAtStation > 0
+                        ? `📦 ${expectedAtStation} ${itemUnit} should still be unused at the kitchen/bar`
+                        : `✅ All ${currentStats.given} ${itemUnit} given to kitchen/bar have been used in recorded orders`}
                     </p>
-                    <p className="text-[11px] font-bold text-rose-800 mt-1">
-                      You gave {currentStats.given} {itemUnit}, and only {currentStats.sold} were recorded as sold (+ {currentStats.waste} waste).
-                      If staff say it is finished (0 left), <strong>{expectedAtStation} {itemUnit} (~{(expectedAtStation * avgValuePerUnit).toLocaleString()} ETB)</strong> are unaccounted for!
+                    <p className="text-[11px] font-bold text-emerald-800 mt-0.5">
+                      Out of {currentStats.given} {itemUnit} given, {currentStats.sold} were used in orders (+ {currentStats.waste} damaged/waste).
+                      If staff tell you "{itemUnit} finished", click the Cross-Check button above.
                     </p>
                   </div>
-                  <span className="px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-black whitespace-nowrap">
-                    Gap: {expectedAtStation} {itemUnit}
+                  <span className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 text-emerald-900 text-xs font-black whitespace-nowrap">
+                    In Kitchen: {Math.max(0, expectedAtStation)} {itemUnit}
                   </span>
                 </div>
               );
             }
+
+            // Interactive Cross-Check Mode when staff claim stock is finished or count is entered
+            const actualCount = Math.max(0, Number(reportedRemaining) || 0);
+            const missingGap = expectedAtStation - actualCount;
+            const unitCost = currentStats.avgUnitCost || 0;
+            const emptyBoxCostLost = missingGap > 0 && unitCost > 0 ? Math.round(missingGap * unitCost) : 0;
+            const potentialMealRevenue = missingGap > 0 ? missingGap * avgValuePerUnit : 0;
+
             return (
-              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs sm:text-sm font-black">
-                    ✅ VERIFIED: Kitchen/Bar stock is genuinely finished (Expected at station: {expectedAtStation} {itemUnit}).
-                  </p>
-                  <p className="text-[11px] font-bold text-emerald-800 mt-1">
-                    All {currentStats.given} {itemUnit} given have been accounted for in {currentStats.sold} recorded orders.
-                    {currentStats.storageRemaining > 0
-                      ? ` You still have ${currentStats.storageRemaining} ${itemUnit} in Owner Storage to issue.`
-                      : ' Owner Storage is also empty — buy new stock!'}
-                  </p>
+              <div className="space-y-3">
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <label className="text-xs font-black text-slate-800 block">
+                      How many {itemUnit} does the Chef / Waiter say are left right now?
+                    </label>
+                    <span className="text-[10px] font-bold text-slate-500">
+                      Leave as 0 if they say "{itemUnit} are completely finished"
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={reportedRemaining}
+                      onChange={(e) => setReportedRemaining(e.target.value)}
+                      className="w-24 bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-black text-center outline-none focus:border-emerald-500"
+                    />
+                    <span className="text-xs font-bold text-slate-600">{itemUnit} left</span>
+                  </div>
                 </div>
-                <span className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-black whitespace-nowrap">
-                  Balanced ✔
-                </span>
+
+                {missingGap > 0 ? (
+                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 text-rose-950 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs sm:text-sm font-black">
+                        🚨 SHORTAGE DETECTED: {missingGap} {itemUnit} unaccounted for!
+                      </p>
+                      <span className="px-3 py-1 rounded-xl bg-rose-600 text-white text-xs font-black">
+                        Missing: {missingGap} {itemUnit}
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-bold text-rose-800">
+                      System expects <strong>{expectedAtStation} {itemUnit}</strong> still in kitchen ({currentStats.given} given − {currentStats.sold} sold − {currentStats.waste} waste),
+                      but staff report only <strong>{actualCount} left</strong>.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs">
+                      {emptyBoxCostLost > 0 && (
+                        <div className="bg-white/90 p-2.5 rounded-xl border border-rose-200">
+                          <span className="text-[10px] font-bold text-slate-500 block">Empty {itemLabel} Purchase Cost:</span>
+                          <strong className="text-rose-800 font-black">{emptyBoxCostLost.toLocaleString()} ETB</strong>
+                          <span className="text-[10px] text-slate-400 block">({missingGap} × {unitCost} ETB/unit)</span>
+                        </div>
+                      )}
+                      <div className="bg-white/90 p-2.5 rounded-xl border border-rose-200">
+                        <span className="text-[10px] font-bold text-slate-500 block">If Sold as Unrecorded Orders (~{avgValuePerUnit} ETB each):</span>
+                        <strong className="text-rose-800 font-black">{potentialMealRevenue.toLocaleString()} ETB</strong>
+                        <span className="text-[10px] text-slate-400 block">Estimated meal sales missing from POS</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs sm:text-sm font-black">
+                      ✅ VERIFIED: No shortage! Kitchen count matches system records ({expectedAtStation} expected vs {actualCount} reported).
+                    </p>
+                    <span className="px-3 py-1 rounded-xl bg-emerald-600 text-white text-xs font-black">Matched ✔</span>
+                  </div>
+                )}
               </div>
             );
           })()}
