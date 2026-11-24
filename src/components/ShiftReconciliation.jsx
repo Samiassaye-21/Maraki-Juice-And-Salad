@@ -28,10 +28,13 @@ import {
   ShieldCheck,
   FileText,
   History,
-  RotateCcw
+  RotateCcw,
+  BellRing,
+  Sparkles as WandSparkles
 } from 'lucide-react';
 import { toEthiopianDateString, toEthiopianShortDate } from './BusinessManagement';
 import WaiterPendingLedgerModal from './WaiterPendingLedgerModal';
+import { aggregateChefOrders, compareChefVsIncomeSheet, toLocalIsoDate } from '../utils/reconciliationHelpers';
 
 // Standard Maraki price per juice cup
 export const DEFAULT_JUICE_PRICE = 170;
@@ -76,14 +79,16 @@ export default function ShiftReconciliation({
   foodMenu = [],
   onBackToPortal,
   onSwitchToChef,
-  onSwitchToOwner
+  onSwitchToOwner,
+  embeddedMode = false,
+  onSavedSettlement
 }) {
   // 1. Shift View Mode: 'Day' | 'Night'
   const [selectedShift, setSelectedShift] = useState('Day');
 
-  // 2. Date Selection (Synchronized Ethiopian Date)
+  // 2. Date Selection (Synchronized Ethiopian & Local Date)
   const [selectedDate, setSelectedDate] = useState(() => {
-    return new Date().toISOString().split('T')[0];
+    return toLocalIsoDate(new Date());
   });
 
   // 3. Stored Historical Settlements
@@ -192,22 +197,105 @@ export default function ShiftReconciliation({
   // ==============================================================
   // SECTION 2: FOOD BOX RECONCILIATION ("Anti-Skimming Engine")
   // ==============================================================
-  const [boxesGiven, setBoxesGiven] = useState(50);
-  const [boxesLeft, setBoxesLeft] = useState(15);
+  const [boxesGiven, setBoxesGiven] = useState(() => {
+    try {
+      const saved = localStorage.getItem('maraki_shift_settlements');
+      if (saved) {
+        const list = JSON.parse(saved);
+        const existing = list.find(s => s.date === selectedDate && s.shift === selectedShift);
+        if (existing && existing.boxesGiven !== undefined) return existing.boxesGiven;
+      }
+    } catch (e) {}
+    return 50;
+  });
+  const [boxesLeft, setBoxesLeft] = useState(() => {
+    try {
+      const saved = localStorage.getItem('maraki_shift_settlements');
+      if (saved) {
+        const list = JSON.parse(saved);
+        const existing = list.find(s => s.date === selectedDate && s.shift === selectedShift);
+        if (existing && existing.boxesLeft !== undefined) return existing.boxesLeft;
+      }
+    } catch (e) {}
+    return 15;
+  });
   const targetFoodSold = Math.max(0, Number(boxesGiven || 0) - Number(boxesLeft || 0));
 
   const [activeFoodCategory, setActiveFoodCategory] = useState('All');
   const [foodAssignments, setFoodAssignments] = useState(() => {
-    // Default initial assignment matching manual example (20 Special Burger + 15 Club Sandwich = 35 boxes)
-    return {
-      'sb': 20,
-      'cs': 15
-    };
+    try {
+      const saved = localStorage.getItem('maraki_shift_settlements');
+      if (saved) {
+        const list = JSON.parse(saved);
+        const existing = list.find(s => s.date === selectedDate && s.shift === selectedShift);
+        if (existing && existing.foodAssignments) return existing.foodAssignments;
+      }
+    } catch (e) {}
+    return {};
   });
 
+  // Sync saved settlement fields when switching Date or Shift
+  useEffect(() => {
+    const existing = settlementsHistory.find(s => s.date === selectedDate && s.shift === selectedShift);
+    if (existing) {
+      if (existing.cupsGiven !== undefined) setCupsGiven(existing.cupsGiven);
+      if (existing.cupsLeft !== undefined) setCupsLeft(existing.cupsLeft);
+      if (existing.beuDeliveryCups !== undefined) setBeuDeliveryCups(existing.beuDeliveryCups);
+      if (existing.boxesGiven !== undefined) setBoxesGiven(existing.boxesGiven);
+      if (existing.boxesLeft !== undefined) setBoxesLeft(existing.boxesLeft);
+      if (existing.foodAssignments) setFoodAssignments(existing.foodAssignments);
+    }
+  }, [selectedDate, selectedShift]);
+
+  // Resolve Chef Sent Orders (prop or localStorage fallback)
+  const resolvedOrders = useMemo(() => {
+    if (orders && orders.length > 0) return orders;
+    try {
+      const saved = localStorage.getItem('maraki_chef_sent_orders');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  }, [orders]);
+
+  // Merge foodMenu prop (if any) with DEFAULT_RECONCILIATION_DISHES
   const dishesList = useMemo(() => {
-    return DEFAULT_RECONCILIATION_DISHES;
-  }, []);
+    const map = new Map();
+    DEFAULT_RECONCILIATION_DISHES.forEach(d => map.set(d.id, d));
+    if (Array.isArray(foodMenu)) {
+      foodMenu
+        .filter(item => item.itemType !== 'juice' && item.containerType !== 'cup')
+        .forEach(item => {
+          map.set(item.id, {
+            id: item.id,
+            name: item.name,
+            englishName: item.englishName || item.name,
+            category: item.category || 'Other',
+            price: Number(item.price || 0)
+          });
+        });
+    }
+    return Array.from(map.values());
+  }, [foodMenu]);
+
+  // Chef Orders Cross-Check Engine for selected Date + Shift
+  const chefSummary = useMemo(() => {
+    return aggregateChefOrders(resolvedOrders, selectedDate, selectedShift, dishesList);
+  }, [resolvedOrders, selectedDate, selectedShift, dishesList]);
+
+  const chefComparison = useMemo(() => {
+    return compareChefVsIncomeSheet(chefSummary, foodAssignments, dishesList);
+  }, [chefSummary, foodAssignments, dishesList]);
+
+  const handleLoadFromChefOrders = (mode = 'all') => {
+    if (!chefSummary || chefSummary.totalOrders === 0) return;
+    const next = {};
+    Object.entries(chefSummary.dishCounts).forEach(([key, info]) => {
+      const qty = mode === 'takeaway' ? info.takeawayQty : info.qty;
+      if (qty > 0) next[key] = qty;
+    });
+    setFoodAssignments(next);
+  };
 
   const filteredDishes = useMemo(() => {
     if (activeFoodCategory === 'All') return dishesList;
@@ -468,6 +556,15 @@ export default function ShiftReconciliation({
   const handleSaveSettlement = () => {
     if (!isFoodBoxesBalanced) return;
 
+    if (chefComparison.hasMismatch) {
+      const proceed = window.confirm(
+        `🚨 RED ALARM: Waiter/Income Sheet food (${chefComparison.incomeSheetTotal}) does NOT match Chef Sent Orders (${chefComparison.chefTotalFood} total / ${chefComparison.chefTakeawayBoxes} takeaway boxes).\n\n` +
+        `Dish differences found: ${chefComparison.dishDiffs.length}\n\n` +
+        `Click OK to SAVE ANYWAY and send a RED MISMATCH ALARM to the Owner Dashboard, or Cancel to review and fix it first.`
+      );
+      if (!proceed) return;
+    }
+
     const settlementId = `set-${selectedDate}-${selectedShift}`;
     const newRecord = {
       id: settlementId,
@@ -487,6 +584,18 @@ export default function ShiftReconciliation({
       foodAssignments: { ...foodAssignments },
       totalFoodRevenue,
       totalGrossSales,
+      chefAudit: {
+        hasChefOrders: chefComparison.hasChefOrders,
+        chefOrdersCount: chefSummary.totalOrders,
+        chefTakeawayBoxes: chefComparison.chefTakeawayBoxes,
+        chefHomeDishes: chefComparison.chefHomeDishes,
+        chefTotalFood: chefComparison.chefTotalFood,
+        incomeSheetTotal: chefComparison.incomeSheetTotal,
+        hasMismatch: chefComparison.hasMismatch,
+        discrepancyCount: chefComparison.discrepancyCount,
+        discrepancyETB: chefComparison.discrepancyETB,
+        dishDiffs: chefComparison.dishDiffs
+      },
       pendingJuiceCups: Number(pendingJuiceCupsInput) || 0,
       pendingFoodBoxes: totalPendingFoodBoxes,
       pendingFoodItems: [...pendingFoodItems],
@@ -510,6 +619,9 @@ export default function ShiftReconciliation({
       const filtered = prev.filter(s => s.id !== settlementId);
       return [newRecord, ...filtered];
     });
+    if (onSavedSettlement) {
+      onSavedSettlement(newRecord);
+    }
 
     // Update Pending Debts
     // 1. Add new pending debt if entered (Itemized by dish & juice)
@@ -606,12 +718,12 @@ export default function ShiftReconciliation({
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-slate-800 pb-28 selection:bg-emerald-600 selection:text-white font-sans antialiased">
+    <div className={embeddedMode ? 'bg-[#FDFBF7] text-slate-800 pb-24 rounded-3xl border border-emerald-100 shadow-sm overflow-hidden font-sans antialiased' : 'min-h-screen bg-[#FDFBF7] text-slate-800 pb-28 selection:bg-emerald-600 selection:text-white font-sans antialiased'}>
       
       {/* ============================================================== */}
       {/* 1. TOP HEADER & SHIFT / DATE NAVIGATION (EMERALD POS THEME)     */}
       {/* ============================================================== */}
-      <header className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white sticky top-0 z-40 shadow-lg shadow-emerald-800/10">
+      <header className={`bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white ${embeddedMode ? 'rounded-t-3xl' : 'sticky top-0 z-40'} shadow-lg shadow-emerald-800/10`}>
         <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           
           {/* Brand & Manual Module Indicator */}
@@ -729,7 +841,7 @@ export default function ShiftReconciliation({
 
               <button
                 type="button"
-                onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+                onClick={() => setSelectedDate(toLocalIsoDate(new Date()))}
                 className="px-2.5 py-1 bg-slate-100 hover:bg-emerald-50 text-[11px] font-bold text-slate-700 rounded-xl transition-colors"
               >
                 Today
@@ -966,6 +1078,114 @@ export default function ShiftReconciliation({
               </span>
             </div>
 
+          </div>
+
+          {/* LIVE CHEF SENT ORDERS CROSS-CHECK BAR + RED ALARM ENGINE */}
+          <div className={`rounded-2xl p-4 border-2 transition-all ${
+            !chefComparison.hasChefOrders
+              ? 'bg-slate-50 border-slate-200 text-slate-700'
+              : chefComparison.hasMismatch
+                ? 'bg-rose-50 border-rose-500 text-rose-950 shadow-md shadow-rose-500/15'
+                : 'bg-emerald-50/80 border-emerald-400 text-emerald-950'
+          }`}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg font-black ${
+                  !chefComparison.hasChefOrders
+                    ? 'bg-slate-200 text-slate-600'
+                    : chefComparison.hasMismatch
+                      ? 'bg-rose-600 text-white animate-pulse'
+                      : 'bg-emerald-600 text-white'
+                }`}>
+                  {chefComparison.hasMismatch ? <BellRing className="w-5 h-5" /> : chefComparison.hasChefOrders ? <CheckCircle2 className="w-5 h-5" /> : <ClipboardCheck className="w-5 h-5" />}
+                </span>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-black">
+                    {!chefComparison.hasChefOrders
+                      ? 'Chef Orders Cross-Check: 0 Chef POS Orders Logged for This Shift'
+                      : chefComparison.hasMismatch
+                        ? '🚨 RED ALARM: WAITER / INCOME SHEET FOOD DOES NOT MATCH CHEF SENT ORDERS!'
+                        : '✅ CHEF SENT ORDERS ≡ INCOME SHEET MATCHED 100%'}
+                  </h3>
+                  <p className="text-[11px] font-bold opacity-80 mt-0.5">
+                    {chefComparison.hasChefOrders ? (
+                      <>
+                        Chef POS Sent: <strong>{chefSummary.totalOrders} orders</strong> ({chefComparison.chefTakeawayBoxes} Takeaway boxes
+                        {chefComparison.chefHomeDishes > 0 ? ` + ${chefComparison.chefHomeDishes} Home dine-in` : ''} = <strong>{chefComparison.chefTotalFood} dishes</strong>) •
+                        Income Sheet Entered: <strong>{chefComparison.incomeSheetTotal} dishes</strong>
+                      </>
+                    ) : (
+                      'When Chef sends orders from Kitchen POS for this date & shift, they will automatically cross-check against waiter food below.'
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {chefComparison.hasChefOrders && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleLoadFromChefOrders('takeaway')}
+                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 text-[11px] font-black transition-all shadow-2xs active:scale-95"
+                    title="Auto-fill Income Sheet dishes using Chef Takeaway orders"
+                  >
+                    Sync Takeaway ({chefComparison.chefTakeawayBoxes})
+                  </button>
+                  {chefComparison.chefHomeDishes > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleLoadFromChefOrders('all')}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black transition-all shadow-2xs active:scale-95"
+                      title="Auto-fill all Chef Food (Takeaway + Home)"
+                    >
+                      Sync All Food ({chefComparison.chefTotalFood})
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Dish-by-Dish Discrepancy Table when Red Alarm fires */}
+            {chefComparison.hasMismatch && chefComparison.dishDiffs.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-rose-200 overflow-x-auto">
+                <p className="text-[11px] font-black text-rose-800 uppercase tracking-wider mb-2">
+                  Exact Dish-by-Dish Mismatch Breakdown (Chef vs Income Sheet):
+                </p>
+                <table className="w-full text-left text-xs bg-white rounded-xl overflow-hidden border border-rose-200">
+                  <thead className="bg-rose-100/80 text-rose-900 font-black">
+                    <tr>
+                      <th className="py-2 px-3">Dish</th>
+                      <th className="py-2 px-3 text-center">Chef Sent</th>
+                      <th className="py-2 px-3 text-center">Income Sheet</th>
+                      <th className="py-2 px-3 text-right">Difference</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-rose-100">
+                    {chefComparison.dishDiffs.map(d => (
+                      <tr key={d.id} className="font-bold text-slate-800">
+                        <td className="py-2 px-3">
+                          <span className="font-black text-slate-900">{d.name}</span>
+                          {d.englishName && <span className="text-[10px] text-slate-400 ml-1">({d.englishName})</span>}
+                        </td>
+                        <td className="py-2 px-3 text-center font-black text-emerald-800">
+                          {d.chefQty}
+                          {d.chefHomeQty > 0 && (
+                            <span className="text-[10px] text-slate-400 block">({d.chefTakeawayQty} box + {d.chefHomeQty} home)</span>
+                          )}
+                        </td>
+                        <td className="py-2 px-3 text-center font-black text-slate-900">{d.incomeQty}</td>
+                        <td className="py-2 px-3 text-right font-black text-rose-700">
+                          {d.diff > 0 ? `+${d.diff} extra` : `${d.diff} missing`}
+                          <span className="text-[10px] block text-rose-500">
+                            ({d.diffETB > 0 ? `+${d.diffETB.toLocaleString()}` : d.diffETB.toLocaleString()} ETB)
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* Dish Category Selector */}
@@ -1804,17 +2024,22 @@ export default function ShiftReconciliation({
       {/* ============================================================== */}
       {/* FLOATING ACTION BOTTOM BAR (Save Settlement & Total Summary)    */}
       {/* ============================================================== */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-emerald-100 py-3 px-4 shadow-2xl z-40 text-slate-800">
+      <div className={embeddedMode ? 'sticky bottom-2 mx-4 mt-4 bg-white/95 backdrop-blur-md border border-emerald-200 rounded-2xl py-3 px-4 shadow-xl z-30 text-slate-800' : 'fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-emerald-100 py-3 px-4 shadow-2xl z-40 text-slate-800'}>
         <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
           
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-slate-500 font-bold">
                 Total Sales ({selectedShift === 'Day' ? 'Day' : 'Night'}):
               </span>
               <span className="text-base font-black text-slate-900">
                 ETB {totalGrossSales.toLocaleString()}
               </span>
+              {chefComparison.hasMismatch && (
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-600 text-white animate-pulse">
+                  🚨 Chef Mismatch ({chefComparison.dishDiffs.length} items)
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-slate-500">
               Drawer Cash: <strong className="text-emerald-700 font-black">{physicalCashInDrawer.toLocaleString()} ETB</strong>

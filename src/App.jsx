@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef, useDeferredValue, useTransition } f
 import BusinessManagement from './components/BusinessManagement';
 import ShiftReconciliation from './components/ShiftReconciliation';
 import OwnerIncomeAnalysisReport from './components/OwnerIncomeAnalysisReport';
+import OwnerDashboard from './components/OwnerDashboard';
+import BoxInventoryAudit from './components/BoxInventoryAudit';
+import { computePackagingAudit } from './utils/reconciliationHelpers';
 import { 
   Plus, 
   Minus, 
@@ -50,7 +53,11 @@ import {
   Package,
   TrendingUp,
   Award,
-  X
+  X,
+  BellRing,
+  LayoutDashboard,
+  Wallet,
+  Target
 } from 'lucide-react';
 import { dbService, isSupabaseConfigured } from './lib/supabaseClient';
 
@@ -587,7 +594,10 @@ export default function App() {
   const [ownerDateRange, setOwnerDateRange] = useState('today'); // 'today' | 'all' | 'custom'
   const [ownerSelectedCustomDate, setOwnerSelectedCustomDate] = useState('');
   const [ownerSection, setOwnerSection] = useState(() => {
-    return localStorage.getItem('maraki_owner_active_section') || 'planning';
+    const saved = localStorage.getItem('maraki_owner_active_section');
+    const valid = ['dashboard', 'sheet', 'analysis', 'stock', 'finance', 'plans', 'orders'];
+    if (saved && valid.includes(saved)) return saved;
+    return 'dashboard';
   });
   useEffect(() => {
     localStorage.setItem('maraki_owner_active_section', ownerSection);
@@ -1627,10 +1637,13 @@ export default function App() {
       <ShiftReconciliation
         orders={sentOrders}
         waiters={waitersList}
-        foodMenu={MARAKI_REAL_FOOD_MENU}
+        foodMenu={foodMenu}
         onBackToPortal={() => navigateToSystem('portal')}
         onSwitchToChef={() => navigateToSystem('chef')}
         onSwitchToOwner={() => navigateToSystem('owner')}
+        onSavedSettlement={(rec) => {
+          setSettlementsHistory(prev => [rec, ...prev.filter(s => s.id !== rec.id)]);
+        }}
       />
     );
   }
@@ -1735,26 +1748,26 @@ export default function App() {
       )}
 
       {/* ============================================================== */}
-      {/* OWNER APP HEADER (EMERALD POS THEME)                           */}
+      {/* OWNER EXECUTIVE HEADER (DISTINCT DARK SLATE + EMERALD THEME)   */}
       {/* ============================================================== */}
       {systemMode === 'owner' && (
-        <header className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white sticky top-0 z-50 shadow-lg shadow-emerald-800/10">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+        <header className="bg-slate-900 text-white sticky top-0 z-50 border-b border-emerald-500/20 shadow-lg shadow-slate-950/20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
             
             {/* Logo & Brand */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-white/20 text-white border border-white/30 flex items-center justify-center text-xl shadow-inner font-black">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center text-xl shadow-md shadow-emerald-500/20 font-black">
                 👑
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="font-black text-lg tracking-tight text-white drop-shadow-sm">MARAKI</h1>
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-white text-emerald-900 px-2 py-0.5 rounded-full shadow-sm">
-                    Owner Center
+                  <h1 className="font-black text-lg tracking-tight text-white">MARAKI</h1>
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                    Owner Executive
                   </span>
                 </div>
-                <p className="text-[11px] text-emerald-100 flex items-center gap-1 font-bold">
-                  <span>Executive Management, Audit & Income Analysis</span>
+                <p className="text-[11px] text-slate-400 font-bold">
+                  Analytics, Stock Cross-Check, Shift Alarms & Finance
                 </p>
               </div>
             </div>
@@ -1763,14 +1776,14 @@ export default function App() {
             <button
               type="button"
               onClick={() => openEthDateModal('current')}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl border border-white/25 text-white font-black text-xs shadow-inner transition-all hover:scale-[1.02]"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 text-white font-black text-xs transition-all"
               title="Change Ethiopian Date"
             >
-              <Calendar className="w-3.5 h-3.5 text-emerald-200" />
+              <Calendar className="w-3.5 h-3.5 text-emerald-400" />
               <span>{orderEthDate.formatted}</span>
-              <span className="text-[10px] bg-black/20 text-emerald-200 px-1.5 py-0.5 rounded-lg border border-white/10 flex items-center gap-0.5 font-bold">
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-lg flex items-center gap-0.5 font-bold">
                 <Edit3 className="w-2.5 h-2.5" />
-                <span>Change</span>
+                <span>Edit</span>
               </span>
             </button>
 
@@ -1778,12 +1791,12 @@ export default function App() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => navigateToSystem('reconciliation')}
-                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1.5 border border-white/25 transition-all shadow-sm active:scale-95"
-                title="Shift Reconciliation & Daily Income Sheet"
+                onClick={() => setOwnerSection('sheet')}
+                className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                title="Open Daily Income Sheet"
               >
-                <ClipboardCheck className="w-3.5 h-3.5 text-emerald-200" />
-                <span className="hidden sm:inline">Shift Audit</span>
+                <ClipboardCheck className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Daily Sheet</span>
               </button>
 
               <button
@@ -1793,37 +1806,37 @@ export default function App() {
                   setNewChefPinInput(chefPin);
                   setShowSettingsModal(true);
                 }}
-                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black border border-white/25 transition-all shadow-sm flex items-center gap-1"
+                className="px-2.5 py-1.5 bg-white/10 hover:bg-white/15 text-slate-200 rounded-xl text-xs font-black border border-white/10 transition-all flex items-center gap-1"
                 title="Change Passwords & Settings"
               >
-                <Settings className="w-3.5 h-3.5 text-emerald-200" />
+                <Settings className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="hidden sm:inline">Settings</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleInstallApp}
-                className="px-2.5 py-1.5 bg-emerald-800/80 hover:bg-emerald-800 text-white rounded-xl text-xs font-black flex items-center gap-1.5 border border-emerald-400/30 shadow-md transition-all active:scale-95"
+                className="px-2.5 py-1.5 bg-white/10 hover:bg-white/15 text-slate-200 rounded-xl text-xs font-black flex items-center gap-1.5 border border-white/10 transition-all active:scale-95"
                 title="Install Application"
               >
-                <Smartphone className="w-3.5 h-3.5 text-emerald-300" />
-                <span className="hidden md:inline">Install App</span>
+                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden md:inline">Install</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleLockOwner}
-                className="px-2.5 py-1.5 bg-black/20 hover:bg-black/30 text-emerald-100 rounded-xl text-xs font-black flex items-center gap-1 border border-white/15 transition-all shadow-sm"
+                className="px-2.5 py-1.5 bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 rounded-xl text-xs font-black flex items-center gap-1 border border-rose-500/25 transition-all"
                 title="Lock Owner Session"
               >
-                <Lock className="w-3.5 h-3.5 text-emerald-200" />
+                <Lock className="w-3.5 h-3.5" />
                 <span>Lock</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => navigateToSystem('portal')}
-                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/20 transition-all shadow-sm"
+                className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/10 transition-all"
                 title="Switch Work Station"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -2791,116 +2804,37 @@ export default function App() {
       )}
 
       {/* ============================================================== */}
-      {/* 2. OWNER DASHBOARD & AUDIT COMMAND CENTER                       */}
+      {/* 2. OWNER EXECUTIVE COMMAND CENTER (6-SECTION SIDEBAR LAYOUT)   */}
       {/* ============================================================== */}
-      {systemMode === 'owner' && (
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6 animate-in fade-in duration-200">
-          
-          {/* OWNER PRIMARY SECTION SELECTOR (EMERALD POS THEME) */}
-          <div className="bg-white p-2 rounded-3xl border border-emerald-100 shadow-md shadow-emerald-900/5 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2 w-full">
-              
-              {/* Button 1: Business Management & Planning */}
-              <button
-                type="button"
-                onClick={() => setOwnerSection('planning')}
-                className={`flex-1 min-w-[180px] py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 active:scale-95 ${
-                  ownerSection === 'planning'
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/20'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                }`}
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>Business Plans & Finance</span>
-              </button>
+      {systemMode === 'owner' && (() => {
+        const pkgAudit = computePackagingAudit({ orders: sentOrders, settlements: settlementsHistory });
+        const mismatchCount = settlementsHistory.filter(s => s.chefAudit?.hasMismatch).length;
+        const stockAlert =
+          pkgAudit.boxes.status === 'finished' || pkgAudit.cups.status === 'finished'
+            ? 'FINISHED'
+            : (pkgAudit.boxes.status === 'low' || pkgAudit.cups.status === 'low')
+              ? 'LOW'
+              : null;
 
-              {/* Button 2: Income Sheet Analysis & Reports (NEW) */}
-              <button
-                type="button"
-                onClick={() => {
-                  try {
-                    const saved = localStorage.getItem('maraki_shift_settlements');
-                    if (saved) setSettlementsHistory(JSON.parse(saved));
-                  } catch (e) {}
-                  setOwnerSection('analysis');
-                }}
-                className={`flex-1 min-w-[210px] py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 active:scale-95 ${
-                  ownerSection === 'analysis'
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/20'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                }`}
-              >
-                <BarChart3 className="w-4 h-4" />
-                <span>Income Sheet Analysis & Reports</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                  ownerSection === 'analysis' ? 'bg-white text-emerald-900' : 'bg-emerald-50 text-emerald-800'
-                }`}>
-                  {settlementsHistory.length}
-                </span>
-              </button>
+        const navItems = [
+          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: mismatchCount > 0 ? `${mismatchCount} 🚨` : null, alert: mismatchCount > 0 },
+          { id: 'sheet', label: 'Daily Sheet', icon: ClipboardCheck, badge: null },
+          { id: 'analysis', label: 'Income & Reports', icon: BarChart3, badge: settlementsHistory.length, alert: mismatchCount > 0 },
+          { id: 'stock', label: 'Box & Stock Audit', icon: Package, badge: stockAlert || pkgAudit.boxes.totalRemaining, alert: Boolean(stockAlert) },
+          { id: 'finance', label: 'Finance', icon: Wallet, badge: null },
+          { id: 'plans', label: 'Plans & Goals', icon: Target, badge: null }
+        ];
 
-              {/* Button 3: Orders Audit Log */}
-              <button
-                type="button"
-                onClick={() => setOwnerSection('orders')}
-                className={`flex-1 min-w-[160px] py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 active:scale-95 ${
-                  ownerSection === 'orders'
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/20'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                }`}
-              >
-                <Receipt className="w-4 h-4" />
-                <span>Orders Audit Log</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                  ownerSection === 'orders' ? 'bg-white text-emerald-900' : 'bg-slate-100 text-slate-700'
-                }`}>
-                  {sentOrders.length}
-                </span>
-              </button>
+        const activeAnalysisMode = ownerSection === 'analysis' || ownerSection === 'orders';
 
-              {/* Button 4: Shift Reconciliation */}
-              <button
-                type="button"
-                onClick={() => navigateToSystem('reconciliation')}
-                className="py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 active:scale-95"
-                title="Shift Reconciliation & Daily Income Sheet"
-              >
-                <ClipboardCheck className="w-4 h-4 text-emerald-700" />
-                <span>Shift Reconciliation</span>
-              </button>
-
-            </div>
-          </div>
-
-          {ownerSection === 'planning' ? (
-            <BusinessManagement 
-              orders={sentOrders}
-              totalRealSales={totalRevenueAll}
-              onSwitchToOrdersLog={() => setOwnerSection('orders')}
-              onClearOrders={() => {
-                setSentOrders([]);
-                localStorage.removeItem('maraki_chef_sent_orders');
-              }}
-            />
-          ) : ownerSection === 'analysis' ? (
-            <OwnerIncomeAnalysisReport
-              settlements={settlementsHistory}
-              orders={sentOrders}
-              onOpenShiftReconciliation={() => navigateToSystem('reconciliation')}
-              onUpdateSettlements={(updated) => {
-                setSettlementsHistory(updated);
-                localStorage.setItem('maraki_shift_settlements', JSON.stringify(updated));
-              }}
-            />
-          ) : (
-            <div className="space-y-6 animate-in fade-in duration-200">
-          
-          {/* Header Action Bar */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-sm">
-                  👑
+        const ordersAuditBlock = (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Header Action Bar */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-sm">
+                    👑
                 </span>
                 <h2 className="text-lg font-black text-slate-900">
                   Owner Command Center & Orders Audit
@@ -3643,12 +3577,150 @@ export default function App() {
               </div>
             )}
 
-          </div>
             </div>
-          )}
+          </div>
+        );
 
-        </main>
-      )}
+        return (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex-1 w-full flex flex-col lg:flex-row gap-6 animate-in fade-in duration-200">
+            {/* EXECUTIVE LEFT SIDEBAR (DESKTOP) / SCROLLABLE NAV BAR (MOBILE) */}
+            <aside className="lg:w-64 flex-shrink-0">
+              <div className="bg-slate-900 text-white rounded-3xl p-3 shadow-xl border border-slate-800 lg:sticky lg:top-20 flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible">
+                <div className="hidden lg:block px-3 py-2 mb-1 border-b border-slate-800">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                    Owner Navigation
+                  </span>
+                </div>
+                {navItems.map(item => {
+                  const Icon = item.icon;
+                  const isActive = item.id === 'analysis' ? activeAnalysisMode : ownerSection === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        if (item.id === 'analysis') {
+                          try {
+                            const saved = localStorage.getItem('maraki_shift_settlements');
+                            if (saved) setSettlementsHistory(JSON.parse(saved));
+                          } catch (e) {}
+                        }
+                        setOwnerSection(item.id);
+                      }}
+                      className={`px-3.5 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center justify-between gap-2 whitespace-nowrap ${
+                        isActive
+                          ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/30 border-l-4 border-emerald-300'
+                          : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-emerald-400'}`} />
+                        <span>{item.label}</span>
+                      </span>
+                      {item.badge !== null && item.badge !== undefined && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                          item.alert
+                            ? 'bg-rose-600 text-white animate-pulse'
+                            : isActive
+                              ? 'bg-white/20 text-white'
+                              : 'bg-slate-800 text-slate-300'
+                        }`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+
+                <div className="hidden lg:block mt-3 pt-3 border-t border-slate-800 px-2">
+                  <button
+                    type="button"
+                    onClick={() => navigateToSystem('reconciliation')}
+                    className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-300 text-[11px] font-black flex items-center justify-center gap-1.5 border border-white/10"
+                  >
+                    <ClipboardCheck className="w-3.5 h-3.5" />
+                    <span>Full-Screen Daily Sheet</span>
+                  </button>
+                </div>
+              </div>
+            </aside>
+
+            {/* MAIN OWNER CONTENT AREA */}
+            <main className="flex-1 min-w-0 space-y-6">
+              {ownerSection === 'dashboard' && (
+                <OwnerDashboard
+                  orders={sentOrders}
+                  settlements={settlementsHistory}
+                  onNavigateSection={(sec) => setOwnerSection(sec)}
+                />
+              )}
+
+              {ownerSection === 'sheet' && (
+                <ShiftReconciliation
+                  embeddedMode={true}
+                  orders={sentOrders}
+                  waiters={waitersList}
+                  foodMenu={foodMenu}
+                  onSavedSettlement={(rec) => {
+                    setSettlementsHistory(prev => [rec, ...prev.filter(s => s.id !== rec.id)]);
+                  }}
+                />
+              )}
+
+              {activeAnalysisMode && (
+                <OwnerIncomeAnalysisReport
+                  key={ownerSection}
+                  initialSubView={ownerSection === 'orders' ? 'orders' : 'overview'}
+                  settlements={settlementsHistory}
+                  orders={sentOrders}
+                  waiters={waitersList}
+                  ordersAuditContent={ordersAuditBlock}
+                  onOpenShiftReconciliation={() => setOwnerSection('sheet')}
+                  onUpdateSettlements={(updated) => {
+                    setSettlementsHistory(updated);
+                    localStorage.setItem('maraki_shift_settlements', JSON.stringify(updated));
+                  }}
+                />
+              )}
+
+              {ownerSection === 'stock' && (
+                <BoxInventoryAudit
+                  orders={sentOrders}
+                  settlements={settlementsHistory}
+                />
+              )}
+
+              {ownerSection === 'finance' && (
+                <BusinessManagement
+                  visibleTabs={['expenses', 'topay', 'reports']}
+                  defaultTab="expenses"
+                  orders={sentOrders}
+                  totalRealSales={totalRevenueAll}
+                  onSwitchToOrdersLog={() => setOwnerSection('orders')}
+                  onClearOrders={() => {
+                    setSentOrders([]);
+                    localStorage.removeItem('maraki_chef_sent_orders');
+                  }}
+                />
+              )}
+
+              {ownerSection === 'plans' && (
+                <BusinessManagement
+                  visibleTabs={['plans', 'schedule']}
+                  defaultTab="plans"
+                  orders={sentOrders}
+                  totalRealSales={totalRevenueAll}
+                  onSwitchToOrdersLog={() => setOwnerSection('orders')}
+                  onClearOrders={() => {
+                    setSentOrders([]);
+                    localStorage.removeItem('maraki_chef_sent_orders');
+                  }}
+                />
+              )}
+            </main>
+          </div>
+        );
+      })()}
 
       {/* ============================================================== */}
       {/* OWNER TICKET VIEWER MODAL (INSPECT ANY HISTORICAL ORDER)        */}

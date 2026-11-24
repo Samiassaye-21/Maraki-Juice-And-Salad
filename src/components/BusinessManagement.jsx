@@ -154,10 +154,21 @@ export default function BusinessManagement({
   orders = [], 
   totalRealSales = 0,
   onSwitchToOrdersLog,
-  onClearOrders
+  onClearOrders,
+  visibleTabs = null,
+  defaultTab = 'home'
 }) {
-  // Navigation: 5 TABS (Home, To Pay, Expenses, Plans, Reports)
-  const [activeTab, setActiveTab] = useState('home');
+  // Navigation: supports full tabs or scoped visibleTabs from Executive Owner Sidebar
+  const [activeTab, setActiveTab] = useState(() => {
+    if (Array.isArray(visibleTabs) && visibleTabs.length > 0) return visibleTabs[0];
+    return defaultTab;
+  });
+
+  useEffect(() => {
+    if (Array.isArray(visibleTabs) && visibleTabs.length > 0 && !visibleTabs.includes(activeTab)) {
+      setActiveTab(visibleTabs[0]);
+    }
+  }, [visibleTabs, activeTab]);
 
   // One-time client wipe of all legacy sample/seed data
   const CLEAN_KEY = 'maraki_all_sample_data_cleared_v5';
@@ -980,17 +991,19 @@ export default function BusinessManagement({
       {/* TOP HEADER: 5 CLEAN TABS + QUICK ADD (+) + SETTINGS (⚙️) */}
       <div className="bg-white p-2.5 sm:p-3 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sticky top-4 z-30 backdrop-blur-md">
         
-        {/* Seven Tabs Bar */}
+        {/* Dynamic Scoped Tabs Bar */}
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
           {[
             { id: 'home', label: '🏠 Overview', badge: null },
             { id: 'income_analysis', label: '📈 Shift & Income Analysis', badge: null },
-            { id: 'schedule', label: '📅 Schedule & Reminders', badge: null },
-            { id: 'topay', label: '💳 Payables & Dues', badge: recurringExpenses.filter(r => r.id === 'rec-2').length + purchasePlans.filter(p => p.status === 'Planned').length },
             { id: 'expenses', label: '💸 Expenses', badge: actualExpenses.length },
-            { id: 'plans', label: '🎯 Business Plans', badge: tasks.filter(t => t.status !== 'Done').length },
-            { id: 'reports', label: '📊 Financial Reports', badge: null }
-          ].map(tab => (
+            { id: 'topay', label: '💳 Payables & Dues', badge: recurringExpenses.filter(r => r.id === 'rec-2').length + purchasePlans.filter(p => p.status === 'Planned').length },
+            { id: 'reports', label: '📊 Budget & Day Closes', badge: null },
+            { id: 'plans', label: '🎯 Goals, Tasks & Plans', badge: tasks.filter(t => t.status !== 'Done').length },
+            { id: 'schedule', label: '📅 Schedule & Reminders', badge: null }
+          ]
+            .filter(tab => !Array.isArray(visibleTabs) || visibleTabs.includes(tab.id))
+            .map(tab => (
             <button
               key={tab.id}
               type="button"
