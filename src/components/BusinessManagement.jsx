@@ -43,6 +43,7 @@ import {
   Copy
 } from 'lucide-react';
 import ScheduleCalendarRemindMe from './ScheduleCalendarRemindMe';
+import WaiterPendingLedgerModal from './WaiterPendingLedgerModal';
 
 // ==============================================================
 // ETHIOPIAN CALENDAR CONVERSION HELPER
@@ -221,6 +222,35 @@ export default function BusinessManagement({
     const saved = localStorage.getItem('maraki_day_closes');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Waiter Pending Debts Ledger State
+  const [waiterPendingDebts, setWaiterPendingDebts] = useState(() => {
+    const saved = localStorage.getItem('maraki_waiter_pending_debts');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [showWaiterDebtsModal, setShowWaiterDebtsModal] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('maraki_waiter_pending_debts', JSON.stringify(waiterPendingDebts));
+  }, [waiterPendingDebts]);
+
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'maraki_waiter_pending_debts' && e.newValue) {
+        try {
+          setWaiterPendingDebts(JSON.parse(e.newValue));
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const activeWaiterDebtsCount = useMemo(() => {
+    return waiterPendingDebts.filter(d => d.status === 'pending').length;
+  }, [waiterPendingDebts]);
 
   // Execute migration on mount
   useEffect(() => {
@@ -1460,6 +1490,16 @@ export default function BusinessManagement({
               >
                 <Copy className="w-3.5 h-3.5" />
                 <span>ያለፈውን ግዢ ድገም</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowWaiterDebtsModal(true)}
+                className="px-3 py-1 rounded-xl text-xs font-black bg-cyan-50 text-cyan-900 border border-cyan-300 hover:bg-cyan-100 transition-all flex items-center gap-1.5 shadow-2xs"
+                title="የአስተናጋጆች ያልተሰበሰበ ዕዳ መዝገብ"
+              >
+                <Clock className="w-3.5 h-3.5 text-cyan-700" />
+                <span>⏳ የአስተናጋጆች ዕዳ ({activeWaiterDebtsCount})</span>
               </button>
             </div>
           </div>
@@ -3285,6 +3325,14 @@ export default function BusinessManagement({
           </div>
         </div>
       )}
+
+      {/* Waiter Pending Debts Ledger Modal */}
+      <WaiterPendingLedgerModal
+        isOpen={showWaiterDebtsModal}
+        onClose={() => setShowWaiterDebtsModal(false)}
+        pendingDebts={waiterPendingDebts}
+        onUpdateDebts={setWaiterPendingDebts}
+      />
 
     </div>
   );

@@ -31,6 +31,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { toEthiopianDateString, toEthiopianShortDate } from './BusinessManagement';
+import WaiterPendingLedgerModal from './WaiterPendingLedgerModal';
 
 // Standard Maraki price per juice cup
 export const DEFAULT_JUICE_PRICE = 170;
@@ -135,6 +136,24 @@ export default function ShiftReconciliation({
   useEffect(() => {
     localStorage.setItem('maraki_waiter_pending_debts', JSON.stringify(pendingDebts));
   }, [pendingDebts]);
+
+  // Modal state for full Pending Debts Ledger Page
+  const [showPendingLedgerModal, setShowPendingLedgerModal] = useState(false);
+
+  // Sync pending debts if updated elsewhere or in other windows
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'maraki_waiter_pending_debts' && e.newValue) {
+        try {
+          setPendingDebts(JSON.parse(e.newValue));
+        } catch (err) {
+          console.error('Storage sync error:', err);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // ==============================================================
   // SECTION 1: JUICE CUPS (170 ETB / cup) & beU Delivery State
@@ -297,12 +316,9 @@ export default function ShiftReconciliation({
   // SECTION 4: RECOVERING PENDING PAYMENTS FROM WAITERS
   // ==============================================================
   // Selection map: { debtId: { selected: boolean, unitsToRecover: number } }
-  const [recoverySelections, setRecoverySelections] = useState(() => {
-    return {
-      'deb-1': { selected: true, unitsToRecover: 1 }, // Aster: 1 of 2 boxes recovered (+250 ETB)
-      'deb-2': { selected: true, unitsToRecover: 3 }  // Dawit: 3 of 3 cups recovered (+510 ETB)
-    };
-  });
+  // Connected dynamically to the pending page ledger.
+  // Defaults to empty ({}) so the shift starts at +0 ETB until explicitly selected by cashier.
+  const [recoverySelections, setRecoverySelections] = useState({});
 
   const activeDebtsForShift = useMemo(() => {
     return pendingDebts.filter(d => d.status === 'pending');
@@ -342,9 +358,10 @@ export default function ShiftReconciliation({
     let sum = 0;
     Object.entries(recoverySelections).forEach(([debtId, info]) => {
       if (!info.selected) return;
-      const debt = pendingDebts.find(d => d.id === debtId);
+      const debt = pendingDebts.find(d => d.id === debtId && d.status === 'pending');
       if (debt) {
-        sum += (Number(info.unitsToRecover) || 0) * debt.unitPrice;
+        const units = Math.min(debt.remainingUnits, Math.max(1, Number(info.unitsToRecover) || 1));
+        sum += units * debt.unitPrice;
       }
     });
     return sum;
@@ -551,12 +568,16 @@ export default function ShiftReconciliation({
             ...d,
             remainingUnits: remUnits,
             remainingAmount: remAmt,
-            status: remUnits === 0 ? 'completed' : 'pending'
+            status: remUnits === 0 ? 'completed' : 'pending',
+            settledAt: remUnits === 0 ? new Date().toISOString() : d.settledAt
           };
         }
         return d;
       });
     });
+
+    // Reset recovery selections for clean slate on next settlement
+    setRecoverySelections({});
 
     setActivePrintTicket(newRecord);
     setSaveSuccessBanner(true);
@@ -613,8 +634,23 @@ export default function ShiftReconciliation({
             </div>
           </div>
 
-          {/* Quick Station Switches & History */}
+          {/* Quick Station Switches, History & Waiter Debts Ledger */}
           <div className="flex items-center gap-2">
+            
+            {/* Waiter Pending Debts Ledger Button */}
+            <button
+              type="button"
+              onClick={() => setShowPendingLedgerModal(true)}
+              className="px-2.5 py-1.5 bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 rounded-xl text-xs font-black flex items-center gap-1.5 border border-cyan-500/40 transition-all shadow-sm active:scale-95"
+              title="የአስተናጋጆች ዕዳ ሙሉ መዝገብ (Pending Debts Ledger Page)"
+            >
+              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">የአስተናጋጆች ዕዳ</span>
+              <span className="text-[10px] bg-cyan-900 px-1.5 py-0.2 rounded-full text-cyan-200 border border-cyan-700/50">
+                {activeDebtsForShift.length}
+              </span>
+            </button>
+
             <button
               type="button"
               onClick={() => setShowHistoryModal(true)}
@@ -1308,16 +1344,40 @@ export default function ShiftReconciliation({
                 </p>
               </div>
             </div>
-            <span className="text-xs font-black text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 px-3 py-1 rounded-xl">
-              + {recoveredCashAdded.toLocaleString()} ETB ተሰብስቧል
-            </span>
+            
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPendingLedgerModal(true)}
+                className="px-3 py-1.5 bg-cyan-900/60 hover:bg-cyan-800 text-cyan-300 border border-cyan-500/40 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>📋 የዕዳዎች ሙሉ መዝገብ (Open Pending Ledger Page) →</span>
+              </button>
+              <span className="text-xs font-black text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 px-3 py-1.5 rounded-xl">
+                + {recoveredCashAdded.toLocaleString()} ETB ተሰብስቧል
+              </span>
+            </div>
           </div>
 
           {/* List of Pending Debt Tickets with Steppers */}
           <div className="space-y-3">
             {activeDebtsForShift.length === 0 ? (
-              <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 text-center text-xs text-slate-400 font-bold">
-                ✓ ምንም ያልተሰበሰበ የአስተናጋጅ ዕዳ የለም (No pending debts)
+              <div className="p-5 bg-slate-900/80 rounded-2xl border border-slate-800 text-center space-y-2">
+                <p className="text-xs text-slate-300 font-bold">
+                  ✓ ምንም ያልተሰበሰበ የአስተናጋጅ ዕዳ የለም (No pending debts across shifts)
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  አዲስ ዕዳ ካለ ከላይ በክፍል 3 (Section 3) ይመዝግቡ ወይም የዕዳዎች መዝገብ ገጽን ይክፈቱ።
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowPendingLedgerModal(true)}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl text-xs font-black inline-flex items-center gap-1.5 transition-all"
+                >
+                  <span>የዕዳዎች ሙሉ ገጽን ክፈት (Open Pending Ledger)</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
               </div>
             ) : (
               activeDebtsForShift.map(debt => {
@@ -1394,6 +1454,23 @@ export default function ShiftReconciliation({
                 );
               })
             )}
+          </div>
+
+          {/* Section 4 Footer helper bar */}
+          <div className="bg-slate-900/60 rounded-2xl p-3 border border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="text-slate-400 font-bold flex items-center gap-2">
+              <span className="text-cyan-400">ℹ️</span>
+              <span>
+                በክፍል 4 ምልክት የተደረገባቸው ዕዳዎች በቀጥታ ወደ ካዝና ጥሬ ገንዘብ ይደመራሉ። ሂሳቡ ሲዘጋ የዕዳው መጠን ይቀነሳል።
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPendingLedgerModal(true)}
+              className="text-cyan-300 hover:text-cyan-200 font-black underline flex items-center gap-1"
+            >
+              <span>ሁሉንም የአስተናጋጆች ዕዳ መዝገብ እይ (Manage All Debts) →</span>
+            </button>
           </div>
         </section>
 
@@ -1943,6 +2020,31 @@ export default function ShiftReconciliation({
           </div>
         </div>
       )}
+
+      {/* ============================================================== */}
+      {/* MODAL 4: WAITER PENDING DEBTS LEDGER MODAL PAGE                */}
+      {/* ============================================================== */}
+      <WaiterPendingLedgerModal
+        isOpen={showPendingLedgerModal}
+        onClose={() => setShowPendingLedgerModal(false)}
+        pendingDebts={pendingDebts}
+        onUpdateDebts={(updated) => {
+          setPendingDebts(updated);
+          // Clean up recoverySelections if any debt was removed or settled
+          setRecoverySelections(prev => {
+            const next = { ...prev };
+            Object.keys(next).forEach(id => {
+              const d = updated.find(item => item.id === id);
+              if (!d || d.status !== 'pending' || d.remainingUnits <= 0) {
+                delete next[id];
+              }
+            });
+            return next;
+          });
+        }}
+        waitersList={waiters}
+        foodMenu={dishesList}
+      />
 
     </div>
   );
