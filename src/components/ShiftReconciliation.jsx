@@ -338,17 +338,14 @@ export default function ShiftReconciliation({
   // ==============================================================
   const [bankTransfers, setBankTransfers] = useState(() => {
     const saved = localStorage.getItem('maraki_shift_manual_transfers');
-    if (saved) return JSON.parse(saved);
-    return [
-      {
-        id: 'txn-1',
-        refNumber: 'FT248902891',
-        channel: 'Telebirr (ቴሌብር)',
-        sender: 'ደንበኛ (Direct)',
-        amount: 2500,
-        time: '11:30 AM'
-      }
-    ];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Filter out old dummy sample transfer if present
+        return parsed.filter(t => t.refNumber !== 'FT248902891' && t.id !== 'txn-1');
+      } catch (e) {}
+    }
+    return [];
   });
 
   useEffect(() => {
@@ -357,8 +354,6 @@ export default function ShiftReconciliation({
 
   const [newTxnAmount, setNewTxnAmount] = useState('');
   const [newTxnChannel, setNewTxnChannel] = useState('Telebirr (ቴሌብር)');
-  const [newTxnRef, setNewTxnRef] = useState('');
-  const [newTxnSender, setNewTxnSender] = useState('');
 
   const handleAddTransfer = (e) => {
     if (e) e.preventDefault();
@@ -367,17 +362,13 @@ export default function ShiftReconciliation({
 
     const newEntry = {
       id: `txn-${Date.now()}-${Math.floor(Math.random()*1000)}`,
-      refNumber: newTxnRef.trim().toUpperCase() || `TRX-${Date.now().toString().slice(-6)}`,
       channel: newTxnChannel,
-      sender: newTxnSender.trim() || 'ደንበኛ (Customer)',
       amount: amt,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     setBankTransfers(prev => [...prev, newEntry]);
     setNewTxnAmount('');
-    setNewTxnRef('');
-    setNewTxnSender('');
   };
 
   const handleRemoveTransfer = (id) => {
@@ -1361,10 +1352,10 @@ export default function ShiftReconciliation({
             ))}
           </div>
 
-          {/* Inline Manual Add Transfer Form */}
-          <form onSubmit={handleAddTransfer} className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          {/* Inline Manual Add Transfer Form (Fast: Amount + Channel Only) */}
+          <form onSubmit={handleAddTransfer} className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
             {/* Amount */}
-            <div>
+            <div className="sm:col-span-5">
               <label className="text-[11px] font-black text-purple-300 block mb-1">
                 የተከፈለ መጠን (Amount ETB) *
               </label>
@@ -1376,19 +1367,19 @@ export default function ShiftReconciliation({
                 value={newTxnAmount}
                 onChange={(e) => setNewTxnAmount(e.target.value)}
                 placeholder="ለምሳሌ፡ 250"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-purple-300 outline-none focus:border-purple-400"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-black text-purple-300 outline-none focus:border-purple-400"
               />
             </div>
 
             {/* Channel / Service */}
-            <div>
+            <div className="sm:col-span-4">
               <label className="text-[11px] font-black text-slate-300 block mb-1">
-                የክፍያ መስመር (Channel) *
+                የክፍያ መስመር (Channel / Bank) *
               </label>
               <select
                 value={newTxnChannel}
                 onChange={(e) => setNewTxnChannel(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-200 outline-none focus:border-purple-400"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-200 outline-none focus:border-purple-400"
               >
                 <option value="Telebirr (ቴሌብር)">📱 Telebirr (ቴሌብር)</option>
                 <option value="CBE Birr (ንግድ ባንክ)">🏦 CBE Birr (ንግድ ባንክ)</option>
@@ -1398,41 +1389,13 @@ export default function ShiftReconciliation({
               </select>
             </div>
 
-            {/* Reference Number / Transaction ID */}
-            <div>
-              <label className="text-[11px] font-black text-slate-300 block mb-1">
-                የትራንዛክሽን ቁጥር (Ref / TXN #)
-              </label>
-              <input
-                type="text"
-                value={newTxnRef}
-                onChange={(e) => setNewTxnRef(e.target.value)}
-                placeholder="e.g. FT248902891"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white uppercase outline-none focus:border-purple-400"
-              />
-            </div>
-
-            {/* Sender / Customer Name or Phone */}
-            <div>
-              <label className="text-[11px] font-black text-slate-300 block mb-1">
-                የከፋዩ ስም / ስልክ (Sender - Optional)
-              </label>
-              <input
-                type="text"
-                value={newTxnSender}
-                onChange={(e) => setNewTxnSender(e.target.value)}
-                placeholder="e.g. አበበ / 0911..."
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-purple-400"
-              />
-            </div>
-
             {/* Submit Button */}
-            <div className="flex items-end">
+            <div className="sm:col-span-3">
               <button
                 type="submit"
                 className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-md shadow-purple-900/30 transition-all active:scale-95"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4 stroke-[3]" />
                 <span>+ ዝውውር መዝግብ</span>
               </button>
             </div>
@@ -1444,37 +1407,27 @@ export default function ShiftReconciliation({
               <div className="p-4 bg-slate-900/50 rounded-2xl border border-slate-800 text-center text-xs text-slate-400 font-bold space-y-1">
                 <p>ℹ️ እስካሁን በእጅ የተመዘገበ የባንክ ወይም የቴሌብር ዝውውር የለም።</p>
                 <p className="text-[11px] text-slate-500">
-                  ደንበኞች በቴሌብር፣ በንግድ ባንክ ወይም በሌላ ባንክ የከፈሉትን ከላይ ያለውን ፎርም ተጠቅመው አንድ በአንድ ያስገቡ።
+                  ደንበኞች በቴሌብር፣ በንግድ ባንክ ወይም በሌላ ባንክ የከፈሉትን መጠኑንና ባንኩን መርጠው ያስገቡ።
                 </p>
               </div>
             ) : (
               bankTransfers.map((txn, index) => (
                 <div
                   key={txn.id || index}
-                  className="bg-slate-900 px-4 py-3 rounded-2xl border border-slate-800 hover:border-purple-500/40 transition-all flex flex-wrap items-center justify-between gap-3 text-xs"
+                  className="bg-slate-900 px-4 py-3 rounded-2xl border border-slate-800 hover:border-purple-500/40 transition-all flex items-center justify-between gap-3 text-xs"
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-6 h-6 rounded-lg bg-slate-800 text-slate-400 text-[10px] font-black flex items-center justify-center border border-slate-700">
                       #{index + 1}
                     </span>
-                    <span className="text-xs font-black text-purple-300 bg-purple-950/60 border border-purple-500/30 px-2.5 py-1 rounded-xl">
+                    <span className="text-xs font-black text-purple-300 bg-purple-950/60 border border-purple-500/30 px-3 py-1 rounded-xl">
                       {txn.channel}
                     </span>
-                    <div>
-                      <p className="font-black text-white tracking-wider flex items-center gap-2">
-                        <span>{txn.refNumber}</span>
-                        {txn.sender && (
-                          <span className="text-[10px] font-normal text-slate-400">
-                            • {txn.sender}
-                          </span>
-                        )}
-                      </p>
-                      {txn.time && (
-                        <p className="text-[10px] text-slate-500">
-                          ሰዓት፡ {txn.time}
-                        </p>
-                      )}
-                    </div>
+                    {txn.time && (
+                      <span className="text-[11px] font-bold text-slate-400">
+                        {txn.time}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-3">
