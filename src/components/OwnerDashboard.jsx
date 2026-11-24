@@ -449,6 +449,17 @@ export default function OwnerDashboard({
               <span className="text-xs font-black text-slate-900 block mt-1">Log Expense</span>
               <span className="text-[10px] font-bold text-slate-500">Bills & Budget</span>
             </button>
+            <button
+              type="button"
+              onClick={() => onNavigateSection('menu')}
+              className="col-span-2 p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-left transition-all flex items-center justify-between"
+            >
+              <div>
+                <span className="text-xs font-black block">🏷️ Edit Menu & Juice Prices</span>
+                <span className="text-[10px] font-bold text-emerald-300">Owner-only pricing & Chef POS visibility</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-emerald-400" />
+            </button>
           </div>
         </div>
       </div>

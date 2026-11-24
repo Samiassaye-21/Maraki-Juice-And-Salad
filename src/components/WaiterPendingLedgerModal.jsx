@@ -42,8 +42,14 @@ export default function WaiterPendingLedgerModal({
   onUpdateDebts,
   waitersList = DEFAULT_WAITERS_LIST,
   foodMenu = DEFAULT_RECONCILIATION_DISHES,
+  standardJuicePrice,
   onSelectForRecovery
 }) {
+  const effectiveJuicePrice = useMemo(() => {
+    if (standardJuicePrice && Number(standardJuicePrice) > 0) return Number(standardJuicePrice);
+    const saved = Number(localStorage.getItem('maraki_standard_juice_price'));
+    return saved > 0 ? saved : DEFAULT_JUICE_PRICE;
+  }, [standardJuicePrice]);
   const [waiterFilter, setWaiterFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('pending'); // 'all' | 'pending' | 'completed'
   const [itemTypeFilter, setItemTypeFilter] = useState('all'); // 'all' | 'food' | 'juice'
@@ -145,7 +151,7 @@ export default function WaiterPendingLedgerModal({
   const handleCreateManualDebt = (e) => {
     e.preventDefault();
     const units = Math.max(1, Number(newUnits) || 1);
-    const unitPrice = newItemType === 'juice' ? DEFAULT_JUICE_PRICE : (Number(newCustomPrice) || 200);
+    const unitPrice = newItemType === 'juice' ? effectiveJuicePrice : (Number(newCustomPrice) || 200);
     const total = units * unitPrice;
 
     const newTicket = {
@@ -331,7 +337,7 @@ export default function WaiterPendingLedgerModal({
               {metrics.activeJuiceUnits} <span className="text-xs font-bold text-slate-500">ኩባያ ጁስ</span>
             </div>
             <span className="text-[10px] text-slate-400 font-bold block mt-1">
-              {(metrics.activeJuiceUnits * DEFAULT_JUICE_PRICE).toLocaleString()} ETB
+              {(metrics.activeJuiceUnits * effectiveJuicePrice).toLocaleString()} ETB
             </span>
           </div>
 
@@ -543,7 +549,7 @@ export default function WaiterPendingLedgerModal({
                   <input
                     type="text"
                     disabled
-                    value={`መደበኛ ጁስ (${DEFAULT_JUICE_PRICE} ETB / cup)`}
+                    value={`መደበኛ ጁስ (${effectiveJuicePrice} ETB / cup)`}
                     className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-slate-600 font-bold outline-none"
                   />
                 )}
@@ -563,7 +569,7 @@ export default function WaiterPendingLedgerModal({
                   <div className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-right">
                     <span className="text-[10px] text-slate-500 block font-bold">ጠቅላላ ሂሳብ፡</span>
                     <span className="text-xs font-black text-emerald-800">
-                      {((Number(newUnits) || 1) * (newItemType === 'juice' ? DEFAULT_JUICE_PRICE : newCustomPrice)).toLocaleString()} ETB
+                      {((Number(newUnits) || 1) * (newItemType === 'juice' ? effectiveJuicePrice : newCustomPrice)).toLocaleString()} ETB
                     </span>
                   </div>
                 </div>

@@ -4,6 +4,7 @@ import ShiftReconciliation from './components/ShiftReconciliation';
 import OwnerIncomeAnalysisReport from './components/OwnerIncomeAnalysisReport';
 import OwnerDashboard from './components/OwnerDashboard';
 import BoxInventoryAudit from './components/BoxInventoryAudit';
+import OwnerMenuPriceManager from './components/OwnerMenuPriceManager';
 import { computePackagingAudit } from './utils/reconciliationHelpers';
 import { 
   Plus, 
@@ -57,7 +58,8 @@ import {
   BellRing,
   LayoutDashboard,
   Wallet,
-  Target
+  Target,
+  Tag
 } from 'lucide-react';
 import { dbService, isSupabaseConfigured } from './lib/supabaseClient';
 
@@ -423,8 +425,13 @@ export const DEFAULT_WAITERS = [
  */
 export function getDishEffectivePrice(dishOrItem, currentOrderType = 'Takeaway') {
   const basePrice = Number(dishOrItem.originalPrice || dishOrItem.basePrice || dishOrItem.price || 0);
-  if (currentOrderType === 'Home' && basePrice === 320) {
-    return 300;
+  if (currentOrderType === 'Home') {
+    if (dishOrItem.homePrice !== undefined && dishOrItem.homePrice !== null && dishOrItem.homePrice !== '') {
+      return Number(dishOrItem.homePrice);
+    }
+    if (basePrice === 320) {
+      return 300;
+    }
   }
   return basePrice;
 }
@@ -572,10 +579,18 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Food Menu & Filtering
+  // Food Menu & Juice Rate (Owner-controlled, persisted to localStorage)
   const [foodMenu, setFoodMenu] = useState(() => {
-    const saved = localStorage.getItem('maraki_chef_food_menu_v2');
-    return saved ? JSON.parse(saved) : MARAKI_REAL_FOOD_MENU;
+    try {
+      const saved = localStorage.getItem('maraki_chef_food_menu_v2');
+      return saved ? JSON.parse(saved) : MARAKI_REAL_FOOD_MENU;
+    } catch (e) {
+      return MARAKI_REAL_FOOD_MENU;
+    }
+  });
+  const [standardJuicePrice, setStandardJuicePrice] = useState(() => {
+    const saved = Number(localStorage.getItem('maraki_standard_juice_price'));
+    return saved > 0 ? saved : 170;
   });
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -595,7 +610,7 @@ export default function App() {
   const [ownerSelectedCustomDate, setOwnerSelectedCustomDate] = useState('');
   const [ownerSection, setOwnerSection] = useState(() => {
     const saved = localStorage.getItem('maraki_owner_active_section');
-    const valid = ['dashboard', 'sheet', 'analysis', 'stock', 'finance', 'plans', 'orders'];
+    const valid = ['dashboard', 'sheet', 'analysis', 'stock', 'menu', 'finance', 'plans', 'orders'];
     if (saved && valid.includes(saved)) return saved;
     return 'dashboard';
   });
@@ -648,6 +663,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('maraki_chef_sent_orders', JSON.stringify(sentOrders));
   }, [sentOrders]);
+
+  useEffect(() => {
+    localStorage.setItem('maraki_chef_food_menu_v2', JSON.stringify(foodMenu));
+  }, [foodMenu]);
+
+  useEffect(() => {
+    localStorage.setItem('maraki_standard_juice_price', String(standardJuicePrice));
+  }, [standardJuicePrice]);
 
   useEffect(() => {
     localStorage.setItem('maraki_waiters_list_v3', JSON.stringify(waitersList));
@@ -757,7 +780,8 @@ export default function App() {
         englishName: i.englishName,
         qty: i.qty,
         price: getDishEffectivePrice(i, finalOrderType),
-        basePrice: i.price
+        basePrice: i.price,
+        homePrice: i.homePrice ?? null
       })),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       createdAt: new Date().toISOString()
@@ -979,6 +1003,7 @@ export default function App() {
 
   // Filtered dishes for Step 1 (Optimized with useDeferredValue for 60fps typing)
   const filteredDishes = foodMenu.filter(item => {
+    if (item.isAvailable === false) return false;
     const q = deferredSearchQuery.toLowerCase().trim();
     const matchesSearch = !q ||
       item.name.toLowerCase().includes(q) ||
@@ -1638,6 +1663,7 @@ export default function App() {
         orders={sentOrders}
         waiters={waitersList}
         foodMenu={foodMenu}
+        standardJuicePrice={standardJuicePrice}
         onBackToPortal={() => navigateToSystem('portal')}
         onSwitchToChef={() => navigateToSystem('chef')}
         onSwitchToOwner={() => navigateToSystem('owner')}
@@ -2031,7 +2057,7 @@ export default function App() {
                 {filteredDishes.map(dish => {
                   const inCart = cart.find(i => i.id === dish.id);
                   const effectivePrice = getDishEffectivePrice(dish, orderType);
-                  const isDiscounted = orderType === 'Home' && dish.price === 320;
+                  const isDiscounted = orderType === 'Home' && effectivePrice < Number(dish.price);
                   return (
                     <div
                       key={dish.id}
@@ -2069,10 +2095,10 @@ export default function App() {
                             {orderType === 'Takeaway' ? '🥡 1 ቦክስ' : '🍽️ ቤት ውስጥ'}
                           </div>
 
-                          {/* Discount Badge on Image for 320 ETB dishes when Home */}
+                          {/* Discount Badge on Image for Dine-In Home prices */}
                           {isDiscounted && (
                             <div className="absolute bottom-2 left-2 bg-emerald-700 text-white text-[9px] font-black px-2 py-0.5 rounded-lg shadow-sm border border-emerald-500">
-                              🏠 300 ETB
+                              🏠 {effectivePrice} ETB
                             </div>
                           )}
 
@@ -2820,7 +2846,8 @@ export default function App() {
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: mismatchCount > 0 ? `${mismatchCount} 🚨` : null, alert: mismatchCount > 0 },
           { id: 'sheet', label: 'Daily Sheet', icon: ClipboardCheck, badge: null },
           { id: 'analysis', label: 'Income & Reports', icon: BarChart3, badge: settlementsHistory.length, alert: mismatchCount > 0 },
-          { id: 'stock', label: 'Box & Stock Audit', icon: Package, badge: stockAlert || pkgAudit.boxes.totalRemaining, alert: Boolean(stockAlert) },
+          { id: 'stock', label: 'Box & Stock Audit', icon: Package, badge: stockAlert || (pkgAudit.boxes.bought > 0 ? pkgAudit.boxes.totalRemaining : null), alert: Boolean(stockAlert) },
+          { id: 'menu', label: 'Menu & Prices', icon: Tag, badge: foodMenu.length },
           { id: 'finance', label: 'Finance', icon: Wallet, badge: null },
           { id: 'plans', label: 'Plans & Goals', icon: Target, badge: null }
         ];
@@ -3661,6 +3688,7 @@ export default function App() {
                   orders={sentOrders}
                   waiters={waitersList}
                   foodMenu={foodMenu}
+                  standardJuicePrice={standardJuicePrice}
                   onSavedSettlement={(rec) => {
                     setSettlementsHistory(prev => [rec, ...prev.filter(s => s.id !== rec.id)]);
                   }}
@@ -3674,6 +3702,8 @@ export default function App() {
                   settlements={settlementsHistory}
                   orders={sentOrders}
                   waiters={waitersList}
+                  foodMenu={foodMenu}
+                  standardJuicePrice={standardJuicePrice}
                   ordersAuditContent={ordersAuditBlock}
                   onOpenShiftReconciliation={() => setOwnerSection('sheet')}
                   onUpdateSettlements={(updated) => {
@@ -3687,6 +3717,17 @@ export default function App() {
                 <BoxInventoryAudit
                   orders={sentOrders}
                   settlements={settlementsHistory}
+                />
+              )}
+
+              {ownerSection === 'menu' && (
+                <OwnerMenuPriceManager
+                  foodMenu={foodMenu}
+                  onUpdateMenu={(updated) => setFoodMenu(updated)}
+                  defaultMenu={MARAKI_REAL_FOOD_MENU}
+                  standardJuicePrice={standardJuicePrice}
+                  onUpdateStandardJuicePrice={(rate) => setStandardJuicePrice(rate)}
+                  ownerPassword={ownerPassword}
                 />
               )}
 

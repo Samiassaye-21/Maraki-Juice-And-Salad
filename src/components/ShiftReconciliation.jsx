@@ -77,12 +77,18 @@ export default function ShiftReconciliation({
   orders = [],
   waiters = [],
   foodMenu = [],
+  standardJuicePrice,
   onBackToPortal,
   onSwitchToChef,
   onSwitchToOwner,
   embeddedMode = false,
   onSavedSettlement
 }) {
+  const effectiveJuicePrice = useMemo(() => {
+    if (standardJuicePrice && Number(standardJuicePrice) > 0) return Number(standardJuicePrice);
+    const saved = Number(localStorage.getItem('maraki_standard_juice_price'));
+    return saved > 0 ? saved : DEFAULT_JUICE_PRICE;
+  }, [standardJuicePrice]);
   // 1. Shift View Mode: 'Day' | 'Night'
   const [selectedShift, setSelectedShift] = useState('Day');
 
@@ -191,8 +197,8 @@ export default function ShiftReconciliation({
   // Section 1 Math
   const juiceSold = Math.max(0, Number(cupsGiven || 0) - Number(cupsLeft || 0));
   const inStoreJuiceSold = Math.max(0, juiceSold - Number(beuDeliveryCups || 0));
-  const grossJuiceRevenue = juiceSold * DEFAULT_JUICE_PRICE;
-  const beuDeliveryDeduction = Number(beuDeliveryCups || 0) * DEFAULT_JUICE_PRICE;
+  const grossJuiceRevenue = juiceSold * effectiveJuicePrice;
+  const beuDeliveryDeduction = Number(beuDeliveryCups || 0) * effectiveJuicePrice;
 
   // ==============================================================
   // SECTION 2: FOOD BOX RECONCILIATION ("Anti-Skimming Engine")
@@ -258,12 +264,19 @@ export default function ShiftReconciliation({
     }
   }, [orders]);
 
-  // Merge foodMenu prop (if any) with DEFAULT_RECONCILIATION_DISHES
+  // Merge foodMenu prop (or localStorage maraki_chef_food_menu_v2) with DEFAULT_RECONCILIATION_DISHES
   const dishesList = useMemo(() => {
     const map = new Map();
     DEFAULT_RECONCILIATION_DISHES.forEach(d => map.set(d.id, d));
-    if (Array.isArray(foodMenu)) {
-      foodMenu
+    let resolvedMenu = Array.isArray(foodMenu) && foodMenu.length > 0 ? foodMenu : [];
+    if (resolvedMenu.length === 0) {
+      try {
+        const saved = localStorage.getItem('maraki_chef_food_menu_v2');
+        if (saved) resolvedMenu = JSON.parse(saved);
+      } catch (e) {}
+    }
+    if (Array.isArray(resolvedMenu)) {
+      resolvedMenu
         .filter(item => item.itemType !== 'juice' && item.containerType !== 'cup')
         .forEach(item => {
           map.set(item.id, {
@@ -397,7 +410,7 @@ export default function ShiftReconciliation({
     return pendingFoodItems.reduce((sum, item) => sum + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0);
   }, [pendingFoodItems]);
 
-  const pendingJuiceAmount = (Number(pendingJuiceCupsInput) || 0) * DEFAULT_JUICE_PRICE;
+  const pendingJuiceAmount = (Number(pendingJuiceCupsInput) || 0) * effectiveJuicePrice;
   const deductedPendingDebt = pendingJuiceAmount + totalPendingFoodAmount;
 
   // ==============================================================
@@ -654,11 +667,11 @@ export default function ShiftReconciliation({
           waiterName: pendingWaiterName,
           itemType: 'juice',
           dishName: 'Juice Cups (የጁስ ኩባያዎች)',
-          unitPrice: DEFAULT_JUICE_PRICE,
+          unitPrice: effectiveJuicePrice,
           totalUnits: Number(pendingJuiceCupsInput),
           remainingUnits: Number(pendingJuiceCupsInput),
-          totalAmount: Number(pendingJuiceCupsInput) * DEFAULT_JUICE_PRICE,
-          remainingAmount: Number(pendingJuiceCupsInput) * DEFAULT_JUICE_PRICE,
+          totalAmount: Number(pendingJuiceCupsInput) * effectiveJuicePrice,
+          remainingAmount: Number(pendingJuiceCupsInput) * effectiveJuicePrice,
           shift: selectedShift,
           date: selectedDate,
           createdAt: new Date().toISOString(),
@@ -917,7 +930,7 @@ export default function ShiftReconciliation({
                   1. JUICE CUPS INVENTORY & beU DELIVERY
                 </h2>
                 <p className="text-[11px] text-slate-500 font-bold">
-                  Juice cups audit and beU digital order deductions (Standard: {DEFAULT_JUICE_PRICE} ETB / cup)
+                  Juice cups audit and beU digital order deductions (Standard: {effectiveJuicePrice} ETB / cup)
                 </p>
               </div>
             </div>
@@ -1394,7 +1407,7 @@ export default function ShiftReconciliation({
                 </span>
               </div>
               <span className="text-[10px] text-slate-400 block">
-                {DEFAULT_JUICE_PRICE} ETB / cup deducted from physical drawer cash
+                {effectiveJuicePrice} ETB / cup deducted from physical drawer cash
               </span>
             </div>
           </div>
@@ -2271,6 +2284,7 @@ export default function ShiftReconciliation({
         }}
         waitersList={waiters}
         foodMenu={dishesList}
+        standardJuicePrice={effectiveJuicePrice}
       />
 
     </div>

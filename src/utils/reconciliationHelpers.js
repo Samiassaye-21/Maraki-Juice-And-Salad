@@ -340,11 +340,11 @@ export function computePackagingAudit({ orders = [], settlements = [] } = {}) {
   const cupsSoldSettlements = settlements.reduce((sum, s) => sum + Number(s.juiceSold || 0), 0);
 
   const boxesStorageRemaining = Math.max(0, boxesBought - boxesGivenToKitchen);
-  const boxesTotalRemaining = boxesBought - boxesSoldChef - wasteBoxes;
+  const boxesTotalRemaining = boxesBought === 0 && boxesSoldChef === 0 ? 0 : Math.max(0, boxesBought - boxesSoldChef - wasteBoxes);
   const boxesExpectedInKitchen = boxesGivenToKitchen - boxesSoldChef - wasteBoxes;
 
   const cupsStorageRemaining = Math.max(0, cupsBought - cupsGivenToBar);
-  const cupsTotalRemaining = cupsBought - cupsSoldSettlements - wasteCups;
+  const cupsTotalRemaining = cupsBought === 0 && cupsSoldSettlements === 0 ? 0 : Math.max(0, cupsBought - cupsSoldSettlements - wasteCups);
   const cupsExpectedInBar = cupsGivenToBar - cupsSoldSettlements - wasteCups;
 
   const boxStatus =

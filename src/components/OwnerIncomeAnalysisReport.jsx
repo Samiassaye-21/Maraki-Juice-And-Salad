@@ -51,11 +51,47 @@ export default function OwnerIncomeAnalysisReport({
   settlements = [],
   orders = [],
   waiters = [],
+  foodMenu = [],
+  standardJuicePrice,
   onOpenShiftReconciliation,
   onUpdateSettlements,
   ordersAuditContent = null,
   initialSubView = 'overview'
 }) {
+  const effectiveJuicePrice = useMemo(() => {
+    if (standardJuicePrice && Number(standardJuicePrice) > 0) return Number(standardJuicePrice);
+    const saved = Number(localStorage.getItem('maraki_standard_juice_price'));
+    return saved > 0 ? saved : DEFAULT_JUICE_PRICE;
+  }, [standardJuicePrice]);
+
+  const effectiveDishesList = useMemo(() => {
+    const map = new Map();
+    DEFAULT_RECONCILIATION_DISHES.forEach(d => map.set(d.id, d));
+    let resolvedMenu = Array.isArray(foodMenu) && foodMenu.length > 0 ? foodMenu : [];
+    if (resolvedMenu.length === 0) {
+      try {
+        const saved = localStorage.getItem('maraki_chef_food_menu_v2');
+        if (saved) resolvedMenu = JSON.parse(saved);
+      } catch (e) {}
+    }
+    resolvedMenu.forEach(item => {
+      map.set(item.id, {
+        id: item.id,
+        name: item.name,
+        englishName: item.englishName || item.name,
+        category: item.category || 'Other',
+        price: Number(item.price || 0)
+      });
+    });
+    return Array.from(map.values());
+  }, [foodMenu]);
+
+  const dynamicDishLookup = useMemo(() => {
+    return effectiveDishesList.reduce((acc, d) => {
+      acc[d.id] = d;
+      return acc;
+    }, {});
+  }, [effectiveDishesList]);
   // Time period filter: 'daily' | 'weekly' | 'monthly' | 'custom'
   const [timeRange, setTimeRange] = useState('daily');
   const [selectedDate, setSelectedDate] = useState(() => toLocalIsoDate(new Date()));
@@ -200,8 +236,8 @@ export default function OwnerIncomeAnalysisReport({
   const shiftAudits = useMemo(() => {
     const list = [];
     filteredSettlements.forEach(s => {
-      const chefSum = aggregateChefOrders(resolvedOrders, s.date, s.shift, DEFAULT_RECONCILIATION_DISHES);
-      const cmp = compareChefVsIncomeSheet(chefSum, s.foodAssignments || {}, DEFAULT_RECONCILIATION_DISHES);
+      const chefSum = aggregateChefOrders(resolvedOrders, s.date, s.shift, effectiveDishesList);
+      const cmp = compareChefVsIncomeSheet(chefSum, s.foodAssignments || {}, effectiveDishesList);
       list.push({
         settlement: s,
         chefSummary: chefSum,
@@ -209,7 +245,7 @@ export default function OwnerIncomeAnalysisReport({
       });
     });
     return list;
-  }, [filteredSettlements, resolvedOrders]);
+  }, [filteredSettlements, resolvedOrders, effectiveDishesList]);
 
   const mismatchAlerts = useMemo(() => {
     return shiftAudits.filter(a => a.comparison?.hasMismatch);
@@ -229,7 +265,7 @@ export default function OwnerIncomeAnalysisReport({
       (sum, s) => sum + (Number(s.assignedBoxes || s.targetFoodSold) || 0),
       0
     );
-    const chefFoodSummary = aggregateChefOrders(filteredOrders, null, 'all', DEFAULT_RECONCILIATION_DISHES);
+    const chefFoodSummary = aggregateChefOrders(filteredOrders, null, 'all', effectiveDishesList);
     const totalBoxes = boxesFromSettlements > 0 ? boxesFromSettlements : chefFoodSummary.takeawayBoxes;
 
     const totalOrdersCount = filteredOrders.length;
@@ -262,7 +298,7 @@ export default function OwnerIncomeAnalysisReport({
         Object.entries(s.foodAssignments).forEach(([dishId, qty]) => {
           if (qty > 0) {
             if (!dishMap[dishId]) {
-              const ref = DISH_LOOKUP[dishId];
+              const ref = dynamicDishLookup[dishId] || DISH_LOOKUP[dishId];
               dishMap[dishId] = {
                 id: dishId,
                 name: ref?.name || dishId,
@@ -341,7 +377,7 @@ export default function OwnerIncomeAnalysisReport({
       transferChannelMap,
       settlementsCount: filteredSettlements.length
     };
-  }, [filteredSettlements, filteredOrders, filteredOwnerExpenses, periodPackagingSpend, beuCommissionPct]);
+  }, [filteredSettlements, filteredOrders, filteredOwnerExpenses, periodPackagingSpend, beuCommissionPct, effectiveDishesList, dynamicDishLookup]);
 
   // Daily breakdown series for charts & separated daily tables
   const dailySeries = useMemo(() => {
@@ -939,7 +975,7 @@ export default function OwnerIncomeAnalysisReport({
             <div onClick={() => setSubView('cups_beu')} className="cursor-pointer bg-white p-5 rounded-3xl border border-slate-200 hover:border-emerald-400 shadow-xs space-y-2 transition-all">
               <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
                 <span className="flex items-center gap-1.5"><Coffee className="w-4 h-4 text-emerald-600" /> Juice Cups Sold</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-black">{DEFAULT_JUICE_PRICE} ETB/cup</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-black">{effectiveJuicePrice} ETB/cup</span>
               </div>
               <p className="text-3xl font-black text-slate-900 tabular-nums">{metrics.totalJuiceCups.toLocaleString()}</p>
               <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
