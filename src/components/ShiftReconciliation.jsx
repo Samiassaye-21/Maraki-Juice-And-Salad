@@ -229,20 +229,69 @@ export default function ShiftReconciliation({
 
   // ==============================================================
   // SECTION 3: PENDING PAYMENTS CREATION (Unpaid With Waiters)
+  // Multi-Dish Itemized Food & Juice Pending Debts Engine
   // ==============================================================
-  const [pendingJuiceCupsInput, setPendingJuiceCupsInput] = useState(4);
-  const [pendingFoodBoxesInput, setPendingFoodBoxesInput] = useState(2);
-  const [pendingFoodDishId, setPendingFoodDishId] = useState('sb'); // Default: Special Burger
   const [pendingWaiterName, setPendingWaiterName] = useState('አቤል (Waiter Abel)');
-  const [pendingNote, setPendingNote] = useState('');
+  const [pendingJuiceCupsInput, setPendingJuiceCupsInput] = useState(4);
+  const [pendingFoodItems, setPendingFoodItems] = useState([
+    { id: 'pitem-1', dishId: 'sb', name: 'ስፔሻል በርገር (Special Burger)', qty: 2, price: 250 }
+  ]);
+  const [selectedPendingDishId, setSelectedPendingDishId] = useState('cs');
+  const [selectedPendingDishQty, setSelectedPendingDishQty] = useState(1);
 
-  const selectedPendingDish = useMemo(() => {
-    return dishesList.find(d => d.id === pendingFoodDishId) || dishesList[0];
-  }, [dishesList, pendingFoodDishId]);
+  const handleAddPendingFoodItem = (e) => {
+    if (e) e.preventDefault();
+    const dish = dishesList.find(d => d.id === selectedPendingDishId);
+    if (!dish) return;
+    const qty = Math.max(1, Number(selectedPendingDishQty) || 1);
 
-  const pendingFoodAmount = (Number(pendingFoodBoxesInput) || 0) * (selectedPendingDish?.price || 0);
+    setPendingFoodItems(prev => {
+      const existing = prev.find(item => item.dishId === dish.id);
+      if (existing) {
+        return prev.map(item => item.dishId === dish.id ? { ...item, qty: item.qty + qty } : item);
+      }
+      return [
+        ...prev,
+        {
+          id: `pitem-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          dishId: dish.id,
+          name: `${dish.name} (${dish.englishName})`,
+          qty: qty,
+          price: dish.price
+        }
+      ];
+    });
+    setSelectedPendingDishQty(1);
+  };
+
+  const handleUpdatePendingFoodQty = (dishId, delta) => {
+    setPendingFoodItems(prev => {
+      return prev
+        .map(item => {
+          if (item.dishId === dishId) {
+            const nextQty = item.qty + delta;
+            return nextQty > 0 ? { ...item, qty: nextQty } : null;
+          }
+          return item;
+        })
+        .filter(Boolean);
+    });
+  };
+
+  const handleRemovePendingFoodItem = (dishId) => {
+    setPendingFoodItems(prev => prev.filter(item => item.dishId !== dishId));
+  };
+
+  const totalPendingFoodBoxes = useMemo(() => {
+    return pendingFoodItems.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+  }, [pendingFoodItems]);
+
+  const totalPendingFoodAmount = useMemo(() => {
+    return pendingFoodItems.reduce((sum, item) => sum + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0);
+  }, [pendingFoodItems]);
+
   const pendingJuiceAmount = (Number(pendingJuiceCupsInput) || 0) * DEFAULT_JUICE_PRICE;
-  const deductedPendingDebt = pendingJuiceAmount + pendingFoodAmount;
+  const deductedPendingDebt = pendingJuiceAmount + totalPendingFoodAmount;
 
   // ==============================================================
   // SECTION 4: RECOVERING PENDING PAYMENTS FROM WAITERS
@@ -422,7 +471,9 @@ export default function ShiftReconciliation({
       totalFoodRevenue,
       totalGrossSales,
       pendingJuiceCups: Number(pendingJuiceCupsInput) || 0,
-      pendingFoodBoxes: Number(pendingFoodBoxesInput) || 0,
+      pendingFoodBoxes: totalPendingFoodBoxes,
+      pendingFoodItems: [...pendingFoodItems],
+      pendingFoodAmount: totalPendingFoodAmount,
       pendingWaiterName,
       deductedPendingDebt,
       recoveredCashAdded,
@@ -444,24 +495,49 @@ export default function ShiftReconciliation({
     });
 
     // Update Pending Debts
-    // 1. Add new pending debt if entered
+    // 1. Add new pending debt if entered (Itemized by dish & juice)
     if (deductedPendingDebt > 0) {
-      const newDebtItem = {
-        id: `deb-${Date.now()}`,
-        waiterName: pendingWaiterName,
-        itemType: pendingFoodAmount > 0 ? 'food' : 'juice',
-        dishName: selectedPendingDish?.name || 'Juice/Food',
-        unitPrice: selectedPendingDish?.price || DEFAULT_JUICE_PRICE,
-        totalUnits: Number(pendingFoodBoxesInput || pendingJuiceCupsInput || 1),
-        remainingUnits: Number(pendingFoodBoxesInput || pendingJuiceCupsInput || 1),
-        totalAmount: deductedPendingDebt,
-        remainingAmount: deductedPendingDebt,
-        shift: selectedShift,
-        date: selectedDate,
-        createdAt: new Date().toISOString(),
-        status: 'pending'
-      };
-      setPendingDebts(prev => [newDebtItem, ...prev]);
+      const newDebts = [];
+      pendingFoodItems.forEach((item, idx) => {
+        if (item.qty > 0) {
+          newDebts.push({
+            id: `deb-${Date.now()}-food-${idx}`,
+            waiterName: pendingWaiterName,
+            itemType: 'food',
+            dishId: item.dishId,
+            dishName: item.name,
+            unitPrice: item.price,
+            totalUnits: item.qty,
+            remainingUnits: item.qty,
+            totalAmount: item.qty * item.price,
+            remainingAmount: item.qty * item.price,
+            shift: selectedShift,
+            date: selectedDate,
+            createdAt: new Date().toISOString(),
+            status: 'pending'
+          });
+        }
+      });
+
+      if (Number(pendingJuiceCupsInput) > 0) {
+        newDebts.push({
+          id: `deb-${Date.now()}-juice`,
+          waiterName: pendingWaiterName,
+          itemType: 'juice',
+          dishName: 'Juice Cups (የጁስ ኩባያዎች)',
+          unitPrice: DEFAULT_JUICE_PRICE,
+          totalUnits: Number(pendingJuiceCupsInput),
+          remainingUnits: Number(pendingJuiceCupsInput),
+          totalAmount: Number(pendingJuiceCupsInput) * DEFAULT_JUICE_PRICE,
+          remainingAmount: Number(pendingJuiceCupsInput) * DEFAULT_JUICE_PRICE,
+          shift: selectedShift,
+          date: selectedDate,
+          createdAt: new Date().toISOString(),
+          status: 'pending'
+        });
+      }
+
+      setPendingDebts(prev => [...newDebts, ...prev]);
     }
 
     // 2. Decrement or complete recovered debts
@@ -995,109 +1071,220 @@ export default function ShiftReconciliation({
 
         {/* ============================================================== */}
         {/* CARD 3: ⏳ PENDING PAYMENTS (UNPAID WITH WAITERS)               */}
+        {/* Multi-Dish Itemized Food & Juice Pending Debts Engine          */}
         {/* ============================================================== */}
         <section className="bg-slate-950 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-4">
-          <div className="flex items-center gap-2.5 border-b border-slate-800/80 pb-3">
-            <span className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg">
-              ⏳
-            </span>
-            <div>
-              <h2 className="text-sm sm:text-base font-black text-white">
-                3. PENDING PAYMENTS (UNPAID WITH WAITERS)
-              </h2>
-              <p className="text-[11px] text-slate-400 font-bold">
-                በአስተናጋጆች እጅ የቀሩ ሳይሰበሰቡ የወጡ ትዕዛዞች (Deducted so cashier is not penalized)
-              </p>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg">
+                ⏳
+              </span>
+              <div>
+                <h2 className="text-sm sm:text-base font-black text-white">
+                  3. PENDING PAYMENTS (UNPAID WITH WAITERS)
+                </h2>
+                <p className="text-[11px] text-slate-400 font-bold">
+                  በአስተናጋጆች እጅ የቀሩ ሳይሰበሰቡ የወጡ ልዩ ልዩ ምግቦችና ጁሶች (Itemized Multi-Dish Waiter Debts)
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Live Summary Pills */}
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-slate-300">
+                🥤 ጁስ፡ <strong className="text-amber-400">{pendingJuiceCupsInput || 0} ኩባያ</strong> ({pendingJuiceAmount.toLocaleString()} ETB)
+              </span>
+              <span className="px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-slate-300">
+                🍱 ምግብ፡ <strong className="text-amber-400">{totalPendingFoodBoxes} ቦክስ</strong> ({totalPendingFoodAmount.toLocaleString()} ETB)
+              </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            
-            {/* Pending Juice (Cups) */}
-            <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 space-y-1">
-              <label className="text-xs font-black text-slate-300 block">
-                Pending Juice (Cups)
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={pendingJuiceCupsInput}
-                onChange={(e) => setPendingJuiceCupsInput(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm font-black text-amber-300"
-                placeholder="4"
-              />
-              <span className="text-[10px] text-slate-500 block">
-                {Number(pendingJuiceCupsInput || 0) * DEFAULT_JUICE_PRICE} ETB
-              </span>
-            </div>
-
-            {/* Pending Food (Boxes) */}
-            <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 space-y-1">
-              <label className="text-xs font-black text-slate-300 block">
-                Pending Food (Boxes)
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={pendingFoodBoxesInput}
-                onChange={(e) => setPendingFoodBoxesInput(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm font-black text-amber-300"
-                placeholder="2"
-              />
-              <span className="text-[10px] text-slate-500 block">
-                ያልተከፈለባቸው ቦክሶች
-              </span>
-            </div>
-
-            {/* Food Type (Dropdown) */}
-            <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 space-y-1">
-              <label className="text-xs font-black text-slate-300 block">
-                Food Type (Item)
-              </label>
-              <select
-                value={pendingFoodDishId}
-                onChange={(e) => setPendingFoodDishId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-black text-white"
-              >
-                {dishesList.map(d => (
-                  <option key={d.id} value={d.id}>
-                    {d.name} ({d.price} ETB)
-                  </option>
-                ))}
-              </select>
-              <span className="text-[10px] text-slate-500 block">
-                የምግብ ዓይነት ምርጫ
-              </span>
-            </div>
-
+          {/* Top Row: Waiter Selection & Juice Cups Input */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {/* Waiter Name */}
-            <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 space-y-1">
+            <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 space-y-1">
               <label className="text-xs font-black text-slate-300 block">
-                Waiter Name (ባለዕዳ አስተናጋጅ)
+                Waiter Name (ባለዕዳ አስተናጋጅ) *
               </label>
               <input
                 type="text"
                 value={pendingWaiterName}
                 onChange={(e) => setPendingWaiterName(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-black text-white"
-                placeholder="Waiter Abel"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-white outline-none focus:border-amber-400"
+                placeholder="ለምሳሌ፡ አቤል (Waiter Abel)"
               />
               <span className="text-[10px] text-slate-500 block">
-                ገንዘቡ የሚጠበቅበት አስተናጋጅ
+                ሳይሰበሰብ የወጣውን ትዕዛዝ የወሰደው አስተናጋጅ ስም
               </span>
             </div>
 
+            {/* Pending Juice (Cups) */}
+            <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 space-y-1">
+              <label className="text-xs font-black text-slate-300 block">
+                Pending Juice (ሳይሰበሰቡ የቀሩ የጁስ ኩባያዎች)
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  value={pendingJuiceCupsInput}
+                  onChange={(e) => setPendingJuiceCupsInput(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-amber-300 outline-none focus:border-amber-400"
+                  placeholder="0"
+                />
+                <span className="text-xs font-bold text-slate-400 whitespace-nowrap bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
+                  {pendingJuiceAmount.toLocaleString()} ETB
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-500 block">
+                {DEFAULT_JUICE_PRICE} ETB / ኩባያ ተባዝቶ ከካዝና ጥሬ ገንዘብ ይቀነሳል
+              </span>
+            </div>
+          </div>
+
+          {/* ITEMIZE PENDING FOOD DISHES CONTAINER */}
+          <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800/90 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">🍱</span>
+                <span className="text-xs font-black text-white uppercase tracking-wider">
+                  የምግብ ዕዳዎች ዝርዝር (Pending Food Dishes — Different Items)
+                </span>
+              </div>
+              <span className="text-[11px] font-black text-amber-300 bg-amber-950/60 border border-amber-500/30 px-2.5 py-0.5 rounded-lg">
+                ድምር: {totalPendingFoodBoxes} ቦክስ • {totalPendingFoodAmount.toLocaleString()} ETB
+              </span>
+            </div>
+
+            {/* Add Dish Line Form */}
+            <form onSubmit={handleAddPendingFoodItem} className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end bg-slate-950 p-3 rounded-xl border border-slate-800">
+              {/* Select Dish (6 cols) */}
+              <div className="sm:col-span-6">
+                <label className="text-[10px] font-black text-slate-400 block mb-1">
+                  የምግብ ዓይነት ይምረጡ (Choose Food Dish)
+                </label>
+                <select
+                  value={selectedPendingDishId}
+                  onChange={(e) => setSelectedPendingDishId(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none focus:border-amber-400"
+                >
+                  {dishesList.map(d => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} ({d.englishName}) — {d.price} ETB
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Quantity (3 cols) */}
+              <div className="sm:col-span-3">
+                <label className="text-[10px] font-black text-slate-400 block mb-1">
+                  የቦክስ ብዛት (Qty)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={selectedPendingDishQty}
+                  onChange={(e) => setSelectedPendingDishQty(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-black text-amber-300 outline-none focus:border-amber-400"
+                />
+              </div>
+
+              {/* Add Button (3 cols) */}
+              <div className="sm:col-span-3">
+                <button
+                  type="submit"
+                  className="w-full py-1.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black text-xs rounded-lg flex items-center justify-center gap-1 shadow-md shadow-amber-900/30 transition-all active:scale-95"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>+ ምግብ ጨምር</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Itemized Food List */}
+            <div className="space-y-2">
+              {pendingFoodItems.length === 0 ? (
+                <div className="p-3 bg-slate-950/60 rounded-xl border border-dashed border-slate-800 text-center text-[11px] text-slate-400 font-bold">
+                  ምንም ያልተመረጠ ምግብ የለም። ከላይ ካለው ሳጥን ምግቡንና ብዛቱን መርጠው "+ ምግብ ጨምር" ይጫኑ።
+                </div>
+              ) : (
+                pendingFoodItems.map((item) => (
+                  <div
+                    key={item.dishId}
+                    className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3 text-xs hover:border-slate-700 transition-all"
+                  >
+                    {/* Item Info */}
+                    <div className="flex items-center gap-2.5 truncate">
+                      <span className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-300 flex items-center justify-center text-xs font-black shrink-0">
+                        🍱
+                      </span>
+                      <div className="truncate">
+                        <span className="font-black text-white block truncate">{item.name}</span>
+                        <span className="text-[10px] text-slate-400 font-bold block">
+                          {item.price} ETB / ቦክስ
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Stepper & Total */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdatePendingFoodQty(item.dishId, -1)}
+                          className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center font-black"
+                          title="ቀንስ"
+                        >
+                          <Minus className="w-2.5 h-2.5" />
+                        </button>
+                        <span className="px-2 font-black text-amber-300 min-w-6 text-center">
+                          {item.qty}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdatePendingFoodQty(item.dishId, 1)}
+                          className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center font-black"
+                          title="ጨምር"
+                        >
+                          <Plus className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+
+                      <span className="font-black text-amber-300 min-w-16 text-right">
+                        {(item.qty * item.price).toLocaleString()} ETB
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePendingFoodItem(item.dishId)}
+                        className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
+                        title="ይህን ምግብ አስወግድ"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           {/* Pending Deduction Banner */}
-          <div className="bg-rose-950/60 border border-rose-500/40 rounded-2xl p-3.5 flex items-center justify-between text-xs text-rose-300">
-            <span className="font-bold flex items-center gap-2">
-              <span>⛔</span>
-              <span>
-                Deducted Pending ({pendingJuiceCupsInput} cups + {pendingFoodBoxesInput} {selectedPendingDish?.name}):
-              </span>
-            </span>
-            <span className="text-sm font-black">
+          <div className="bg-rose-950/60 border border-rose-500/40 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-rose-300">
+            <div className="font-bold flex items-center gap-2">
+              <span className="text-base">⛔</span>
+              <div>
+                <span>
+                  የሚቀነስ ጠቅላላ ዕዳ ({pendingJuiceCupsInput || 0} ኩባያ ጁስ + {totalPendingFoodBoxes} ቦክስ ምግብ):
+                </span>
+                <p className="text-[10px] text-rose-300/80 font-normal mt-0.5">
+                  ባለዕዳ፡ {pendingWaiterName} {pendingFoodItems.length > 0 && `(${pendingFoodItems.map(i => `${i.qty}x ${i.name.split(' ')[0]}`).join(', ')})`}
+                </p>
+              </div>
+            </div>
+            <span className="text-base font-black text-rose-200 whitespace-nowrap self-end sm:self-auto">
               - {deductedPendingDebt.toLocaleString()} ETB
             </span>
           </div>
