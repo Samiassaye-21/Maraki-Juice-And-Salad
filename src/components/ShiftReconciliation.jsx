@@ -334,58 +334,59 @@ export default function ShiftReconciliation({
   }, [dailyExpenses]);
 
   // ==============================================================
-  // SECTION 6: BANK TRANSFERS & SMS ANTI-FRAUD VERIFICATION
+  // SECTION 6: MANUAL BANK & TELEBIRR TRANSFERS (ONE-BY-ONE INPUT)
   // ==============================================================
-  const [bankTransfers, setBankTransfers] = useState([
-    {
-      id: 'txn-1',
-      refNumber: 'FT248902891',
-      channel: 'Telebirr',
-      amount: 2500,
-      isVerified: true
-    }
-  ]);
-  const [newTxnRef, setNewTxnRef] = useState('');
-  const [newTxnAmount, setNewTxnAmount] = useState('');
-  const [newTxnChannel, setNewTxnChannel] = useState('Telebirr');
+  const [bankTransfers, setBankTransfers] = useState(() => {
+    const saved = localStorage.getItem('maraki_shift_manual_transfers');
+    if (saved) return JSON.parse(saved);
+    return [
+      {
+        id: 'txn-1',
+        refNumber: 'FT248902891',
+        channel: 'Telebirr (ቴሌብር)',
+        sender: 'ደንበኛ (Direct)',
+        amount: 2500,
+        time: '11:30 AM'
+      }
+    ];
+  });
 
-  // Manager PIN Override State
-  const [showPinModalForTxn, setShowPinModalForTxn] = useState(null);
-  const [pinOverrideInput, setPinOverrideInput] = useState('');
-  const [pinError, setPinError] = useState(null);
+  useEffect(() => {
+    localStorage.setItem('maraki_shift_manual_transfers', JSON.stringify(bankTransfers));
+  }, [bankTransfers]);
+
+  const [newTxnAmount, setNewTxnAmount] = useState('');
+  const [newTxnChannel, setNewTxnChannel] = useState('Telebirr (ቴሌብር)');
+  const [newTxnRef, setNewTxnRef] = useState('');
+  const [newTxnSender, setNewTxnSender] = useState('');
 
   const handleAddTransfer = (e) => {
-    e.preventDefault();
-    if (!newTxnRef.trim() || !newTxnAmount) return;
-    // Auto-verify if ref starts with FT or TXN, otherwise requires manager PIN
-    const isAutoVerified = newTxnRef.trim().toUpperCase().startsWith('FT') || newTxnRef.trim().toUpperCase().startsWith('TXN');
+    if (e) e.preventDefault();
+    const amt = Number(newTxnAmount);
+    if (!amt || amt <= 0) return;
+
     const newEntry = {
-      id: `txn-${Date.now()}`,
-      refNumber: newTxnRef.trim().toUpperCase(),
+      id: `txn-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+      refNumber: newTxnRef.trim().toUpperCase() || `TRX-${Date.now().toString().slice(-6)}`,
       channel: newTxnChannel,
-      amount: Number(newTxnAmount) || 0,
-      isVerified: isAutoVerified
+      sender: newTxnSender.trim() || 'ደንበኛ (Customer)',
+      amount: amt,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
+
     setBankTransfers(prev => [...prev, newEntry]);
-    setNewTxnRef('');
     setNewTxnAmount('');
+    setNewTxnRef('');
+    setNewTxnSender('');
   };
 
   const handleRemoveTransfer = (id) => {
     setBankTransfers(prev => prev.filter(t => t.id !== id));
   };
 
-  const handleVerifyWithPin = (e) => {
-    e.preventDefault();
-    if (pinOverrideInput.trim() === '1234' || pinOverrideInput.trim() === '0000') {
-      if (showPinModalForTxn) {
-        setBankTransfers(prev => prev.map(t => t.id === showPinModalForTxn.id ? { ...t, isVerified: true } : t));
-      }
-      setShowPinModalForTxn(null);
-      setPinOverrideInput('');
-      setPinError(null);
-    } else {
-      setPinError('❌ የተሳሳተ ማናጀር ፒን ነው (Default PIN: 1234)');
+  const handleClearAllTransfers = () => {
+    if (window.confirm('ሁሉንም የተመዘገቡ የባንክና ቴሌብር ዝውውሮች ማጽዳት ይፈልጋሉ? (Clear all transfers?)')) {
+      setBankTransfers([]);
     }
   };
 
@@ -1310,7 +1311,7 @@ export default function ShiftReconciliation({
         </section>
 
         {/* ============================================================== */}
-        {/* CARD 6: 💳 BANK TRANSFERS & SMS ANTI-FRAUD VERIFICATION        */}
+        {/* CARD 6: 💳 BANK & TELEBIRR TRANSFERS (MANUAL ONE-BY-ONE INPUT) */}
         {/* ============================================================== */}
         <section className="bg-slate-950 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
@@ -1320,102 +1321,179 @@ export default function ShiftReconciliation({
               </span>
               <div>
                 <h2 className="text-sm sm:text-base font-black text-white">
-                  6. BANK TRANSFERS & SMS ANTI-FRAUD VERIFICATION
+                  6. BANK & TELEBIRR TRANSFERS (የባንክና ቴሌብር ዝውውር መመዝገቢያ)
                 </h2>
                 <p className="text-[11px] text-slate-400 font-bold">
-                  በቴሌብርና በባንክ የተከፈሉ (Deducted from drawer cash because funds are in bank)
+                  በእጅ የሚመዘገብ የባንክና ቴሌብር ዝውውር — አንድ በአንድ እራስዎ ያስገቡ (Manual One-by-One Input)
                 </p>
               </div>
             </div>
-            <span className="text-xs font-black text-purple-400 bg-purple-950/60 border border-purple-500/30 px-3 py-1 rounded-xl">
-              - {totalBankTransfers.toLocaleString()} ETB
-            </span>
+            <div className="flex items-center gap-2">
+              {bankTransfers.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearAllTransfers}
+                  className="text-[11px] text-slate-400 hover:text-rose-400 underline font-bold px-2 py-1"
+                >
+                  ሁሉንም አጽዳ (Clear All)
+                </button>
+              )}
+              <span className="text-xs font-black text-purple-400 bg-purple-950/60 border border-purple-500/30 px-3 py-1 rounded-xl">
+                - {totalBankTransfers.toLocaleString()} ETB ({bankTransfers.length} ዝውውሮች)
+              </span>
+            </div>
           </div>
 
-          {/* Transfers List */}
-          <div className="space-y-2">
-            {bankTransfers.map(txn => (
-              <div
-                key={txn.id}
-                className="bg-slate-900 px-4 py-3 rounded-2xl border border-slate-800 flex items-center justify-between gap-3 text-xs"
+          {/* Quick Preset Amount Buttons */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="text-[11px] text-slate-400 font-bold mr-1">
+              ፈጣን መጠን (Quick Presets):
+            </span>
+            {[100, 150, 180, 200, 250, 300, 430, 500, 1000].map(amt => (
+              <button
+                key={amt}
+                type="button"
+                onClick={() => setNewTxnAmount(amt.toString())}
+                className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-purple-300 border border-purple-500/30 rounded-xl text-xs font-black transition-all active:scale-95"
               >
-                <div className="flex items-center gap-3">
-                  <span className="font-black text-white tracking-wider">
-                    {txn.refNumber}
-                  </span>
-                  <span className="text-[10px] text-slate-400 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
-                    {txn.channel}
-                  </span>
-                  {txn.isVerified ? (
-                    <span className="text-[10px] font-black text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>VERIFIED SMS</span>
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setShowPinModalForTxn(txn)}
-                      className="text-[10px] font-black text-rose-300 bg-rose-950/60 border border-rose-500/30 px-2 py-0.5 rounded-full flex items-center gap-1 hover:bg-rose-900"
-                    >
-                      <AlertTriangle className="w-3 h-3" />
-                      <span>UNVERIFIED (PIN Override)</span>
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="font-black text-white">
-                    {txn.amount.toLocaleString()} ETB
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTransfer(txn.id)}
-                    className="text-slate-500 hover:text-rose-400 p-1"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
+                +{amt}
+              </button>
             ))}
           </div>
 
-          {/* Inline Add Transfer Form */}
-          <form onSubmit={handleAddTransfer} className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-800/80">
-            <input
-              type="text"
-              required
-              value={newTxnRef}
-              onChange={(e) => setNewTxnRef(e.target.value)}
-              placeholder="Reference # (e.g. FT248902891)"
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white uppercase outline-none focus:border-purple-400"
-            />
-            <select
-              value={newTxnChannel}
-              onChange={(e) => setNewTxnChannel(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-xs font-bold text-slate-300 outline-none"
-            >
-              <option value="Telebirr">Telebirr (ቴሌብር)</option>
-              <option value="CBE Birr">CBE Birr (ንግድ ባንክ)</option>
-              <option value="Awash Bank">Awash Bank (አዋሽ)</option>
-              <option value="Other Bank">Other Bank</option>
-            </select>
-            <input
-              type="number"
-              required
-              step="any"
-              value={newTxnAmount}
-              onChange={(e) => setNewTxnAmount(e.target.value)}
-              placeholder="መጠን (ETB)"
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-purple-300 outline-none focus:border-purple-400"
-            />
-            <button
-              type="submit"
-              className="py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1 transition-all"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>ዝውውር ጨምር</span>
-            </button>
+          {/* Inline Manual Add Transfer Form */}
+          <form onSubmit={handleAddTransfer} className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+            {/* Amount */}
+            <div>
+              <label className="text-[11px] font-black text-purple-300 block mb-1">
+                የተከፈለ መጠን (Amount ETB) *
+              </label>
+              <input
+                type="number"
+                required
+                step="any"
+                min="1"
+                value={newTxnAmount}
+                onChange={(e) => setNewTxnAmount(e.target.value)}
+                placeholder="ለምሳሌ፡ 250"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-purple-300 outline-none focus:border-purple-400"
+              />
+            </div>
+
+            {/* Channel / Service */}
+            <div>
+              <label className="text-[11px] font-black text-slate-300 block mb-1">
+                የክፍያ መስመር (Channel) *
+              </label>
+              <select
+                value={newTxnChannel}
+                onChange={(e) => setNewTxnChannel(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-200 outline-none focus:border-purple-400"
+              >
+                <option value="Telebirr (ቴሌብር)">📱 Telebirr (ቴሌብር)</option>
+                <option value="CBE Birr (ንግድ ባንክ)">🏦 CBE Birr (ንግድ ባንክ)</option>
+                <option value="Awash Bank (አዋሽ)">🏛️ Awash Bank (አዋሽ ባንክ)</option>
+                <option value="Dashen Bank (ዳሽን)">🏦 Dashen Bank (ዳሽን ባንክ)</option>
+                <option value="Other Bank (ሌላ ባንክ)">💳 Other Bank (ሌላ ባንክ)</option>
+              </select>
+            </div>
+
+            {/* Reference Number / Transaction ID */}
+            <div>
+              <label className="text-[11px] font-black text-slate-300 block mb-1">
+                የትራንዛክሽን ቁጥር (Ref / TXN #)
+              </label>
+              <input
+                type="text"
+                value={newTxnRef}
+                onChange={(e) => setNewTxnRef(e.target.value)}
+                placeholder="e.g. FT248902891"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white uppercase outline-none focus:border-purple-400"
+              />
+            </div>
+
+            {/* Sender / Customer Name or Phone */}
+            <div>
+              <label className="text-[11px] font-black text-slate-300 block mb-1">
+                የከፋዩ ስም / ስልክ (Sender - Optional)
+              </label>
+              <input
+                type="text"
+                value={newTxnSender}
+                onChange={(e) => setNewTxnSender(e.target.value)}
+                placeholder="e.g. አበበ / 0911..."
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-purple-400"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex items-end">
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-md shadow-purple-900/30 transition-all active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ ዝውውር መዝግብ</span>
+              </button>
+            </div>
           </form>
+
+          {/* List of Entered Transfers (One by One) */}
+          <div className="space-y-2 pt-1">
+            {bankTransfers.length === 0 ? (
+              <div className="p-4 bg-slate-900/50 rounded-2xl border border-slate-800 text-center text-xs text-slate-400 font-bold space-y-1">
+                <p>ℹ️ እስካሁን በእጅ የተመዘገበ የባንክ ወይም የቴሌብር ዝውውር የለም።</p>
+                <p className="text-[11px] text-slate-500">
+                  ደንበኞች በቴሌብር፣ በንግድ ባንክ ወይም በሌላ ባንክ የከፈሉትን ከላይ ያለውን ፎርም ተጠቅመው አንድ በአንድ ያስገቡ።
+                </p>
+              </div>
+            ) : (
+              bankTransfers.map((txn, index) => (
+                <div
+                  key={txn.id || index}
+                  className="bg-slate-900 px-4 py-3 rounded-2xl border border-slate-800 hover:border-purple-500/40 transition-all flex flex-wrap items-center justify-between gap-3 text-xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-lg bg-slate-800 text-slate-400 text-[10px] font-black flex items-center justify-center border border-slate-700">
+                      #{index + 1}
+                    </span>
+                    <span className="text-xs font-black text-purple-300 bg-purple-950/60 border border-purple-500/30 px-2.5 py-1 rounded-xl">
+                      {txn.channel}
+                    </span>
+                    <div>
+                      <p className="font-black text-white tracking-wider flex items-center gap-2">
+                        <span>{txn.refNumber}</span>
+                        {txn.sender && (
+                          <span className="text-[10px] font-normal text-slate-400">
+                            • {txn.sender}
+                          </span>
+                        )}
+                      </p>
+                      {txn.time && (
+                        <p className="text-[10px] text-slate-500">
+                          ሰዓት፡ {txn.time}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="font-black text-base text-purple-300">
+                      {txn.amount.toLocaleString()} <span className="text-xs text-slate-400">ETB</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTransfer(txn.id)}
+                      className="p-1.5 bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 rounded-xl transition-colors border border-slate-700 hover:border-rose-500/40"
+                      title="ዝውውር ሰርዝ"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </section>
 
         {/* ============================================================== */}
@@ -1661,55 +1739,7 @@ export default function ShiftReconciliation({
         </div>
       )}
 
-      {/* ============================================================== */}
-      {/* MODAL 2: MANAGER PIN OVERRIDE FOR UNVERIFIED TRANSFERS          */}
-      {/* ============================================================== */}
-      {showPinModalForTxn && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-slate-950 border border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center justify-center text-xl mx-auto">
-              <Key className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="font-black text-sm text-white">የማናጀር ፒን ማረጋገጫ (Manager PIN Override)</h3>
-              <p className="text-[11px] text-slate-400 font-bold mt-1">
-                ይህ የባንክ ዝውውር ({showPinModalForTxn.refNumber}) በ SMS አልተረጋገጠም፤ ለማጽደቅ የማናጀር ፒን ያስገቡ።
-              </p>
-            </div>
 
-            <form onSubmit={handleVerifyWithPin} className="space-y-3">
-              <input
-                type="password"
-                autoFocus
-                required
-                maxLength={6}
-                value={pinOverrideInput}
-                onChange={(e) => setPinOverrideInput(e.target.value)}
-                placeholder="Manager PIN (e.g. 1234)"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-center text-lg font-black text-amber-300 tracking-widest outline-none"
-              />
-              {pinError && (
-                <p className="text-xs text-rose-400 font-bold">{pinError}</p>
-              )}
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => { setShowPinModalForTxn(null); setPinOverrideInput(''); setPinError(null); }}
-                  className="flex-1 py-2 bg-slate-900 text-slate-400 rounded-xl text-xs font-bold"
-                >
-                  ሰርዝ
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2 bg-amber-500 text-slate-950 rounded-xl text-xs font-black"
-                >
-                  አጽድቅ
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* ============================================================== */}
       {/* MODAL 3: PAST SETTLEMENTS HISTORY LOG                          */}

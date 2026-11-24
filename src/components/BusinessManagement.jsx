@@ -42,6 +42,7 @@ import {
   RotateCcw,
   Copy
 } from 'lucide-react';
+import ScheduleCalendarRemindMe from './ScheduleCalendarRemindMe';
 
 // ==============================================================
 // ETHIOPIAN CALENDAR CONVERSION HELPER
@@ -559,6 +560,16 @@ export default function BusinessManagement({
     });
   };
 
+  const handleInitiatePayment = (type, item, amount) => {
+    setActivePaymentSheet({
+      type,
+      item,
+      amount: amount || (item && (item.amount || item.estimatedTotal)) || 0,
+      paymentMethod: 'Cash',
+      date: new Date().toISOString().split('T')[0]
+    });
+  };
+
   // Pay/Receive Confirmation from Sheet
   const handleConfirmPaymentSheet = () => {
     if (isActionLocked || !activePaymentSheet) return;
@@ -942,6 +953,7 @@ export default function BusinessManagement({
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
           {[
             { id: 'home', label: '🏠 መነሻ (Home)', badge: null },
+            { id: 'schedule', label: '📅 ቀን መቁጠሪያ (Schedule)', badge: null },
             { id: 'topay', label: '💳 ክፍያዎች (To Pay)', badge: recurringExpenses.filter(r => r.id === 'rec-2').length + purchasePlans.filter(p => p.status === 'Planned').length },
             { id: 'expenses', label: '💸 ወጪዎች (Expenses)', badge: actualExpenses.length },
             { id: 'plans', label: '🎯 እቅዶች (Plans)', badge: tasks.filter(t => t.status !== 'Done').length },
@@ -1364,6 +1376,28 @@ export default function BusinessManagement({
       )}
 
       {/* ============================================================== */}
+      {/* TAB: 📅 SCHEDULE (ቀን መቁጠሪያና ቀጠሮ - REMINDME UI)           */}
+      {/* ============================================================== */}
+      {activeTab === 'schedule' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <ScheduleCalendarRemindMe
+            recurringExpenses={recurringExpenses}
+            purchasePlans={purchasePlans}
+            salaryPlans={salaryPlans}
+            actualExpenses={actualExpenses}
+            dayCloses={dayCloses}
+            sentOrders={orders}
+            onNavigateTab={(tab) => setActiveTab(tab)}
+            onInitiatePayment={handleInitiatePayment}
+            onOpenSettings={() => setShowSettingsModal(true)}
+            onOpenKitchen={() => {
+              window.location.href = window.location.origin + '/?system=chef';
+            }}
+          />
+        </div>
+      )}
+
+      {/* ============================================================== */}
       {/* 2. TAB: 💳 TO PAY (ክፍያዎች)                                     */}
       {/* ============================================================== */}
       {activeTab === 'topay' && (
@@ -1615,39 +1649,23 @@ export default function BusinessManagement({
             </div>
           )}
 
-          {/* CALENDAR VIEW */}
+          {/* CALENDAR VIEW (FULL REMINDME SCHEDULE UI) */}
           {toPayView === 'calendar' && (
-            <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
-              <h4 className="font-black text-sm text-slate-900">📅 የተጠቃለለ የቀን መቁጠሪያ (Ethiopian Calendar Timeline)</h4>
-              <div className="space-y-2.5">
-                {[
-                  { date: 'ኅዳር 11', title: 'የመብራት ክፍያ (Electricity Bill)', amount: '2,500 ETB', type: 'Overdue Bill', tagColor: 'bg-rose-100 text-rose-800' },
-                  { date: 'ኅዳር 19', title: 'የውሃ ክፍያ (Water Supply Bill)', amount: '1,200 ETB', type: 'Due Soon', tagColor: 'bg-amber-100 text-amber-800' },
-                  { date: 'ኅዳር 22', title: 'የቤት ኪራይ (Shop Rent Payment)', amount: '15,000 ETB', type: 'Rent Obligation', tagColor: 'bg-slate-100 text-slate-900' },
-                  { date: 'ኅዳር 22', title: 'የሰራተኞች ወርሃዊ ደመወዝ (Staff Salaries)', amount: '15,100 ETB', type: 'Payroll', tagColor: 'bg-teal-100 text-teal-800' },
-                  { date: 'ኅዳር 22', title: 'የብርቱካን ግዢ ከመርካቶ (Orange 50kg)', amount: '6,000 ETB', type: 'Fruit Purchase', tagColor: 'bg-emerald-100 text-emerald-800' },
-                  { date: 'ኅዳር 23', title: 'የማንጎ ግዢ (Mango 30kg)', amount: '4,200 ETB', type: 'Fruit Purchase', tagColor: 'bg-emerald-100 text-emerald-800' },
-                  { date: 'ኅዳር 26', title: 'ዋይፋይ / ኢንተርኔት (WiFi Internet)', amount: '1,800 ETB', type: 'Bills', tagColor: 'bg-slate-100 text-slate-800' },
-                  { date: 'ኅዳር 26', title: 'የጁስ ኩባያ ግዢ (500 pcs Juice Cups)', amount: '4,000 ETB', type: 'Supplies', tagColor: 'bg-slate-100 text-slate-800' },
-                  { date: 'ታኅሣሥ 6', title: 'የማሽን ግብ ቀነ-ገደብ (High-Speed Blenders Deadline)', amount: '25,000 ETB', type: 'Asset Goal', tagColor: 'bg-indigo-100 text-indigo-800' },
-                  { date: 'ታኅሣሥ 22', title: 'የፍሪጅ ግብ ቀነ-ገደብ (Display Refrigerator Deadline)', amount: '75,000 ETB', type: 'Asset Goal', tagColor: 'bg-indigo-100 text-indigo-800' }
-                ].map((event, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-16 h-10 rounded-xl bg-white border border-slate-200 flex flex-col items-center justify-center font-black text-slate-900 text-xs shadow-2xs">
-                        <span>{event.date}</span>
-                      </div>
-                      <div>
-                        <span className="text-xs font-black text-slate-900 block">{event.title}</span>
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full inline-block mt-0.5 ${event.tagColor}`}>
-                          {event.type}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="font-black text-xs text-slate-900">{event.amount}</span>
-                  </div>
-                ))}
-              </div>
+            <div className="space-y-4">
+              <ScheduleCalendarRemindMe
+                recurringExpenses={recurringExpenses}
+                purchasePlans={purchasePlans}
+                salaryPlans={salaryPlans}
+                actualExpenses={actualExpenses}
+                dayCloses={dayCloses}
+                sentOrders={orders}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+                onInitiatePayment={handleInitiatePayment}
+                onOpenSettings={() => setShowSettingsModal(true)}
+                onOpenKitchen={() => {
+                  window.location.href = window.location.origin + '/?system=chef';
+                }}
+              />
             </div>
           )}
 
@@ -2310,528 +2328,24 @@ export default function BusinessManagement({
           </div>
 
           {/* ============================================================== */}
-          {/* REPORT SUB 0: CALENDAR REPORT & SCHEDULE (LIKE REMINDME UI)    */}
+          {/* REPORT SUB 0: CALENDAR REPORT & SCHEDULE (EXACT REMINDME UI)   */}
           {/* ============================================================== */}
           {reportsSubTab === 'calendar' && (
-            <div className="bg-[#FAF8FF] p-3 sm:p-6 rounded-[32px] border border-indigo-100 shadow-xl space-y-5 animate-in fade-in duration-300">
-              
-              {/* TOP HEADER & GREETING BAR (EXACT DESIGN FROM USER REFERENCE) */}
-              <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-                
-                {/* Greeting & Subtitle */}
-                <div>
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-2.5 h-6 rounded-full bg-indigo-600 block"></span>
-                    <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                      የማራኪ የሪፖርት ማዕከል (Report & Schedule Center)
-                    </h2>
-                  </div>
-                  <p className="text-xs text-slate-400 font-bold mt-1 pl-5">
-                    የዕለትና ወርሃዊ የሽያጭ ገቢ፣ ወጪዎች፣ የፈረቃ ኦዲትና የክፍያዎች ሙሉ መቆጣጠሪያ
-                  </p>
-                </div>
-
-                {/* Search Bar & Profile */}
-                <div className="flex items-center gap-3">
-                  <div className="relative w-full md:w-64">
-                    <input
-                      type="text"
-                      placeholder="ፈልግ / Search order, expense..."
-                      value={calendarSearch}
-                      onChange={(e) => setCalendarSearch(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-9 pr-3.5 py-2 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  </div>
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-md shadow-indigo-600/30 shrink-0 text-base">
-                    👑
-                  </div>
-                </div>
-
-              </div>
-
-              {/* MONTH CONTROLS BAR: VIEW SWITCHER + MONTH TITLE + ADD BUTTON */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white/80 backdrop-blur-sm p-3 rounded-2xl border border-indigo-100/60">
-                
-                {/* View Switcher Pills: Month | Week | Day */}
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl self-start">
-                  {[
-                    { id: 'month', label: 'ወርሃዊ (Month)' },
-                    { id: 'week', label: 'ሳምንታዊ (Week)' },
-                    { id: 'day', label: 'ዕለታዊ (Day)' }
-                  ].map(v => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => setCalendarViewMode(v.id)}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
-                        calendarViewMode === v.id
-                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      {v.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Month Name & Arrows */}
-                <div className="flex items-center gap-2 self-center sm:self-auto">
-                  <h3 className="font-black text-sm sm:text-base text-slate-900 flex items-center gap-1.5">
-                    <span>ኅዳር 2019 ዓ.ም</span>
-                    <span className="text-xs text-slate-400 font-bold">(November 2026)</span>
-                  </h3>
-                  <div className="flex items-center gap-1 ml-1">
-                    <button
-                      type="button"
-                      onClick={() => alert('የቀደመ ወር (ጥቅምት 2019 ዓ.ም)')}
-                      className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center active:scale-95 transition-all"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => alert('ቀጣይ ወር (ታኅሣሥ 2019 ዓ.ም)')}
-                      className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center active:scale-95 transition-all"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* + Add Quick Button */}
-                <div className="flex items-center gap-2 self-end sm:self-auto">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormInputs({ date: selectedCalendarDate, paymentMethod: 'Cash', category: 'Ingredients' });
-                      setActiveQuickAddModal('expense');
-                    }}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-indigo-600/30 active:scale-95 transition-all"
-                  >
-                    <Plus className="w-4 h-4 stroke-[3]" />
-                    <span>+ Add (+ መዝግብ)</span>
-                  </button>
-                </div>
-
-              </div>
-
-              {/* TWO-COLUMN LAYOUT: MAIN CALENDAR GRID (LEFT) + DETAIL & MINI-CALENDAR PANEL (RIGHT) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-                
-                {/* ============================================================== */}
-                {/* LEFT: CALENDAR SCHEDULE GRID (8 COLUMNS ON LG)                 */}
-                {/* ============================================================== */}
-                <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200/80 shadow-sm p-4 sm:p-5 space-y-3">
-                  
-                  {/* Category Filter Pills */}
-                  <div className="flex items-center gap-1.5 flex-wrap pb-2 border-b border-slate-100">
-                    <span className="text-[10px] font-black uppercase text-slate-400 mr-1">አሳይ:</span>
-                    {[
-                      { id: 'all', label: 'ሁሉም (All Events)' },
-                      { id: 'sales', label: '💰 ሽያጭ (Sales)' },
-                      { id: 'expenses', label: '💸 ወጪዎች (Expenses)' },
-                      { id: 'bills', label: '🏢 ክፍያዎችና ግዢዎች' }
-                    ].map(f => (
-                      <button
-                        key={f.id}
-                        type="button"
-                        onClick={() => setCalendarFilter(f.id)}
-                        className={`px-2.5 py-1 rounded-xl text-[11px] font-black transition-all ${
-                          calendarFilter === f.id
-                            ? 'bg-indigo-600 text-white shadow-2xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* 7 WEEKDAY HEADERS */}
-                  <div className="grid grid-cols-7 gap-1 text-center font-black text-[11px] text-slate-400 uppercase py-1">
-                    <div>Sun (እሁድ)</div>
-                    <div>Mon (ሰኞ)</div>
-                    <div>Tue (ማክሰኞ)</div>
-                    <div>Wed (ረቡዕ)</div>
-                    <div>Thu (ሐሙስ)</div>
-                    <div>Fri (አርብ)</div>
-                    <div>Sat (ቅዳሜ)</div>
-                  </div>
-
-                  {/* CALENDAR CELLS GRID (35 CELLS) */}
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {calendarGridDays.map((cell, idx) => {
-                      if (!cell.isCurrentMonth) {
-                        return (
-                          <div 
-                            key={idx}
-                            className="min-h-[85px] sm:min-h-[105px] p-1.5 rounded-2xl bg-slate-50/50 border border-slate-100 text-slate-300 text-xs font-bold select-none"
-                          >
-                            <span className="text-[11px] opacity-60">{cell.dayNum}</span>
-                          </div>
-                        );
-                      }
-
-                      const isSelected = selectedCalendarDate === cell.isoDate;
-                      const isToday = cell.dayNum === 14;
-
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => setSelectedCalendarDate(cell.isoDate)}
-                          className={`min-h-[85px] sm:min-h-[105px] p-1.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between group ${
-                            isSelected
-                              ? 'bg-indigo-50/40 border-2 border-indigo-600 shadow-md shadow-indigo-600/10'
-                              : isToday
-                              ? 'bg-amber-50/30 border-amber-300 hover:border-indigo-400'
-                              : 'bg-white border-slate-200/80 hover:border-indigo-300 hover:bg-slate-50/50'
-                          }`}
-                        >
-                          {/* Day Number Header */}
-                          <div className="flex items-center justify-between">
-                            <span className={`text-xs font-black w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-                              isSelected
-                                ? 'bg-indigo-600 text-white shadow-2xs'
-                                : isToday
-                                ? 'bg-amber-400 text-slate-950 font-black'
-                                : 'text-slate-800 group-hover:text-indigo-600'
-                            }`}>
-                              {cell.dayNum}
-                            </span>
-                            <span className="text-[9px] font-bold text-slate-400 hidden sm:inline">
-                              {cell.gregDateStr}
-                            </span>
-                          </div>
-
-                          {/* Event Badges inside the cell */}
-                          <div className="space-y-1 mt-1">
-                            
-                            {/* Sales Badge */}
-                            {(calendarFilter === 'all' || calendarFilter === 'sales') && cell.daySales > 0 && (
-                              <div className="px-1.5 py-0.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-black truncate flex items-center gap-1" title={`${cell.daySales} ETB Sales`}>
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
-                                <span className="truncate">+${cell.daySales.toLocaleString()} ETB</span>
-                              </div>
-                            )}
-
-                            {/* Expenses Badge */}
-                            {(calendarFilter === 'all' || calendarFilter === 'expenses') && cell.dayExpenses > 0 && (
-                              <div className="px-1.5 py-0.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-black truncate flex items-center gap-1" title={`${cell.dayExpenses} ETB Expenses`}>
-                                <span className="w-1.5 h-1.5 rounded-full bg-rose-600 shrink-0"></span>
-                                <span className="truncate">-${cell.dayExpenses.toLocaleString()} ETB</span>
-                              </div>
-                            )}
-
-                            {/* Bills Due Badge */}
-                            {(calendarFilter === 'all' || calendarFilter === 'bills') && cell.bills.map((b, bIdx) => (
-                              <div key={bIdx} className="px-1.5 py-0.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[9px] font-black truncate flex items-center gap-0.5" title={`${b.name} (${b.amount} ETB)`}>
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
-                                <span className="truncate">{b.name}</span>
-                              </div>
-                            ))}
-
-                            {/* Fruit Purchase Badge */}
-                            {(calendarFilter === 'all' || calendarFilter === 'bills') && cell.purchases.map((p, pIdx) => (
-                              <div key={pIdx} className="px-1.5 py-0.5 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 text-[9px] font-black truncate flex items-center gap-0.5" title={`${p.itemName} (${p.estimatedTotal} ETB)`}>
-                                <span>🍏</span>
-                                <span className="truncate">{p.itemName}</span>
-                              </div>
-                            ))}
-
-                            {/* Salary Badge */}
-                            {(calendarFilter === 'all' || calendarFilter === 'bills') && cell.salaries.length > 0 && (
-                              <div className="px-1.5 py-0.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 text-[9px] font-black truncate flex items-center gap-0.5" title="Staff Salaries">
-                                <span>👥</span>
-                                <span className="truncate">ደመወዝ</span>
-                              </div>
-                            )}
-
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                </div>
-
-                {/* ============================================================== */}
-                {/* RIGHT: DETAIL & MINI-CALENDAR PANEL (4 COLUMNS ON LG)          */}
-                {/* ============================================================== */}
-                <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5 space-y-4">
-                  
-                  {/* Top Switcher: Reminders / All / Sales / Expenses */}
-                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl">
-                    {[
-                      { id: 'all', label: 'ሁሉም' },
-                      { id: 'orders', label: 'ትዕዛዞች' },
-                      { id: 'expenses', label: 'ወጪዎች' },
-                      { id: 'bills', label: 'ክፍያዎች' }
-                    ].map(t => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setCalendarDayTab(t.id)}
-                        className={`flex-1 py-1 rounded-xl text-[11px] font-black transition-all ${
-                          calendarDayTab === t.id ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
-                        }`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Selected Day Title & Timeframe */}
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black uppercase text-indigo-600 tracking-wider">
-                      የተመረጠው ቀን (Selected Date)
-                    </span>
-                    <h4 className="text-base font-black text-slate-900">
-                      {toEthiopianDateString(selectedCalendarDate)}
-                    </h4>
-                    <p className="text-[11px] text-slate-400 font-bold">
-                      {selectedCalendarDate} • የሙሉ ቀን ኦዲት
-                    </p>
-                  </div>
-
-                  {/* Time Range Pills (Like in image) */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/60">
-                      <span className="text-[10px] font-bold text-slate-400 block">From:</span>
-                      <span className="font-black text-slate-800">08:00 AM (ጥዋት)</span>
-                    </div>
-                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/60">
-                      <span className="text-[10px] font-bold text-slate-400 block">To:</span>
-                      <span className="font-black text-slate-800">10:00 PM (ማታ)</span>
-                    </div>
-                  </div>
-
-                  {/* MINI CALENDAR PICKER WIDGET (EXACT REPLICA FROM IMAGE!) */}
-                  <div className="bg-slate-50/70 p-3 rounded-2xl border border-slate-200/60 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-black text-slate-700 px-1">
-                      <span>ኅዳር 2019 (Nov 2026)</span>
-                      <span className="text-[10px] text-indigo-600 font-black">ቀን ምረጥ</span>
-                    </div>
-
-                    {/* Mini Weekday Headers */}
-                    <div className="grid grid-cols-7 gap-1 text-center font-black text-[10px] text-slate-400">
-                      <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
-                    </div>
-
-                    {/* Mini Calendar 35 Cells */}
-                    <div className="grid grid-cols-7 gap-1 text-center text-xs">
-                      {calendarGridDays.map((cell, idx) => {
-                        if (!cell.isCurrentMonth) {
-                          return (
-                            <span key={idx} className="text-[11px] text-slate-300 py-1">
-                              {cell.dayNum}
-                            </span>
-                          );
-                        }
-
-                        const isSel = selectedCalendarDate === cell.isoDate;
-                        return (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => setSelectedCalendarDate(cell.isoDate)}
-                            className={`py-1 text-[11px] font-black rounded-full transition-all flex items-center justify-center ${
-                              isSel
-                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                                : cell.dayNum === 14
-                                ? 'bg-amber-300 text-slate-950 font-black'
-                                : 'text-slate-700 hover:bg-slate-200'
-                            }`}
-                          >
-                            {cell.dayNum}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* SELECTED DAY FINANCIAL SUMMARY CARDS */}
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-emerald-50 border border-emerald-200 p-2 rounded-2xl">
-                      <span className="text-[9px] font-black uppercase text-emerald-700 block">ሽያጭ (Sales)</span>
-                      <span className="text-xs sm:text-sm font-black text-emerald-900 block mt-0.5">
-                        +{selectedDayData.sales.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="bg-rose-50 border border-rose-200 p-2 rounded-2xl">
-                      <span className="text-[9px] font-black uppercase text-rose-700 block">ወጪ (Expenses)</span>
-                      <span className="text-xs sm:text-sm font-black text-rose-900 block mt-0.5">
-                        -{selectedDayData.expensesTotal.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="bg-slate-900 text-white p-2 rounded-2xl shadow-sm">
-                      <span className="text-[9px] font-black uppercase text-amber-300 block">የተጣራ (Net)</span>
-                      <span className={`text-xs sm:text-sm font-black block mt-0.5 ${selectedDayData.netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {selectedDayData.netProfit.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* ITEMIZED TRANSACTION LIST FOR SELECTED DAY */}
-                  <div className="space-y-2 pt-1 border-t border-slate-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-slate-900">የዕለቱ ሙሉ ዝርዝር (Day Log)</span>
-                      <span className="text-[10px] text-slate-400 font-bold">
-                        {selectedDayData.itemsCount} ዝርዝሮች
-                      </span>
-                    </div>
-
-                    <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
-                      {selectedDayData.itemsCount === 0 ? (
-                        <div className="text-center py-6 text-slate-400 font-bold text-xs bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                          በዚህ ቀን ምንም የተመዘገበ እንቅስቃሴ የለም (No activity logged)
-                        </div>
-                      ) : (
-                        <>
-                          {/* Orders */}
-                          {(calendarDayTab === 'all' || calendarDayTab === 'orders') && selectedDayData.orders.map((ord, oIdx) => (
-                            <div key={ord.id || oIdx} className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2 text-xs">
-                              <div>
-                                <span className="font-black text-slate-900 block truncate">
-                                  {ord.foodSummary || (ord.items && ord.items.map(i => `${i.qty}x ${i.name}`).join(', '))}
-                                </span>
-                                <span className="text-[10px] text-slate-400 font-bold block">
-                                  {ord.waiterName || 'Staff'} • {ord.shiftType || 'Day Shift'}
-                                </span>
-                              </div>
-                              <span className="font-black text-emerald-700 whitespace-nowrap">
-                                +{(ord.totalAmount || 0).toLocaleString()} ETB
-                              </span>
-                            </div>
-                          ))}
-
-                          {/* Expenses */}
-                          {(calendarDayTab === 'all' || calendarDayTab === 'expenses') && selectedDayData.expenses.map((exp) => (
-                            <div key={exp.id} className="p-2.5 rounded-2xl bg-rose-50/60 border border-rose-200/80 flex items-center justify-between gap-2 text-xs">
-                              <div>
-                                <span className="font-black text-slate-900 block truncate">
-                                  {exp.title}
-                                </span>
-                                <span className="text-[10px] text-slate-400 font-bold block">
-                                  {exp.category} • {exp.paymentMethod || 'Cash'}
-                                </span>
-                              </div>
-                              <span className="font-black text-rose-600 whitespace-nowrap">
-                                -{exp.amount.toLocaleString()} ETB
-                              </span>
-                            </div>
-                          ))}
-
-                          {/* Scheduled Bills */}
-                          {(calendarDayTab === 'all' || calendarDayTab === 'bills') && selectedDayData.bills.map((b) => (
-                            <div key={b.id} className="p-2.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-2 text-xs">
-                              <div>
-                                <span className="font-black text-amber-900 block truncate">
-                                  🏢 {b.name}
-                                </span>
-                                <span className="text-[10px] text-amber-700 font-bold block">
-                                  መደበኛ ክፍያ ({b.category})
-                                </span>
-                              </div>
-                              <div className="text-right">
-                                <span className="font-black text-amber-900 block">
-                                  {b.amount.toLocaleString()} ETB
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleInitiatePayment('bill', b, b.amount)}
-                                  className="text-[10px] font-black text-emerald-700 hover:underline"
-                                >
-                                  አሁን ክፈል →
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-
-                          {/* Scheduled Purchases */}
-                          {(calendarDayTab === 'all' || calendarDayTab === 'bills') && selectedDayData.purchases.map((p) => (
-                            <div key={p.id} className="p-2.5 rounded-2xl bg-teal-50 border border-teal-200 flex items-center justify-between gap-2 text-xs">
-                              <div>
-                                <span className="font-black text-teal-900 block truncate">
-                                  🍏 {p.itemName} ({p.quantity} {p.unit})
-                                </span>
-                                <span className="text-[10px] text-teal-700 font-bold block">
-                                  {p.supplier}
-                                </span>
-                              </div>
-                              <div className="text-right">
-                                <span className="font-black text-teal-900 block">
-                                  {p.estimatedTotal.toLocaleString()} ETB
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleInitiatePayment('fruit', p, p.estimatedTotal)}
-                                  className="text-[10px] font-black text-teal-700 hover:underline"
-                                >
-                                  እንደደረሰ መዝግብ →
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-
-                          {/* Salaries */}
-                          {(calendarDayTab === 'all' || calendarDayTab === 'bills') && selectedDayData.salaries.map((s) => (
-                            <div key={s.id} className="p-2.5 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-between gap-2 text-xs">
-                              <div>
-                                <span className="font-black text-indigo-900 block truncate">
-                                  👥 ደመወዝ - {s.employeeName}
-                                </span>
-                                <span className="text-[10px] text-indigo-700 font-bold block">
-                                  {s.role}
-                                </span>
-                              </div>
-                              <div className="text-right">
-                                <span className="font-black text-indigo-900 block">
-                                  {(s.netSalary || s.baseSalary).toLocaleString()} ETB
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleInitiatePayment('salary', s, s.netSalary || s.baseSalary)}
-                                  className="text-[10px] font-black text-indigo-700 hover:underline"
-                                >
-                                  ክፈል →
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* BOTTOM ACTION BUTTONS */}
-                  <div className="pt-2 flex flex-col gap-2 border-t border-slate-100">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormInputs({ date: selectedCalendarDate, paymentMethod: 'Cash', category: 'Ingredients' });
-                        setActiveQuickAddModal('expense');
-                      }}
-                      className="w-full py-2.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-rose-700/20 active:scale-95 transition-all"
-                    >
-                      <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                      <span>ለዚህ ቀን ወጪ መዝግብ (Add Expense for this Day)</span>
-                    </button>
-                    
-                    <button
-                      type="button"
-                      onClick={() => window.print()}
-                      className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95"
-                    >
-                      <Printer className="w-3.5 h-3.5 text-slate-600" />
-                      <span>የዕለቱን ሪፖርት አትም (Print Day Summary)</span>
-                    </button>
-                  </div>
-
-                </div>
-
-              </div>
-
+            <div className="space-y-4">
+              <ScheduleCalendarRemindMe
+                recurringExpenses={recurringExpenses}
+                purchasePlans={purchasePlans}
+                salaryPlans={salaryPlans}
+                actualExpenses={actualExpenses}
+                dayCloses={dayCloses}
+                sentOrders={orders}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+                onInitiatePayment={handleInitiatePayment}
+                onOpenSettings={() => setShowSettingsModal(true)}
+                onOpenKitchen={() => {
+                  window.location.href = window.location.origin + '/?system=chef';
+                }}
+              />
             </div>
           )}
 
