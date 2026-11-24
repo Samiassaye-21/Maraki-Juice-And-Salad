@@ -82,6 +82,7 @@ export default function ShiftReconciliation({
   onBackToPortal,
   onSwitchToChef,
   onSwitchToOwner,
+  onSwitchToOwnerPrices,
   embeddedMode = false,
   onSavedSettlement
 }) {
@@ -932,6 +933,15 @@ export default function ShiftReconciliation({
                 </h2>
                 <p className="text-[11px] text-slate-500 font-bold">
                   Juice cups audit and beU digital order deductions (Standard: {effectiveJuicePrice} ETB / cup)
+                  {onSwitchToOwnerPrices && (
+                    <button
+                      type="button"
+                      onClick={onSwitchToOwnerPrices}
+                      className="ml-2 text-emerald-700 hover:underline font-black"
+                    >
+                      [Edit Price]
+                    </button>
+                  )}
                 </p>
               </div>
             </div>

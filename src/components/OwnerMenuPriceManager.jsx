@@ -202,6 +202,35 @@ export default function OwnerMenuPriceManager({
     });
   };
 
+  const dirtyCount = Object.keys(draftPrices).length;
+
+  const handleSaveAllEdited = () => {
+    if (dirtyCount === 0) return;
+    runWithPermission(() => {
+      let changedCount = 0;
+      const updated = foodMenu.map(m => {
+        const draft = draftPrices[m.id];
+        if (!draft) return m;
+        const nextPrice = Number(draft.price);
+        const nextHome = draft.homePrice === '' ? null : Number(draft.homePrice);
+        if (isNaN(nextPrice) || nextPrice < 0) return m;
+        if (nextHome !== null && (isNaN(nextHome) || nextHome < 0)) return m;
+        if (nextPrice !== Number(m.price) || nextHome !== (m.homePrice ?? null)) {
+          changedCount += 1;
+          recordAudit(
+            `${m.name} (${m.englishName || ''})`,
+            `${m.price} ETB${m.homePrice ? ` / Home ${m.homePrice}` : ''}`,
+            `${nextPrice} ETB${nextHome !== null ? ` / Home ${nextHome}` : ''}`
+          );
+        }
+        return { ...m, price: nextPrice, homePrice: nextHome };
+      });
+      onUpdateMenu(updated);
+      setDraftPrices({});
+      showNotice(`Saved ${changedCount || dirtyCount} menu item price update(s)`);
+    });
+  };
+
   const handleToggleAvailability = (item) => {
     runWithPermission(() => {
       const nextAvail = item.isAvailable === false ? true : false;
@@ -534,6 +563,31 @@ export default function OwnerMenuPriceManager({
             />
           </div>
         </div>
+
+        {dirtyCount > 0 && (
+          <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-black text-emerald-950">
+              ✏️ You have {dirtyCount} unsaved price edit(s)
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setDraftPrices({})}
+                className="px-3 py-1.5 rounded-xl bg-white text-slate-600 text-xs font-black border border-slate-200"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveAllEdited}
+                className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-sm flex items-center gap-1.5"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Save All ({dirtyCount})</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">

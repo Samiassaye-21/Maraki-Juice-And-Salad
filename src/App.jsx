@@ -609,8 +609,11 @@ export default function App() {
   const [ownerDateRange, setOwnerDateRange] = useState('today'); // 'today' | 'all' | 'custom'
   const [ownerSelectedCustomDate, setOwnerSelectedCustomDate] = useState('');
   const [ownerSection, setOwnerSection] = useState(() => {
-    const saved = localStorage.getItem('maraki_owner_active_section');
+    const params = new URLSearchParams(window.location.search);
+    const sec = params.get('section');
     const valid = ['dashboard', 'sheet', 'analysis', 'stock', 'menu', 'finance', 'plans', 'orders'];
+    if (sec && valid.includes(sec)) return sec;
+    const saved = localStorage.getItem('maraki_owner_active_section');
     if (saved && valid.includes(saved)) return saved;
     return 'dashboard';
   });
@@ -1667,6 +1670,10 @@ export default function App() {
         onBackToPortal={() => navigateToSystem('portal')}
         onSwitchToChef={() => navigateToSystem('chef')}
         onSwitchToOwner={() => navigateToSystem('owner')}
+        onSwitchToOwnerPrices={() => {
+          setOwnerSection('menu');
+          navigateToSystem('owner');
+        }}
         onSavedSettlement={(rec) => {
           setSettlementsHistory(prev => [rec, ...prev.filter(s => s.id !== rec.id)]);
         }}
@@ -1823,6 +1830,20 @@ export default function App() {
               >
                 <ClipboardCheck className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Daily Sheet</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOwnerSection('menu')}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all border active:scale-95 ${
+                  ownerSection === 'menu'
+                    ? 'bg-amber-400 text-slate-950 border-amber-300'
+                    : 'bg-white/10 hover:bg-white/15 text-emerald-300 border-white/10'
+                }`}
+                title="Edit Menu & Juice Prices"
+              >
+                <Tag className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Prices</span>
               </button>
 
               <button
@@ -3689,6 +3710,7 @@ export default function App() {
                   waiters={waitersList}
                   foodMenu={foodMenu}
                   standardJuicePrice={standardJuicePrice}
+                  onSwitchToOwnerPrices={() => setOwnerSection('menu')}
                   onSavedSettlement={(rec) => {
                     setSettlementsHistory(prev => [rec, ...prev.filter(s => s.id !== rec.id)]);
                   }}
@@ -4485,6 +4507,22 @@ export default function App() {
               </div>
 
             </form>
+
+            {systemMode === 'owner' && (
+              <div className="pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSettingsModal(false);
+                    setOwnerSection('menu');
+                  }}
+                  className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-xs flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <Tag className="w-4 h-4 text-emerald-400" />
+                  <span>Open Menu & Juice Price Control →</span>
+                </button>
+              </div>
+            )}
 
           </div>
         </div>
