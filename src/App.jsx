@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useDeferredValue, useTransition } from 'react';
 import BusinessManagement from './components/BusinessManagement';
 import ShiftReconciliation from './components/ShiftReconciliation';
+import OwnerIncomeAnalysisReport from './components/OwnerIncomeAnalysisReport';
 import { 
   Plus, 
   Minus, 
@@ -591,6 +592,28 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('maraki_owner_active_section', ownerSection);
   }, [ownerSection]);
+
+  // Settlements History for Owner Income Analysis
+  const [settlementsHistory, setSettlementsHistory] = useState(() => {
+    try {
+      const saved = localStorage.getItem('maraki_shift_settlements');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'maraki_shift_settlements' && e.newValue) {
+        try {
+          setSettlementsHistory(JSON.parse(e.newValue));
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
   const [ownerSearchQuery, setOwnerSearchQuery] = useState('');
   const deferredOwnerSearchQuery = useDeferredValue(ownerSearchQuery);
   const [isFilterPending, startFilterTransition] = useTransition();
@@ -1216,28 +1239,28 @@ export default function App() {
                     ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30' 
                     : 'bg-white/10 text-slate-300 border-white/20'
                 }`}>
-                  {isChefAuth ? '🔓 ክፍት ነው (Active)' : '🔒 PIN ያስፈልጋል'}
+                  {isChefAuth ? '🔓 Unlocked (Active)' : '🔒 PIN Required'}
                 </span>
               </div>
 
               <div>
                 <h2 className="text-xl font-black text-white group-hover:text-emerald-300 transition-colors flex items-center gap-2">
-                  <span>የሼፍ / ኩሽና ሲስተም</span>
+                  <span>Kitchen POS Station</span>
                 </h2>
                 <p className="text-xs font-black text-emerald-400 tracking-wide mt-0.5">
                   CHEF KITCHEN STATION (POS)
                 </p>
                 <p className="text-xs text-slate-300 font-bold mt-2 leading-relaxed">
-                  ምግብ ማዘዣ፣ የቴክአዌይና የቤት ውስጥ ዋጋ ቅነሳ፣ የቀንና የማታ ፈረቃ፣ የቢዩ ዲሊቨሪና የአስተናጋጅ ደረሰኝ ማዘጋጃ።
+                  Food order entry, takeaway packaging, home discounts, day & night shifts, beU delivery, and kitchen tickets.
                 </p>
               </div>
 
               <div className="pt-2 border-t border-white/10 space-y-1.5 text-xs text-slate-300 font-bold">
                 <div className="flex items-center gap-2 text-emerald-300">
-                  <span>✓</span> <span>ምግብ መምረጫና ትዕዛዝ መመዝገቢያ</span>
+                  <span>✓</span> <span>Food menu selection & fast order entry</span>
                 </div>
                 <div className="flex items-center gap-2 text-emerald-300">
-                  <span>✓</span> <span>የደረሰኝ ህትመትና የኩሽና ትዕዛዞች</span>
+                  <span>✓</span> <span>Receipt printing & chef queue</span>
                 </div>
               </div>
             </div>
@@ -1247,7 +1270,7 @@ export default function App() {
               onClick={(e) => { e.stopPropagation(); navigateToSystem('chef'); }}
               className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 transition-all group-hover:shadow-emerald-500/30 active:scale-98"
             >
-              <span>ወደ ኩሽና ሲስተም ግባ (Enter Chef Station)</span>
+              <span>Enter Chef Station</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -1255,40 +1278,40 @@ export default function App() {
           {/* Portal 2: Owner Command Center */}
           <div 
             onClick={() => navigateToSystem('owner')}
-            className="group bg-white/10 hover:bg-white/15 backdrop-blur-xl border-2 border-amber-500/40 hover:border-amber-400 rounded-3xl p-6 sm:p-7 transition-all cursor-pointer shadow-xl hover:shadow-2xl hover:scale-[1.02] flex flex-col justify-between space-y-5"
+            className="group bg-white/10 hover:bg-white/15 backdrop-blur-xl border-2 border-emerald-500/40 hover:border-emerald-400 rounded-3xl p-6 sm:p-7 transition-all cursor-pointer shadow-xl hover:shadow-2xl hover:scale-[1.02] flex flex-col justify-between space-y-5"
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-400/30 flex items-center justify-center text-3xl shadow-inner">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center text-3xl shadow-inner">
                   👑
                 </div>
                 <span className={`text-[11px] font-black px-3 py-1 rounded-full border ${
                   isOwnerAuth 
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-400/30' 
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30' 
                     : 'bg-white/10 text-slate-300 border-white/20'
                 }`}>
-                  {isOwnerAuth ? '🔓 ክፍት ነው (Active)' : '🔒 Password ያስፈልጋል'}
+                  {isOwnerAuth ? '🔓 Unlocked (Active)' : '🔒 Password Required'}
                 </span>
               </div>
 
               <div>
-                <h2 className="text-xl font-black text-white group-hover:text-amber-300 transition-colors flex items-center gap-2">
-                  <span>የባለቤት መቆጣጠሪያ ማዕከል</span>
+                <h2 className="text-xl font-black text-white group-hover:text-emerald-300 transition-colors flex items-center gap-2">
+                  <span>Owner Command Center</span>
                 </h2>
-                <p className="text-xs font-black text-amber-400 tracking-wide mt-0.5">
+                <p className="text-xs font-black text-emerald-400 tracking-wide mt-0.5">
                   OWNER COMMAND CENTER & AUDIT
                 </p>
                 <p className="text-xs text-slate-300 font-bold mt-2 leading-relaxed">
-                  የዕለት ሽያጭ፣ የፈረቃ ገቢ፣ የቦክስ ክምችት፣ የአስተናጋጆች አፈጻጸምና በኢትዮጵያ ቀን መቁጠሪያና ፈረቃ ሙሉ ትዕዛዞች ማጣሪያ።
+                  Financial planning, shift income reports, packaging box inventory, waiter performance, and daily analytics.
                 </p>
               </div>
 
               <div className="pt-2 border-t border-white/10 space-y-1.5 text-xs text-slate-300 font-bold">
-                <div className="flex items-center gap-2 text-amber-300">
-                  <span>✓</span> <span>የዕለት ሽያጭና የፈረቃ ገቢ ሪፖርት</span>
+                <div className="flex items-center gap-2 text-emerald-300">
+                  <span>✓</span> <span>Shift income reports & daily/monthly analytics</span>
                 </div>
-                <div className="flex items-center gap-2 text-amber-300">
-                  <span>✓</span> <span>ከቀን መቁጠሪያና ፈረቃ ትዕዛዝ መቆጣጠሪያ</span>
+                <div className="flex items-center gap-2 text-emerald-300">
+                  <span>✓</span> <span>Calendar, expenses & waiter performance</span>
                 </div>
               </div>
             </div>
@@ -1296,9 +1319,9 @@ export default function App() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); navigateToSystem('owner'); }}
-              className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-900/30 flex items-center justify-center gap-2 transition-all group-hover:shadow-amber-500/30 active:scale-98"
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-950/30 flex items-center justify-center gap-2 transition-all group-hover:shadow-emerald-500/30 active:scale-98"
             >
-              <span>ወደ ባለቤት ማዕከል ግባ (Enter Owner Center)</span>
+              <span>Enter Owner Center</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -1314,28 +1337,28 @@ export default function App() {
                   📋
                 </div>
                 <span className="text-[11px] font-black px-3 py-1 rounded-full border bg-emerald-500/20 text-emerald-300 border-emerald-400/30">
-                  🌟 ክፍት ነው (Active)
+                  🌟 Active
                 </span>
               </div>
 
               <div>
                 <h2 className="text-xl font-black text-white group-hover:text-emerald-300 transition-colors flex items-center gap-2">
-                  <span>የፈረቃና የገቢ ማስታረቂያ</span>
+                  <span>Shift Reconciliation</span>
                 </h2>
                 <p className="text-xs font-black text-emerald-400 tracking-wide mt-0.5">
                   SHIFT RECONCILIATION & CASH AUDIT
                 </p>
                 <p className="text-xs text-slate-300 font-bold mt-2 leading-relaxed">
-                  ከአስተናጋጆች የተረከቡት የቀንና የማታ ፈረቃ ገቢ፣ የተሸጡ ጁሶችና ምግቦች ብዛት፣ የጥሬ ገንዘብና የቴሌብር ማስታረቂያና የርክክብ ደረሰኝ ማዘጋጃ።
+                  Daily income sheet, anti-skimming food box engine, juice cups inventory, drawer cash handoff, and thermal slips.
                 </p>
               </div>
 
               <div className="pt-2 border-t border-white/10 space-y-1.5 text-xs text-slate-300 font-bold">
                 <div className="flex items-center gap-2 text-emerald-300">
-                  <span>✓</span> <span>🥤 የተሸጡ ጁሶች vs 🥗 ምግቦች ብዛት</span>
+                  <span>✓</span> <span>🥤 Juice Cups vs 🥗 Food Boxes Sold</span>
                 </div>
                 <div className="flex items-center gap-2 text-emerald-300">
-                  <span>✓</span> <span>💰 የጥሬ ገንዘብ፣ ቴሌብርና ባንክ ርክክብ</span>
+                  <span>✓</span> <span>💰 Cash Drawer, Telebirr & Bank Handoff</span>
                 </div>
               </div>
             </div>
@@ -1345,7 +1368,7 @@ export default function App() {
               onClick={(e) => { e.stopPropagation(); navigateToSystem('reconciliation'); }}
               className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-950/30 flex items-center justify-center gap-2 transition-all group-hover:shadow-emerald-500/30 active:scale-98"
             >
-              <span>ወደ ፈረቃ ማስታረቂያ ግባ (Enter Shift Audit)</span>
+              <span>Enter Shift Audit</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -1383,7 +1406,7 @@ export default function App() {
               className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>ተመለስ (Portals)</span>
+              <span>Back to Portals</span>
             </button>
             <span className="text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
               Kitchen Station
@@ -1393,14 +1416,14 @@ export default function App() {
           <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center text-3xl shadow-lg shadow-emerald-900/30 mx-auto">
             👩‍🍳
           </div>
-          <h2 className="text-xl font-black text-slate-900">የሼፍ / ኩሽና መግቢያ</h2>
-          <p className="text-xs text-slate-500 font-bold">Chef Kitchen POS Station</p>
+          <h2 className="text-xl font-black text-slate-900">Kitchen POS Station</h2>
+          <p className="text-xs text-slate-500 font-bold">Chef Station Security PIN</p>
 
           <form onSubmit={handleChefLoginSubmit} className="space-y-3">
             <div className="relative">
               <input
                 type={showPasswordText ? "text" : "password"}
-                placeholder="የኩሽና ፒን ያስገቡ (Chef PIN)..."
+                placeholder="Enter Chef PIN..."
                 value={pinInput}
                 onChange={(e) => { setPinInput(e.target.value); setLoginError(null); }}
                 className="w-full bg-slate-50 border-2 border-emerald-300 focus:border-emerald-600 rounded-2xl py-3 pl-10 pr-10 text-center font-black text-lg text-slate-900 tracking-widest outline-none"
@@ -1439,7 +1462,7 @@ export default function App() {
                 onClick={() => handleKeypadPress('clear')}
                 className="py-3 bg-rose-50 text-rose-700 font-black text-xs rounded-2xl border border-rose-200"
               >
-                አጥፋ
+                Clear
               </button>
               <button
                 type="button"
@@ -1451,7 +1474,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => handleKeypadPress('backspace')}
-                className="py-3 bg-amber-50 text-amber-800 font-black text-sm rounded-2xl border border-amber-200"
+                className="py-3 bg-emerald-50 text-emerald-800 font-black text-sm rounded-2xl border border-emerald-200"
               >
                 ⌫
               </button>
@@ -1462,12 +1485,12 @@ export default function App() {
               className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-700/25 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <Unlock className="w-4 h-4" />
-              <span>ወደ ኩሽና ግባ (Unlock Station)</span>
+              <span>Unlock Kitchen Station</span>
             </button>
           </form>
 
           <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 text-xs font-bold text-slate-600 flex items-center justify-between">
-            <span>💡 ነባሪ የኩሽና ፒን (Default PIN):</span>
+            <span>💡 Default Chef PIN:</span>
             <button 
               type="button" 
               onClick={() => setPinInput(chefPin)}
@@ -1487,7 +1510,7 @@ export default function App() {
   // ==============================================================
   if (systemMode === 'owner' && !isOwnerAuth) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-900 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-teal-950 to-slate-950 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/30 text-center space-y-4">
           
           <div className="flex items-center justify-between">
@@ -1497,30 +1520,30 @@ export default function App() {
               className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>ተመለስ (Portals)</span>
+              <span>Back to Portals</span>
             </button>
-            <span className="text-[10px] font-black uppercase bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
               Owner Center
             </span>
           </div>
 
-          <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center text-3xl shadow-lg shadow-amber-900/30 mx-auto">
+          <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center text-3xl shadow-lg shadow-emerald-900/30 mx-auto">
             👑
           </div>
-          <h2 className="text-xl font-black text-slate-900">የባለቤት መቆጣጠሪያ መግቢያ</h2>
-          <p className="text-xs text-slate-500 font-bold">Owner Command Center & Audit</p>
+          <h2 className="text-xl font-black text-slate-900">Owner Command Center</h2>
+          <p className="text-xs text-slate-500 font-bold">Executive Management & Income Analysis</p>
 
           <form onSubmit={handleOwnerLoginSubmit} className="space-y-3">
             <div className="relative">
               <input
                 type={showPasswordText ? "text" : "password"}
-                placeholder="የባለቤት ይለፍ ቃል (Password)..."
+                placeholder="Enter Owner Password..."
                 value={pinInput}
                 onChange={(e) => { setPinInput(e.target.value); setLoginError(null); }}
-                className="w-full bg-slate-50 border-2 border-amber-300 focus:border-amber-500 rounded-2xl py-3 pl-10 pr-10 text-center font-black text-lg text-slate-900 tracking-widest outline-none"
+                className="w-full bg-slate-50 border-2 border-emerald-300 focus:border-emerald-600 rounded-2xl py-3 pl-10 pr-10 text-center font-black text-lg text-slate-900 tracking-widest outline-none"
                 autoFocus
               />
-              <Key className="w-4 h-4 text-amber-600 absolute left-3.5 top-3.5" />
+              <Key className="w-4 h-4 text-emerald-600 absolute left-3.5 top-3.5" />
               <button
                 type="button"
                 onClick={() => setShowPasswordText(!showPasswordText)}
@@ -1543,7 +1566,7 @@ export default function App() {
                   key={num}
                   type="button"
                   onClick={() => handleKeypadPress(num.toString())}
-                  className="py-3 bg-slate-100 hover:bg-amber-50 text-slate-800 font-black text-lg rounded-2xl border border-slate-200 transition-all active:scale-95"
+                  className="py-3 bg-slate-100 hover:bg-emerald-50 text-slate-800 font-black text-lg rounded-2xl border border-slate-200 transition-all active:scale-95"
                 >
                   {num}
                 </button>
@@ -1553,19 +1576,19 @@ export default function App() {
                 onClick={() => handleKeypadPress('clear')}
                 className="py-3 bg-rose-50 text-rose-700 font-black text-xs rounded-2xl border border-rose-200"
               >
-                አጥፋ
+                Clear
               </button>
               <button
                 type="button"
                 onClick={() => handleKeypadPress('0')}
-                className="py-3 bg-slate-100 hover:bg-amber-50 text-slate-800 font-black text-lg rounded-2xl border border-slate-200"
+                className="py-3 bg-slate-100 hover:bg-emerald-50 text-slate-800 font-black text-lg rounded-2xl border border-slate-200"
               >
                 0
               </button>
               <button
                 type="button"
                 onClick={() => handleKeypadPress('backspace')}
-                className="py-3 bg-amber-50 text-amber-800 font-black text-sm rounded-2xl border border-amber-200"
+                className="py-3 bg-emerald-50 text-emerald-800 font-black text-sm rounded-2xl border border-emerald-200"
               >
                 ⌫
               </button>
@@ -1573,19 +1596,19 @@ export default function App() {
 
             <button
               type="submit"
-              className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-700/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-950/25 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <Unlock className="w-4 h-4" />
-              <span>ወደ ባለቤት ማዕከል ግባ (Unlock Center)</span>
+              <span>Unlock Owner Center</span>
             </button>
           </form>
 
-          <div className="bg-amber-50 p-2.5 rounded-xl border border-amber-200 text-xs font-bold text-slate-600 flex items-center justify-between">
-            <span>💡 ነባሪ የባለቤት ይለፍ ቃል (Default):</span>
+          <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 text-xs font-bold text-slate-600 flex items-center justify-between">
+            <span>💡 Default Password:</span>
             <button 
               type="button" 
               onClick={() => setPinInput(ownerPassword)}
-              className="font-black text-amber-900 bg-white px-2 py-0.5 rounded border border-amber-300"
+              className="font-black text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-300"
             >
               {ownerPassword}
             </button>
@@ -1712,26 +1735,26 @@ export default function App() {
       )}
 
       {/* ============================================================== */}
-      {/* OWNER APP HEADER (EXECUTIVE SLATE & GOLD THEME)                 */}
+      {/* OWNER APP HEADER (EMERALD POS THEME)                           */}
       {/* ============================================================== */}
       {systemMode === 'owner' && (
-        <header className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white sticky top-0 z-50 shadow-lg shadow-black/20 border-b border-amber-500/30">
+        <header className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white sticky top-0 z-50 shadow-lg shadow-emerald-800/10">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
             
             {/* Logo & Brand */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-400/30 flex items-center justify-center text-xl shadow-inner">
+              <div className="w-10 h-10 rounded-2xl bg-white/20 text-white border border-white/30 flex items-center justify-center text-xl shadow-inner font-black">
                 👑
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="font-black text-lg tracking-tight text-white drop-shadow-sm">MARAKI</h1>
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full shadow-sm">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-white text-emerald-900 px-2 py-0.5 rounded-full shadow-sm">
                     Owner Center
                   </span>
                 </div>
-                <p className="text-[11px] text-amber-200/80 flex items-center gap-1 font-bold">
-                  <span>የባለቤት መቆጣጠሪያና የሪፖርት ማዕከል</span>
+                <p className="text-[11px] text-emerald-100 flex items-center gap-1 font-bold">
+                  <span>Executive Management, Audit & Income Analysis</span>
                 </p>
               </div>
             </div>
@@ -1740,14 +1763,14 @@ export default function App() {
             <button
               type="button"
               onClick={() => openEthDateModal('current')}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl border border-white/20 text-white font-black text-xs shadow-inner transition-all hover:scale-[1.02]"
-              title="የኢትዮጵያ ቀን ቀይር"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl border border-white/25 text-white font-black text-xs shadow-inner transition-all hover:scale-[1.02]"
+              title="Change Ethiopian Date"
             >
-              <Calendar className="w-3.5 h-3.5 text-amber-300" />
+              <Calendar className="w-3.5 h-3.5 text-emerald-200" />
               <span>{orderEthDate.formatted}</span>
-              <span className="text-[10px] bg-black/40 text-amber-300 px-1.5 py-0.5 rounded-lg border border-amber-400/20 flex items-center gap-0.5 font-bold">
+              <span className="text-[10px] bg-black/20 text-emerald-200 px-1.5 py-0.5 rounded-lg border border-white/10 flex items-center gap-0.5 font-bold">
                 <Edit3 className="w-2.5 h-2.5" />
-                <span>ቀይር</span>
+                <span>Change</span>
               </span>
             </button>
 
@@ -1756,11 +1779,11 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => navigateToSystem('reconciliation')}
-                className="px-2.5 py-1.5 bg-indigo-500/80 hover:bg-indigo-600 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-indigo-400/30 transition-all shadow-sm"
-                title="የፈረቃና የገቢ ማስታረቂያ (Shift Reconciliation)"
+                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1.5 border border-white/25 transition-all shadow-sm active:scale-95"
+                title="Shift Reconciliation & Daily Income Sheet"
               >
-                <ClipboardCheck className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">የፈረቃ ርክክብ</span>
+                <ClipboardCheck className="w-3.5 h-3.5 text-emerald-200" />
+                <span className="hidden sm:inline">Shift Audit</span>
               </button>
 
               <button
@@ -1770,41 +1793,41 @@ export default function App() {
                   setNewChefPinInput(chefPin);
                   setShowSettingsModal(true);
                 }}
-                className="p-1.5 bg-white/10 hover:bg-white/20 text-amber-300 rounded-xl text-xs font-black border border-amber-400/30 transition-all shadow-sm flex items-center gap-1 px-2.5 py-1.5"
-                title="የይለፍ ቃሎች ቅንብር / Change Passwords"
+                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black border border-white/25 transition-all shadow-sm flex items-center gap-1"
+                title="Change Passwords & Settings"
               >
-                <Settings className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">ቅንብሮች</span>
+                <Settings className="w-3.5 h-3.5 text-emerald-200" />
+                <span className="hidden sm:inline">Settings</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleInstallApp}
-                className="px-2.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1 shadow-md transition-all active:scale-95"
-                title="አፑን ጫን"
+                className="px-2.5 py-1.5 bg-emerald-800/80 hover:bg-emerald-800 text-white rounded-xl text-xs font-black flex items-center gap-1.5 border border-emerald-400/30 shadow-md transition-all active:scale-95"
+                title="Install Application"
               >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">አፑን ጫን</span>
+                <Smartphone className="w-3.5 h-3.5 text-emerald-300" />
+                <span className="hidden md:inline">Install App</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleLockOwner}
-                className="px-2.5 py-1.5 bg-rose-500/80 hover:bg-rose-600 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-rose-400/30 transition-all shadow-sm"
-                title="ባለቤትን ቆልፍ (Lock)"
+                className="px-2.5 py-1.5 bg-black/20 hover:bg-black/30 text-emerald-100 rounded-xl text-xs font-black flex items-center gap-1 border border-white/15 transition-all shadow-sm"
+                title="Lock Owner Session"
               >
-                <Lock className="w-3.5 h-3.5" />
-                <span>ቆልፍ</span>
+                <Lock className="w-3.5 h-3.5 text-emerald-200" />
+                <span>Lock</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => navigateToSystem('portal')}
-                className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/20 transition-all shadow-sm"
-                title="ወደ ሲስተም ምርጫ ተመለስ (Switch Portal)"
+                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/20 transition-all shadow-sm"
+                title="Switch Work Station"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">ውጣ / Switch</span>
+                <span className="hidden sm:inline">Portal</span>
               </button>
             </div>
 
@@ -1843,14 +1866,14 @@ export default function App() {
                 }`}
               >
                 <div className="flex items-center gap-1 text-[11px] sm:text-xs">
-                  <span>1. ምግብ</span>
+                  <span>1. Food</span>
                   {cart.length > 0 && (
                     <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[9px] font-black flex items-center justify-center">
                       {cart.reduce((s, i) => s + i.qty, 0)}
                     </span>
                   )}
                 </div>
-                <span className="text-[9px] opacity-80 hidden sm:inline">Food</span>
+                <span className="text-[9px] opacity-80 hidden sm:inline">ምግብ</span>
               </button>
 
               {/* Step 2 Pill: Service (Takeaway vs Home) - Cannot be jumped */}
@@ -1867,7 +1890,7 @@ export default function App() {
                 }`}
               >
                 <div className="flex items-center gap-1 text-[11px] sm:text-xs">
-                  <span>2. አገልግሎት</span>
+                  <span>2. Service</span>
                 </div>
                 <span className="text-[9px] opacity-80 hidden sm:inline">🥡 / 🏠</span>
               </button>
@@ -1886,9 +1909,9 @@ export default function App() {
                 }`}
               >
                 <div className="flex items-center gap-1 text-[11px] sm:text-xs">
-                  <span>3. ፈረቃ</span>
+                  <span>3. Shift</span>
                 </div>
-                <span className="text-[9px] opacity-80 hidden sm:inline">Shift</span>
+                <span className="text-[9px] opacity-80 hidden sm:inline">ፈረቃ</span>
               </button>
 
               {/* Step 4 Pill: Waiter */}
@@ -1905,9 +1928,9 @@ export default function App() {
                 }`}
               >
                 <div className="flex items-center gap-1 text-[11px] sm:text-xs">
-                  <span>4. አስተናጋጅ</span>
+                  <span>4. Waiter</span>
                 </div>
-                <span className="text-[9px] opacity-80 hidden sm:inline">Waiter</span>
+                <span className="text-[9px] opacity-80 hidden sm:inline">አስተናጋጅ</span>
               </button>
 
               {/* Step 5 Pill: Submit */}
@@ -1922,9 +1945,9 @@ export default function App() {
                 }`}
               >
                 <div className="flex items-center gap-1 text-[11px] sm:text-xs">
-                  <span>5. አስገባ</span>
+                  <span>5. Review</span>
                 </div>
-                <span className="text-[9px] opacity-80 hidden sm:inline">Submit</span>
+                <span className="text-[9px] opacity-80 hidden sm:inline">ማጠቃለያ</span>
               </button>
 
             </div>
@@ -2773,52 +2796,77 @@ export default function App() {
       {systemMode === 'owner' && (
         <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6 animate-in fade-in duration-200">
           
-          {/* OWNER PRIMARY SECTION SELECTOR (BUSINESS MANAGEMENT vs ORDERS AUDIT) */}
-          <div className="bg-slate-900/90 backdrop-blur-md p-1.5 sm:p-2 rounded-3xl border border-amber-500/30 flex items-center justify-between gap-2 shadow-xl shadow-slate-950/20">
-            <div className="flex items-center gap-2 w-full">
+          {/* OWNER PRIMARY SECTION SELECTOR (EMERALD POS THEME) */}
+          <div className="bg-white p-2 rounded-3xl border border-emerald-100 shadow-md shadow-emerald-900/5 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full">
               
               {/* Button 1: Business Management & Planning */}
               <button
                 type="button"
                 onClick={() => setOwnerSection('planning')}
-                className={`flex-1 py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 active:scale-95 ${
+                className={`flex-1 min-w-[180px] py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 active:scale-95 ${
                   ownerSection === 'planning'
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md shadow-amber-900/30 scale-[1.01]'
-                    : 'text-slate-300 hover:text-white hover:bg-white/10'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/20'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
-                <Sparkles className="w-4 h-4 text-slate-950" />
-                <span>📊 የቢዝነስ እቅድና ማኔጅመንት (Business Management & Planning)</span>
+                <Sparkles className="w-4 h-4" />
+                <span>Business Plans & Finance</span>
               </button>
 
-              {/* Button 2: Orders Audit Log */}
+              {/* Button 2: Income Sheet Analysis & Reports (NEW) */}
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    const saved = localStorage.getItem('maraki_shift_settlements');
+                    if (saved) setSettlementsHistory(JSON.parse(saved));
+                  } catch (e) {}
+                  setOwnerSection('analysis');
+                }}
+                className={`flex-1 min-w-[210px] py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 active:scale-95 ${
+                  ownerSection === 'analysis'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/20'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span>Income Sheet Analysis & Reports</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                  ownerSection === 'analysis' ? 'bg-white text-emerald-900' : 'bg-emerald-50 text-emerald-800'
+                }`}>
+                  {settlementsHistory.length}
+                </span>
+              </button>
+
+              {/* Button 3: Orders Audit Log */}
               <button
                 type="button"
                 onClick={() => setOwnerSection('orders')}
-                className={`flex-1 py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 active:scale-95 ${
+                className={`flex-1 min-w-[160px] py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 active:scale-95 ${
                   ownerSection === 'orders'
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md shadow-amber-900/30 scale-[1.01]'
-                    : 'text-slate-300 hover:text-white hover:bg-white/10'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/20'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
                 <Receipt className="w-4 h-4" />
-                <span>🧾 የትዕዛዞች ኦዲት (Orders Audit Log)</span>
+                <span>Orders Audit Log</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                  ownerSection === 'orders' ? 'bg-slate-950 text-amber-300' : 'bg-white/10 text-slate-300'
+                  ownerSection === 'orders' ? 'bg-white text-emerald-900' : 'bg-slate-100 text-slate-700'
                 }`}>
                   {sentOrders.length}
                 </span>
               </button>
 
-              {/* Button 3: Shift Reconciliation */}
+              {/* Button 4: Shift Reconciliation */}
               <button
                 type="button"
                 onClick={() => navigateToSystem('reconciliation')}
-                className="py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 text-indigo-300 hover:text-white hover:bg-indigo-600/30 border border-indigo-500/30 active:scale-95"
-                title="የፈረቃና የገቢ ማስታረቂያ (Shift Audit)"
+                className="py-3 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 active:scale-95"
+                title="Shift Reconciliation & Daily Income Sheet"
               >
-                <ClipboardCheck className="w-4 h-4 text-indigo-400" />
-                <span>📋 የፈረቃ ርክክብ</span>
+                <ClipboardCheck className="w-4 h-4 text-emerald-700" />
+                <span>Shift Reconciliation</span>
               </button>
 
             </div>
@@ -2834,6 +2882,16 @@ export default function App() {
                 localStorage.removeItem('maraki_chef_sent_orders');
               }}
             />
+          ) : ownerSection === 'analysis' ? (
+            <OwnerIncomeAnalysisReport
+              settlements={settlementsHistory}
+              orders={sentOrders}
+              onOpenShiftReconciliation={() => navigateToSystem('reconciliation')}
+              onUpdateSettlements={(updated) => {
+                setSettlementsHistory(updated);
+                localStorage.setItem('maraki_shift_settlements', JSON.stringify(updated));
+              }}
+            />
           ) : (
             <div className="space-y-6 animate-in fade-in duration-200">
           
@@ -2841,15 +2899,15 @@ export default function App() {
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm">
             <div>
               <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-black text-sm">
+                <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-sm">
                   👑
                 </span>
                 <h2 className="text-lg font-black text-slate-900">
-                  የባለቤት መቆጣጠሪያ ማዕከል (Owner Command Center & Audit)
+                  Owner Command Center & Orders Audit
                 </h2>
               </div>
-              <p className="text-xs text-slate-400 font-bold mt-1">
-                የተዘጋጁ እና የተወሰዱ ትዕዛዞች፣ የፈረቃ ገቢ፣ የሳጥን ክምችት እና የአስተናጋጆች ሙሉ ቁጥጥር
+              <p className="text-xs text-slate-500 font-bold mt-1">
+                Track prepared and served orders, packaging box inventory, waiter performance, and daily shifts
               </p>
             </div>
 
@@ -2859,22 +2917,22 @@ export default function App() {
               <button
                 type="button"
                 onClick={handleExportCSV}
-                className="px-3.5 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
-                title="ሪፖርቱን በኤክሴል አውርድ / Export Orders to CSV"
+                className="px-3.5 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 border border-slate-200"
+                title="Export Orders to CSV"
               >
                 <Download className="w-3.5 h-3.5 text-emerald-700" />
-                <span>ኤክሴል (CSV)</span>
+                <span>Export CSV</span>
               </button>
 
               {/* Print Summary */}
               <button
                 type="button"
                 onClick={handlePrintSummary}
-                className="px-3.5 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
-                title="የዕለቱን ሪፖርት አትም / Print Daily Summary"
+                className="px-3.5 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 border border-slate-200"
+                title="Print Daily Summary"
               >
-                <Printer className="w-3.5 h-3.5 text-teal-700" />
-                <span>ሪፖርት አትም</span>
+                <Printer className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Print Summary</span>
               </button>
 
               {/* Box Inventory Modal Trigger */}
@@ -2885,10 +2943,10 @@ export default function App() {
                   setShowBoxStockModal(true);
                 }}
                 className="px-3.5 py-2 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-black text-xs flex items-center gap-1.5 transition-all shadow-sm border border-emerald-200 active:scale-95"
-                title="የሳጥን ክምችት መቆጣጠሪያ / Box Inventory Tracker"
+                title="Takeaway Box Inventory Tracker"
               >
                 <Package className="w-3.5 h-3.5 text-emerald-700" />
-                <span>የሳጥን ክምችት</span>
+                <span>Box Inventory</span>
               </button>
 
               {/* Reset Day Orders */}
@@ -2896,10 +2954,10 @@ export default function App() {
                 type="button"
                 onClick={handleResetDayOrders}
                 className="px-3 py-2 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-black text-xs flex items-center gap-1 transition-all border border-rose-200 active:scale-95"
-                title="የዕለቱን ትዕዛዞች አጥፍተህ አዲስ ቀን ጀምር / Reset Daily Shift"
+                title="Reset Daily Shift Orders"
               >
                 <RefreshCw className="w-3.5 h-3.5 text-rose-600" />
-                <span>አዲስ ቀን</span>
+                <span>Reset Shift</span>
               </button>
             </div>
           </div>
@@ -2909,7 +2967,7 @@ export default function App() {
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1 mr-1">
                 <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                <span>የሪፖርት ቀን (Report Date):</span>
+                <span>Report Date:</span>
               </span>
 
               {/* Today */}
@@ -2922,7 +2980,7 @@ export default function App() {
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
-                📅 ዛሬ ({sentOrders.filter(o => o.ethiopianDate === orderEthDate.formatted).length})
+                📅 Today ({sentOrders.filter(o => o.ethiopianDate === orderEthDate.formatted).length})
               </button>
 
               {/* All Time */}
@@ -2935,7 +2993,7 @@ export default function App() {
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
-                🗓️ ሁሉም ቀናት ({sentOrders.length})
+                🗓️ All Days ({sentOrders.length})
               </button>
 
               {/* Direct Open Calendar Button */}
@@ -2944,16 +3002,16 @@ export default function App() {
                 onClick={() => openEthDateModal('filter')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border ${
                   ownerDateRange === 'custom'
-                    ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                    ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
                     : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
                 }`}
-                title="ከቀን መቁጠሪያ ቀን ይምረጡ / Pick any day from calendar"
+                title="Pick date from Ethiopian calendar"
               >
                 <Calendar className="w-3.5 h-3.5" />
                 {ownerDateRange === 'custom' && ownerSelectedCustomDate ? (
                   <span>📅 {ownerSelectedCustomDate}</span>
                 ) : (
-                  <span>ከቀን መቁጠሪያ ምረጥ (Calendar)</span>
+                  <span>Calendar Picker</span>
                 )}
               </button>
 
@@ -2963,7 +3021,7 @@ export default function App() {
                   type="button"
                   onClick={() => { setOwnerDateRange('today'); setOwnerSelectedCustomDate(''); }}
                   className="w-6 h-6 rounded-full bg-slate-200 hover:bg-rose-100 hover:text-rose-600 text-slate-600 flex items-center justify-center text-xs font-black transition-all"
-                  title="ወደ ዛሬ መልስ (Reset to Today)"
+                  title="Reset to Today"
                 >
                   ✕
                 </button>
@@ -2971,9 +3029,9 @@ export default function App() {
             </div>
 
             <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 self-start md:self-auto flex items-center gap-1.5">
-              <span>የተመረጠው ቀን፡</span>
+              <span>Selected Date:</span>
               <span className="font-black text-slate-900">
-                {ownerDateRange === 'today' ? orderEthDate.formatted : (ownerSelectedCustomDate || 'ሁሉም ቀናት (All Days)')}
+                {ownerDateRange === 'today' ? orderEthDate.formatted : (ownerSelectedCustomDate || 'All Days')}
               </span>
             </div>
           </div>

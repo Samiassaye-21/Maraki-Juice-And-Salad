@@ -642,10 +642,10 @@ export default function ShiftReconciliation({
               type="button"
               onClick={() => setShowPendingLedgerModal(true)}
               className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1.5 border border-white/25 transition-all shadow-sm active:scale-95"
-              title="የአስተጋጆች ዕዳ ሙሉ መዝገብ (Pending Debts Ledger Page)"
+              title="Waiter Pending Debts Ledger"
             >
               <Clock className="w-3.5 h-3.5 text-emerald-200" />
-              <span className="hidden sm:inline">የአስተናጋጆች ዕዳ</span>
+              <span className="hidden sm:inline">Waiter Debts</span>
               <span className="text-[10px] bg-emerald-900/60 px-1.5 py-0.2 rounded-full text-emerald-200 border border-white/20">
                 {activeDebtsForShift.length}
               </span>
@@ -655,10 +655,10 @@ export default function ShiftReconciliation({
               type="button"
               onClick={() => setShowHistoryModal(true)}
               className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/25 transition-all shadow-sm"
-              title="ያለፉ ፈረቃዎች"
+              title="Shift Settlements History"
             >
               <History className="w-3.5 h-3.5 text-emerald-200" />
-              <span className="hidden sm:inline">ያለፉ ፈረቃዎች</span>
+              <span className="hidden sm:inline">Shift History</span>
               <span className="text-[10px] bg-emerald-900/60 px-1.5 py-0.2 rounded-full text-emerald-200 border border-white/20">
                 {settlementsHistory.length}
               </span>
@@ -690,7 +690,7 @@ export default function ShiftReconciliation({
                 onClick={onBackToPortal}
                 className="px-2.5 py-1.5 bg-black/20 hover:bg-black/30 text-emerald-100 rounded-xl text-xs font-black flex items-center gap-1 border border-white/15 transition-all shadow-sm"
               >
-                <span>← ፖርታል</span>
+                <span>← Portal</span>
               </button>
             )}
           </div>
@@ -707,7 +707,7 @@ export default function ShiftReconciliation({
                 type="button"
                 onClick={() => handleShiftDate(-1)}
                 className="p-1.5 bg-slate-100 hover:bg-emerald-50 rounded-xl text-slate-700 transition-colors"
-                title="ቀዳሚ ቀን"
+                title="Previous Day"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -722,7 +722,7 @@ export default function ShiftReconciliation({
                 type="button"
                 onClick={() => handleShiftDate(1)}
                 className="p-1.5 bg-slate-100 hover:bg-emerald-50 rounded-xl text-slate-700 transition-colors"
-                title="ቀጣይ ቀን"
+                title="Next Day"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -732,7 +732,7 @@ export default function ShiftReconciliation({
                 onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
                 className="px-2.5 py-1 bg-slate-100 hover:bg-emerald-50 text-[11px] font-bold text-slate-700 rounded-xl transition-colors"
               >
-                ዛሬ (Today)
+                Today
               </button>
             </div>
 
@@ -805,13 +805,13 @@ export default function ShiftReconciliation({
                   1. JUICE CUPS INVENTORY & beU DELIVERY
                 </h2>
                 <p className="text-[11px] text-slate-500 font-bold">
-                  የጁስ ኩባያዎች ቁጥጥርና የቢዩ ዲሊቨሪ ተቀናሽ (Standard: {DEFAULT_JUICE_PRICE} ETB / cup)
+                  Juice cups audit and beU digital order deductions (Standard: {DEFAULT_JUICE_PRICE} ETB / cup)
                 </p>
               </div>
             </div>
             {selectedShift === 'Night' && carryOverCups !== null && (
               <span className="text-[11px] font-black text-emerald-800 bg-emerald-100/80 border border-emerald-300 px-2.5 py-1 rounded-xl">
-                🔄 ከቀን ፈረቃ የተላለፈ፡ {carryOverCups} ኩባያ
+                🔄 Carried from Day Shift: {carryOverCups} cups
               </span>
             )}
           </div>
@@ -821,7 +821,7 @@ export default function ShiftReconciliation({
             {/* Cups Given */}
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
               <label className="text-xs font-black text-slate-700 block">
-                የተሰጡ ኩባያዎች (Cups Given)
+                Cups Given (የተሰጡ ኩባያዎች)
               </label>
               <input
                 type="number"
@@ -832,14 +832,14 @@ export default function ShiftReconciliation({
                 placeholder="100"
               />
               <span className="text-[10px] text-slate-400 font-bold block">
-                ለፈረቃው የገቡ ፕላስቲክ ኩባያዎች
+                Total plastic cups issued for shift
               </span>
             </div>
 
             {/* Cups Left */}
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
               <label className="text-xs font-black text-slate-700 block">
-                የተረፉ ኩባያዎች (Cups Left)
+                Cups Left (የተረፉ ኩባያዎች)
               </label>
               <input
                 type="number"
@@ -850,7 +850,7 @@ export default function ShiftReconciliation({
                 placeholder="20"
               />
               <span className="text-[10px] text-slate-400 font-bold block">
-                ሳይሸጡ በመደርደሪያ የቀሩ
+                Remaining unsold on shelf
               </span>
             </div>
 
@@ -858,7 +858,7 @@ export default function ShiftReconciliation({
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
               <label className="text-xs font-black text-slate-700 block flex items-center justify-between">
                 <span>beU Delivery (በቢዩ የተላኩ)</span>
-                <span className="text-emerald-700 text-[10px] font-black">ባንክ ገቢ</span>
+                <span className="text-emerald-700 text-[10px] font-black">Bank Credit</span>
               </label>
               <input
                 type="number"
@@ -869,7 +869,7 @@ export default function ShiftReconciliation({
                 placeholder="10"
               />
               <span className="text-[10px] text-slate-400 font-bold block">
-                ገንዘቡ ቀጥታ ወደ ድርጅት ባንክ የሚገባ
+                Deposited directly to company bank account
               </span>
             </div>
 
@@ -879,19 +879,19 @@ export default function ShiftReconciliation({
           <div className="bg-emerald-50/70 rounded-2xl p-3.5 border border-emerald-200/60 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-700">
             <div className="flex items-center gap-2">
               <span className="font-black text-slate-900">
-                የተሸጠ፡ <span className="text-emerald-800 font-black">{juiceSold} ኩባያ</span>
+                Total Sold: <span className="text-emerald-800 font-black">{juiceSold} cups</span>
               </span>
               <span className="text-slate-400">•</span>
               <span className="text-slate-600 font-bold">
-                ({inStoreJuiceSold} በቤት ውስጥ + {beuDeliveryCups} በቢዩ)
+                ({inStoreJuiceSold} in-house + {beuDeliveryCups} beU)
               </span>
             </div>
             <div className="flex items-center gap-4">
               <span className="text-slate-700">
-                ጠቅላላ ጁስ ገቢ፡ <strong className="text-slate-900 text-sm font-black">{grossJuiceRevenue.toLocaleString()} ETB</strong>
+                Gross Juice Sales: <strong className="text-slate-900 text-sm font-black">{grossJuiceRevenue.toLocaleString()} ETB</strong>
               </span>
               <span className="text-rose-600 font-bold">
-                (ቢዩ ተቀናሽ፡ -{beuDeliveryDeduction.toLocaleString()} ETB)
+                (beU Deduction: -{beuDeliveryDeduction.toLocaleString()} ETB)
               </span>
             </div>
           </div>
@@ -911,7 +911,7 @@ export default function ShiftReconciliation({
                   2. FOOD BOX RECONCILIATION ("THE ANTI-SKIMMING ENGINE")
                 </h2>
                 <p className="text-[11px] text-slate-500 font-bold">
-                  የኩሽና ቦክስ ፍጆታ ከሽያጭ ጋር ማስታረቂያ (Chef output ≡ Waitstaff sales)
+                  Kitchen packaging consumption vs waitstaff sales output (Chef output ≡ Waitstaff sales)
                 </p>
               </div>
             </div>
@@ -922,7 +922,7 @@ export default function ShiftReconciliation({
             
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
               <label className="text-xs font-black text-slate-700 block">
-                የተሰጡ ቦክሶች (Boxes Given)
+                Boxes Given (የተሰጡ ቦክሶች)
               </label>
               <input
                 type="number"
@@ -933,13 +933,13 @@ export default function ShiftReconciliation({
                 placeholder="50"
               />
               <span className="text-[10px] text-slate-400 font-bold block">
-                ወደ ኩሽና የገቡ ባዶ ቦክሶች
+                Empty takeaway boxes issued to kitchen
               </span>
             </div>
 
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
               <label className="text-xs font-black text-slate-700 block">
-                የተረፉ ቦክሶች (Boxes Left)
+                Boxes Left (የተረፉ ቦክሶች)
               </label>
               <input
                 type="number"
@@ -950,19 +950,19 @@ export default function ShiftReconciliation({
                 placeholder="15"
               />
               <span className="text-[10px] text-slate-400 font-bold block">
-                በኩሽና የተረፉ ባዶ ቦክሶች
+                Empty boxes left unused in kitchen
               </span>
             </div>
 
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
               <label className="text-xs font-black text-slate-700 block">
-                የሚጠበቅ ምግብ ሽያጭ (Target Food Sold)
+                Target Food Sold (የሚጠበቅ ምግብ ሽያጭ)
               </label>
               <div className="w-full bg-emerald-100/60 border border-emerald-300 rounded-xl px-3.5 py-2 text-lg font-black text-emerald-900">
-                {targetFoodSold} <span className="text-xs text-emerald-700 font-bold">ቦክስ</span>
+                {targetFoodSold} <span className="text-xs text-emerald-700 font-bold">boxes</span>
               </div>
               <span className="text-[10px] text-slate-400 font-bold block">
-                የተሰጡ - የተረፉ = ከኩሽና የወጡ ምግቦች
+                Boxes Given - Boxes Left = Dishes served
               </span>
             </div>
 
@@ -971,7 +971,7 @@ export default function ShiftReconciliation({
           {/* Dish Category Selector */}
           <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs font-black text-slate-700">
-              የተሸጡ ምግቦችን ይመድቡ (Assign Sold Food):
+              Assign Sold Food Dishes:
             </span>
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
               {['All', 'Sandwiches', 'Salad', 'Pasta & Rice', 'Eggs & Firfir'].map(cat => (
@@ -985,7 +985,7 @@ export default function ShiftReconciliation({
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  {cat === 'All' ? '🌟 ሁሉም (All)' : cat}
+                  {cat === 'All' ? '🌟 All Dishes' : cat}
                 </button>
               ))}
             </div>
@@ -1120,7 +1120,7 @@ export default function ShiftReconciliation({
                   3. PENDING PAYMENTS (UNPAID WITH WAITERS)
                 </h2>
                 <p className="text-[11px] text-slate-500 font-bold">
-                  በአስተናጋጆች እጅ የቀሩ ሳይሰበሰቡ የወጡ ልዩ ልዩ ምግቦችና ጁሶች (Itemized Multi-Dish Waiter Debts)
+                  Uncollected food & juice orders held by waitstaff (Itemized Multi-Dish Debts)
                 </p>
               </div>
             </div>
@@ -1128,10 +1128,10 @@ export default function ShiftReconciliation({
             {/* Quick Live Summary Pills */}
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-bold text-slate-600">
-                🥤 ጁስ፡ <strong className="text-emerald-700">{pendingJuiceCupsInput || 0} ኩባያ</strong> ({pendingJuiceAmount.toLocaleString()} ETB)
+                🥤 Juice: <strong className="text-emerald-700">{pendingJuiceCupsInput || 0} cups</strong> ({pendingJuiceAmount.toLocaleString()} ETB)
               </span>
               <span className="px-3 py-1 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-bold text-slate-600">
-                🍱 ምግብ፡ <strong className="text-emerald-700">{totalPendingFoodBoxes} ቦክስ</strong> ({totalPendingFoodAmount.toLocaleString()} ETB)
+                🍱 Food: <strong className="text-emerald-700">{totalPendingFoodBoxes} boxes</strong> ({totalPendingFoodAmount.toLocaleString()} ETB)
               </span>
             </div>
           </div>
@@ -1148,17 +1148,17 @@ export default function ShiftReconciliation({
                 value={pendingWaiterName}
                 onChange={(e) => setPendingWaiterName(e.target.value)}
                 className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
-                placeholder="ለምሳሌ፡ አቤል (Waiter Abel)"
+                placeholder="e.g. Abel (Waiter)"
               />
               <span className="text-[10px] text-slate-400 block">
-                ሳይሰበሰብ የወጣውን ትዕዛዝ የወሰደው አስተናጋጅ ስም
+                Name of waitstaff holding uncollected customer order
               </span>
             </div>
 
             {/* Pending Juice (Cups) */}
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-1">
               <label className="text-xs font-black text-slate-700 block">
-                Pending Juice (ሳይሰበሰቡ የቀሩ የጁስ ኩባያዎች)
+                Pending Juice (Uncollected Juice Cups)
               </label>
               <div className="flex items-center gap-2">
                 <input
@@ -1174,7 +1174,7 @@ export default function ShiftReconciliation({
                 </span>
               </div>
               <span className="text-[10px] text-slate-400 block">
-                {DEFAULT_JUICE_PRICE} ETB / ኩባያ ተባዝቶ ከካዝና ጥሬ ገንዘብ ይቀነሳል
+                {DEFAULT_JUICE_PRICE} ETB / cup deducted from physical drawer cash
               </span>
             </div>
           </div>
@@ -1185,11 +1185,11 @@ export default function ShiftReconciliation({
               <div className="flex items-center gap-2">
                 <span className="text-sm">🍱</span>
                 <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                  የምግብ ዕዳዎች ዝርዝር (Pending Food Dishes — Different Items)
+                  Pending Food Dishes (Multi-Item Breakdown)
                 </span>
               </div>
               <span className="text-[11px] font-black text-emerald-800 bg-emerald-100/80 border border-emerald-200 px-2.5 py-0.5 rounded-lg">
-                ድምር: {totalPendingFoodBoxes} ቦክስ • {totalPendingFoodAmount.toLocaleString()} ETB
+                Total: {totalPendingFoodBoxes} boxes • {totalPendingFoodAmount.toLocaleString()} ETB
               </span>
             </div>
 
@@ -1198,7 +1198,7 @@ export default function ShiftReconciliation({
               {/* Select Dish (6 cols) */}
               <div className="sm:col-span-6">
                 <label className="text-[10px] font-black text-slate-500 block mb-1">
-                  የምግብ ዓይነት ይምረጡ (Choose Food Dish)
+                  Choose Food Dish
                 </label>
                 <select
                   value={selectedPendingDishId}
@@ -1216,7 +1216,7 @@ export default function ShiftReconciliation({
               {/* Quantity (3 cols) */}
               <div className="sm:col-span-3">
                 <label className="text-[10px] font-black text-slate-500 block mb-1">
-                  የቦክስ ብዛት (Qty)
+                  Box Quantity (Qty)
                 </label>
                 <input
                   type="number"
@@ -1234,7 +1234,7 @@ export default function ShiftReconciliation({
                   className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-lg flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span>+ ምግብ ጨምር</span>
+                  <span>+ Add Dish</span>
                 </button>
               </div>
             </form>
@@ -1243,7 +1243,7 @@ export default function ShiftReconciliation({
             <div className="space-y-2">
               {pendingFoodItems.length === 0 ? (
                 <div className="p-3 bg-white rounded-xl border border-dashed border-slate-200 text-center text-[11px] text-slate-500 font-bold">
-                  ምንም ያልተመረጠ ምግብ የለም። ከላይ ካለው ሳጥን ምግቡንና ብዛቱን መርጠው "+ ምግብ ጨምር" ይጫኑ።
+                  No pending food dishes added yet. Choose a dish and quantity above, then click "+ Add Dish".
                 </div>
               ) : (
                 pendingFoodItems.map((item) => (
@@ -1340,7 +1340,7 @@ export default function ShiftReconciliation({
                   4. RECOVERING PENDING PAYMENTS FROM WAITERS
                 </h2>
                 <p className="text-[11px] text-slate-500 font-bold">
-                  ከቀደምት ፈረቃዎች በአስተናጋጆች የተመለሱ የገንዘብ ዕዳዎች (Adds directly to cash drawer)
+                  Past shift debts collected from waitstaff (Adds directly to cash drawer)
                 </p>
               </div>
             </div>
@@ -1352,10 +1352,10 @@ export default function ShiftReconciliation({
                 className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
               >
                 <FileText className="w-3.5 h-3.5 text-emerald-700" />
-                <span>📋 የዕዳዎች ሙሉ መዝገብ (Open Pending Ledger Page) →</span>
+                <span>📋 Open Waiter Debts Ledger →</span>
               </button>
               <span className="text-xs font-black text-emerald-900 bg-emerald-100/80 border border-emerald-200 px-3 py-1.5 rounded-xl">
-                + {recoveredCashAdded.toLocaleString()} ETB ተሰብስቧል
+                + {recoveredCashAdded.toLocaleString()} ETB Collected
               </span>
             </div>
           </div>
@@ -1365,17 +1365,17 @@ export default function ShiftReconciliation({
             {activeDebtsForShift.length === 0 ? (
               <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-2">
                 <p className="text-xs text-slate-700 font-bold">
-                  ✓ ምንም ያልተሰበሰበ የአስተናጋጅ ዕዳ የለም (No pending debts across shifts)
+                  ✓ No pending debts across shifts
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  አዲስ ዕዳ ካለ ከላይ በክፍል 3 (Section 3) ይመዝግቡ ወይም የዕዳዎች መዝገብ ገጽን ይክፈቱ።
+                  New debts can be logged in Section 3 above or inside the Waiter Debts Ledger page.
                 </p>
                 <button
                   type="button"
                   onClick={() => setShowPendingLedgerModal(true)}
                   className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-black inline-flex items-center gap-1.5 transition-all shadow-xs"
                 >
-                  <span>የዕዳዎች ሙሉ ገጽን ክፈት (Open Pending Ledger)</span>
+                  <span>Open Waiter Debts Ledger</span>
                   <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
@@ -1488,7 +1488,7 @@ export default function ShiftReconciliation({
                   5. DAILY OPERATING EXPENSES
                 </h2>
                 <p className="text-[11px] text-slate-500 font-bold">
-                  ከጥሬ ገንዘብ መመዝገቢያ የወጡ የዕለት ወጪዎች (Deducted from drawer cash)
+                  Daily cash expenses paid from drawer (Deducted from drawer cash)
                 </p>
               </div>
             </div>
@@ -1518,7 +1518,7 @@ export default function ShiftReconciliation({
                     type="button"
                     onClick={() => handleRemoveExpense(exp.id)}
                     className="text-slate-400 hover:text-rose-500 transition-colors p-1"
-                    title="ወጪ ሰርዝ"
+                    title="Delete expense"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -1534,7 +1534,7 @@ export default function ShiftReconciliation({
               required
               value={newExpName}
               onChange={(e) => setNewExpName(e.target.value)}
-              placeholder="የወጪ ስም (e.g. በረዶ / Ice, ፌስታል)"
+              placeholder="Expense item (e.g. Ice / በረዶ, Packaging)"
               className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500 focus:bg-white"
             />
             <select
@@ -1552,7 +1552,7 @@ export default function ShiftReconciliation({
               step="any"
               value={newExpAmount}
               onChange={(e) => setNewExpAmount(e.target.value)}
-              placeholder="መጠን (ETB)"
+              placeholder="Amount (ETB)"
               className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-emerald-900 outline-none focus:border-emerald-500 focus:bg-white"
             />
             <button
@@ -1560,7 +1560,7 @@ export default function ShiftReconciliation({
               className="py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1 transition-all shadow-sm active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>ወጪ መዝግብ</span>
+              <span>+ Add Expense</span>
             </button>
           </form>
         </section>
@@ -1576,10 +1576,10 @@ export default function ShiftReconciliation({
               </span>
               <div>
                 <h2 className="text-sm sm:text-base font-black text-slate-900">
-                  6. BANK & TELEBIRR TRANSFERS (የባንክና ቴሌብር ዝውውር መመዝገቢያ)
+                  6. BANK & TELEBIRR TRANSFERS (MANUAL INPUT)
                 </h2>
                 <p className="text-[11px] text-slate-500 font-bold">
-                  በእጅ የሚመዘገብ የባንክና ቴሌብር ዝውውር — አንድ በአንድ እራስዎ ያስገቡ (Manual One-by-One Input)
+                  Customer digital payments — enter one by one directly (Manual One-by-One Input)
                 </p>
               </div>
             </div>
@@ -1590,11 +1590,11 @@ export default function ShiftReconciliation({
                   onClick={handleClearAllTransfers}
                   className="text-[11px] text-slate-500 hover:text-rose-600 underline font-bold px-2 py-1"
                 >
-                  ሁሉንም አጽዳ (Clear All)
+                  Clear All
                 </button>
               )}
               <span className="text-xs font-black text-emerald-900 bg-emerald-100/80 border border-emerald-200 px-3 py-1 rounded-xl">
-                - {totalBankTransfers.toLocaleString()} ETB ({bankTransfers.length} ዝውውሮች)
+                - {totalBankTransfers.toLocaleString()} ETB ({bankTransfers.length} transfers)
               </span>
             </div>
           </div>
@@ -1602,7 +1602,7 @@ export default function ShiftReconciliation({
           {/* Quick Preset Amount Buttons */}
           <div className="flex flex-wrap items-center gap-1.5 pt-1">
             <span className="text-[11px] text-slate-500 font-bold mr-1">
-              ፈጣን መጠን (Quick Presets):
+              Quick Presets:
             </span>
             {[100, 150, 180, 200, 250, 300, 430, 500, 1000].map(amt => (
               <button
@@ -1621,7 +1621,7 @@ export default function ShiftReconciliation({
             {/* Amount */}
             <div className="sm:col-span-5">
               <label className="text-[11px] font-black text-slate-700 block mb-1">
-                የተከፈለ መጠን (Amount ETB) *
+                Amount (ETB) *
               </label>
               <input
                 type="number"
@@ -1630,7 +1630,7 @@ export default function ShiftReconciliation({
                 min="1"
                 value={newTxnAmount}
                 onChange={(e) => setNewTxnAmount(e.target.value)}
-                placeholder="ለምሳሌ፡ 250"
+                placeholder="e.g. 250"
                 className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-black text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
               />
             </div>
@@ -1638,7 +1638,7 @@ export default function ShiftReconciliation({
             {/* Channel / Service */}
             <div className="sm:col-span-4">
               <label className="text-[11px] font-black text-slate-700 block mb-1">
-                የክፍያ መስመር (Channel / Bank) *
+                Channel / Bank *
               </label>
               <select
                 value={newTxnChannel}
@@ -1660,7 +1660,7 @@ export default function ShiftReconciliation({
                 className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
-                <span>+ ዝውውር መዝግብ</span>
+                <span>+ Add Transfer</span>
               </button>
             </div>
           </form>
@@ -1669,9 +1669,9 @@ export default function ShiftReconciliation({
           <div className="space-y-2 pt-1">
             {bankTransfers.length === 0 ? (
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-500 font-bold space-y-1">
-                <p>ℹ️ እስካሁን በእጅ የተመዘገበ የባንክ ወይም የቴሌብር ዝውውር የለም።</p>
+                <p>ℹ️ No digital bank or Telebirr transfers recorded yet for this shift.</p>
                 <p className="text-[11px] text-slate-400">
-                  ደንበኞች በቴሌብር፣ በንግድ ባንክ ወይም በሌላ ባንክ የከፈሉትን መጠኑንና ባንኩን መርጠው ያስገቡ።
+                  Select payment channel and amount above to log customer transfers one by one.
                 </p>
               </div>
             ) : (
@@ -1702,7 +1702,7 @@ export default function ShiftReconciliation({
                       type="button"
                       onClick={() => handleRemoveTransfer(txn.id)}
                       className="p-1.5 bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-xl transition-colors border border-slate-200 hover:border-rose-200"
-                      title="ዝውውር ሰርዝ"
+                      title="Delete transfer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -1726,7 +1726,7 @@ export default function ShiftReconciliation({
                 7. AUTOMATIC CASH DRAWER RECONCILIATION
               </h2>
               <p className="text-[11px] text-emerald-200 font-bold">
-                ጥሬ ገንዘብ ማስታረቂያ (Physical Cash Handoff Target)
+                Shift Physical Cash Handoff Target
               </p>
             </div>
           </div>
@@ -1780,7 +1780,7 @@ export default function ShiftReconciliation({
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-emerald-400/40 flex flex-wrap items-center justify-between gap-4">
             <div>
               <span className="text-xs font-black uppercase tracking-wider text-emerald-200 block">
-                በካዝና መገኘት ያለበት ጥሬ ገንዘብ (Physical Cash in Drawer):
+                Physical Cash in Drawer (የካዝና ጥሬ ገንዘብ):
               </span>
               <p className="text-3xl sm:text-4xl font-black text-white tracking-tight mt-1">
                 {physicalCashInDrawer.toLocaleString()} <span className="text-lg text-emerald-300 font-bold">ETB</span>
@@ -1792,7 +1792,7 @@ export default function ShiftReconciliation({
                   ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40'
                   : 'bg-amber-500/20 text-amber-200 border-amber-400/40'
               }`}>
-                {isFoodBoxesBalanced ? '✔ ሂሳቡ ሙሉ በሙሉ ተመጣጥኗል' : '⚠️ ቦክሶችን ማስታረቅ ያስፈልጋል'}
+                {isFoodBoxesBalanced ? '✔ Fully Reconciled & Balanced' : '⚠️ Balance Food Boxes First'}
               </span>
             </div>
           </div>
@@ -1817,7 +1817,7 @@ export default function ShiftReconciliation({
               </span>
             </div>
             <p className="text-[11px] text-slate-500">
-              ጥሬ ገንዘብ፡ <strong className="text-emerald-700 font-black">{physicalCashInDrawer.toLocaleString()} ETB</strong>
+              Drawer Cash: <strong className="text-emerald-700 font-black">{physicalCashInDrawer.toLocaleString()} ETB</strong>
             </p>
           </div>
 
@@ -1828,7 +1828,7 @@ export default function ShiftReconciliation({
               className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all shadow-xs"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>CSV አውርድ</span>
+              <span>Download CSV</span>
             </button>
 
             <button
@@ -1844,7 +1844,7 @@ export default function ShiftReconciliation({
               {isFoodBoxesBalanced ? (
                 <>
                   <CheckCircle2 className="w-4 h-4 text-white" />
-                  <span>✔ SAVE SETTLEMENT (ርክክቡን አጽድቅ)</span>
+                  <span>✔ SAVE SETTLEMENT</span>
                 </>
               ) : (
                 <>
@@ -1866,7 +1866,7 @@ export default function ShiftReconciliation({
           <div className="bg-white text-slate-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto font-mono text-xs">
             
             <div className="flex items-center justify-between border-b pb-2">
-              <span className="font-bold text-slate-500 text-[11px]">የፈረቃ ርክክብ ደረሰኝ (Shift Ticket)</span>
+              <span className="font-bold text-slate-500 text-[11px]">Shift Settlement Slip (80mm)</span>
               <button 
                 type="button"
                 onClick={() => setActivePrintTicket(null)}
@@ -1880,17 +1880,17 @@ export default function ShiftReconciliation({
             <div className="border border-slate-300 p-4 rounded-xl space-y-2 bg-slate-50 text-[11px] leading-relaxed">
               <div className="text-center space-y-0.5 border-b pb-2">
                 <h3 className="font-black text-sm tracking-tight text-slate-900">MARAKI JUICE & SALAD</h3>
-                <p className="text-[10px] text-slate-600">DAILY SHIFT SETTLEMENT SLIP</p>
+                <p className="text-[10px] text-slate-600 font-bold">DAILY SHIFT SETTLEMENT SLIP</p>
                 <p className="text-[10px] text-slate-500">{toEthiopianDateString(activePrintTicket.date)}</p>
               </div>
 
               <div className="flex justify-between">
-                <span>ፈረቃ (Shift):</span>
-                <strong>{activePrintTicket.shift === 'Day' ? 'Day (☀️ የቀን)' : 'Night (🌙 የማታ)'}</strong>
+                <span>Shift:</span>
+                <strong>{activePrintTicket.shift === 'Day' ? '☀️ Day Shift' : '🌙 Night Shift'}</strong>
               </div>
 
               <div className="flex justify-between border-t pt-1">
-                <span>🥤 ጁስ ሽያጭ ({activePrintTicket.juiceSold} ኩባያ):</span>
+                <span>🥤 Juice Sales ({activePrintTicket.juiceSold} cups):</span>
                 <span>{activePrintTicket.grossJuiceRevenue.toLocaleString()} ETB</span>
               </div>
               <div className="flex justify-between text-[10px] text-slate-500 pl-2">
@@ -1899,34 +1899,34 @@ export default function ShiftReconciliation({
               </div>
 
               <div className="flex justify-between border-t pt-1">
-                <span>🍱 ምግብ ሽያጭ ({activePrintTicket.assignedBoxes} ቦክስ):</span>
+                <span>🍱 Food Sales ({activePrintTicket.assignedBoxes} boxes):</span>
                 <span>{activePrintTicket.totalFoodRevenue.toLocaleString()} ETB</span>
               </div>
 
               <div className="flex justify-between border-t pt-1 font-black">
-                <span>ጠቅላላ ሽያጭ (Gross):</span>
+                <span>Total Gross Sales:</span>
                 <span>{activePrintTicket.totalGrossSales.toLocaleString()} ETB</span>
               </div>
 
               <div className="flex justify-between text-rose-600">
-                <span>- የተመዘገበ ዕዳ (Pending):</span>
+                <span>- Uncollected Debts (Pending):</span>
                 <span>-{activePrintTicket.deductedPendingDebt.toLocaleString()} ETB</span>
               </div>
-              <div className="flex justify-between text-cyan-700">
-                <span>+ የተሰበሰበ ዕዳ (Recovered):</span>
+              <div className="flex justify-between text-teal-700">
+                <span>+ Recovered Debts:</span>
                 <span>+{activePrintTicket.recoveredCashAdded.toLocaleString()} ETB</span>
               </div>
               <div className="flex justify-between text-rose-600">
-                <span>- የዕለት ወጪ (Expenses):</span>
+                <span>- Operating Expenses:</span>
                 <span>-{activePrintTicket.totalDailyExpenses.toLocaleString()} ETB</span>
               </div>
               <div className="flex justify-between text-purple-700">
-                <span>- የባንክ ዝውውር (Transfers):</span>
+                <span>- Bank & Telebirr Transfers:</span>
                 <span>-{activePrintTicket.totalBankTransfers.toLocaleString()} ETB</span>
               </div>
 
               <div className="border-t-2 border-dashed pt-2 flex justify-between font-black text-xs text-slate-900">
-                <span>💵 ጥሬ ገንዘብ (Drawer Cash):</span>
+                <span>💵 Physical Cash in Drawer:</span>
                 <span className="text-sm">{activePrintTicket.physicalCashInDrawer.toLocaleString()} ETB</span>
               </div>
 
@@ -1934,11 +1934,11 @@ export default function ShiftReconciliation({
               <div className="pt-6 grid grid-cols-2 gap-4 text-center text-[10px] text-slate-500 border-t border-slate-300">
                 <div>
                   <div className="border-b border-dashed border-slate-400 mb-1 h-6"></div>
-                  <span>አስረካቢ (Cashier)</span>
+                  <span>Cashier (አስረካቢ)</span>
                 </div>
                 <div>
                   <div className="border-b border-dashed border-slate-400 mb-1 h-6"></div>
-                  <span>ተረካቢ (Manager)</span>
+                  <span>Manager (ተረካቢ)</span>
                 </div>
               </div>
             </div>
@@ -1949,7 +1949,7 @@ export default function ShiftReconciliation({
               className="w-full py-2.5 bg-slate-900 text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 hover:bg-slate-800 transition-all shadow-md"
             >
               <Printer className="w-4 h-4" />
-              <span>ደረሰኙን አትም (Print Slip)</span>
+              <span>Print Slip (80mm)</span>
             </button>
 
           </div>
@@ -1969,7 +1969,7 @@ export default function ShiftReconciliation({
                 <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shadow-inner">
                   <History className="w-4 h-4" />
                 </div>
-                <h3 className="font-black text-sm text-slate-900">ያለፉ ፈረቃዎች ማጠቃለያ (Settlements History)</h3>
+                <h3 className="font-black text-sm text-slate-900">Shift Settlements History Log</h3>
               </div>
               <button 
                 type="button" 
@@ -1983,7 +1983,7 @@ export default function ShiftReconciliation({
             <div className="space-y-2.5">
               {settlementsHistory.length === 0 ? (
                 <p className="text-xs text-slate-500 text-center py-6 font-bold">
-                  ምንም የተመዘገበ የፈረቃ ሂሳብ የለም
+                  No shift settlements recorded yet
                 </p>
               ) : (
                 settlementsHistory.map(item => (
@@ -2003,7 +2003,7 @@ export default function ShiftReconciliation({
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
-                        ሽያጭ፡ {item.totalGrossSales.toLocaleString()} ETB • ጥሬ ገንዘብ፡ <strong className="text-emerald-800">{item.physicalCashInDrawer.toLocaleString()} ETB</strong>
+                        Sales: {item.totalGrossSales.toLocaleString()} ETB • Drawer Cash: <strong className="text-emerald-800">{item.physicalCashInDrawer.toLocaleString()} ETB</strong>
                       </p>
                     </div>
 
@@ -2013,7 +2013,7 @@ export default function ShiftReconciliation({
                       className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 rounded-xl text-xs font-black flex items-center gap-1.5 border border-slate-200 hover:border-emerald-300 shadow-2xs transition-all"
                     >
                       <Printer className="w-3.5 h-3.5" />
-                      <span>ደረሰኝ</span>
+                      <span>Print Slip</span>
                     </button>
                   </div>
                 ))
