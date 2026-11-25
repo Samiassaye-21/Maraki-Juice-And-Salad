@@ -74,6 +74,46 @@ export const EXPENSE_CATEGORIES = [
   'Other (ሌላ ወጪ)'
 ];
 
+function shiftGregorianIso(dateStr, deltaDays) {
+  const d = new Date(`${dateStr}T12:00:00`);
+  d.setDate(d.getDate() + deltaDays);
+  return toLocalIsoDate(d);
+}
+
+function getPrevShiftInfo(dateStr, shift) {
+  if (shift === 'Night') return { date: dateStr, shift: 'Day' };
+  return { date: shiftGregorianIso(dateStr, -1), shift: 'Night' };
+}
+
+function getNextShiftInfo(dateStr, shift) {
+  if (shift === 'Day') return { date: dateStr, shift: 'Night' };
+  return { date: shiftGregorianIso(dateStr, 1), shift: 'Day' };
+}
+
+function resolveCarryOverFromHistory(history = [], dateStr, shift) {
+  const prev = getPrevShiftInfo(dateStr, shift);
+  const prevSettlement = history.find(s => s.date === prev.date && s.shift === prev.shift);
+
+  const savedCups = localStorage.getItem(`maraki_cups_carry_${prev.date}_${prev.shift}`);
+  const savedBoxes = localStorage.getItem(`maraki_boxes_carry_${prev.date}_${prev.shift}`);
+
+  const carriedCups =
+    prevSettlement && prevSettlement.cupsLeft !== undefined
+      ? Number(prevSettlement.cupsLeft)
+      : savedCups !== null
+        ? Number(savedCups)
+        : null;
+
+  const carriedBoxes =
+    prevSettlement && prevSettlement.boxesLeft !== undefined
+      ? Number(prevSettlement.boxesLeft)
+      : savedBoxes !== null
+        ? Number(savedBoxes)
+        : null;
+
+  return { prevDate: prev.date, prevShift: prev.shift, carriedCups, carriedBoxes };
+}
+
 export default function ShiftReconciliation({
   orders = [],
   waiters = [],
@@ -169,35 +209,41 @@ export default function ShiftReconciliation({
   }, []);
 
   // ==============================================================
-  // SECTION 1: JUICE CUPS (170 ETB / cup) & beU Delivery State
+  // SECTION 1 & 2: CARRY-OVER, CLEAN BLANK STATE & CLOSED-SHIFT LOCK
   // ==============================================================
-  // Check if carry-over cups from previous Day shift exist
-  const carryOverCups = useMemo(() => {
-    const key = `maraki_cups_carry_${selectedDate}_Day`;
-    const saved = localStorage.getItem(key);
-    return saved ? Number(saved) : null;
-  }, [selectedDate]);
+  const carryOverInfo = useMemo(() => {
+    return resolveCarryOverFromHistory(settlementsHistory, selectedDate, selectedShift);
+  }, [settlementsHistory, selectedDate, selectedShift]);
+
+  const currentSavedSettlement = useMemo(() => {
+    return settlementsHistory.find(s => s.date === selectedDate && s.shift === selectedShift) || null;
+  }, [settlementsHistory, selectedDate, selectedShift]);
+
+  const [unlockedShiftIds, setUnlockedShiftIds] = useState({});
+  const isShiftClosed = Boolean(currentSavedSettlement) && !unlockedShiftIds[currentSavedSettlement?.id];
 
   const [cupsGiven, setCupsGiven] = useState(() => {
-    return 100;
-  });
-  const [cupsLeft, setCupsLeft] = useState(20);
-  const [beuDeliveryCups, setBeuDeliveryCups] = useState(10);
-
-  // When switching to Night shift, auto-fill Cups Given from Day shift's Cups Left if available
-  useEffect(() => {
-    if (selectedShift === 'Night') {
-      const daySettlement = settlementsHistory.find(s => s.date === selectedDate && s.shift === 'Day');
-      if (daySettlement && daySettlement.cupsLeft !== undefined) {
-        setCupsGiven(daySettlement.cupsLeft);
-      } else if (carryOverCups !== null) {
-        setCupsGiven(carryOverCups);
-      }
+    if (currentSavedSettlement && currentSavedSettlement.cupsGiven !== undefined) {
+      return currentSavedSettlement.cupsGiven;
     }
-  }, [selectedShift, selectedDate, settlementsHistory, carryOverCups]);
+    return carryOverInfo.carriedCups !== null ? carryOverInfo.carriedCups : '';
+  });
+  const [cupsLeft, setCupsLeft] = useState(() => {
+    if (currentSavedSettlement && currentSavedSettlement.cupsLeft !== undefined) {
+      return currentSavedSettlement.cupsLeft;
+    }
+    return '';
+  });
+  const [beuDeliveryCups, setBeuDeliveryCups] = useState(() => {
+    if (currentSavedSettlement && currentSavedSettlement.beuDeliveryCups !== undefined) {
+      return currentSavedSettlement.beuDeliveryCups;
+    }
+    return '';
+  });
 
-  // Section 1 Math
-  const juiceSold = Math.max(0, Number(cupsGiven || 0) - Number(cupsLeft || 0));
+  // Safe Math: wait until both Given and Left are entered before calculating Sold
+  const hasCupsEntered = cupsGiven !== '' && cupsLeft !== '';
+  const juiceSold = hasCupsEntered ? Math.max(0, Number(cupsGiven) - Number(cupsLeft)) : 0;
   const inStoreJuiceSold = Math.max(0, juiceSold - Number(beuDeliveryCups || 0));
   const grossJuiceRevenue = juiceSold * effectiveJuicePrice;
   const beuDeliveryDeduction = Number(beuDeliveryCups || 0) * effectiveJuicePrice;
@@ -206,54 +252,27 @@ export default function ShiftReconciliation({
   // SECTION 2: FOOD BOX RECONCILIATION ("Anti-Skimming Engine")
   // ==============================================================
   const [boxesGiven, setBoxesGiven] = useState(() => {
-    try {
-      const saved = localStorage.getItem('maraki_shift_settlements');
-      if (saved) {
-        const list = JSON.parse(saved);
-        const existing = list.find(s => s.date === selectedDate && s.shift === selectedShift);
-        if (existing && existing.boxesGiven !== undefined) return existing.boxesGiven;
-      }
-    } catch (e) {}
-    return 50;
+    if (currentSavedSettlement && currentSavedSettlement.boxesGiven !== undefined) {
+      return currentSavedSettlement.boxesGiven;
+    }
+    return carryOverInfo.carriedBoxes !== null ? carryOverInfo.carriedBoxes : '';
   });
   const [boxesLeft, setBoxesLeft] = useState(() => {
-    try {
-      const saved = localStorage.getItem('maraki_shift_settlements');
-      if (saved) {
-        const list = JSON.parse(saved);
-        const existing = list.find(s => s.date === selectedDate && s.shift === selectedShift);
-        if (existing && existing.boxesLeft !== undefined) return existing.boxesLeft;
-      }
-    } catch (e) {}
-    return 15;
+    if (currentSavedSettlement && currentSavedSettlement.boxesLeft !== undefined) {
+      return currentSavedSettlement.boxesLeft;
+    }
+    return '';
   });
-  const targetFoodSold = Math.max(0, Number(boxesGiven || 0) - Number(boxesLeft || 0));
+  const hasBoxesEntered = boxesGiven !== '' && boxesLeft !== '';
+  const targetFoodSold = hasBoxesEntered ? Math.max(0, Number(boxesGiven) - Number(boxesLeft)) : 0;
 
   const [activeFoodCategory, setActiveFoodCategory] = useState('All');
   const [foodAssignments, setFoodAssignments] = useState(() => {
-    try {
-      const saved = localStorage.getItem('maraki_shift_settlements');
-      if (saved) {
-        const list = JSON.parse(saved);
-        const existing = list.find(s => s.date === selectedDate && s.shift === selectedShift);
-        if (existing && existing.foodAssignments) return existing.foodAssignments;
-      }
-    } catch (e) {}
+    if (currentSavedSettlement && currentSavedSettlement.foodAssignments) {
+      return currentSavedSettlement.foodAssignments;
+    }
     return {};
   });
-
-  // Sync saved settlement fields when switching Date or Shift
-  useEffect(() => {
-    const existing = settlementsHistory.find(s => s.date === selectedDate && s.shift === selectedShift);
-    if (existing) {
-      if (existing.cupsGiven !== undefined) setCupsGiven(existing.cupsGiven);
-      if (existing.cupsLeft !== undefined) setCupsLeft(existing.cupsLeft);
-      if (existing.beuDeliveryCups !== undefined) setBeuDeliveryCups(existing.beuDeliveryCups);
-      if (existing.boxesGiven !== undefined) setBoxesGiven(existing.boxesGiven);
-      if (existing.boxesLeft !== undefined) setBoxesLeft(existing.boxesLeft);
-      if (existing.foodAssignments) setFoodAssignments(existing.foodAssignments);
-    }
-  }, [selectedDate, selectedShift]);
 
   // Resolve Chef Sent Orders (prop or localStorage fallback)
   const resolvedOrders = useMemo(() => {
@@ -354,11 +373,9 @@ export default function ShiftReconciliation({
   // Multi-Dish Itemized Food & Juice Pending Debts Engine
   // ==============================================================
   const [pendingWaiterName, setPendingWaiterName] = useState('አቤል (Waiter Abel)');
-  const [pendingJuiceCupsInput, setPendingJuiceCupsInput] = useState(4);
-  const [pendingFoodItems, setPendingFoodItems] = useState([
-    { id: 'pitem-1', dishId: 'sb', name: 'ስፔሻል በርገር (Special Burger)', qty: 2, price: 250 }
-  ]);
-  const [selectedPendingDishId, setSelectedPendingDishId] = useState('cs');
+  const [pendingJuiceCupsInput, setPendingJuiceCupsInput] = useState('');
+  const [pendingFoodItems, setPendingFoodItems] = useState([]);
+  const [selectedPendingDishId, setSelectedPendingDishId] = useState('m1');
   const [selectedPendingDishQty, setSelectedPendingDishQty] = useState(1);
 
   const handleAddPendingFoodItem = (e) => {
@@ -473,9 +490,9 @@ export default function ShiftReconciliation({
   // ==============================================================
   // SECTION 5: DAILY OPERATING EXPENSES
   // ==============================================================
-  const [dailyExpenses, setDailyExpenses] = useState([
-    { id: 'exp-1', name: 'ሎሚ (Lemons - Fruit & Veg)', category: 'Fruit & Veg (ፍራፍሬና አትክልት)', amount: 300 }
-  ]);
+  const [dailyExpenses, setDailyExpenses] = useState(() => {
+    return currentSavedSettlement?.dailyExpenses ? [...currentSavedSettlement.dailyExpenses] : [];
+  });
   const [newExpName, setNewExpName] = useState('');
   const [newExpCategory, setNewExpCategory] = useState(EXPENSE_CATEGORIES[0]);
   const [newExpAmount, setNewExpAmount] = useState('');
@@ -506,11 +523,13 @@ export default function ShiftReconciliation({
   // SECTION 6: MANUAL BANK & TELEBIRR TRANSFERS (ONE-BY-ONE INPUT)
   // ==============================================================
   const [bankTransfers, setBankTransfers] = useState(() => {
+    if (currentSavedSettlement?.bankTransfers) {
+      return [...currentSavedSettlement.bankTransfers];
+    }
     const saved = localStorage.getItem('maraki_shift_manual_transfers');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Filter out old dummy sample transfer if present
         return parsed.filter(t => t.refNumber !== 'FT248902891' && t.id !== 'txn-1');
       } catch (e) {}
     }
@@ -518,8 +537,45 @@ export default function ShiftReconciliation({
   });
 
   useEffect(() => {
-    localStorage.setItem('maraki_shift_manual_transfers', JSON.stringify(bankTransfers));
-  }, [bankTransfers]);
+    if (!isShiftClosed) {
+      localStorage.setItem('maraki_shift_manual_transfers', JSON.stringify(bankTransfers));
+    }
+  }, [bankTransfers, isShiftClosed]);
+
+  // Unified Shift Switch / Reset Effect:
+  // - Closed shift: load exact saved record
+  // - New open shift: carry over ONLY Cups Left & Boxes Left from previous shift, blank EVERYTHING else!
+  useEffect(() => {
+    const existing = settlementsHistory.find(s => s.date === selectedDate && s.shift === selectedShift);
+    if (existing) {
+      setCupsGiven(existing.cupsGiven !== undefined ? existing.cupsGiven : '');
+      setCupsLeft(existing.cupsLeft !== undefined ? existing.cupsLeft : '');
+      setBeuDeliveryCups(existing.beuDeliveryCups !== undefined && existing.beuDeliveryCups !== 0 ? existing.beuDeliveryCups : '');
+      setBoxesGiven(existing.boxesGiven !== undefined ? existing.boxesGiven : '');
+      setBoxesLeft(existing.boxesLeft !== undefined ? existing.boxesLeft : '');
+      setFoodAssignments(existing.foodAssignments ? { ...existing.foodAssignments } : {});
+      setPendingJuiceCupsInput(existing.pendingJuiceCups ? existing.pendingJuiceCups : '');
+      setPendingFoodItems(existing.pendingFoodItems ? [...existing.pendingFoodItems] : []);
+      if (existing.pendingWaiterName) setPendingWaiterName(existing.pendingWaiterName);
+      setDailyExpenses(existing.dailyExpenses ? [...existing.dailyExpenses] : []);
+      setBankTransfers(existing.bankTransfers ? [...existing.bankTransfers] : []);
+      setRecoverySelections({});
+    } else {
+      const carry = resolveCarryOverFromHistory(settlementsHistory, selectedDate, selectedShift);
+      setCupsGiven(carry.carriedCups !== null ? carry.carriedCups : '');
+      setCupsLeft('');
+      setBeuDeliveryCups('');
+      setBoxesGiven(carry.carriedBoxes !== null ? carry.carriedBoxes : '');
+      setBoxesLeft('');
+      setFoodAssignments({});
+      setPendingJuiceCupsInput('');
+      setPendingFoodItems([]);
+      setRecoverySelections({});
+      setDailyExpenses([]);
+      setBankTransfers([]);
+      localStorage.removeItem('maraki_shift_manual_transfers');
+    }
+  }, [selectedDate, selectedShift]);
 
   const [newTxnAmount, setNewTxnAmount] = useState('');
   const [newTxnChannel, setNewTxnChannel] = useState('Telebirr (ቴሌብር)');
@@ -562,19 +618,32 @@ export default function ShiftReconciliation({
   const physicalCashInDrawer = totalGrossSales - beuDeliveryDeduction - totalDailyExpenses + recoveredCashAdded - deductedPendingDebt - totalBankTransfers;
 
   // ==============================================================
-  // SAVE SETTLEMENT & PRINT TICKET MODAL
+  // SAVE SETTLEMENT, SHIFT CLOSE LOCK & OPTION A AUTO-ADVANCE
   // ==============================================================
   const [activePrintTicket, setActivePrintTicket] = useState(null);
+  const [isPostSaveSlip, setIsPostSaveSlip] = useState(false);
+  const [postSaveNextShift, setPostSaveNextShift] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [saveSuccessBanner, setSaveSuccessBanner] = useState(false);
+  const [advanceNotice, setAdvanceNotice] = useState('');
+
+  const handleUnlockClosedShift = () => {
+    if (!currentSavedSettlement) return;
+    const ownerPass = localStorage.getItem('maraki_owner_password') || '1234';
+    const entered = window.prompt('🔒 This shift is closed. Enter Owner Password to unlock & edit:');
+    if (entered === ownerPass) {
+      setUnlockedShiftIds(prev => ({ ...prev, [currentSavedSettlement.id]: true }));
+    } else if (entered !== null) {
+      window.alert('Incorrect Owner Password.');
+    }
+  };
 
   const handleSaveSettlement = () => {
-    if (!isFoodBoxesBalanced) return;
+    if (!hasBoxesEntered || !isFoodBoxesBalanced || isShiftClosed) return;
 
     if (chefComparison.hasMismatch) {
       const proceed = window.confirm(
-        `🚨 RED ALARM: Waiter/Income Sheet food (${chefComparison.incomeSheetTotal}) does NOT match Chef Sent Orders (${chefComparison.chefTotalFood} total / ${chefComparison.chefTakeawayBoxes} takeaway boxes).\n\n` +
-        `Dish differences found: ${chefComparison.dishDiffs.length}\n\n` +
+        `🚨 RED ALARM: Waiter/Income Sheet total food (${chefComparison.incomeSheetTotal}) does NOT match Chef Sent Orders (${chefComparison.chefTotalFood} total / ${chefComparison.chefTakeawayBoxes} takeaway boxes).\n\n` +
         `Click OK to SAVE ANYWAY and send a RED MISMATCH ALARM to the Owner Dashboard, or Cancel to review and fix it first.`
       );
       if (!proceed) return;
@@ -607,6 +676,7 @@ export default function ShiftReconciliation({
         chefTotalFood: chefComparison.chefTotalFood,
         incomeSheetTotal: chefComparison.incomeSheetTotal,
         hasMismatch: chefComparison.hasMismatch,
+        hasDishTypeVariance: chefComparison.hasDishTypeVariance,
         discrepancyCount: chefComparison.discrepancyCount,
         discrepancyETB: chefComparison.discrepancyETB,
         dishDiffs: chefComparison.dishDiffs
@@ -623,20 +693,30 @@ export default function ShiftReconciliation({
       bankTransfers: [...bankTransfers],
       totalBankTransfers,
       physicalCashInDrawer,
+      status: 'closed',
       savedAt: new Date().toISOString()
     };
 
-    // Save carry-over cups for the day
+    // Save BOTH carry-over Cups Left AND Boxes Left for the next shift (Day->Night or Night->Next Day)
     localStorage.setItem(`maraki_cups_carry_${selectedDate}_${selectedShift}`, (Number(cupsLeft) || 0).toString());
+    localStorage.setItem(`maraki_boxes_carry_${selectedDate}_${selectedShift}`, (Number(boxesLeft) || 0).toString());
 
-    // Update Settlements History
+    // Update Settlements History & re-lock if unlocked
     setSettlementsHistory(prev => {
       const filtered = prev.filter(s => s.id !== settlementId);
       return [newRecord, ...filtered];
     });
+    setUnlockedShiftIds(prev => {
+      const next = { ...prev };
+      delete next[settlementId];
+      return next;
+    });
     if (onSavedSettlement) {
       onSavedSettlement(newRecord);
     }
+
+    // Clear active manual transfers draft now that it's archived inside newRecord
+    localStorage.removeItem('maraki_shift_manual_transfers');
 
     // Update Pending Debts
     // 1. Add new pending debt if entered (Itemized by dish & juice)
@@ -703,12 +783,34 @@ export default function ShiftReconciliation({
       });
     });
 
-    // Reset recovery selections for clean slate on next settlement
+    // Reset recovery selections
     setRecoverySelections({});
 
+    const nextTarget = getNextShiftInfo(selectedDate, selectedShift);
+    setPostSaveNextShift(nextTarget);
+    setIsPostSaveSlip(true);
     setActivePrintTicket(newRecord);
     setSaveSuccessBanner(true);
     setTimeout(() => setSaveSuccessBanner(false), 4000);
+  };
+
+  // Option A: When clicking Done after finishing shift, close slip, lock finished shift,
+  // advance to next shift, carry over ONLY Cups Left & Boxes Left, and blank everything else!
+  const handleDoneFromSlip = () => {
+    setActivePrintTicket(null);
+    if (isPostSaveSlip && postSaveNextShift) {
+      const target = postSaveNextShift;
+      setIsPostSaveSlip(false);
+      setPostSaveNextShift(null);
+      setSelectedDate(target.date);
+      setSelectedShift(target.shift);
+      setAdvanceNotice(
+        `🔒 Previous shift closed & saved! Switched to ${target.shift} Shift (${target.date}) with carried-over Cups & Boxes only.`
+      );
+      setTimeout(() => setAdvanceNotice(''), 6000);
+    } else {
+      setIsPostSaveSlip(false);
+    }
   };
 
   // Helper: Date shift
@@ -896,21 +998,78 @@ export default function ShiftReconciliation({
         </div>
       </header>
 
-      {/* Save Success Toast Banner */}
+      {/* Save Success / Auto-Advance Notice Banners */}
+      {advanceNotice && (
+        <div className="max-w-6xl mx-auto px-4 mt-3">
+          <div className="bg-emerald-50 border-2 border-emerald-400 text-emerald-950 px-4 py-3 rounded-2xl text-xs font-black flex items-center justify-between gap-2 shadow-sm">
+            <span>{advanceNotice}</span>
+            <button type="button" onClick={() => setAdvanceNotice('')} className="text-emerald-700 hover:text-emerald-950">✕</button>
+          </div>
+        </div>
+      )}
+
       {saveSuccessBanner && (
         <div className="max-w-6xl mx-auto px-4 mt-3">
           <div className="bg-emerald-950/90 border border-emerald-500/40 text-emerald-300 px-4 py-2.5 rounded-2xl text-xs font-black flex items-center justify-between shadow-lg animate-in fade-in">
             <span className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>የፈረቃው ሂሳብ ሙሉ በሙሉ ተዘግቶ በሲስተሙ ተመዝግቧል! (Shift Settlement Saved Successfully)</span>
+              <span>የፈረቃው ሂሳብ ሙሉ በሙሉ ተዘግቶ በሲስተሙ ተመዝግቧል! (Shift Settlement Saved & Closed)</span>
             </span>
             <button 
               type="button"
-              onClick={() => setActivePrintTicket(settlementsHistory[0])}
+              onClick={() => { setIsPostSaveSlip(false); setActivePrintTicket(settlementsHistory[0]); }}
               className="underline text-emerald-200 hover:text-white"
             >
-              ደረሰኝ እይ / አትም
+              View Slip
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Closed Shift Lock Banner */}
+      {isShiftClosed && currentSavedSettlement && (
+        <div className="max-w-6xl mx-auto px-4 mt-3">
+          <div className="bg-slate-900 text-white px-4 py-3.5 rounded-2xl border border-emerald-500/30 shadow-md flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
+                <Lock className="w-4 h-4" />
+              </span>
+              <div>
+                <p className="text-xs sm:text-sm font-black">
+                  🔒 {selectedShift} Shift ({selectedDate}) Is Closed & Saved
+                </p>
+                <p className="text-[11px] text-slate-300 font-bold">
+                  Drawer Cash: {currentSavedSettlement.physicalCashInDrawer?.toLocaleString()} ETB • Carry-over saved for next shift
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => { setIsPostSaveSlip(false); setActivePrintTicket(currentSavedSettlement); }}
+                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-black"
+              >
+                View / Share Slip
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = getNextShiftInfo(selectedDate, selectedShift);
+                  setSelectedDate(next.date);
+                  setSelectedShift(next.shift);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black"
+              >
+                Next Open Shift →
+              </button>
+              <button
+                type="button"
+                onClick={handleUnlockClosedShift}
+                className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/30 text-xs font-black"
+              >
+                🔓 Owner Unlock
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -945,9 +1104,9 @@ export default function ShiftReconciliation({
                 </p>
               </div>
             </div>
-            {selectedShift === 'Night' && carryOverCups !== null && (
+            {carryOverInfo.carriedCups !== null && (
               <span className="text-[11px] font-black text-emerald-800 bg-emerald-100/80 border border-emerald-300 px-2.5 py-1 rounded-xl">
-                🔄 Carried from Day Shift: {carryOverCups} cups
+                🔄 Carried from {carryOverInfo.prevShift} ({carryOverInfo.prevDate}): {carryOverInfo.carriedCups} cups
               </span>
             )}
           </div>
@@ -956,16 +1115,31 @@ export default function ShiftReconciliation({
             
             {/* Cups Given */}
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
-              <label className="text-xs font-black text-slate-700 block">
-                Cups Given (የተሰጡ ኩባያዎች)
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black text-slate-700 block">
+                  Cups Given (የተሰጡ ኩባያዎች)
+                </label>
+                {!isShiftClosed && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const add = Number(window.prompt('Add new cups issued on top of current count:', '50'));
+                      if (!isNaN(add) && add > 0) setCupsGiven(prev => Number(prev || 0) + add);
+                    }}
+                    className="text-[10px] font-black text-emerald-700 hover:underline"
+                  >
+                    + Add Pack
+                  </button>
+                )}
+              </div>
               <input
                 type="number"
                 min="0"
+                disabled={isShiftClosed}
                 value={cupsGiven}
                 onChange={(e) => setCupsGiven(e.target.value)}
-                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10"
-                placeholder="100"
+                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:bg-slate-100"
+                placeholder="Enter count"
               />
               <span className="text-[10px] text-slate-400 font-bold block">
                 Total plastic cups issued for shift
@@ -980,13 +1154,14 @@ export default function ShiftReconciliation({
               <input
                 type="number"
                 min="0"
+                disabled={isShiftClosed}
                 value={cupsLeft}
                 onChange={(e) => setCupsLeft(e.target.value)}
-                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10"
-                placeholder="20"
+                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:bg-slate-100"
+                placeholder="Enter count"
               />
               <span className="text-[10px] text-slate-400 font-bold block">
-                Remaining unsold on shelf
+                Remaining unsold on shelf (carries over next shift)
               </span>
             </div>
 
@@ -999,10 +1174,11 @@ export default function ShiftReconciliation({
               <input
                 type="number"
                 min="0"
+                disabled={isShiftClosed}
                 value={beuDeliveryCups}
                 onChange={(e) => setBeuDeliveryCups(e.target.value)}
-                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10"
-                placeholder="10"
+                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:bg-slate-100"
+                placeholder="0"
               />
               <span className="text-[10px] text-slate-400 font-bold block">
                 Deposited directly to company bank account
@@ -1019,7 +1195,7 @@ export default function ShiftReconciliation({
               </span>
               <span className="text-slate-400">•</span>
               <span className="text-slate-600 font-bold">
-                ({inStoreJuiceSold} in-house + {beuDeliveryCups} beU)
+                ({inStoreJuiceSold} in-house + {Number(beuDeliveryCups || 0)} beU)
               </span>
             </div>
             <div className="flex items-center gap-4">
@@ -1047,26 +1223,46 @@ export default function ShiftReconciliation({
                   2. FOOD BOX RECONCILIATION ("THE ANTI-SKIMMING ENGINE")
                 </h2>
                 <p className="text-[11px] text-slate-500 font-bold">
-                  Kitchen packaging consumption vs waitstaff sales output (Chef output ≡ Waitstaff sales)
+                  Kitchen packaging consumption vs waitstaff sales output (Total Boxes Sold ≡ Chef Sent Total)
                 </p>
               </div>
             </div>
+            {carryOverInfo.carriedBoxes !== null && (
+              <span className="text-[11px] font-black text-emerald-800 bg-emerald-100/80 border border-emerald-300 px-2.5 py-1 rounded-xl">
+                🔄 Carried from {carryOverInfo.prevShift} ({carryOverInfo.prevDate}): {carryOverInfo.carriedBoxes} boxes
+              </span>
+            )}
           </div>
 
           {/* Boxes Given, Boxes Left, Target Food Sold */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
-              <label className="text-xs font-black text-slate-700 block">
-                Boxes Given (የተሰጡ ቦክሶች)
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black text-slate-700 block">
+                  Boxes Given (የተሰጡ ቦክሶች)
+                </label>
+                {!isShiftClosed && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const add = Number(window.prompt('Add extra takeaway boxes issued on top of current count:', '50'));
+                      if (!isNaN(add) && add > 0) setBoxesGiven(prev => Number(prev || 0) + add);
+                    }}
+                    className="text-[10px] font-black text-emerald-700 hover:underline"
+                  >
+                    + Add Pack
+                  </button>
+                )}
+              </div>
               <input
                 type="number"
                 min="0"
+                disabled={isShiftClosed}
                 value={boxesGiven}
                 onChange={(e) => setBoxesGiven(e.target.value)}
-                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10"
-                placeholder="50"
+                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:bg-slate-100"
+                placeholder="Enter count"
               />
               <span className="text-[10px] text-slate-400 font-bold block">
                 Empty takeaway boxes issued to kitchen
@@ -1080,13 +1276,14 @@ export default function ShiftReconciliation({
               <input
                 type="number"
                 min="0"
+                disabled={isShiftClosed}
                 value={boxesLeft}
                 onChange={(e) => setBoxesLeft(e.target.value)}
-                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10"
-                placeholder="15"
+                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:bg-slate-100"
+                placeholder="Enter count"
               />
               <span className="text-[10px] text-slate-400 font-bold block">
-                Empty boxes left unused in kitchen
+                Remaining unused boxes (carries over next shift)
               </span>
             </div>
 
@@ -1098,7 +1295,7 @@ export default function ShiftReconciliation({
                 {targetFoodSold} <span className="text-xs text-emerald-700 font-bold">boxes</span>
               </div>
               <span className="text-[10px] text-slate-400 font-bold block">
-                Boxes Given - Boxes Left = Dishes served
+                {hasBoxesEntered ? 'Boxes Given - Boxes Left = Dishes served' : 'Enter Boxes Given & Left to calculate'}
               </span>
             </div>
 
@@ -1128,18 +1325,23 @@ export default function ShiftReconciliation({
                     {!chefComparison.hasChefOrders
                       ? 'Chef Orders Cross-Check: 0 Chef POS Orders Logged for This Shift'
                       : chefComparison.hasMismatch
-                        ? '🚨 RED ALARM: WAITER / INCOME SHEET FOOD DOES NOT MATCH CHEF SENT ORDERS!'
-                        : '✅ CHEF SENT ORDERS ≡ INCOME SHEET MATCHED 100%'}
+                        ? '🚨 RED ALARM: TOTAL FOOD COUNT DOES NOT MATCH CHEF SENT ORDERS!'
+                        : '✅ CHEF SENT TOTAL ≡ INCOME SHEET TOTAL MATCHED'}
                   </h3>
                   <p className="text-[11px] font-bold opacity-80 mt-0.5">
                     {chefComparison.hasChefOrders ? (
                       <>
                         Chef POS Sent: <strong>{chefSummary.totalOrders} orders</strong> ({chefComparison.chefTakeawayBoxes} Takeaway boxes
-                        {chefComparison.chefHomeDishes > 0 ? ` + ${chefComparison.chefHomeDishes} Home dine-in` : ''} = <strong>{chefComparison.chefTotalFood} dishes</strong>) •
-                        Income Sheet Entered: <strong>{chefComparison.incomeSheetTotal} dishes</strong>
+                        {chefComparison.chefHomeDishes > 0 ? ` + ${chefComparison.chefHomeDishes} Home dine-in` : ''} = <strong>{chefComparison.chefTotalFood} total</strong>) •
+                        Income Sheet Entered: <strong>{chefComparison.incomeSheetTotal} boxes/food</strong>
+                        {chefComparison.hasDishTypeVariance && (
+                          <span className="ml-2 text-emerald-800 font-black">
+                            (Different dish types clicked, total count matches — OK ✔)
+                          </span>
+                        )}
                       </>
                     ) : (
-                      'When Chef sends orders from Kitchen POS for this date & shift, they will automatically cross-check against waiter food below.'
+                      'When Chef sends orders from Kitchen POS for this date & shift, total box count will automatically cross-check below.'
                     )}
                   </p>
                 </div>
@@ -2082,18 +2284,30 @@ export default function ShiftReconciliation({
 
             <button
               type="button"
-              disabled={!isFoodBoxesBalanced}
+              disabled={!hasBoxesEntered || !isFoodBoxesBalanced || isShiftClosed}
               onClick={handleSaveSettlement}
               className={`py-3 px-6 rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-95 shadow-lg ${
-                isFoodBoxesBalanced
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30'
-                  : 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed opacity-75'
+                isShiftClosed
+                  ? 'bg-slate-800 text-emerald-300 border border-slate-700 cursor-not-allowed'
+                  : hasBoxesEntered && isFoodBoxesBalanced
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30'
+                    : 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed opacity-75'
               }`}
             >
-              {isFoodBoxesBalanced ? (
+              {isShiftClosed ? (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>🔒 SHIFT CLOSED</span>
+                </>
+              ) : !hasBoxesEntered ? (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>ENTER BOXES GIVEN & LEFT</span>
+                </>
+              ) : isFoodBoxesBalanced ? (
                 <>
                   <CheckCircle2 className="w-4 h-4 text-white" />
-                  <span>✔ SAVE SETTLEMENT</span>
+                  <span>✔ SAVE & CLOSE SHIFT</span>
                 </>
               ) : (
                 <>
@@ -2112,7 +2326,8 @@ export default function ShiftReconciliation({
       {/* ============================================================== */}
       <ShiftSlipModal
         slip={activePrintTicket}
-        onClose={() => setActivePrintTicket(null)}
+        isPostSave={isPostSaveSlip}
+        onClose={handleDoneFromSlip}
       />
 
 
@@ -2168,7 +2383,7 @@ export default function ShiftReconciliation({
 
                     <button
                       type="button"
-                      onClick={() => { setActivePrintTicket(item); setShowHistoryModal(false); }}
+                      onClick={() => { setIsPostSaveSlip(false); setActivePrintTicket(item); setShowHistoryModal(false); }}
                       className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 rounded-xl text-xs font-black flex items-center gap-1.5 border border-slate-200 hover:border-emerald-300 shadow-2xs transition-all"
                     >
                       <Printer className="w-3.5 h-3.5" />

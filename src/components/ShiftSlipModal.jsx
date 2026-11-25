@@ -154,7 +154,7 @@ function downloadSettlementSlipPng(slip) {
   link.click();
 }
 
-export default function ShiftSlipModal({ slip, onClose }) {
+export default function ShiftSlipModal({ slip, onClose, isPostSave = false }) {
   const [copied, setCopied] = useState(false);
   const [savedPng, setSavedPng] = useState(false);
 
@@ -337,7 +337,7 @@ export default function ShiftSlipModal({ slip, onClose }) {
               className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>Done (No Print)</span>
+              <span>{isPostSave ? 'Done & Next Shift →' : 'Done (Close)'}</span>
             </button>
 
             <button

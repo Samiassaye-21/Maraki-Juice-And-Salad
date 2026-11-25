@@ -248,12 +248,14 @@ export function compareChefVsIncomeSheet(chefSummary, foodAssignments = {}, dish
   });
 
   // Check overall count against total food or takeaway boxes
+  // Dish type swaps do NOT trigger an alarm as long as total count matches!
   const matchesGrandTotal = assignedTotal === chefSummary.totalFoodItems;
   const matchesTakeawayBoxes = assignedTotal === chefSummary.takeawayBoxes;
   const totalMismatch = !matchesGrandTotal && !matchesTakeawayBoxes;
-  const hasMismatch = totalMismatch || dishDiffs.length > 0;
+  const hasMismatch = totalMismatch;
+  const hasDishTypeVariance = !totalMismatch && dishDiffs.length > 0;
 
-  const discrepancyCount = matchesTakeawayBoxes
+  const discrepancyCount = matchesTakeawayBoxes || matchesGrandTotal
     ? 0
     : assignedTotal - chefSummary.totalFoodItems;
 
@@ -261,6 +263,7 @@ export function compareChefVsIncomeSheet(chefSummary, foodAssignments = {}, dish
     hasChefOrders: true,
     isMatch: !hasMismatch,
     hasMismatch,
+    hasDishTypeVariance,
     chefTotalFood: chefSummary.totalFoodItems,
     chefTakeawayBoxes: chefSummary.takeawayBoxes,
     chefHomeDishes: chefSummary.homeDishes,
