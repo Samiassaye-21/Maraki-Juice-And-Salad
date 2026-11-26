@@ -35,7 +35,13 @@ import {
 import { toEthiopianDateString, toEthiopianShortDate } from './BusinessManagement';
 import WaiterPendingLedgerModal from './WaiterPendingLedgerModal';
 import ShiftSlipModal from './ShiftSlipModal';
-import { aggregateChefOrders, compareChefVsIncomeSheet, toLocalIsoDate } from '../utils/reconciliationHelpers';
+import {
+  aggregateChefOrders,
+  compareChefVsIncomeSheet,
+  toLocalIsoDate,
+  getShiftDefaultWaiters,
+  saveShiftDefaultWaiters
+} from '../utils/reconciliationHelpers';
 
 // Standard Maraki price per juice cup
 export const DEFAULT_JUICE_PRICE = 170;
@@ -370,13 +376,75 @@ export default function ShiftReconciliation({
 
   // ==============================================================
   // SECTION 3: PENDING PAYMENTS CREATION (Unpaid With Waiters)
-  // Multi-Dish Itemized Food & Juice Pending Debts Engine
+  // Auto-assigned by Shift (Day -> Habtamu, Night -> Wende); Owner-locked
   // ==============================================================
-  const [pendingWaiterName, setPendingWaiterName] = useState('አቤል (Waiter Abel)');
+  const [shiftDefaultWaiters, setShiftDefaultWaiters] = useState(() => getShiftDefaultWaiters());
+  const [pendingWaiterName, setPendingWaiterName] = useState(() => {
+    const defaults = getShiftDefaultWaiters();
+    return currentSavedSettlement?.pendingWaiterName || defaults[selectedShift] || 'ሀብታሙ (Habtamu)';
+  });
+  const [waiterOverrideUnlocked, setWaiterOverrideUnlocked] = useState(false);
+  const [showWaiterAuthModal, setShowWaiterAuthModal] = useState(false);
+  const [waiterPinInput, setWaiterPinInput] = useState('');
+  const [waiterPinError, setWaiterPinError] = useState('');
+  const [waiterDraftName, setWaiterDraftName] = useState('');
+  const [saveAsShiftDefault, setSaveAsShiftDefault] = useState(false);
   const [pendingJuiceCupsInput, setPendingJuiceCupsInput] = useState('');
   const [pendingFoodItems, setPendingFoodItems] = useState([]);
   const [selectedPendingDishId, setSelectedPendingDishId] = useState('m1');
   const [selectedPendingDishQty, setSelectedPendingDishQty] = useState(1);
+
+  // Sync shift default waiters if updated in Owner Settings (same-tab or cross-tab)
+  useEffect(() => {
+    const syncDefaults = () => {
+      const nextDefaults = getShiftDefaultWaiters();
+      setShiftDefaultWaiters(nextDefaults);
+      if (!currentSavedSettlement && !waiterOverrideUnlocked) {
+        setPendingWaiterName(nextDefaults[selectedShift]);
+      }
+    };
+    const onStorage = (e) => {
+      if (e.key === 'maraki_shift_default_waiters_v1') {
+        syncDefaults();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('maraki-shift-waiters-updated', syncDefaults);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('maraki-shift-waiters-updated', syncDefaults);
+    };
+  }, [selectedShift, currentSavedSettlement, waiterOverrideUnlocked]);
+
+  const handleOpenWaiterOwnerModal = () => {
+    setWaiterDraftName(pendingWaiterName);
+    setWaiterPinInput('');
+    setWaiterPinError('');
+    setSaveAsShiftDefault(false);
+    setShowWaiterAuthModal(true);
+  };
+
+  const handleConfirmWaiterChange = (e) => {
+    e.preventDefault();
+    const ownerPass = localStorage.getItem('maraki_owner_password') || '1234';
+    if (!embeddedMode && waiterPinInput.trim() !== ownerPass) {
+      setWaiterPinError('Incorrect Owner Password. Only the Owner can change the waiter.');
+      return;
+    }
+    const cleanName = waiterDraftName.trim();
+    if (!cleanName) return;
+
+    setPendingWaiterName(cleanName);
+    setWaiterOverrideUnlocked(true);
+    if (saveAsShiftDefault) {
+      const updated = saveShiftDefaultWaiters({
+        ...shiftDefaultWaiters,
+        [selectedShift]: cleanName
+      });
+      setShiftDefaultWaiters(updated);
+    }
+    setShowWaiterAuthModal(false);
+  };
 
   const handleAddPendingFoodItem = (e) => {
     if (e) e.preventDefault();
@@ -570,6 +638,10 @@ export default function ShiftReconciliation({
       setFoodAssignments({});
       setPendingJuiceCupsInput('');
       setPendingFoodItems([]);
+      const freshDefaults = getShiftDefaultWaiters();
+      setShiftDefaultWaiters(freshDefaults);
+      setPendingWaiterName(freshDefaults[selectedShift] || (selectedShift === 'Night' ? 'ወንዴ (Wende)' : 'ሀብታሙ (Habtamu)'));
+      setWaiterOverrideUnlocked(false);
       setRecoverySelections({});
       setDailyExpenses([]);
       setBankTransfers([]);
@@ -1584,20 +1656,45 @@ export default function ShiftReconciliation({
 
           {/* Top Row: Waiter Selection & Juice Cups Input */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {/* Waiter Name */}
-            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-1">
-              <label className="text-xs font-black text-slate-700 block">
-                Waiter Name (ባለዕዳ አስተናጋጅ) *
-              </label>
-              <input
-                type="text"
-                value={pendingWaiterName}
-                onChange={(e) => setPendingWaiterName(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
-                placeholder="e.g. Abel (Waiter)"
-              />
-              <span className="text-[10px] text-slate-400 block">
-                Name of waitstaff holding uncollected customer order
+            {/* Waiter Name (Auto by Shift: Day=Habtamu, Night=Wende; Owner Authority to Change) */}
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-xs font-black text-slate-700 flex items-center gap-1.5">
+                  <span>Waiter Name (ባለዕዳ አስተናጋጅ) *</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black">
+                    {selectedShift === 'Day' ? '☀️ Day Auto' : '🌙 Night Auto'}
+                  </span>
+                </label>
+                {!isShiftClosed && (
+                  <button
+                    type="button"
+                    onClick={handleOpenWaiterOwnerModal}
+                    className="text-[10px] font-black px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-1 shadow-2xs transition-all"
+                    title="Owner permission required to change shift waiter"
+                  >
+                    <Lock className="w-3 h-3 text-emerald-400" />
+                    <span>Change (Owner)</span>
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  readOnly={!waiterOverrideUnlocked}
+                  disabled={isShiftClosed}
+                  value={pendingWaiterName}
+                  onChange={(e) => waiterOverrideUnlocked && setPendingWaiterName(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none ${
+                    waiterOverrideUnlocked && !isShiftClosed
+                      ? 'bg-white border-emerald-400 text-slate-900 focus:ring-2 focus:ring-emerald-500/15'
+                      : 'bg-slate-100 border-slate-200 text-slate-800 cursor-not-allowed'
+                  }`}
+                />
+              </div>
+              <span className="text-[10px] text-slate-500 font-bold block">
+                {waiterOverrideUnlocked
+                  ? '🔓 Unlocked by Owner for this shift'
+                  : `🔒 Locked to shift default (${selectedShift === 'Day' ? 'Day → Habtamu' : 'Night → Wende'}). Only Owner can change.`}
               </span>
             </div>
 
@@ -2422,6 +2519,110 @@ export default function ShiftReconciliation({
         foodMenu={dishesList}
         standardJuicePrice={effectiveJuicePrice}
       />
+
+      {/* ============================================================== */}
+      {/* MODAL 5: OWNER AUTHORITY TO CHANGE SHIFT WAITER                */}
+      {/* ============================================================== */}
+      {showWaiterAuthModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <form onSubmit={handleConfirmWaiterChange} className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-emerald-200 space-y-4 text-slate-800">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-9 h-9 rounded-xl bg-slate-900 text-emerald-400 flex items-center justify-center">
+                  <Lock className="w-4 h-4" />
+                </span>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Change {selectedShift} Shift Waiter</h3>
+                  <p className="text-[10px] text-slate-500 font-bold">Owner Authority Required</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setShowWaiterAuthModal(false)} className="p-1 text-slate-400 hover:text-slate-800">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {Array.isArray(waiters) && waiters.length > 0 && (
+              <div>
+                <label className="text-[11px] font-black text-slate-700 block mb-1">Quick Pick Waiter:</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {waiters.map(w => {
+                    const label = w.fullName || w.amharic || w;
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => setWaiterDraftName(label)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-black border transition-all ${
+                          waiterDraftName === label
+                            ? 'bg-emerald-600 text-white border-emerald-700'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-emerald-50'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="text-[11px] font-black text-slate-700 block mb-1">Waiter Name *</label>
+              <input
+                type="text"
+                required
+                value={waiterDraftName}
+                onChange={(e) => setWaiterDraftName(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-300 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs font-black outline-none"
+              />
+            </div>
+
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={saveAsShiftDefault}
+                onChange={(e) => setSaveAsShiftDefault(e.target.checked)}
+                className="rounded text-emerald-600"
+              />
+              <span>Set as permanent default for all <strong>{selectedShift}</strong> shifts</span>
+            </label>
+
+            {!embeddedMode && (
+              <div>
+                <label className="text-[11px] font-black text-slate-700 block mb-1">Owner Password *</label>
+                <input
+                  type="password"
+                  required
+                  value={waiterPinInput}
+                  onChange={(e) => setWaiterPinInput(e.target.value)}
+                  placeholder="Enter Owner Password..."
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs font-black outline-none"
+                />
+              </div>
+            )}
+
+            {waiterPinError && (
+              <p className="text-xs font-black text-rose-600">{waiterPinError}</p>
+            )}
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowWaiterAuthModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-black"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-sm"
+              >
+                Authorize & Apply
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
     </div>
   );

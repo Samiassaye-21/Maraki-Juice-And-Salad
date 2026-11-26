@@ -411,3 +411,107 @@ export function computePackagingAudit({
     }
   };
 }
+
+export const DEFAULT_SHIFT_WAITERS = {
+  Day: 'ሀብታሙ (Habtamu)',
+  Night: 'ወንዴ (Wende)'
+};
+
+export function getShiftDefaultWaiters() {
+  try {
+    const saved = localStorage.getItem('maraki_shift_default_waiters_v1');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        Day: parsed.Day || DEFAULT_SHIFT_WAITERS.Day,
+        Night: parsed.Night || DEFAULT_SHIFT_WAITERS.Night
+      };
+    }
+  } catch (e) {}
+  return { ...DEFAULT_SHIFT_WAITERS };
+}
+
+export function saveShiftDefaultWaiters(nextMap) {
+  const clean = {
+    Day: (nextMap?.Day || '').trim() || DEFAULT_SHIFT_WAITERS.Day,
+    Night: (nextMap?.Night || '').trim() || DEFAULT_SHIFT_WAITERS.Night
+  };
+  localStorage.setItem('maraki_shift_default_waiters_v1', JSON.stringify(clean));
+  try {
+    window.dispatchEvent(new Event('maraki-shift-waiters-updated'));
+  } catch (e) {}
+  return clean;
+}
+
+export function clearAllBusinessData({ includeSettings = false } = {}) {
+  try {
+    const dynamicPrefixes = [
+      'maraki_sales_orders_',
+      'maraki_shift_settlements',
+      'maraki_boxes_carry_',
+      'maraki_cups_carry_',
+      'maraki_shift_slip_',
+      'maraki_income_report_',
+      'maraki_business_backup_'
+    ];
+    const keysToRemove = [
+      'maraki_box_starting_stock',
+      'maraki_waste_boxes',
+      'maraki_waste_cups',
+      'maraki_shift_manual_transfers',
+      'maraki_opening_cash_balance',
+      'maraki_expected_income'
+    ];
+    if (includeSettings) {
+      keysToRemove.push(
+        'maraki_chef_food_menu_v2',
+        'maraki_standard_juice_price',
+        'maraki_shift_default_waiters_v1',
+        'maraki_waiters_list_v3',
+        'maraki_stock_thresholds_v1',
+        'maraki_beu_commission_pct',
+        'maraki_menu_edit_pin_lock'
+      );
+    }
+
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (dynamicPrefixes.some((p) => k.startsWith(p)) || keysToRemove.includes(k)) {
+        localStorage.removeItem(k);
+      }
+    }
+
+    // Write explicit empty arrays so stores do not fall back to sample/demo seeding
+    const emptyArrayKeys = [
+      'maraki_chef_sent_orders',
+      'maraki_shift_settlements',
+      'maraki_box_purchases_v1',
+      'maraki_box_manual_issues_v1',
+      'maraki_waiter_pending_debts',
+      'maraki_actual_expenses',
+      'maraki_day_closes',
+      'maraki_plan_recurring',
+      'maraki_plan_purchases',
+      'maraki_plan_salaries',
+      'maraki_plan_tasks',
+      'maraki_plan_goals',
+      'maraki_plan_notes',
+      'maraki_price_change_log_v1',
+      'maraki_schedule_reminders'
+    ];
+    emptyArrayKeys.forEach((k) => localStorage.setItem(k, '[]'));
+    localStorage.setItem('maraki_all_sample_data_cleared_v5', 'true');
+    localStorage.setItem('maraki_sent_orders_cleared_v3', 'true');
+
+    if (includeSettings) {
+      try {
+        window.dispatchEvent(new Event('maraki-shift-waiters-updated'));
+      } catch (e) {}
+    }
+    return true;
+  } catch (e) {
+    console.error('Failed to clear business data:', e);
+    return false;
+  }
+}

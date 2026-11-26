@@ -5,7 +5,7 @@ import OwnerIncomeAnalysisReport from './components/OwnerIncomeAnalysisReport';
 import OwnerDashboard from './components/OwnerDashboard';
 import BoxInventoryAudit from './components/BoxInventoryAudit';
 import OwnerMenuPriceManager from './components/OwnerMenuPriceManager';
-import { computePackagingAudit } from './utils/reconciliationHelpers';
+import { computePackagingAudit, getShiftDefaultWaiters, saveShiftDefaultWaiters, clearAllBusinessData } from './utils/reconciliationHelpers';
 import { 
   Plus, 
   Minus, 
@@ -491,10 +491,16 @@ export default function App() {
   const [loginError, setLoginError] = useState(null);
   const [showPasswordText, setShowPasswordText] = useState(false);
 
-  // Password Settings Modal (Managed by Owner)
+  // Password & Shift Waiter Settings Modal (Managed by Owner)
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [newOwnerPassInput, setNewOwnerPassInput] = useState('');
   const [newChefPinInput, setNewChefPinInput] = useState('');
+  const [dayShiftWaiterInput, setDayShiftWaiterInput] = useState(() => getShiftDefaultWaiters().Day);
+  const [nightShiftWaiterInput, setNightShiftWaiterInput] = useState(() => getShiftDefaultWaiters().Night);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearConfirmPass, setClearConfirmPass] = useState('');
+  const [clearIncludeSettings, setClearIncludeSettings] = useState(false);
+  const [clearConfirmError, setClearConfirmError] = useState('');
 
   // --- PWA MOBILE / DESKTOP APP INSTALL STATE ---
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -992,6 +998,13 @@ export default function App() {
     if (newChefPinInput.trim()) {
       setChefPin(newChefPinInput.trim());
       localStorage.setItem('maraki_chef_pin', newChefPinInput.trim());
+      updated = true;
+    }
+    if (systemMode === 'owner') {
+      saveShiftDefaultWaiters({
+        Day: dayShiftWaiterInput,
+        Night: nightShiftWaiterInput
+      });
       updated = true;
     }
     if (updated) {
@@ -1852,6 +1865,13 @@ export default function App() {
                 onClick={() => {
                   setNewOwnerPassInput(ownerPassword);
                   setNewChefPinInput(chefPin);
+                  const sw = getShiftDefaultWaiters();
+                  setDayShiftWaiterInput(sw.Day);
+                  setNightShiftWaiterInput(sw.Night);
+                  setShowClearConfirm(false);
+                  setClearConfirmPass('');
+                  setClearIncludeSettings(false);
+                  setClearConfirmError('');
                   setShowSettingsModal(true);
                 }}
                 className="px-2.5 py-1.5 bg-white/10 hover:bg-white/15 text-slate-200 rounded-xl text-xs font-black border border-white/10 transition-all flex items-center gap-1"
@@ -4450,7 +4470,7 @@ export default function App() {
       {/* ============================================================== */}
       {showSettingsModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-2 border-emerald-500 space-y-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-emerald-500 space-y-4">
             
             <div className="flex items-center gap-2.5 pb-2 border-b border-emerald-100">
               <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
@@ -4492,6 +4512,36 @@ export default function App() {
                 />
               </div>
 
+              {systemMode === 'owner' && (
+                <div className="pt-2 border-t border-slate-100 space-y-2.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">
+                    👤 Default Shift Waiters (Owner Authority)
+                  </span>
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-700 mb-1">
+                      ☀️ Day Shift Waiter:
+                    </label>
+                    <input
+                      type="text"
+                      value={dayShiftWaiterInput}
+                      onChange={(e) => setDayShiftWaiterInput(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-2xl px-3.5 py-2 text-xs font-bold text-slate-900 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-700 mb-1">
+                      🌙 Night Shift Waiter:
+                    </label>
+                    <input
+                      type="text"
+                      value={nightShiftWaiterInput}
+                      onChange={(e) => setNightShiftWaiterInput(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-2xl px-3.5 py-2 text-xs font-bold text-slate-900 outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 pt-2">
                 <button
                   type="button"
@@ -4511,7 +4561,7 @@ export default function App() {
             </form>
 
             {systemMode === 'owner' && (
-              <div className="pt-3 border-t border-slate-100">
+              <div className="pt-3 border-t border-slate-100 space-y-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -4523,6 +4573,89 @@ export default function App() {
                   <Tag className="w-4 h-4 text-emerald-400" />
                   <span>Open Menu & Juice Price Control →</span>
                 </button>
+
+                {/* Danger Zone: Owner-Authorized Clear All Data */}
+                <div className="bg-rose-50/80 border border-rose-200 rounded-2xl p-3 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <span className="text-[11px] font-black text-rose-800 flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Clear All Business Data</span>
+                      </span>
+                      <span className="text-[10px] text-rose-600 font-bold block">
+                        Wipes all orders, shifts, boxes, expenses & debts
+                      </span>
+                    </div>
+                    {!showClearConfirm && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowClearConfirm(true);
+                          setClearConfirmPass('');
+                          setClearConfirmError('');
+                        }}
+                        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[11px] font-black flex items-center gap-1 shadow-xs shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Clear All</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {showClearConfirm && (
+                    <div className="space-y-2 pt-1 border-t border-rose-200/80">
+                      <label className="flex items-center gap-2 text-[11px] font-bold text-slate-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={clearIncludeSettings}
+                          onChange={(e) => setClearIncludeSettings(e.target.checked)}
+                          className="rounded text-rose-600"
+                        />
+                        <span>Also reset Menu Prices & Shift Waiters to defaults</span>
+                      </label>
+                      <input
+                        type="password"
+                        value={clearConfirmPass}
+                        onChange={(e) => {
+                          setClearConfirmPass(e.target.value);
+                          setClearConfirmError('');
+                        }}
+                        placeholder="Enter Owner Password to confirm wipe..."
+                        className="w-full bg-white border border-rose-300 focus:border-rose-500 rounded-xl px-3 py-2 text-xs font-black text-slate-900 outline-none"
+                      />
+                      {clearConfirmError && (
+                        <p className="text-[11px] font-black text-rose-700">{clearConfirmError}</p>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowClearConfirm(false);
+                            setClearConfirmPass('');
+                            setClearConfirmError('');
+                          }}
+                          className="flex-1 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-[11px] font-black"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (clearConfirmPass.trim() !== ownerPassword) {
+                              setClearConfirmError('Incorrect Owner Password.');
+                              return;
+                            }
+                            clearAllBusinessData({ includeSettings: clearIncludeSettings });
+                            window.location.reload();
+                          }}
+                          className="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[11px] font-black shadow-xs"
+                        >
+                          Confirm Clear All Data
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

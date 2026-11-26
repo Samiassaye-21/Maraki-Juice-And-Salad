@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { clearAllBusinessData } from '../utils/reconciliationHelpers';
 import { 
   Building, 
   Calendar, 
@@ -940,7 +941,7 @@ export default function BusinessManagement({
   };
 
   const handleFullSystemReset = () => {
-    if (!window.confirm('⚠️ ማስጠንቀቂያ፡ መላው የሲስተም መረጃ (ወጪዎች፣ እቅዶች፣ ግቦች፣ ተግባራት) ሙሉ ለሙሉ ባዶ ይሆናል። እርግጠኛ ነዎት? (WARNING: Full wipe of all system data. Continue?)')) {
+    if (!window.confirm('⚠️ ማስጠንቀቂያ፡ መላው የሲስተም መረጃ (ትዕዛዞች፣ ሺፍት፣ ቦክሶች፣ ወጪዎች፣ እዳዎች፣ እቅዶች) ሙሉ ለሙሉ ባዶ ይሆናል። እርግጠኛ ነዎት? (WARNING: Full wipe of all system data. Continue?)')) {
       return;
     }
     setActualExpenses([]);
@@ -952,15 +953,8 @@ export default function BusinessManagement({
     setNotes([]);
     setDayCloses([]);
     if (onClearOrders) onClearOrders();
-    localStorage.setItem('maraki_actual_expenses', '[]');
-    localStorage.setItem('maraki_plan_recurring', '[]');
-    localStorage.setItem('maraki_plan_purchases', '[]');
-    localStorage.setItem('maraki_plan_salaries', '[]');
-    localStorage.setItem('maraki_plan_tasks', '[]');
-    localStorage.setItem('maraki_plan_goals', '[]');
-    localStorage.setItem('maraki_plan_notes', '[]');
-    localStorage.setItem('maraki_day_closes', '[]');
-    triggerUndoableAction('መላው ሲስተም ባዶ ተደርጓል (Full system reset to clean slate)');
+    clearAllBusinessData({ includeSettings: false });
+    window.location.reload();
   };
 
   const handleRestoreDefaults = () => {
