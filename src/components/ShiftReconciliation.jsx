@@ -30,6 +30,7 @@ import {
   History,
   RotateCcw,
   BellRing,
+  Package,
   Sparkles as WandSparkles
 } from 'lucide-react';
 import { toEthiopianDateString, toEthiopianShortDate } from './BusinessManagement';
@@ -393,6 +394,24 @@ export default function ShiftReconciliation({
   const [pendingFoodItems, setPendingFoodItems] = useState([]);
   const [selectedPendingDishId, setSelectedPendingDishId] = useState('m1');
   const [selectedPendingDishQty, setSelectedPendingDishQty] = useState(1);
+  const [addPackModal, setAddPackModal] = useState(null); // null | { type: 'cups' | 'boxes', qty: '50' }
+
+  const openAddPackModal = (type) => {
+    setAddPackModal({ type, qty: '50' });
+  };
+
+  const handleConfirmAddPack = (e) => {
+    if (e) e.preventDefault();
+    if (!addPackModal) return;
+    const addAmt = Number(addPackModal.qty);
+    if (isNaN(addAmt) || addAmt <= 0) return;
+    if (addPackModal.type === 'cups') {
+      setCupsGiven(prev => String(Number(prev || 0) + addAmt));
+    } else {
+      setBoxesGiven(prev => String(Number(prev || 0) + addAmt));
+    }
+    setAddPackModal(null);
+  };
 
   // Sync shift default waiters if updated in Owner Settings (same-tab or cross-tab)
   useEffect(() => {
@@ -1194,13 +1213,11 @@ export default function ShiftReconciliation({
                 {!isShiftClosed && (
                   <button
                     type="button"
-                    onClick={() => {
-                      const add = Number(window.prompt('Add new cups issued on top of current count:', '50'));
-                      if (!isNaN(add) && add > 0) setCupsGiven(prev => Number(prev || 0) + add);
-                    }}
-                    className="text-[10px] font-black text-emerald-700 hover:underline"
+                    onClick={() => openAddPackModal('cups')}
+                    className="px-2.5 py-1 rounded-xl bg-emerald-100 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-200 text-[11px] font-black flex items-center gap-1 shadow-2xs transition-all active:scale-95"
                   >
-                    + Add Pack
+                    <Plus className="w-3 h-3 stroke-[3]" />
+                    <span>Add Pack</span>
                   </button>
                 )}
               </div>
@@ -1317,13 +1334,11 @@ export default function ShiftReconciliation({
                 {!isShiftClosed && (
                   <button
                     type="button"
-                    onClick={() => {
-                      const add = Number(window.prompt('Add extra takeaway boxes issued on top of current count:', '50'));
-                      if (!isNaN(add) && add > 0) setBoxesGiven(prev => Number(prev || 0) + add);
-                    }}
-                    className="text-[10px] font-black text-emerald-700 hover:underline"
+                    onClick={() => openAddPackModal('boxes')}
+                    className="px-2.5 py-1 rounded-xl bg-emerald-100 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-200 text-[11px] font-black flex items-center gap-1 shadow-2xs transition-all active:scale-95"
                   >
-                    + Add Pack
+                    <Plus className="w-3 h-3 stroke-[3]" />
+                    <span>Add Pack</span>
                   </button>
                 )}
               </div>
@@ -2623,6 +2638,163 @@ export default function ShiftReconciliation({
           </form>
         </div>
       )}
+
+      {/* ============================================================== */}
+      {/* MODAL 6: + ADD PACK (TACTILE CUPS / BOXES TOP-UP MODAL)        */}
+      {/* ============================================================== */}
+      {addPackModal && (() => {
+        const isCups = addPackModal.type === 'cups';
+        const currentVal = Number(isCups ? cupsGiven : boxesGiven) || 0;
+        const addVal = Math.max(0, Number(addPackModal.qty) || 0);
+        const nextTotal = currentVal + addVal;
+        const unitLabel = isCups ? 'Cups' : 'Boxes';
+        const presets = [
+          { qty: 25, tag: '½ Pack' },
+          { qty: 50, tag: '1 Pack' },
+          { qty: 100, tag: '2 Packs' },
+          { qty: 150, tag: '3 Packs' },
+          { qty: 200, tag: '4 Packs' }
+        ];
+
+        return (
+          <div
+            className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
+            onClick={() => setAddPackModal(null)}
+          >
+            <form
+              onSubmit={handleConfirmAddPack}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-emerald-200 overflow-hidden text-slate-800"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 px-5 py-4 text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-xl">
+                    {isCups ? '🥤' : '🍱'}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white">
+                      {isCups ? 'Add Juice Cups Pack' : 'Add Takeaway Boxes Pack'}
+                    </h3>
+                    <p className="text-[11px] text-emerald-300 font-bold">
+                      {isCups ? 'ተጨማሪ ኩባያዎች መጨመሪያ' : 'ተጨማሪ የምግብ ቦክሶች መጨመሪያ'} • {selectedShift} Shift
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAddPackModal(null)}
+                  className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4">
+                {/* Live Before -> After Summary Strip */}
+                <div className="grid grid-cols-3 gap-2 bg-emerald-50/80 border border-emerald-200 rounded-2xl p-3 text-center">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Current</span>
+                    <span className="text-lg font-black text-slate-800 tabular-nums">{currentVal}</span>
+                  </div>
+                  <div className="border-x border-emerald-200/80">
+                    <span className="text-[10px] font-bold text-emerald-700 uppercase block">Adding</span>
+                    <span className="text-lg font-black text-emerald-700 tabular-nums">+{addVal}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase block">New Total</span>
+                    <span className="text-lg font-black text-emerald-950 tabular-nums">{nextTotal}</span>
+                  </div>
+                </div>
+
+                {/* 1-Tap Quick Pack Tiles */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Quick Pack Select</span>
+                  </label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {presets.map((p) => {
+                      const active = Number(addPackModal.qty) === p.qty;
+                      return (
+                        <button
+                          key={p.qty}
+                          type="button"
+                          onClick={() => setAddPackModal(prev => ({ ...prev, qty: String(p.qty) }))}
+                          className={`py-2 px-1 rounded-2xl border text-center transition-all active:scale-95 ${
+                            active
+                              ? 'bg-emerald-600 border-emerald-700 text-white shadow-md shadow-emerald-600/20'
+                              : 'bg-slate-50 hover:bg-emerald-50 border-slate-200 text-slate-800'
+                          }`}
+                        >
+                          <span className="text-sm font-black block leading-tight">+{p.qty}</span>
+                          <span className={`text-[9px] font-bold block mt-0.5 ${active ? 'text-emerald-100' : 'text-slate-400'}`}>
+                            {p.tag}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom Count Stepper & Direct Input */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider block">
+                    Exact Quantity to Add ({unitLabel})
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAddPackModal(prev => ({ ...prev, qty: String(Math.max(1, (Number(prev.qty) || 0) - 10)) }))}
+                      className="w-11 h-11 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center font-black transition-colors shrink-0"
+                      title="-10"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      autoFocus
+                      required
+                      value={addPackModal.qty}
+                      onChange={(e) => setAddPackModal(prev => ({ ...prev, qty: e.target.value }))}
+                      className="flex-1 bg-slate-50 border-2 border-emerald-200 focus:border-emerald-500 rounded-2xl px-4 py-2 text-center text-2xl font-black text-slate-900 outline-none tabular-nums"
+                      placeholder="50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setAddPackModal(prev => ({ ...prev, qty: String((Number(prev.qty) || 0) + 10) }))}
+                      className="w-11 h-11 rounded-2xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 flex items-center justify-center font-black transition-colors shrink-0"
+                      title="+10"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setAddPackModal(null)}
+                    className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={addVal <= 0}
+                    className="flex-1 py-2.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white text-xs font-black shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all active:scale-98"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3]" />
+                    <span>Add {addVal} {unitLabel} (New Total: {nextTotal})</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        );
+      })()}
 
     </div>
   );
