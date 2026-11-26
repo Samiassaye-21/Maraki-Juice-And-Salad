@@ -30,7 +30,6 @@ import {
   History,
   RotateCcw,
   BellRing,
-  Package,
   Sparkles as WandSparkles
 } from 'lucide-react';
 import { toEthiopianDateString, toEthiopianShortDate } from './BusinessManagement';
@@ -2658,136 +2657,109 @@ export default function ShiftReconciliation({
 
         return (
           <div
-            className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
+            className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in"
             onClick={() => setAddPackModal(null)}
           >
             <form
               onSubmit={handleConfirmAddPack}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-emerald-200 overflow-hidden text-slate-800"
+              className="bg-white rounded-2xl w-full max-w-xs shadow-2xl border border-emerald-200 overflow-hidden text-slate-800"
             >
-              {/* Header */}
-              <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 px-5 py-4 text-white flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-xl">
+              {/* Compact Header */}
+              <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 px-4 py-2.5 text-white flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-sm">
                     {isCups ? '🥤' : '🍱'}
-                  </div>
+                  </span>
                   <div>
-                    <h3 className="text-sm font-black text-white">
-                      {isCups ? 'Add Juice Cups Pack' : 'Add Takeaway Boxes Pack'}
+                    <h3 className="text-xs font-black text-white leading-tight">
+                      {isCups ? 'Add Juice Cups Pack' : 'Add Boxes Pack'}
                     </h3>
-                    <p className="text-[11px] text-emerald-300 font-bold">
-                      {isCups ? 'ተጨማሪ ኩባያዎች መጨመሪያ' : 'ተጨማሪ የምግብ ቦክሶች መጨመሪያ'} • {selectedShift} Shift
+                    <p className="text-[10px] text-emerald-300 font-bold leading-tight">
+                      {currentVal} + {addVal} = {nextTotal} {unitLabel}
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setAddPackModal(null)}
-                  className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 transition-colors"
+                  className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              <div className="p-5 space-y-4">
-                {/* Live Before -> After Summary Strip */}
-                <div className="grid grid-cols-3 gap-2 bg-emerald-50/80 border border-emerald-200 rounded-2xl p-3 text-center">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Current</span>
-                    <span className="text-lg font-black text-slate-800 tabular-nums">{currentVal}</span>
-                  </div>
-                  <div className="border-x border-emerald-200/80">
-                    <span className="text-[10px] font-bold text-emerald-700 uppercase block">Adding</span>
-                    <span className="text-lg font-black text-emerald-700 tabular-nums">+{addVal}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-emerald-800 uppercase block">New Total</span>
-                    <span className="text-lg font-black text-emerald-950 tabular-nums">{nextTotal}</span>
-                  </div>
-                </div>
-
+              <div className="p-3.5 space-y-3">
                 {/* 1-Tap Quick Pack Tiles */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Quick Pack Select</span>
-                  </label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {presets.map((p) => {
-                      const active = Number(addPackModal.qty) === p.qty;
-                      return (
-                        <button
-                          key={p.qty}
-                          type="button"
-                          onClick={() => setAddPackModal(prev => ({ ...prev, qty: String(p.qty) }))}
-                          className={`py-2 px-1 rounded-2xl border text-center transition-all active:scale-95 ${
-                            active
-                              ? 'bg-emerald-600 border-emerald-700 text-white shadow-md shadow-emerald-600/20'
-                              : 'bg-slate-50 hover:bg-emerald-50 border-slate-200 text-slate-800'
-                          }`}
-                        >
-                          <span className="text-sm font-black block leading-tight">+{p.qty}</span>
-                          <span className={`text-[9px] font-bold block mt-0.5 ${active ? 'text-emerald-100' : 'text-slate-400'}`}>
-                            {p.tag}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {presets.map((p) => {
+                    const active = Number(addPackModal.qty) === p.qty;
+                    return (
+                      <button
+                        key={p.qty}
+                        type="button"
+                        onClick={() => setAddPackModal(prev => ({ ...prev, qty: String(p.qty) }))}
+                        className={`py-1.5 px-1 rounded-xl border text-center transition-all active:scale-95 ${
+                          active
+                            ? 'bg-emerald-600 border-emerald-700 text-white shadow-xs'
+                            : 'bg-slate-50 hover:bg-emerald-50 border-slate-200 text-slate-800'
+                        }`}
+                      >
+                        <span className="text-[11px] font-black block leading-tight">+{p.qty}</span>
+                        <span className={`text-[8px] font-bold block ${active ? 'text-emerald-100' : 'text-slate-400'}`}>
+                          {p.tag}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {/* Custom Count Stepper & Direct Input */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider block">
-                    Exact Quantity to Add ({unitLabel})
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setAddPackModal(prev => ({ ...prev, qty: String(Math.max(1, (Number(prev.qty) || 0) - 10)) }))}
-                      className="w-11 h-11 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center font-black transition-colors shrink-0"
-                      title="-10"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      autoFocus
-                      required
-                      value={addPackModal.qty}
-                      onChange={(e) => setAddPackModal(prev => ({ ...prev, qty: e.target.value }))}
-                      className="flex-1 bg-slate-50 border-2 border-emerald-200 focus:border-emerald-500 rounded-2xl px-4 py-2 text-center text-2xl font-black text-slate-900 outline-none tabular-nums"
-                      placeholder="50"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setAddPackModal(prev => ({ ...prev, qty: String((Number(prev.qty) || 0) + 10) }))}
-                      className="w-11 h-11 rounded-2xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 flex items-center justify-center font-black transition-colors shrink-0"
-                      title="+10"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
+                {/* Compact Stepper & Direct Input */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setAddPackModal(prev => ({ ...prev, qty: String(Math.max(1, (Number(prev.qty) || 0) - 10)) }))}
+                    className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center font-black shrink-0"
+                    title="-10"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    autoFocus
+                    required
+                    value={addPackModal.qty}
+                    onChange={(e) => setAddPackModal(prev => ({ ...prev, qty: e.target.value }))}
+                    className="flex-1 bg-slate-50 border border-emerald-300 focus:border-emerald-500 rounded-xl px-2.5 py-1.5 text-center text-base font-black text-slate-900 outline-none tabular-nums"
+                    placeholder="50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setAddPackModal(prev => ({ ...prev, qty: String((Number(prev.qty) || 0) + 10) }))}
+                    className="w-9 h-9 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 flex items-center justify-center font-black shrink-0"
+                    title="+10"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2.5 pt-1">
+                {/* Compact Actions */}
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setAddPackModal(null)}
-                    className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black transition-colors"
+                    className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-black"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={addVal <= 0}
-                    className="flex-1 py-2.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white text-xs font-black shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all active:scale-98"
+                    className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white text-[11px] font-black shadow-sm flex items-center justify-center gap-1 transition-all active:scale-98"
                   >
-                    <Plus className="w-4 h-4 stroke-[3]" />
-                    <span>Add {addVal} {unitLabel} (New Total: {nextTotal})</span>
+                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>Add {addVal} → {nextTotal}</span>
                   </button>
                 </div>
               </div>
