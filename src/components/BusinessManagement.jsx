@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { clearAllBusinessData } from '../utils/reconciliationHelpers';
+import { clearAllBusinessData, toLocalIsoDate } from '../utils/reconciliationHelpers';
 import { 
   Building, 
   Calendar, 
@@ -2989,227 +2989,262 @@ export default function BusinessManagement({
       {/* ============================================================== */}
       {/* 1. DEDICATED RESPONSIVE RECORD EXPENSE MODAL / BOTTOM SHEET    */}
       {/* ============================================================== */}
-      {activeQuickAddModal === 'expense' && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center font-black text-base shadow-sm">
-                  💸
-                </div>
-                <div>
-                  <h3 className="font-black text-sm sm:text-base text-slate-900">
-                    አዲስ ወጪ መዝግብ (Record Business Expense)
-                  </h3>
-                  <p className="text-[11px] text-slate-400 font-bold">
-                    የዕለት ወጪዎችን በካዝና ወይም በቴሌብር ወዲያውኑ ይመዝግቡ
-                  </p>
-                </div>
-              </div>
-              <button 
-                type="button" 
-                onClick={() => setActiveQuickAddModal(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-all"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {activeQuickAddModal === 'expense' && (() => {
+        const currentDateIso = formInputs.date || toLocalIsoDate(new Date());
+        const currentAmount = Number(formInputs.amount) || 0;
+        const quickSuggestions = [
+          { label: 'በረዶ', title: 'የበረዶ ግዢ', cat: 'Ingredients', emoji: '🧊' },
+          { label: 'ሎሚ', title: 'የሎሚ ግዢ', cat: 'Ingredients', emoji: '🍋' },
+          { label: 'ወተት', title: 'የወተት ግዢ', cat: 'Ingredients', emoji: '🥛' },
+          { label: 'አቮካዶ', title: 'የአቮካዶ ግዢ', cat: 'Ingredients', emoji: '🥑' },
+          { label: 'ታክሲ', title: 'ታክሲና ትራንስፖርት', cat: 'Transport', emoji: '🚕' },
+          { label: 'ጽዳት', title: 'ሳሙናና ጽዳት', cat: 'Maintenance', emoji: '🧹' },
+          { label: 'ማሸጊያ', title: 'ኩባያና ማሸጊያ', cat: 'Supplies', emoji: '📦' },
+          { label: 'ምሳ', title: 'የሰራተኛ ምሳ', cat: 'Salary', emoji: '🍲' }
+        ];
+        const categories = [
+          { id: 'Ingredients', label: 'ፍራፍሬ / ግብአት', emoji: '🥑' },
+          { id: 'Transport', label: 'ትራንስፖርት', emoji: '🚕' },
+          { id: 'Maintenance', label: 'ጽዳትና ጥገና', emoji: '🧹' },
+          { id: 'Supplies', label: 'ማሸጊያ', emoji: '📦' },
+          { id: 'Utilities', label: 'መብራት / ውሃ', emoji: '⚡' },
+          { id: 'Rent', label: 'የቤት ኪራይ', emoji: '🏢' },
+          { id: 'Salary', label: 'ደመወዝ / አበል', emoji: '👥' },
+          { id: 'General', label: 'ጠቅላላ ወጪ', emoji: '✨' }
+        ];
+        const paymentMethods = [
+          { id: 'Cash', label: 'ጥሬ ገንዘብ', sub: 'Cash', emoji: '💵' },
+          { id: 'Telebirr', label: 'ቴሌብር', sub: 'Telebirr', emoji: '📱' },
+          { id: 'CBE Birr', label: 'ሲቢኢ ብር', sub: 'CBE', emoji: '🏦' },
+          { id: 'Bank / Telebirr', label: 'ባንክ ዝውውር', sub: 'Transfer', emoji: '💳' }
+        ];
 
-            {/* Form with Sticky Bottom Action Bar for 100% Mobile & Desktop Fit */}
-            <form onSubmit={handleQuickAddSubmit} className="flex flex-col flex-1 overflow-hidden">
-              
-              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs">
-                
-                {/* Description Input & Suggestion Chips */}
-                <div className="space-y-1.5">
-                  <label className="font-black text-slate-700 block text-xs">
-                    የወጪው ስም ወይም ዝርዝር (Description):
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="ለምሳሌ፡ የበረዶ ግዢ፣ አቮካዶ፣ ወተት፣ ሰራተኛ ምሳ..."
-                    value={formInputs.title || ''}
-                    onChange={(e) => setFormInputs({ ...formInputs, title: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none transition-all"
-                  />
-                  
-                  {/* Suggestions */}
-                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase">ፈጣን ምርጫ:</span>
-                    {[
-                      { title: 'የበረዶ ግዢ', cat: 'Ingredients', emoji: '🧊' },
-                      { title: 'የሎሚ ግዢ', cat: 'Ingredients', emoji: '🍋' },
-                      { title: 'የወተት ግዢ', cat: 'Ingredients', emoji: '🥛' },
-                      { title: 'የአቮካዶ ግዢ', cat: 'Ingredients', emoji: '🥑' },
-                      { title: 'ታክሲና ትራንስፖርት', cat: 'Transport', emoji: '🚕' },
-                      { title: 'ሳሙናና ጽዳት', cat: 'Maintenance', emoji: '🧹' },
-                      { title: 'ኩባያና ማሸጊያ', cat: 'Supplies', emoji: '📦' },
-                      { title: 'የሰራተኛ ምሳ', cat: 'Salary', emoji: '🍲' }
-                    ].map((sug, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setFormInputs({ ...formInputs, title: sug.title, category: sug.cat })}
-                        className="px-2 py-0.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200/60 transition-all active:scale-95 flex items-center gap-1"
-                      >
-                        <span>{sug.emoji}</span>
-                        <span>{sug.title}</span>
-                      </button>
-                    ))}
+        return (
+          <div
+            className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in"
+            onClick={() => setActiveQuickAddModal(null)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-t-3xl sm:rounded-3xl max-w-xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-emerald-200 overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-200"
+            >
+              {/* Dark Slate + Emerald Header */}
+              <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 px-5 py-3.5 text-white flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-lg">
+                    💸
                   </div>
-                </div>
-
-                {/* Amount Input with Quick Increment Pills */}
-                <div className="space-y-1.5">
-                  <label className="font-black text-slate-700 block text-xs">
-                    የወጣው የገንዘብ መጠን (Amount in ETB):
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      step="any"
-                      placeholder="0.00"
-                      value={formInputs.amount || ''}
-                      onChange={(e) => setFormInputs({ ...formInputs, amount: e.target.value })}
-                      className="w-full bg-slate-50 border-2 border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl pl-4 pr-14 py-2 text-base sm:text-lg font-black text-slate-900 outline-none transition-all"
-                    />
-                    <span className="absolute right-4 top-2.5 text-xs font-black text-slate-400">
-                      ETB
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                    <span className="text-[10px] font-black text-slate-400 uppercase">መጠን ጨምር:</span>
-                    {[50, 100, 200, 500, 1000].map(amt => (
-                      <button
-                        key={amt}
-                        type="button"
-                        onClick={() => {
-                          const cur = Number(formInputs.amount) || 0;
-                          setFormInputs({ ...formInputs, amount: (cur + amt).toString() });
-                        }}
-                        className="px-2.5 py-0.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-black border border-rose-200/80 transition-all active:scale-95"
-                      >
-                        +{amt} ETB
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Visual Category Selection Grid (8 chips, no clipped select!) */}
-                <div className="space-y-1.5">
-                  <label className="font-black text-slate-700 block text-xs">
-                    የወጪ ዘርፍ (Category):
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                    {[
-                      { id: 'Ingredients', label: 'ፍራፍሬ/ግብአት', emoji: '🥑' },
-                      { id: 'Transport', label: 'ትራንስፖርት', emoji: '🚕' },
-                      { id: 'Maintenance', label: 'ጽዳትና ጥገና', emoji: '🧹' },
-                      { id: 'Supplies', label: 'ማሸጊያ', emoji: '📦' },
-                      { id: 'Utilities', label: 'መብራት/ውሃ', emoji: '⚡' },
-                      { id: 'Rent', label: 'የቤት ኪራይ', emoji: '🏢' },
-                      { id: 'Salary', label: 'ደመወዝ/አበል', emoji: '👥' },
-                      { id: 'General', label: 'ጠቅላላ ወጪ', emoji: '✨' }
-                    ].map(cat => {
-                      const isSel = (formInputs.category || 'Ingredients') === cat.id;
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setFormInputs({ ...formInputs, category: cat.id })}
-                          className={`p-1.5 sm:p-2 rounded-xl text-left border transition-all flex items-center gap-1.5 ${
-                            isSel
-                              ? 'bg-slate-900 border-slate-900 text-white shadow-2xs font-black'
-                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
-                          }`}
-                        >
-                          <span className="text-sm">{cat.emoji}</span>
-                          <span className="text-[10px] sm:text-[11px] truncate">{cat.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Payment Method Cards */}
-                <div className="space-y-1.5">
-                  <label className="font-black text-slate-700 block text-xs">
-                    የክፍያ ዘዴ (Payment Method):
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                    {[
-                      { id: 'Cash', label: 'ጥሬ ገንዘብ', emoji: '💵' },
-                      { id: 'Telebirr', label: 'ቴሌብር', emoji: '📱' },
-                      { id: 'CBE Birr', label: 'ሲቢኢ ብር', emoji: '🏦' },
-                      { id: 'Bank / Telebirr', label: 'ባንክ ዝውውር', emoji: '💳' }
-                    ].map(pm => {
-                      const isSel = (formInputs.paymentMethod || 'Cash') === pm.id;
-                      return (
-                        <button
-                          key={pm.id}
-                          type="button"
-                          onClick={() => setFormInputs({ ...formInputs, paymentMethod: pm.id })}
-                          className={`p-1.5 sm:p-2 rounded-xl text-center border transition-all flex items-center justify-center gap-1.5 ${
-                            isSel
-                              ? 'bg-emerald-600 border-emerald-600 text-white shadow-2xs font-black'
-                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
-                          }`}
-                        >
-                          <span>{pm.emoji}</span>
-                          <span className="text-[10px] sm:text-[11px] truncate">{pm.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Date with Ethiopian Calendar helper */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-100">
                   <div>
-                    <label className="font-black text-slate-700 block text-[11px] mb-1">ቀን (Date):</label>
-                    <input
-                      type="date"
-                      value={formInputs.date || new Date().toISOString().split('T')[0]}
-                      onChange={(e) => setFormInputs({ ...formInputs, date: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-rose-500"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <div className="w-full p-2 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200 text-[10px] font-black flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                      <span className="truncate">የኢትዮጵያ ቀን፡ {toEthiopianDateString(formInputs.date || new Date().toISOString().split('T')[0])}</span>
-                    </div>
+                    <h3 className="font-black text-sm sm:text-base text-white leading-tight">
+                      አዲስ ወጪ መዝግብ • Record Expense
+                    </h3>
+                    <p className="text-[11px] text-emerald-300 font-bold leading-tight mt-0.5">
+                      የዕለት ወጪዎችን በካዝና ወይም በቴሌብር ወዲያውኑ ይመዝግቡ
+                    </p>
                   </div>
                 </div>
-
-              </div>
-
-              {/* Sticky Action Footer */}
-              <div className="p-3 sm:p-4 bg-slate-50/90 border-t border-slate-200/80 flex items-center justify-between gap-2.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => setActiveQuickAddModal(null)}
-                  className="w-1/3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 font-black text-slate-600 text-xs transition-all active:scale-95"
+                  className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 flex items-center justify-center transition-colors"
                 >
-                  ሰርዝ (Cancel)
-                </button>
-                <button
-                  type="submit"
-                  className="w-2/3 py-2.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black text-xs sm:text-sm rounded-xl shadow-md shadow-rose-700/20 transition-all active:scale-95 flex items-center justify-center gap-1.5"
-                >
-                  <Check className="w-4 h-4 stroke-[3]" />
-                  <span>ወጪ መዝግብ (Save Expense)</span>
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-            </form>
+              <form onSubmit={handleQuickAddSubmit} className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs">
+
+                  {/* Description + 1-Tap Quick Pills */}
+                  <div className="space-y-2">
+                    <label className="font-black text-slate-700 block text-xs">
+                      የወጪው ዝርዝር (Description) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="ለምሳሌ፡ የበረዶ ግዢ፣ አቮካዶ፣ ወተት፣ ሰራተኛ ምሳ..."
+                      value={formInputs.title || ''}
+                      onChange={(e) => setFormInputs(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 focus:bg-white rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none transition-all"
+                    />
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {quickSuggestions.map((sug, idx) => {
+                        const isMatch = formInputs.title === sug.title;
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setFormInputs(prev => ({ ...prev, title: sug.title, category: sug.cat }))}
+                            className={`px-2 py-1.5 rounded-xl text-[11px] font-bold border transition-all active:scale-95 flex items-center justify-center gap-1 ${
+                              isMatch
+                                ? 'bg-emerald-600 border-emerald-700 text-white shadow-xs'
+                                : 'bg-slate-50 hover:bg-emerald-50 text-slate-700 border-slate-200 hover:border-emerald-300'
+                            }`}
+                          >
+                            <span>{sug.emoji}</span>
+                            <span>{sug.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Amount & Date Split Card */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5">
+                    {/* Amount (7 cols) */}
+                    <div className="sm:col-span-7 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="font-black text-slate-700 text-xs">
+                          የወጣው መጠን (Amount) *
+                        </label>
+                        {currentAmount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setFormInputs(prev => ({ ...prev, amount: '' }))}
+                            className="text-[10px] font-black text-slate-400 hover:text-rose-600"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          step="any"
+                          placeholder="0"
+                          value={formInputs.amount || ''}
+                          onChange={(e) => setFormInputs(prev => ({ ...prev, amount: e.target.value }))}
+                          className="w-full bg-white border-2 border-emerald-200 focus:border-emerald-500 rounded-xl pl-3.5 pr-12 py-2 text-lg font-black text-slate-900 outline-none tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all"
+                        />
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                          ETB
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {[50, 100, 200, 500, 1000].map(amt => (
+                          <button
+                            key={amt}
+                            type="button"
+                            onClick={() => {
+                              setFormInputs(prev => ({ ...prev, amount: ((Number(prev.amount) || 0) + amt).toString() }));
+                            }}
+                            className="px-2 py-1 rounded-lg bg-white hover:bg-emerald-50 text-emerald-800 text-[10px] font-black border border-emerald-200 transition-all active:scale-95 shadow-2xs"
+                          >
+                            +{amt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Date (5 cols) */}
+                    <div className="sm:col-span-5 flex flex-col justify-between gap-2 sm:border-l sm:border-slate-200 sm:pl-3">
+                      <div>
+                        <label className="font-black text-slate-700 block text-xs mb-1.5">ቀን (Date)</label>
+                        <input
+                          type="date"
+                          value={currentDateIso}
+                          onChange={(e) => setFormInputs(prev => ({ ...prev, date: e.target.value }))}
+                          className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 outline-none"
+                        />
+                      </div>
+                      <div className="px-2.5 py-1.5 bg-emerald-100/70 text-emerald-900 rounded-xl border border-emerald-200 text-[10px] font-black flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                        <span className="truncate">{toEthiopianDateString(currentDateIso)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category Grid (No Truncation) */}
+                  <div className="space-y-1.5">
+                    <label className="font-black text-slate-700 block text-xs">
+                      የወጪ ዘርፍ (Category)
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {categories.map(cat => {
+                        const isSel = (formInputs.category || 'Ingredients') === cat.id;
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => setFormInputs(prev => ({ ...prev, category: cat.id }))}
+                            className={`px-2.5 py-2 rounded-xl border transition-all flex items-center gap-1.5 text-left ${
+                              isSel
+                                ? 'bg-slate-900 border-slate-900 text-white shadow-sm font-black'
+                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-emerald-50/70 hover:border-emerald-200 font-bold'
+                            }`}
+                          >
+                            <span className="text-sm shrink-0">{cat.emoji}</span>
+                            <span className="text-[11px] leading-tight">{cat.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Payment Method Cards */}
+                  <div className="space-y-1.5">
+                    <label className="font-black text-slate-700 block text-xs">
+                      የክፍያ ዘዴ (Payment Method)
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {paymentMethods.map(pm => {
+                        const isSel = (formInputs.paymentMethod || 'Cash') === pm.id;
+                        return (
+                          <button
+                            key={pm.id}
+                            type="button"
+                            onClick={() => setFormInputs(prev => ({ ...prev, paymentMethod: pm.id }))}
+                            className={`px-2.5 py-2 rounded-xl border transition-all flex items-center justify-center gap-1.5 ${
+                              isSel
+                                ? 'bg-emerald-600 border-emerald-700 text-white shadow-sm font-black'
+                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-emerald-50/70 font-bold'
+                            }`}
+                          >
+                            <span className="text-sm shrink-0">{pm.emoji}</span>
+                            <div className="text-left leading-tight">
+                              <span className="text-[11px] block">{pm.label}</span>
+                              <span className={`text-[9px] block ${isSel ? 'text-emerald-100' : 'text-slate-400'}`}>
+                                {pm.sub}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Clean Action Footer */}
+                <div className="p-3.5 sm:px-5 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setActiveQuickAddModal(null)}
+                    className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 font-black text-slate-600 text-xs transition-all active:scale-95"
+                  >
+                    ሰርዝ (Cancel)
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-600/20 transition-all active:scale-98 flex items-center justify-center gap-1.5"
+                  >
+                    <Check className="w-4 h-4 stroke-[3]" />
+                    <span>
+                      {currentAmount > 0
+                        ? `ወጪ መዝግብ • Save ${currentAmount.toLocaleString()} ETB`
+                        : 'ወጪ መዝግብ (Save Expense)'}
+                    </span>
+                  </button>
+                </div>
+
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ============================================================== */}
       {/* 2. OTHER QUICK ADD MODALS (PURCHASE, SALARY, TASK, GOAL...)    */}
