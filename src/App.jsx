@@ -467,17 +467,10 @@ export default function App() {
     return 'portal'; // Default to portal selection gateway
   });
 
-  const [isChefAuth, setIsChefAuth] = useState(() => {
-    if (localStorage.getItem('maraki_chef_authenticated') === 'true') return true;
-    if (localStorage.getItem('maraki_is_authenticated') === 'true' && localStorage.getItem('maraki_auth_role') === 'chef') return true;
-    return false;
-  });
-
-  const [isOwnerAuth, setIsOwnerAuth] = useState(() => {
-    if (localStorage.getItem('maraki_owner_authenticated') === 'true') return true;
-    if (localStorage.getItem('maraki_is_authenticated') === 'true' && localStorage.getItem('maraki_auth_role') === 'owner') return true;
-    return false;
-  });
+  // Every portal requires fresh PIN/Password on every entry or reload (in-memory only)
+  const [isChefAuth, setIsChefAuth] = useState(false);
+  const [isOwnerAuth, setIsOwnerAuth] = useState(false);
+  const [isReconciliationAuth, setIsReconciliationAuth] = useState(false);
 
   const [ownerPassword, setOwnerPassword] = useState(() => {
     return localStorage.getItem('maraki_owner_password') || '1234';
@@ -485,6 +478,17 @@ export default function App() {
   const [chefPin, setChefPin] = useState(() => {
     return localStorage.getItem('maraki_chef_pin') || '0000';
   });
+  const [reconciliationPin, setReconciliationPin] = useState(() => {
+    return localStorage.getItem('maraki_reconciliation_pin') || '1111';
+  });
+
+  // Clean up any legacy persistent portal unlock flags on startup
+  useEffect(() => {
+    localStorage.removeItem('maraki_chef_authenticated');
+    localStorage.removeItem('maraki_owner_authenticated');
+    localStorage.removeItem('maraki_is_authenticated');
+    localStorage.removeItem('maraki_auth_role');
+  }, []);
 
   // Dedicated PIN/Password Entry States
   const [pinInput, setPinInput] = useState('');
@@ -495,6 +499,7 @@ export default function App() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [newOwnerPassInput, setNewOwnerPassInput] = useState('');
   const [newChefPinInput, setNewChefPinInput] = useState('');
+  const [newReconciliationPinInput, setNewReconciliationPinInput] = useState('');
   const [dayShiftWaiterInput, setDayShiftWaiterInput] = useState(() => getShiftDefaultWaiters().Day);
   const [nightShiftWaiterInput, setNightShiftWaiterInput] = useState(() => getShiftDefaultWaiters().Night);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -904,10 +909,22 @@ export default function App() {
   };
 
   // --- SYSTEM NAVIGATION & AUTHENTICATION HANDLERS ---
-  const navigateToSystem = (mode) => {
-    setSystemMode(mode);
+  const lockAllPortals = () => {
+    setIsChefAuth(false);
+    setIsOwnerAuth(false);
+    setIsReconciliationAuth(false);
     setPinInput('');
     setLoginError(null);
+    setShowPasswordText(false);
+    localStorage.removeItem('maraki_chef_authenticated');
+    localStorage.removeItem('maraki_owner_authenticated');
+    localStorage.removeItem('maraki_is_authenticated');
+    localStorage.removeItem('maraki_auth_role');
+  };
+
+  const navigateToSystem = (mode) => {
+    lockAllPortals();
+    setSystemMode(mode);
     localStorage.setItem('maraki_system_mode', mode);
     const url = new URL(window.location.href);
     if (mode === 'portal') {
@@ -922,6 +939,7 @@ export default function App() {
 
   useEffect(() => {
     const handlePopState = () => {
+      lockAllPortals();
       const params = new URLSearchParams(window.location.search);
       const sys = params.get('system') || params.get('role');
       if (sys === 'chef' || sys === 'owner' || sys === 'reconciliation' || sys === 'shift') {
@@ -934,29 +952,36 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const handleChefLoginSubmit = (e) => {
+  const handlePortalLoginSubmit = (e, portalKey) => {
     if (e) e.preventDefault();
-    if (pinInput.trim() === chefPin) {
-      setIsChefAuth(true);
-      localStorage.setItem('maraki_chef_authenticated', 'true');
-      setPinInput('');
-      setLoginError(null);
-      showToast('👩‍🍳 እንደ ሼፍ ገብተዋል (Welcome to Chef Station)');
-    } else {
-      setLoginError('❌ የተሳሳተ የኩሽና ፒን ነው፤ እባክዎ እንደገና ይሞክሩ (Default: 0000)');
-    }
-  };
-
-  const handleOwnerLoginSubmit = (e) => {
-    if (e) e.preventDefault();
-    if (pinInput.trim() === ownerPassword) {
-      setIsOwnerAuth(true);
-      localStorage.setItem('maraki_owner_authenticated', 'true');
-      setPinInput('');
-      setLoginError(null);
-      showToast('👑 የባለቤት መቆጣጠሪያ ማዕከል ተከፍቷል (Welcome to Owner Center)');
-    } else {
-      setLoginError('❌ የተሳሳተ የባለቤት ይለፍ ቃል ነው፤ እባክዎ እንደገና ይሞክሩ (Default: 1234)');
+    const entered = pinInput.trim();
+    if (portalKey === 'chef') {
+      if (entered === chefPin) {
+        setIsChefAuth(true);
+        setPinInput('');
+        setLoginError(null);
+        showToast('👩‍🍳 እንደ ሼፍ ገብተዋል (Welcome to Chef Station)');
+      } else {
+        setLoginError('❌ የተሳሳተ የኩሽና ፒን ነው፤ እባክዎ እንደገና ይሞክሩ');
+      }
+    } else if (portalKey === 'owner') {
+      if (entered === ownerPassword) {
+        setIsOwnerAuth(true);
+        setPinInput('');
+        setLoginError(null);
+        showToast('👑 የባለቤት መቆጣጠሪያ ማዕከል ተከፍቷል (Welcome to Owner Center)');
+      } else {
+        setLoginError('❌ የተሳሳተ የባለቤት ይለፍ ቃል ነው፤ እባክዎ እንደገና ይሞክሩ');
+      }
+    } else if (portalKey === 'reconciliation') {
+      if (entered === reconciliationPin || entered === ownerPassword) {
+        setIsReconciliationAuth(true);
+        setPinInput('');
+        setLoginError(null);
+        showToast('📋 የፈረቃ ገቢ ማስታረቂያ ተከፍቷል (Shift Audit Unlocked)');
+      } else {
+        setLoginError('❌ የተሳሳተ የፈረቃ ፒን ነው፤ እባክዎ እንደገና ይሞክሩ');
+      }
     }
   };
 
@@ -973,7 +998,6 @@ export default function App() {
 
   const handleLockChef = () => {
     setIsChefAuth(false);
-    localStorage.removeItem('maraki_chef_authenticated');
     setPinInput('');
     setLoginError(null);
     showToast('🔒 የኩሽና ሲስተም ተቆልፏል (Chef Station Locked)');
@@ -981,10 +1005,16 @@ export default function App() {
 
   const handleLockOwner = () => {
     setIsOwnerAuth(false);
-    localStorage.removeItem('maraki_owner_authenticated');
     setPinInput('');
     setLoginError(null);
     showToast('🔒 የባለቤት ሲስተም ተቆልፏል (Owner Command Center Locked)');
+  };
+
+  const handleLockReconciliation = () => {
+    setIsReconciliationAuth(false);
+    setPinInput('');
+    setLoginError(null);
+    showToast('🔒 የፈረቃ ገቢ ማስታረቂያ ተቆልፏል (Shift Audit Locked)');
   };
 
   const handleSaveNewPasswords = (e) => {
@@ -1000,6 +1030,11 @@ export default function App() {
       localStorage.setItem('maraki_chef_pin', newChefPinInput.trim());
       updated = true;
     }
+    if (newReconciliationPinInput.trim()) {
+      setReconciliationPin(newReconciliationPinInput.trim());
+      localStorage.setItem('maraki_reconciliation_pin', newReconciliationPinInput.trim());
+      updated = true;
+    }
     if (systemMode === 'owner') {
       saveShiftDefaultWaiters({
         Day: dayShiftWaiterInput,
@@ -1010,6 +1045,7 @@ export default function App() {
     if (updated) {
       setNewOwnerPassInput('');
       setNewChefPinInput('');
+      setNewReconciliationPinInput('');
       setShowSettingsModal(false);
       showToast('✅ አዲስ የይለፍ ቃሎች ተመዝግበዋል (Passwords updated)');
     } else {
@@ -1286,12 +1322,8 @@ export default function App() {
                 <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center text-3xl shadow-inner">
                   👩‍🍳
                 </div>
-                <span className={`text-[11px] font-black px-3 py-1 rounded-full border ${
-                  isChefAuth 
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30' 
-                    : 'bg-white/10 text-slate-300 border-white/20'
-                }`}>
-                  {isChefAuth ? '🔓 Unlocked (Active)' : '🔒 PIN Required'}
+                <span className="text-[11px] font-black px-3 py-1 rounded-full border bg-white/10 text-slate-300 border-white/20">
+                  🔒 PIN Required
                 </span>
               </div>
 
@@ -1337,12 +1369,8 @@ export default function App() {
                 <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center text-3xl shadow-inner">
                   👑
                 </div>
-                <span className={`text-[11px] font-black px-3 py-1 rounded-full border ${
-                  isOwnerAuth 
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30' 
-                    : 'bg-white/10 text-slate-300 border-white/20'
-                }`}>
-                  {isOwnerAuth ? '🔓 Unlocked (Active)' : '🔒 Password Required'}
+                <span className="text-[11px] font-black px-3 py-1 rounded-full border bg-white/10 text-slate-300 border-white/20">
+                  🔒 PIN Required
                 </span>
               </div>
 
@@ -1388,8 +1416,8 @@ export default function App() {
                 <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center text-3xl shadow-inner">
                   📋
                 </div>
-                <span className="text-[11px] font-black px-3 py-1 rounded-full border bg-emerald-500/20 text-emerald-300 border-emerald-400/30">
-                  🌟 Active
+                <span className="text-[11px] font-black px-3 py-1 rounded-full border bg-white/10 text-slate-300 border-white/20">
+                  🔒 PIN Required
                 </span>
               </div>
 
@@ -1444,13 +1472,45 @@ export default function App() {
   }
 
   // ==============================================================
-  // 2. CHEF PIN LOCK SCREEN (WHEN IN CHEF MODE & NOT AUTHENTICATED)
+  // 2. UNIFIED PORTAL PIN LOCK SCREEN (ALL PORTALS REQUIRE PIN EVERY ENTRY)
   // ==============================================================
-  if (systemMode === 'chef' && !isChefAuth) {
+  const portalLockConfig =
+    systemMode === 'chef' && !isChefAuth
+      ? {
+          key: 'chef',
+          badge: 'Kitchen Station',
+          icon: '👩‍🍳',
+          title: 'Kitchen POS Station',
+          subtitle: 'Chef Station Security PIN',
+          placeholder: 'Enter Chef PIN...',
+          unlockLabel: 'Unlock Kitchen Station'
+        }
+      : systemMode === 'owner' && !isOwnerAuth
+      ? {
+          key: 'owner',
+          badge: 'Owner Center',
+          icon: '👑',
+          title: 'Owner Command Center',
+          subtitle: 'Executive Management & Income Analysis',
+          placeholder: 'Enter Owner Password...',
+          unlockLabel: 'Unlock Owner Center'
+        }
+      : (systemMode === 'reconciliation' || systemMode === 'shift') && !isReconciliationAuth
+      ? {
+          key: 'reconciliation',
+          badge: 'Shift Audit',
+          icon: '📋',
+          title: 'Shift Reconciliation',
+          subtitle: 'Daily Income Sheet & Cash Audit PIN',
+          placeholder: 'Enter Shift Audit PIN...',
+          unlockLabel: 'Unlock Shift Audit'
+        }
+      : null;
+
+  if (portalLockConfig) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-teal-950 to-slate-950 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/30 text-center space-y-4">
-          
           <div className="flex items-center justify-between">
             <button
               type="button"
@@ -1461,135 +1521,21 @@ export default function App() {
               <span>Back to Portals</span>
             </button>
             <span className="text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
-              Kitchen Station
+              {portalLockConfig.badge}
             </span>
           </div>
 
           <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center text-3xl shadow-lg shadow-emerald-900/30 mx-auto">
-            👩‍🍳
+            {portalLockConfig.icon}
           </div>
-          <h2 className="text-xl font-black text-slate-900">Kitchen POS Station</h2>
-          <p className="text-xs text-slate-500 font-bold">Chef Station Security PIN</p>
+          <h2 className="text-xl font-black text-slate-900">{portalLockConfig.title}</h2>
+          <p className="text-xs text-slate-500 font-bold">{portalLockConfig.subtitle}</p>
 
-          <form onSubmit={handleChefLoginSubmit} className="space-y-3">
+          <form onSubmit={(e) => handlePortalLoginSubmit(e, portalLockConfig.key)} className="space-y-3">
             <div className="relative">
               <input
-                type={showPasswordText ? "text" : "password"}
-                placeholder="Enter Chef PIN..."
-                value={pinInput}
-                onChange={(e) => { setPinInput(e.target.value); setLoginError(null); }}
-                className="w-full bg-slate-50 border-2 border-emerald-300 focus:border-emerald-600 rounded-2xl py-3 pl-10 pr-10 text-center font-black text-lg text-slate-900 tracking-widest outline-none"
-                autoFocus
-              />
-              <Key className="w-4 h-4 text-emerald-600 absolute left-3.5 top-3.5" />
-              <button
-                type="button"
-                onClick={() => setShowPasswordText(!showPasswordText)}
-                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
-              >
-                {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-
-            {loginError && (
-              <p className="text-xs font-black text-rose-600 bg-rose-50 py-1.5 px-3 rounded-xl border border-rose-200">
-                {loginError}
-              </p>
-            )}
-
-            {/* Keypad */}
-            <div className="grid grid-cols-3 gap-2 pt-1">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                <button
-                  key={num}
-                  type="button"
-                  onClick={() => handleKeypadPress(num.toString())}
-                  className="py-3 bg-slate-100 hover:bg-emerald-50 text-slate-800 font-black text-lg rounded-2xl border border-slate-200 transition-all active:scale-95"
-                >
-                  {num}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => handleKeypadPress('clear')}
-                className="py-3 bg-rose-50 text-rose-700 font-black text-xs rounded-2xl border border-rose-200"
-              >
-                Clear
-              </button>
-              <button
-                type="button"
-                onClick={() => handleKeypadPress('0')}
-                className="py-3 bg-slate-100 hover:bg-emerald-50 text-slate-800 font-black text-lg rounded-2xl border border-slate-200"
-              >
-                0
-              </button>
-              <button
-                type="button"
-                onClick={() => handleKeypadPress('backspace')}
-                className="py-3 bg-emerald-50 text-emerald-800 font-black text-sm rounded-2xl border border-emerald-200"
-              >
-                ⌫
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-700/25 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              <Unlock className="w-4 h-4" />
-              <span>Unlock Kitchen Station</span>
-            </button>
-          </form>
-
-          <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 text-xs font-bold text-slate-600 flex items-center justify-between">
-            <span>💡 Default Chef PIN:</span>
-            <button 
-              type="button" 
-              onClick={() => setPinInput(chefPin)}
-              className="font-black text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-300"
-            >
-              {chefPin}
-            </button>
-          </div>
-
-        </div>
-      </div>
-    );
-  }
-
-  // ==============================================================
-  // 3. OWNER PASSWORD LOCK SCREEN (WHEN IN OWNER MODE & NOT AUTH)
-  // ==============================================================
-  if (systemMode === 'owner' && !isOwnerAuth) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-teal-950 to-slate-950 flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/30 text-center space-y-4">
-          
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => navigateToSystem('portal')}
-              className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Portals</span>
-            </button>
-            <span className="text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
-              Owner Center
-            </span>
-          </div>
-
-          <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center text-3xl shadow-lg shadow-emerald-900/30 mx-auto">
-            👑
-          </div>
-          <h2 className="text-xl font-black text-slate-900">Owner Command Center</h2>
-          <p className="text-xs text-slate-500 font-bold">Executive Management & Income Analysis</p>
-
-          <form onSubmit={handleOwnerLoginSubmit} className="space-y-3">
-            <div className="relative">
-              <input
-                type={showPasswordText ? "text" : "password"}
-                placeholder="Enter Owner Password..."
+                type={showPasswordText ? 'text' : 'password'}
+                placeholder={portalLockConfig.placeholder}
                 value={pinInput}
                 onChange={(e) => { setPinInput(e.target.value); setLoginError(null); }}
                 className="w-full bg-slate-50 border-2 border-emerald-300 focus:border-emerald-600 rounded-2xl py-3 pl-10 pr-10 text-center font-black text-lg text-slate-900 tracking-widest outline-none"
@@ -1651,21 +1597,14 @@ export default function App() {
               className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-950/25 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <Unlock className="w-4 h-4" />
-              <span>Unlock Owner Center</span>
+              <span>{portalLockConfig.unlockLabel}</span>
             </button>
           </form>
 
-          <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 text-xs font-bold text-slate-600 flex items-center justify-between">
-            <span>💡 Default Password:</span>
-            <button 
-              type="button" 
-              onClick={() => setPinInput(ownerPassword)}
-              className="font-black text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-300"
-            >
-              {ownerPassword}
-            </button>
-          </div>
-
+          <p className="text-[11px] font-bold text-slate-400 flex items-center justify-center gap-1.5 pt-1">
+            <Lock className="w-3 h-3 text-emerald-600" />
+            <span>PIN required on every entry • Managed in Owner Settings</span>
+          </p>
         </div>
       </div>
     );
@@ -1684,6 +1623,7 @@ export default function App() {
         onBackToPortal={() => navigateToSystem('portal')}
         onSwitchToChef={() => navigateToSystem('chef')}
         onSwitchToOwner={() => navigateToSystem('owner')}
+        onLockReconciliation={handleLockReconciliation}
         onSwitchToOwnerPrices={() => {
           setOwnerSection('menu');
           navigateToSystem('owner');
@@ -1865,6 +1805,7 @@ export default function App() {
                 onClick={() => {
                   setNewOwnerPassInput(ownerPassword);
                   setNewChefPinInput(chefPin);
+                  setNewReconciliationPinInput(reconciliationPin);
                   const sw = getShiftDefaultWaiters();
                   setDayShiftWaiterInput(sw.Day);
                   setNightShiftWaiterInput(sw.Night);
@@ -4508,6 +4449,20 @@ export default function App() {
                   placeholder={`የአሁኑ፡ ${chefPin}`}
                   value={newChefPinInput}
                   onChange={(e) => setNewChefPinInput(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none"
+                />
+              </div>
+
+              {/* Shift Reconciliation PIN */}
+              <div>
+                <label className="block text-xs font-black text-slate-700 mb-1">
+                  📋 የፈረቃ ማስታረቂያ ፒን (Shift Audit PIN):
+                </label>
+                <input
+                  type="text"
+                  placeholder={`የአሁኑ፡ ${reconciliationPin}`}
+                  value={newReconciliationPinInput}
+                  onChange={(e) => setNewReconciliationPinInput(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none"
                 />
               </div>

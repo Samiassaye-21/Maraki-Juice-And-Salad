@@ -129,6 +129,7 @@ export default function ShiftReconciliation({
   onSwitchToChef,
   onSwitchToOwner,
   onSwitchToOwnerPrices,
+  onLockReconciliation,
   embeddedMode = false,
   onSavedSettlement
 }) {
@@ -1000,6 +1001,18 @@ export default function ShiftReconciliation({
                 className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/25 transition-all shadow-sm"
               >
                 <span>👑 Owner Center</span>
+              </button>
+            )}
+
+            {onLockReconciliation && !embeddedMode && (
+              <button
+                type="button"
+                onClick={onLockReconciliation}
+                className="px-2.5 py-1.5 bg-rose-500/20 hover:bg-rose-500/35 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-rose-300/30 transition-all shadow-sm"
+                title="Lock Shift Reconciliation"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Lock</span>
               </button>
             )}
 
