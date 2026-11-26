@@ -2731,7 +2731,7 @@ export default function ShiftReconciliation({
                     required
                     value={addPackModal.qty}
                     onChange={(e) => setAddPackModal(prev => ({ ...prev, qty: e.target.value }))}
-                    className="flex-1 bg-slate-50 border border-emerald-300 focus:border-emerald-500 rounded-xl px-2.5 py-1.5 text-center text-base font-black text-slate-900 outline-none tabular-nums"
+                    className="flex-1 min-w-0 bg-slate-50 border border-emerald-300 focus:border-emerald-500 rounded-xl px-2.5 py-1.5 text-center text-base font-black text-slate-900 outline-none tabular-nums"
                     placeholder="50"
                   />
                   <button
