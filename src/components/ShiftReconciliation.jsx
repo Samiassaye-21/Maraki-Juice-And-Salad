@@ -41,10 +41,12 @@ import {
   compareChefVsIncomeSheet,
   toLocalIsoDate,
   getShiftDefaultWaiters,
-  saveShiftDefaultWaiters
+  saveShiftDefaultWaiters,
+  getWaiterPendingSummary,
+  consolidateWaiterDebt
 } from '../utils/reconciliationHelpers';
 import { formatEtb } from '../utils/beuHelpers';
-import { dbService } from '../lib/supabaseClient';
+import { dbService, isSupabaseConfigured } from '../lib/supabaseClient';
 
 // Standard Maraki price per juice cup
 export const DEFAULT_JUICE_PRICE = 170;
@@ -128,6 +130,9 @@ export default function ShiftReconciliation({
   waiters = [],
   foodMenu = [],
   standardJuicePrice,
+  theme = 'light',
+  onToggleTheme,
+  onRefreshOrders,
   onBackToPortal,
   onSwitchToChef,
   onSwitchToOwner,
@@ -159,43 +164,15 @@ export default function ShiftReconciliation({
     dbService.saveAppState('maraki_shift_settlements', settlementsHistory);
   }, [settlementsHistory]);
 
-  // 4. Stored Waiter Pending Debts
+  // 4. Stored Waiter Pending Debts (synced with Supabase / localStorage)
   const [pendingDebts, setPendingDebts] = useState(() => {
     const saved = localStorage.getItem('maraki_waiter_pending_debts');
-    if (saved) return JSON.parse(saved);
-    // Seed initial debts matching manual examples
-    return [
-      {
-        id: 'deb-1',
-        waiterName: 'አስቴር (Aster)',
-        itemType: 'food',
-        dishName: 'Special Burger',
-        unitPrice: 250,
-        totalUnits: 2,
-        remainingUnits: 2,
-        totalAmount: 500,
-        remainingAmount: 500,
-        shift: 'Day',
-        date: selectedDate,
-        createdAt: new Date().toISOString(),
-        status: 'pending'
-      },
-      {
-        id: 'deb-2',
-        waiterName: 'ዳዊት (Dawit)',
-        itemType: 'juice',
-        dishName: 'Juice Cups',
-        unitPrice: DEFAULT_JUICE_PRICE,
-        totalUnits: 3,
-        remainingUnits: 3,
-        totalAmount: 510,
-        remainingAmount: 510,
-        shift: 'Day',
-        date: selectedDate,
-        createdAt: new Date().toISOString(),
-        status: 'pending'
-      }
-    ];
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
   });
   const prevPendingDebtsRef = useRef(pendingDebts);
   useEffect(() => {
@@ -306,9 +283,47 @@ export default function ShiftReconciliation({
     }
     return {};
   });
+  const [hasManualFoodOverride, setHasManualFoodOverride] = useState(false);
+  const [dbFetchedOrders, setDbFetchedOrders] = useState(null);
+  const [isSyncingDbOrders, setIsSyncingDbOrders] = useState(false);
 
-  // Resolve Chef Sent Orders (prop or localStorage fallback)
+  const fetchOrdersDirectlyFromDb = async () => {
+    setIsSyncingDbOrders(true);
+    try {
+      if (isSupabaseConfigured) {
+        const fresh = await dbService.fetchOrders();
+        if (Array.isArray(fresh)) {
+          setDbFetchedOrders(fresh);
+          try {
+            localStorage.setItem('maraki_chef_sent_orders', JSON.stringify(fresh));
+          } catch (e) {}
+        }
+      }
+      if (onRefreshOrders) {
+        await onRefreshOrders();
+      }
+    } finally {
+      setIsSyncingDbOrders(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrdersDirectlyFromDb();
+  }, [selectedDate, selectedShift]);
+
+  // Resolve Chef Sent Orders (fresh DB orders > prop > localStorage)
   const resolvedOrders = useMemo(() => {
+    if (Array.isArray(dbFetchedOrders)) {
+      if (orders && orders.length > 0) {
+        const merged = new Map();
+        dbFetchedOrders.forEach(o => merged.set(o.id, o));
+        orders.forEach(o => {
+          if (!merged.has(o.id)) merged.set(o.id, o);
+        });
+        return Array.from(merged.values());
+      }
+      return dbFetchedOrders;
+    }
     if (orders && orders.length > 0) return orders;
     try {
       const saved = localStorage.getItem('maraki_chef_sent_orders');
@@ -316,7 +331,7 @@ export default function ShiftReconciliation({
     } catch (e) {
       return [];
     }
-  }, [orders]);
+  }, [dbFetchedOrders, orders]);
 
   // Merge foodMenu prop (or localStorage maraki_chef_food_menu_v2) with DEFAULT_RECONCILIATION_DISHES
   const dishesList = useMemo(() => {
@@ -355,7 +370,11 @@ export default function ShiftReconciliation({
   }, [chefSummary, foodAssignments, dishesList]);
 
   const handleLoadFromChefOrders = (mode = 'all') => {
-    if (!chefSummary || chefSummary.totalOrders === 0) return;
+    setHasManualFoodOverride(false);
+    if (!chefSummary || chefSummary.totalOrders === 0) {
+      setFoodAssignments({});
+      return;
+    }
     const next = {};
     Object.entries(chefSummary.dishCounts).forEach(([key, info]) => {
       const qty = mode === 'takeaway' ? info.takeawayQty : info.qty;
@@ -370,6 +389,7 @@ export default function ShiftReconciliation({
   }, [dishesList, activeFoodCategory]);
 
   const updateDishQty = (dishId, delta) => {
+    setHasManualFoodOverride(true);
     setFoodAssignments(prev => {
       const current = prev[dishId] || 0;
       const next = Math.max(0, current + delta);
@@ -549,13 +569,26 @@ export default function ShiftReconciliation({
   // SECTION 4: RECOVERING PENDING PAYMENTS FROM WAITERS
   // ==============================================================
   // Selection map: { debtId: { selected: boolean, unitsToRecover: number } }
-  // Connected dynamically to the pending page ledger.
-  // Defaults to empty ({}) so the shift starts at +0 ETB until explicitly selected by cashier.
+  // Connected dynamically to the pending page ledger & filtered by selected shift (Day vs Night).
   const [recoverySelections, setRecoverySelections] = useState({});
+  const [recoverAllShifts, setRecoverAllShifts] = useState(false);
 
   const activeDebtsForShift = useMemo(() => {
-    return pendingDebts.filter(d => d.status === 'pending');
-  }, [pendingDebts]);
+    return pendingDebts.filter(d => {
+      if (!d || d.status !== 'pending') return false;
+      if (recoverAllShifts) return true;
+      return (d.shift || 'Day') === selectedShift;
+    });
+  }, [pendingDebts, selectedShift, recoverAllShifts]);
+
+  const otherShiftPendingCount = useMemo(() => {
+    const otherShift = selectedShift === 'Day' ? 'Night' : 'Day';
+    return pendingDebts.filter(d => d && d.status === 'pending' && (d.shift || 'Day') === otherShift).length;
+  }, [pendingDebts, selectedShift]);
+
+  const existingWaiterDebitSummary = useMemo(() => {
+    return getWaiterPendingSummary(pendingDebts, pendingWaiterName, selectedShift);
+  }, [pendingDebts, pendingWaiterName, selectedShift]);
 
   const toggleDebtSelection = (debtId) => {
     const debt = pendingDebts.find(d => d.id === debtId);
@@ -577,14 +610,25 @@ export default function ShiftReconciliation({
   const updateDebtUnitsToRecover = (debtId, delta) => {
     const debt = pendingDebts.find(d => d.id === debtId);
     if (!debt) return;
+    const step = Number(debt.unitPrice) === 1 ? delta * 50 : delta;
     setRecoverySelections(prev => {
       const cur = prev[debtId] || { selected: true, unitsToRecover: debt.remainingUnits };
-      const next = Math.max(1, Math.min(debt.remainingUnits, cur.unitsToRecover + delta));
+      const next = Math.max(1, Math.min(debt.remainingUnits, cur.unitsToRecover + step));
       return {
         ...prev,
         [debtId]: { selected: true, unitsToRecover: next }
       };
     });
+  };
+
+  const setExactDebtRecoverUnits = (debtId, value) => {
+    const debt = pendingDebts.find(d => d.id === debtId);
+    if (!debt) return;
+    const next = Math.max(1, Math.min(debt.remainingUnits, Number(value) || 1));
+    setRecoverySelections(prev => ({
+      ...prev,
+      [debtId]: { selected: true, unitsToRecover: next }
+    }));
   };
 
   const recoveredCashAdded = useMemo(() => {
@@ -688,12 +732,44 @@ export default function ShiftReconciliation({
       setShiftDefaultWaiters(freshDefaults);
       setPendingWaiterName(freshDefaults[selectedShift] || (selectedShift === 'Night' ? 'ወንዴ (Wende)' : 'ሀብታሙ (Habtamu)'));
       setWaiterOverrideUnlocked(false);
+      setHasManualFoodOverride(false);
       setRecoverySelections({});
       setDailyExpenses([]);
       setBankTransfers([]);
       localStorage.removeItem('maraki_shift_manual_transfers');
     }
   }, [selectedDate, selectedShift]);
+
+  // If a closed settlement arrives asynchronously from Supabase after initial render, hydrate it
+  useEffect(() => {
+    if (!currentSavedSettlement || unlockedShiftIds[currentSavedSettlement.id]) return;
+    setCupsGiven(currentSavedSettlement.cupsGiven !== undefined ? currentSavedSettlement.cupsGiven : '');
+    setCupsLeft(currentSavedSettlement.cupsLeft !== undefined ? currentSavedSettlement.cupsLeft : '');
+    setBeuDeliveryCups(currentSavedSettlement.beuDeliveryCups !== undefined && currentSavedSettlement.beuDeliveryCups !== 0 ? currentSavedSettlement.beuDeliveryCups : '');
+    setBoxesGiven(currentSavedSettlement.boxesGiven !== undefined ? currentSavedSettlement.boxesGiven : '');
+    setBoxesLeft(currentSavedSettlement.boxesLeft !== undefined ? currentSavedSettlement.boxesLeft : '');
+    setFoodAssignments(currentSavedSettlement.foodAssignments ? { ...currentSavedSettlement.foodAssignments } : {});
+    setPendingJuiceCupsInput(currentSavedSettlement.pendingJuiceCups ? currentSavedSettlement.pendingJuiceCups : '');
+    setPendingFoodItems(currentSavedSettlement.pendingFoodItems ? [...currentSavedSettlement.pendingFoodItems] : []);
+    if (currentSavedSettlement.pendingWaiterName) setPendingWaiterName(currentSavedSettlement.pendingWaiterName);
+    if (currentSavedSettlement.dailyExpenses) setDailyExpenses([...currentSavedSettlement.dailyExpenses]);
+    if (currentSavedSettlement.bankTransfers) setBankTransfers([...currentSavedSettlement.bankTransfers]);
+  }, [currentSavedSettlement?.id, currentSavedSettlement?.savedAt]);
+
+  // Automatically populate foodAssignments directly from Chef POS DB orders for open shifts
+  // Placed after the [selectedDate, selectedShift] reset effect so it populates cleanly after shift switches
+  useEffect(() => {
+    if (isShiftClosed || currentSavedSettlement || hasManualFoodOverride) return;
+    const next = {};
+    if (chefSummary && chefSummary.totalOrders > 0) {
+      const preferTakeaway = chefSummary.takeawayBoxes > 0;
+      Object.entries(chefSummary.dishCounts || {}).forEach(([key, info]) => {
+        const qty = preferTakeaway ? info.takeawayQty : info.qty;
+        if (qty > 0) next[key] = qty;
+      });
+    }
+    setFoodAssignments(next);
+  }, [chefSummary, selectedDate, selectedShift, isShiftClosed, currentSavedSettlement, hasManualFoodOverride]);
 
   const [newTxnAmount, setNewTxnAmount] = useState('');
   const [newTxnChannel, setNewTxnChannel] = useState('Telebirr (ቴሌብር)');
@@ -840,59 +916,15 @@ export default function ShiftReconciliation({
     localStorage.removeItem('maraki_shift_manual_transfers');
     dbService.deleteAppState('maraki_shift_manual_transfers');
 
-    // Update Pending Debts
-    // 1. Add new pending debt if entered (Itemized by dish & juice)
-    if (deductedPendingDebt > 0) {
-      const newDebts = [];
-      pendingFoodItems.forEach((item, idx) => {
-        if (item.qty > 0) {
-          newDebts.push({
-            id: `deb-${Date.now()}-food-${idx}`,
-            waiterName: pendingWaiterName,
-            itemType: 'food',
-            dishId: item.dishId,
-            dishName: item.name,
-            unitPrice: item.price,
-            totalUnits: item.qty,
-            remainingUnits: item.qty,
-            totalAmount: item.qty * item.price,
-            remainingAmount: item.qty * item.price,
-            shift: selectedShift,
-            date: selectedDate,
-            createdAt: new Date().toISOString(),
-            status: 'pending'
-          });
-        }
-      });
-
-      if (Number(pendingJuiceCupsInput) > 0) {
-        newDebts.push({
-          id: `deb-${Date.now()}-juice`,
-          waiterName: pendingWaiterName,
-          itemType: 'juice',
-          dishName: 'Juice Cups (የጁስ ኩባያዎች)',
-          unitPrice: effectiveJuicePrice,
-          totalUnits: Number(pendingJuiceCupsInput),
-          remainingUnits: Number(pendingJuiceCupsInput),
-          totalAmount: Number(pendingJuiceCupsInput) * effectiveJuicePrice,
-          remainingAmount: Number(pendingJuiceCupsInput) * effectiveJuicePrice,
-          shift: selectedShift,
-          date: selectedDate,
-          createdAt: new Date().toISOString(),
-          status: 'pending'
-        });
-      }
-
-      setPendingDebts(prev => [...newDebts, ...prev]);
-    }
-
-    // 2. Decrement or complete recovered debts
+    // Update Pending Debts atomically:
+    // 1. Apply Section 4 recoveries first
+    // 2. Stack/consolidate any new Section 3 debit onto that waiter's existing pending entry (no duplicate daily entry!)
     setPendingDebts(prev => {
-      return prev.map(d => {
+      let updatedList = prev.map(d => {
         const sel = recoverySelections[d.id];
         if (sel && sel.selected) {
-          const remUnits = Math.max(0, d.remainingUnits - sel.unitsToRecover);
-          const remAmt = remUnits * d.unitPrice;
+          const remUnits = Math.max(0, Number(d.remainingUnits) - Number(sel.unitsToRecover || 0));
+          const remAmt = remUnits * Number(d.unitPrice || 1);
           return {
             ...d,
             remainingUnits: remUnits,
@@ -903,6 +935,51 @@ export default function ShiftReconciliation({
         }
         return d;
       });
+
+      if (deductedPendingDebt > 0) {
+        const nowIso = new Date().toISOString();
+        pendingFoodItems.forEach((item, idx) => {
+          if (item.qty > 0) {
+            updatedList = consolidateWaiterDebt(updatedList, {
+              id: `deb-${Date.now()}-food-${idx}`,
+              waiterName: pendingWaiterName,
+              itemType: 'food',
+              dishId: item.dishId,
+              dishName: item.name,
+              unitPrice: item.price,
+              totalUnits: item.qty,
+              remainingUnits: item.qty,
+              totalAmount: item.qty * item.price,
+              remainingAmount: item.qty * item.price,
+              shift: selectedShift,
+              date: selectedDate,
+              createdAt: nowIso,
+              status: 'pending'
+            });
+          }
+        });
+
+        if (Number(pendingJuiceCupsInput) > 0) {
+          updatedList = consolidateWaiterDebt(updatedList, {
+            id: `deb-${Date.now()}-juice`,
+            waiterName: pendingWaiterName,
+            itemType: 'juice',
+            dishId: 'juice-cup',
+            dishName: 'Juice Cups (የጁስ ኩባያዎች)',
+            unitPrice: effectiveJuicePrice,
+            totalUnits: Number(pendingJuiceCupsInput),
+            remainingUnits: Number(pendingJuiceCupsInput),
+            totalAmount: Number(pendingJuiceCupsInput) * effectiveJuicePrice,
+            remainingAmount: Number(pendingJuiceCupsInput) * effectiveJuicePrice,
+            shift: selectedShift,
+            date: selectedDate,
+            createdAt: nowIso,
+            status: 'pending'
+          });
+        }
+      }
+
+      return updatedList;
     });
 
     // Reset recovery selections
@@ -1014,6 +1091,17 @@ export default function ShiftReconciliation({
                 {settlementsHistory.length}
               </span>
             </button>
+
+            {onToggleTheme && !embeddedMode && (
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 transition-all"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+              </button>
+            )}
 
             {onBackToPortal && !embeddedMode && (
               <button
@@ -1455,28 +1543,40 @@ export default function ShiftReconciliation({
                 </div>
               </div>
 
-              {chefComparison.hasChefOrders && (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleLoadFromChefOrders('takeaway')}
-                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 text-[11px] font-black transition-all shadow-2xs active:scale-95"
-                    title="Auto-fill Income Sheet dishes using Chef Takeaway orders"
-                  >
-                    Sync Takeaway ({chefComparison.chefTakeawayBoxes})
-                  </button>
-                  {chefComparison.chefHomeDishes > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={fetchOrdersDirectlyFromDb}
+                  disabled={isSyncingDbOrders}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-black flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 disabled:opacity-60"
+                  title="Fetch latest Chef POS orders directly from database"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingDbOrders ? 'animate-spin' : ''}`} />
+                  <span>{isSyncingDbOrders ? 'Fetching DB...' : 'Fetch DB Orders'}</span>
+                </button>
+                {chefComparison.hasChefOrders && (
+                  <>
                     <button
                       type="button"
-                      onClick={() => handleLoadFromChefOrders('all')}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black transition-all shadow-2xs active:scale-95"
-                      title="Auto-fill all Chef Food (Takeaway + Home)"
+                      onClick={() => handleLoadFromChefOrders('takeaway')}
+                      className="px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 text-[11px] font-black transition-all shadow-2xs active:scale-95"
+                      title="Auto-fill Income Sheet dishes using Chef Takeaway orders"
                     >
-                      Sync All Food ({chefComparison.chefTotalFood})
+                      {hasManualFoodOverride ? `Reset to Takeaway (${chefComparison.chefTakeawayBoxes})` : `⚡ Takeaway Auto-Loaded (${chefComparison.chefTakeawayBoxes})`}
                     </button>
-                  )}
-                </div>
-              )}
+                    {chefComparison.chefHomeDishes > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleLoadFromChefOrders('all')}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black transition-all shadow-2xs active:scale-95"
+                        title="Auto-fill all Chef Food (Takeaway + Home)"
+                      >
+                        Include Home Food ({chefComparison.chefTotalFood})
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Dish-by-Dish Discrepancy Table when Red Alarm fires */}
@@ -1732,6 +1832,26 @@ export default function ShiftReconciliation({
                   ? '🔓 Unlocked by Owner for this shift'
                   : `🔒 Locked to shift default (${selectedShift === 'Day' ? 'Day → Habtamu' : 'Night → Wende'}). Only Owner can change.`}
               </span>
+              {(existingWaiterDebitSummary.totalExistingAmount > 0 || deductedPendingDebt > 0) && (
+                <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] space-y-1">
+                  <div className="flex items-center justify-between font-bold text-amber-900">
+                    <span>Previous Existing Debit ({selectedShift}):</span>
+                    <span>{existingWaiterDebitSummary.totalExistingAmount.toLocaleString()} ETB</span>
+                  </div>
+                  {deductedPendingDebt > 0 && (
+                    <div className="flex items-center justify-between font-bold text-rose-700">
+                      <span>+ New Debit Added Now:</span>
+                      <span>+{deductedPendingDebt.toLocaleString()} ETB</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between font-black text-slate-900 pt-1 border-t border-amber-200/80">
+                    <span>Total Consolidated Debit (Same Entry):</span>
+                    <span className="text-emerald-800">
+                      {(existingWaiterDebitSummary.totalExistingAmount + deductedPendingDebt).toLocaleString()} ETB
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Pending Juice (Cups) */}
@@ -1915,23 +2035,53 @@ export default function ShiftReconciliation({
                 🔄
               </span>
               <div>
-                <h2 className="text-sm sm:text-base font-black text-slate-900">
-                  4. RECOVERING PENDING PAYMENTS FROM WAITERS
+                <h2 className="text-sm sm:text-base font-black text-slate-900 flex flex-wrap items-center gap-2">
+                  <span>4. RECOVERING PENDING PAYMENTS FROM WAITERS</span>
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
+                    {recoverAllShifts
+                      ? 'All Shifts'
+                      : selectedShift === 'Night'
+                        ? '🌙 Night Shift Pending'
+                        : '☀️ Day Shift Pending'}
+                  </span>
                 </h2>
                 <p className="text-[11px] text-slate-500 font-bold">
-                  Past shift debts collected from waitstaff (Adds directly to cash drawer)
+                  {recoverAllShifts
+                    ? 'Showing unpaid waiter balances across both shifts (Adds directly to cash drawer)'
+                    : `Showing ${selectedShift} Shift unpaid waiter balances (Adds directly to cash drawer)`}
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-[11px] font-black">
+                <button
+                  type="button"
+                  onClick={() => setRecoverAllShifts(false)}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                    !recoverAllShifts ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600'
+                  }`}
+                >
+                  {selectedShift === 'Night' ? '🌙 Night Only' : '☀️ Day Only'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecoverAllShifts(true)}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                    recoverAllShifts ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600'
+                  }`}
+                >
+                  All Shifts{otherShiftPendingCount > 0 ? ` (+${otherShiftPendingCount})` : ''}
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowPendingLedgerModal(true)}
                 className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+                title="Open Waiter Debts Ledger"
               >
                 <FileText className="w-3.5 h-3.5 text-emerald-700" />
-                <span>📋 Open Waiter Debts Ledger →</span>
+                <span>📋 Waiter Debts Ledger →</span>
               </button>
               <span className="text-xs font-black text-emerald-900 bg-emerald-100/80 border border-emerald-200 px-3 py-1.5 rounded-xl">
                 + {recoveredCashAdded.toLocaleString()} ETB Collected
@@ -1944,19 +2094,34 @@ export default function ShiftReconciliation({
             {activeDebtsForShift.length === 0 ? (
               <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-2">
                 <p className="text-xs text-slate-700 font-bold">
-                  ✓ No pending debts across shifts
+                  {recoverAllShifts
+                    ? '✓ No pending debts across shifts'
+                    : `✓ No pending debts for ${selectedShift} Shift`}
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  New debts can be logged in Section 3 above or inside the Waiter Debts Ledger page.
+                  {!recoverAllShifts && otherShiftPendingCount > 0
+                    ? `${otherShiftPendingCount} pending debit(s) exist in the other shift.`
+                    : 'New debts can be logged in Section 3 above or inside the Waiter Debts Ledger page.'}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setShowPendingLedgerModal(true)}
-                  className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-black inline-flex items-center gap-1.5 transition-all shadow-xs"
-                >
-                  <span>Open Waiter Debts Ledger</span>
-                  <ArrowRight className="w-3 h-3" />
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {!recoverAllShifts && otherShiftPendingCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setRecoverAllShifts(true)}
+                      className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-slate-800 border border-slate-200 rounded-xl text-xs font-black inline-flex items-center gap-1.5 transition-all shadow-xs"
+                    >
+                      <span>Show Other Shift ({otherShiftPendingCount})</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowPendingLedgerModal(true)}
+                    className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-black inline-flex items-center gap-1.5 transition-all shadow-xs"
+                  >
+                    <span>Open Waiter Debts Ledger</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             ) : (
               activeDebtsForShift.map(debt => {
@@ -1964,6 +2129,7 @@ export default function ShiftReconciliation({
                 const isSelected = sel?.selected || false;
                 const unitsToRecover = sel?.unitsToRecover || debt.remainingUnits;
                 const recoveredAmt = unitsToRecover * debt.unitPrice;
+                const isConsolidated = Number(debt.unitPrice) === 1;
 
                 return (
                   <div
@@ -1983,25 +2149,30 @@ export default function ShiftReconciliation({
                         className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 bg-white border-slate-300 cursor-pointer accent-emerald-600"
                       />
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="font-black text-xs text-slate-900">
                             Waiter: {debt.waiterName}
                           </span>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-emerald-800 border border-slate-200 shadow-2xs">
-                            {debt.itemType === 'food' ? '🍱 Food' : '🥤 Juice'}
+                            {isConsolidated ? '📑 Consolidated Balance' : debt.itemType === 'food' ? '🍱 Food' : '🥤 Juice'}
+                          </span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                            {debt.shift === 'Night' ? '🌙 Night' : '☀️ Day'}
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-500 font-medium">
-                          {debt.remainingUnits} {debt.itemType === 'food' ? 'boxes' : 'cups'} • {debt.remainingAmount} ETB • {debt.shift} ({debt.dishName})
+                          {isConsolidated
+                            ? `Total Unpaid: ${Number(debt.remainingAmount).toLocaleString()} ETB • ${debt.dishName}`
+                            : `${debt.remainingUnits} ${debt.itemType === 'food' ? 'boxes' : 'cups'} • ${debt.remainingAmount} ETB • ${debt.dishName}`}
                         </p>
                       </div>
                     </div>
 
-                    {/* Stepper: Recover Units [-] chosen / max [+] */}
+                    {/* Stepper: Recover Units or ETB Amount */}
                     {isSelected && (
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2.5">
                         <span className="text-[11px] text-slate-600 font-bold">
-                          Recover Units:
+                          {isConsolidated ? 'Recover ETB:' : 'Recover Units:'}
                         </span>
                         <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-xl border border-slate-200 shadow-2xs">
                           <button
@@ -2012,9 +2183,20 @@ export default function ShiftReconciliation({
                           >
                             <Minus className="w-2.5 h-2.5" />
                           </button>
-                          <span className="px-2 text-xs font-black text-emerald-900">
-                            {unitsToRecover} / {debt.remainingUnits}
-                          </span>
+                          {isConsolidated ? (
+                            <input
+                              type="number"
+                              min="1"
+                              max={debt.remainingUnits}
+                              value={unitsToRecover}
+                              onChange={(e) => setExactDebtRecoverUnits(debt.id, e.target.value)}
+                              className="w-20 text-center text-xs font-black text-emerald-900 bg-transparent outline-none"
+                            />
+                          ) : (
+                            <span className="px-2 text-xs font-black text-emerald-900">
+                              {unitsToRecover} / {debt.remainingUnits}
+                            </span>
+                          )}
                           <button
                             type="button"
                             onClick={() => updateDebtUnitsToRecover(debt.id, 1)}
@@ -2024,6 +2206,15 @@ export default function ShiftReconciliation({
                             <Plus className="w-2.5 h-2.5" />
                           </button>
                         </div>
+                        {isConsolidated && unitsToRecover < debt.remainingUnits && (
+                          <button
+                            type="button"
+                            onClick={() => setExactDebtRecoverUnits(debt.id, debt.remainingUnits)}
+                            className="px-2 py-1 rounded-lg bg-emerald-100 text-emerald-900 text-[10px] font-black"
+                          >
+                            Full
+                          </button>
+                        )}
                         <span className="font-black text-xs text-emerald-900 min-w-16 text-right">
                           + {recoveredAmt.toLocaleString()} ETB
                         </span>

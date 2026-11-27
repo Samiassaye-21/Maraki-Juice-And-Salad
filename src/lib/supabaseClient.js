@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getOrderBeuMetrics } from '../utils/beuHelpers';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -224,23 +225,38 @@ export const dbService = {
           console.warn('Supabase orders fetch warning:', error);
           return null;
         }
-        return (data || []).map(row => ({
-          id: row.id,
-          shift: row.shift,
-          staffName: row.staff_name,
-          waiterName: row.waiter_name,
-          ethiopianDate: row.ethiopian_date,
-          channel: row.channel,
-          orderType: row.order_type || 'Takeaway',
-          beuOrderId: row.beu_order_id,
-          paymentMethod: row.payment_method,
-          totalAmount: Number(row.total_amount) || 0,
-          cupsUsed: Number(row.cups_used) || 0,
-          boxesUsed: Number(row.boxes_used) || 0,
-          items: Array.isArray(row.items) ? row.items : [],
-          status: row.status || '🍳 በኩሽና ተዘጋጅቷል (Cooked by Chef)',
-          createdAt: row.created_at
-        }));
+        return (data || []).map(row => {
+          const items = Array.isArray(row.items) ? row.items : [];
+          const baseOrder = {
+            id: row.id,
+            shift: row.shift,
+            staffName: row.staff_name,
+            waiterName: row.waiter_name,
+            ethiopianDate: row.ethiopian_date,
+            channel: row.channel,
+            orderType: row.order_type || 'Takeaway',
+            beuOrderId: row.beu_order_id,
+            paymentMethod: row.payment_method,
+            totalAmount: Number(row.total_amount) || 0,
+            cupsUsed: Number(row.cups_used) || 0,
+            boxesUsed: Number(row.boxes_used) || 0,
+            boxesCount: Number(row.boxes_used) || items.reduce((s, i) => s + Number(i.qty || 0), 0),
+            isBeuOrder: row.channel === 'BEU Delivery',
+            items,
+            status: row.status || '🍳 በኩሽና ተዘጋጅቷል (Cooked by Chef)',
+            timestamp: row.created_at
+              ? new Date(row.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : '',
+            createdAt: row.created_at
+          };
+          const beu = getOrderBeuMetrics(baseOrder);
+          return {
+            ...baseOrder,
+            beuDeductionPct: beu.isBeu && beu.deductionAmount > 0 ? 15 : 0,
+            normalSubtotal: beu.normalSubtotal,
+            beuDeductionAmount: beu.deductionAmount
+          };
+        });
       } catch (err) {
         console.warn('Supabase offline fallback for fetchOrders:', err);
       }

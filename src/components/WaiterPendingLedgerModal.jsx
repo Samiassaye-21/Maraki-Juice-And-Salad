@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { toEthiopianDateString } from './BusinessManagement';
 import { DEFAULT_JUICE_PRICE, DEFAULT_RECONCILIATION_DISHES } from './ShiftReconciliation';
+import { getWaiterPendingSummary, consolidateWaiterDebt } from '../utils/reconciliationHelpers';
 
 export const DEFAULT_WAITERS_LIST = [
   'አቤል (Waiter Abel)',
@@ -147,7 +148,17 @@ export default function WaiterPendingLedgerModal({
     return Array.from(set);
   }, [pendingDebts, waitersList]);
 
-  // ACTION: Add New Manual Debt
+  // ACTION: Add New Manual Debt (consolidates into existing pending entry for that waiter + shift)
+  const selectedWaiterExistingSummary = useMemo(() => {
+    return getWaiterPendingSummary(pendingDebts, newWaiter, newShift);
+  }, [pendingDebts, newWaiter, newShift]);
+
+  const draftNewDebtTotal = useMemo(() => {
+    const units = Math.max(1, Number(newUnits) || 1);
+    const unitPrice = newItemType === 'juice' ? effectiveJuicePrice : (Number(newCustomPrice) || 200);
+    return units * unitPrice;
+  }, [newUnits, newItemType, effectiveJuicePrice, newCustomPrice]);
+
   const handleCreateManualDebt = (e) => {
     e.preventDefault();
     const units = Math.max(1, Number(newUnits) || 1);
@@ -172,7 +183,7 @@ export default function WaiterPendingLedgerModal({
       notes: newNotes.trim()
     };
 
-    const updated = [newTicket, ...pendingDebts];
+    const updated = consolidateWaiterDebt(pendingDebts, newTicket);
     onUpdateDebts(updated);
     setShowAddForm(false);
     setNewNotes('');
@@ -489,18 +500,40 @@ export default function WaiterPendingLedgerModal({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
               
-              {/* Waiter Name */}
+              {/* Waiter Name & Shift */}
               <div>
-                <label className="text-slate-700 font-black block mb-1">ባለዕዳ አስተናጋጅ (Waiter):</label>
-                <select
-                  value={newWaiter}
-                  onChange={(e) => setNewWaiter(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold outline-none focus:border-emerald-500"
-                >
-                  {availableWaiters.map(w => (
-                    <option key={w} value={w}>{w}</option>
-                  ))}
-                </select>
+                <label className="text-slate-700 font-black block mb-1">ባለዕዳ አስተናጋጅ (Waiter) & Shift:</label>
+                <div className="space-y-1.5">
+                  <select
+                    value={newWaiter}
+                    onChange={(e) => setNewWaiter(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold outline-none focus:border-emerald-500"
+                  >
+                    {availableWaiters.map(w => (
+                      <option key={w} value={w}>{w}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setNewShift('Day')}
+                      className={`flex-1 py-1 rounded-lg font-black text-[11px] transition-colors ${
+                        newShift === 'Day' ? 'bg-emerald-600 text-white' : 'text-slate-600'
+                      }`}
+                    >
+                      ☀️ Day Shift
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewShift('Night')}
+                      className={`flex-1 py-1 rounded-lg font-black text-[11px] transition-colors ${
+                        newShift === 'Night' ? 'bg-emerald-600 text-white' : 'text-slate-600'
+                      }`}
+                    >
+                      🌙 Night Shift
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Item Type: Food or Juice */}
@@ -576,6 +609,26 @@ export default function WaiterPendingLedgerModal({
               </div>
 
             </div>
+
+            {selectedWaiterExistingSummary.totalExistingAmount > 0 && (
+              <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="space-y-0.5">
+                  <span className="font-black text-amber-900 block">
+                    ⏳ Existing Debit Found for {newWaiter} ({newShift} Shift) — Adding Onto Existing Record
+                  </span>
+                  <span className="text-[11px] font-bold text-amber-800">
+                    Previous: <strong>{selectedWaiterExistingSummary.totalExistingAmount.toLocaleString()} ETB</strong> •
+                    + New Added: <strong>+{draftNewDebtTotal.toLocaleString()} ETB</strong>
+                  </span>
+                </div>
+                <div className="px-3.5 py-1.5 rounded-xl bg-white border border-amber-300 text-right">
+                  <span className="text-[10px] font-bold text-slate-500 block">Combined Total Balance</span>
+                  <span className="text-sm font-black text-emerald-800">
+                    {(selectedWaiterExistingSummary.totalExistingAmount + draftNewDebtTotal).toLocaleString()} ETB
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
               <input
@@ -699,7 +752,9 @@ export default function WaiterPendingLedgerModal({
                     {/* Units & Remaining Amount */}
                     <div className="text-right">
                       <div className="text-xs font-black text-slate-900">
-                        {debt.remainingUnits} / {debt.totalUnits} {isFood ? 'ቦክስ' : 'ኩባያ'}
+                        {Number(debt.unitPrice) === 1
+                          ? `${debt.history?.length || 1} consolidated entries`
+                          : `${debt.remainingUnits} / ${debt.totalUnits} ${isFood ? 'ቦክስ' : 'ኩባያ'}`}
                       </div>
                       <div className="text-sm font-black text-emerald-900">
                         {debt.remainingAmount.toLocaleString()} <span className="text-[10px] text-slate-500">ETB</span>
@@ -726,15 +781,15 @@ export default function WaiterPendingLedgerModal({
                             <span>ተከፍሏል</span>
                           </button>
 
-                          {/* Partial Settle 1 unit if multi-unit */}
+                          {/* Partial Settle 1 unit (or 50 ETB when consolidated) */}
                           {debt.remainingUnits > 1 && (
                             <button
                               type="button"
-                              onClick={() => handlePartialSettle(debt.id, 1)}
+                              onClick={() => handlePartialSettle(debt.id, Number(debt.unitPrice) === 1 ? Math.min(50, debt.remainingUnits) : 1)}
                               className="px-2.5 py-2 bg-slate-100 hover:bg-emerald-50 text-emerald-900 border border-slate-200 rounded-xl text-xs font-black transition-all"
-                              title="የ1 እቃ ክፍያ ብቻ ተቀበል"
+                              title="ከፊል ክፍያ ተቀበል"
                             >
-                              -1 {isFood ? 'ቦክስ' : 'ኩባያ'}
+                              {Number(debt.unitPrice) === 1 ? `-${Math.min(50, debt.remainingUnits)} ETB` : `-1 ${isFood ? 'ቦክስ' : 'ኩባያ'}`}
                             </button>
                           )}
                         </>

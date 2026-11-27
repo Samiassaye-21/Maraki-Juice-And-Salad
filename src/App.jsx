@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useDeferredValue, useTransition, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useDeferredValue, useTransition, useMemo, useCallback } from 'react';
 import BusinessManagement from './components/BusinessManagement';
 import ShiftReconciliation from './components/ShiftReconciliation';
 import OwnerIncomeAnalysisReport from './components/OwnerIncomeAnalysisReport';
@@ -488,6 +488,13 @@ export default function App() {
     const saved = localStorage.getItem('maraki_theme');
     return saved === 'dark' ? 'dark' : 'light';
   });
+  const themeManuallySetRef = useRef(false);
+  const handleToggleTheme = useCallback(() => {
+    themeManuallySetRef.current = true;
+    localStorage.setItem('maraki_theme_manual', '1');
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
   const [language, setLanguage] = useState(() => {
     const saved = localStorage.getItem('maraki_language');
     return saved === 'en' ? 'en' : 'am';
@@ -499,7 +506,11 @@ export default function App() {
   const t = TRANSLATIONS[language] || TRANSLATIONS.am;
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
+    const isDark = theme === 'dark';
+    document.documentElement.classList.toggle('dark', isDark);
+    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+    const meta = document.querySelector('meta[name="color-scheme"]');
+    if (meta) meta.setAttribute('content', isDark ? 'dark' : 'light');
     localStorage.setItem('maraki_theme', theme);
     dbService.saveAppState('maraki_theme', theme);
   }, [theme]);
@@ -766,123 +777,156 @@ export default function App() {
     dbService.saveAppState('maraki_waste_boxes', wasteBoxes);
   }, [wasteBoxes]);
 
-  // Fetch all latest data (app_state, menu_items, orders, expenses, adari) from Supabase on startup
-  useEffect(() => {
-    if (!isSupabaseConfigured) return;
-    let cancelled = false;
+  const recentSubmittedOrderTimesRef = useRef(new Map());
 
-    (async () => {
-      const [remoteState, remoteMenu, remoteOrders, remoteExpenses, remoteAdari] = await Promise.all([
-        dbService.fetchAllAppState(),
-        dbService.fetchMenuItems(),
-        dbService.fetchOrders(),
-        dbService.fetchExpenses(),
-        dbService.fetchAdari()
-      ]);
+  // Fetch all latest data (app_state, menu_items, orders, expenses, adari) from Supabase
+  const syncFromSupabase = useCallback(async () => {
+    if (!isSupabaseConfigured) return null;
+    const [remoteState, remoteMenu, remoteOrders, remoteExpenses, remoteAdari] = await Promise.all([
+      dbService.fetchAllAppState(),
+      dbService.fetchMenuItems(),
+      dbService.fetchOrders(),
+      dbService.fetchExpenses(),
+      dbService.fetchAdari()
+    ]);
 
-      if (cancelled) return;
+    setApplyingRemoteSync(true);
+    try {
+      if (remoteState && typeof remoteState === 'object') {
+        Object.entries(remoteState).forEach(([key, val]) => {
+          if (val === undefined) return;
+          if (key === 'maraki_theme' && (themeManuallySetRef.current || localStorage.getItem('maraki_theme'))) {
+            return;
+          }
+          const serialized = typeof val === 'string' ? val : JSON.stringify(val);
+          localStorage.setItem(key, serialized);
+        });
 
-      setApplyingRemoteSync(true);
-      try {
-        if (remoteState && typeof remoteState === 'object') {
-          Object.entries(remoteState).forEach(([key, val]) => {
-            if (val === undefined) return;
-            const serialized = typeof val === 'string' ? val : JSON.stringify(val);
-            localStorage.setItem(key, serialized);
-          });
-
-          if (Array.isArray(remoteState.maraki_shift_settlements)) {
-            setSettlementsHistory(remoteState.maraki_shift_settlements);
-          }
-          if (Array.isArray(remoteState.maraki_waiters_list_v3)) {
-            setWaitersList(remoteState.maraki_waiters_list_v3);
-          }
-          if (Number(remoteState.maraki_standard_juice_price) > 0) {
-            setStandardJuicePrice(Number(remoteState.maraki_standard_juice_price));
-          }
-          if (remoteState.maraki_waste_boxes !== undefined) {
-            setWasteBoxes(Number(remoteState.maraki_waste_boxes) || 0);
-          }
-          if (remoteState.maraki_box_starting_stock !== undefined) {
-            setBoxInventoryInitial(Number(remoteState.maraki_box_starting_stock) || 0);
-          }
-          if (typeof remoteState.maraki_owner_password === 'string' && remoteState.maraki_owner_password) {
-            setOwnerPassword(remoteState.maraki_owner_password);
-          }
-          if (typeof remoteState.maraki_chef_pin === 'string' && remoteState.maraki_chef_pin) {
-            setChefPin(remoteState.maraki_chef_pin);
-          }
-          if (typeof remoteState.maraki_reconciliation_pin === 'string' && remoteState.maraki_reconciliation_pin) {
-            setReconciliationPin(remoteState.maraki_reconciliation_pin);
-          }
-          if (remoteState.maraki_theme === 'dark' || remoteState.maraki_theme === 'light') {
-            setTheme(remoteState.maraki_theme);
-          }
-          if (remoteState.maraki_language === 'en' || remoteState.maraki_language === 'am') {
-            setLanguage(remoteState.maraki_language);
-          }
+        if (Array.isArray(remoteState.maraki_shift_settlements)) {
+          setSettlementsHistory(remoteState.maraki_shift_settlements);
         }
-
-        if ((!remoteState || !remoteState.maraki_actual_expenses) && Array.isArray(remoteExpenses) && remoteExpenses.length > 0) {
-          localStorage.setItem('maraki_actual_expenses', JSON.stringify(remoteExpenses));
+        if (Array.isArray(remoteState.maraki_waiters_list_v3)) {
+          setWaitersList(remoteState.maraki_waiters_list_v3);
         }
-
-        if ((!remoteState || !remoteState.maraki_waiter_pending_debts) && Array.isArray(remoteAdari) && remoteAdari.length > 0) {
-          const mappedDebts = remoteAdari.map(row =>
-            row.items && typeof row.items === 'object' && !Array.isArray(row.items)
-              ? { ...row.items, status: row.status === 'paid' ? 'settled' : (row.items.status || 'pending') }
-              : {
-                  id: row.id,
-                  waiterName: row.customer_name,
-                  totalAmount: Number(row.amount) || 0,
-                  remainingAmount: row.status === 'paid' ? 0 : Number(row.amount) || 0,
-                  status: row.status === 'paid' ? 'settled' : 'pending',
-                  createdAt: row.created_at
-                }
-          );
-          localStorage.setItem('maraki_waiter_pending_debts', JSON.stringify(mappedDebts));
+        if (Number(remoteState.maraki_standard_juice_price) > 0) {
+          setStandardJuicePrice(Number(remoteState.maraki_standard_juice_price));
         }
-
-        if (Array.isArray(remoteMenu) && remoteMenu.length > 0) {
-          setFoodMenu(prev => {
-            const prevById = new Map(prev.map(i => [i.id, i]));
-            return remoteMenu.map(item => {
-              const existing = prevById.get(item.id);
-              return existing
-                ? {
-                    ...existing,
-                    ...item,
-                    homePrice: item.homePrice ?? existing.homePrice ?? null,
-                    originalPrice: item.originalPrice ?? existing.originalPrice ?? null
-                  }
-                : item;
-            });
-          });
+        if (remoteState.maraki_waste_boxes !== undefined) {
+          setWasteBoxes(Number(remoteState.maraki_waste_boxes) || 0);
         }
-
-        if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
-          setSentOrders(prev => {
-            const merged = new Map();
-            remoteOrders.forEach(o => merged.set(o.id, o));
-            prev.forEach(o => {
-              if (!merged.has(o.id)) merged.set(o.id, o);
-            });
-            return Array.from(merged.values()).sort(
-              (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
-            );
-          });
+        if (remoteState.maraki_box_starting_stock !== undefined) {
+          setBoxInventoryInitial(Number(remoteState.maraki_box_starting_stock) || 0);
         }
-
-        window.dispatchEvent(new CustomEvent('maraki-supabase-synced'));
-      } finally {
-        setTimeout(() => setApplyingRemoteSync(false), 100);
+        if (typeof remoteState.maraki_owner_password === 'string' && remoteState.maraki_owner_password) {
+          setOwnerPassword(remoteState.maraki_owner_password);
+        }
+        if (typeof remoteState.maraki_chef_pin === 'string' && remoteState.maraki_chef_pin) {
+          setChefPin(remoteState.maraki_chef_pin);
+        }
+        if (typeof remoteState.maraki_reconciliation_pin === 'string' && remoteState.maraki_reconciliation_pin) {
+          setReconciliationPin(remoteState.maraki_reconciliation_pin);
+        }
+        if (
+          !themeManuallySetRef.current &&
+          !localStorage.getItem('maraki_theme_manual') &&
+          (remoteState.maraki_theme === 'dark' || remoteState.maraki_theme === 'light')
+        ) {
+          setTheme(remoteState.maraki_theme);
+        }
+        if (remoteState.maraki_language === 'en' || remoteState.maraki_language === 'am') {
+          setLanguage(remoteState.maraki_language);
+        }
       }
-    })();
 
-    return () => {
-      cancelled = true;
-    };
+      if ((!remoteState || !remoteState.maraki_actual_expenses) && Array.isArray(remoteExpenses) && remoteExpenses.length > 0) {
+        localStorage.setItem('maraki_actual_expenses', JSON.stringify(remoteExpenses));
+      }
+
+      if (Array.isArray(remoteAdari) && remoteAdari.length > 0 && (!remoteState || !Array.isArray(remoteState.maraki_waiter_pending_debts))) {
+        const mappedDebts = remoteAdari.map(row =>
+          row.items && typeof row.items === 'object' && !Array.isArray(row.items)
+            ? { ...row.items, status: row.status === 'paid' ? 'completed' : (row.items.status || 'pending') }
+            : {
+                id: row.id,
+                waiterName: row.customer_name,
+                totalAmount: Number(row.amount) || 0,
+                remainingAmount: row.status === 'paid' ? 0 : Number(row.amount) || 0,
+                totalUnits: Number(row.amount) || 0,
+                remainingUnits: row.status === 'paid' ? 0 : Number(row.amount) || 0,
+                unitPrice: 1,
+                status: row.status === 'paid' ? 'completed' : 'pending',
+                createdAt: row.created_at
+              }
+        );
+        localStorage.setItem('maraki_waiter_pending_debts', JSON.stringify(mappedDebts));
+      }
+
+      if (Array.isArray(remoteMenu) && remoteMenu.length > 0) {
+        setFoodMenu(prev => {
+          const prevById = new Map(prev.map(i => [i.id, i]));
+          return remoteMenu.map(item => {
+            const existing = prevById.get(item.id);
+            return existing
+              ? {
+                  ...existing,
+                  ...item,
+                  homePrice: item.homePrice ?? existing.homePrice ?? null,
+                  originalPrice: item.originalPrice ?? existing.originalPrice ?? null
+                }
+              : item;
+          });
+        });
+      }
+
+      if (Array.isArray(remoteOrders)) {
+        const now = Date.now();
+        setSentOrders(prev => {
+          const merged = new Map();
+          remoteOrders.forEach(o => merged.set(o.id, o));
+          // Only retain local orders submitted in the last 15s while their DB write settles
+          prev.forEach(o => {
+            const submittedAt = recentSubmittedOrderTimesRef.current.get(o.id);
+            if (!merged.has(o.id) && submittedAt && now - submittedAt < 15000) {
+              merged.set(o.id, o);
+            }
+          });
+          return Array.from(merged.values()).sort(
+            (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+          );
+        });
+      }
+
+      window.dispatchEvent(new CustomEvent('maraki-supabase-synced'));
+      return remoteOrders || null;
+    } finally {
+      setTimeout(() => setApplyingRemoteSync(false), 100);
+    }
   }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return undefined;
+    syncFromSupabase();
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        syncFromSupabase();
+      }
+    }, 20000);
+
+    const handleFocusOrVisible = () => {
+      if (document.visibilityState === 'visible') {
+        syncFromSupabase();
+      }
+    };
+
+    window.addEventListener('focus', handleFocusOrVisible);
+    document.addEventListener('visibilitychange', handleFocusOrVisible);
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', handleFocusOrVisible);
+    };
+  }, [syncFromSupabase, systemMode]);
 
   const handleUpdateMenu = (updatedMenu) => {
     dbService.syncMenuItems(updatedMenu, foodMenu);
@@ -1080,6 +1124,7 @@ export default function App() {
     };
 
     // 1. OPTIMISTIC UI: Save Owner BEU order & show Chef her clean normal receipt confirmation
+    recentSubmittedOrderTimesRef.current.set(orderData.id, Date.now());
     setSentOrders(prev => [orderData, ...prev]);
     setOrderSuccessModal({
       ...orderData,
@@ -1611,7 +1656,7 @@ export default function App() {
 
           <button
             type="button"
-            onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+            onClick={handleToggleTheme}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
               theme === 'dark'
                 ? 'bg-white/10 hover:bg-white/15 border-white/15 text-slate-200'
@@ -1874,7 +1919,7 @@ export default function App() {
           : 'bg-gradient-to-br from-slate-100 via-emerald-50 to-slate-200'
       }`}>
         <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 dark:border-slate-800 text-center space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => navigateToSystem('portal')}
@@ -1883,9 +1928,19 @@ export default function App() {
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>{t.backToPortals}</span>
             </button>
-            <span className="text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 px-2.5 py-0.5 rounded-full">
-              {portalLockConfig.badge}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleToggleTheme}
+                className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 transition-all"
+                title={theme === 'dark' ? t.lightMode : t.darkMode}
+              >
+                {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-600" />}
+              </button>
+              <span className="text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 px-2.5 py-0.5 rounded-full">
+                {portalLockConfig.badge}
+              </span>
+            </div>
           </div>
 
           <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 flex items-center justify-center mx-auto shadow-inner">
@@ -1983,6 +2038,9 @@ export default function App() {
         waiters={waitersList}
         foodMenu={foodMenu}
         standardJuicePrice={standardJuicePrice}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        onRefreshOrders={syncFromSupabase}
         onBackToPortal={() => navigateToSystem('portal')}
         onSwitchToChef={() => navigateToSystem('chef')}
         onSwitchToOwner={() => navigateToSystem('owner')}
@@ -2088,7 +2146,7 @@ export default function App() {
 
                 <button
                   type="button"
-                  onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+                  onClick={handleToggleTheme}
                   className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 transition-all"
                   title={theme === 'dark' ? t.lightMode : t.darkMode}
                 >
@@ -4055,6 +4113,9 @@ export default function App() {
               {ownerSection === 'sheet' && (
                 <ShiftReconciliation
                   embeddedMode={true}
+                  theme={theme}
+                  onToggleTheme={handleToggleTheme}
+                  onRefreshOrders={syncFromSupabase}
                   orders={sentOrders}
                   waiters={waitersList}
                   foodMenu={foodMenu}

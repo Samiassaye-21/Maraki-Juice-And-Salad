@@ -538,3 +538,176 @@ export function clearAllBusinessData({ includeSettings = false, syncCloud = fals
     return false;
   }
 }
+
+/**
+ * Extract normalized tokens for comparing waiter names in Amharic/English forms,
+ * e.g. "ሀብታሙ (Habtamu)" matches "Habtamu" or "ሀብታሙ".
+ */
+export function extractWaiterTokens(name) {
+  const raw = String(name || '').trim().toLowerCase();
+  if (!raw) return [];
+  const tokens = new Set([raw]);
+  const parts = raw.split(/[()]/).map(s => s.trim()).filter(Boolean);
+  parts.forEach(p => tokens.add(p));
+  return Array.from(tokens);
+}
+
+export function doWaitersMatch(a, b) {
+  const ta = extractWaiterTokens(a);
+  const tb = extractWaiterTokens(b);
+  if (ta.length === 0 || tb.length === 0) return false;
+  return ta.some(x => tb.includes(x));
+}
+
+/**
+ * Summarize active pending debt(s) for a waiter (optionally scoped to a shift: 'Day' | 'Night').
+ */
+export function getWaiterPendingSummary(pendingDebts = [], waiterName, shift = null) {
+  if (!waiterName || !Array.isArray(pendingDebts)) {
+    return { matchingDebts: [], totalExistingAmount: 0, totalExistingUnits: 0, latestDate: '' };
+  }
+  const matchingDebts = pendingDebts.filter(d => {
+    if (!d || d.status !== 'pending') return false;
+    if (!doWaitersMatch(d.waiterName, waiterName)) return false;
+    if (shift && (d.shift || 'Day') !== shift) return false;
+    return true;
+  });
+  const totalExistingAmount = matchingDebts.reduce(
+    (sum, d) => sum + Number(d.remainingAmount ?? d.totalAmount ?? 0),
+    0
+  );
+  const totalExistingUnits = matchingDebts.reduce(
+    (sum, d) => sum + Number(d.remainingUnits ?? d.totalUnits ?? 0),
+    0
+  );
+  const latestDate = matchingDebts
+    .map(d => d.date || '')
+    .filter(Boolean)
+    .sort()
+    .pop() || '';
+  return { matchingDebts, totalExistingAmount, totalExistingUnits, latestDate };
+}
+
+/**
+ * Add/stack a new waiter debit onto an existing pending entry for the same waiter & shift
+ * (combining any existing active entries into one record so no duplicate daily row is created).
+ */
+export function consolidateWaiterDebt(pendingDebts = [], newEntry) {
+  if (!newEntry) return pendingDebts;
+  const list = Array.isArray(pendingDebts) ? pendingDebts : [];
+  const targetShift = newEntry.shift || 'Day';
+  const addedAmount = Number(newEntry.totalAmount ?? ((Number(newEntry.totalUnits) || 1) * (Number(newEntry.unitPrice) || 0)));
+  const addedUnits = Number(newEntry.totalUnits) || 1;
+  const addedHistoryItem = {
+    date: newEntry.date || toLocalIsoDate(new Date()),
+    shift: targetShift,
+    itemType: newEntry.itemType || 'food',
+    dishName: newEntry.dishName || 'Debit',
+    units: addedUnits,
+    unitPrice: Number(newEntry.unitPrice) || addedAmount,
+    amount: addedAmount,
+    notes: newEntry.notes || '',
+    addedAt: newEntry.createdAt || new Date().toISOString()
+  };
+
+  const matching = list.filter(
+    d => d && d.status === 'pending' && doWaitersMatch(d.waiterName, newEntry.waiterName) && (d.shift || 'Day') === targetShift
+  );
+
+  if (matching.length === 0) {
+    return [
+      {
+        ...newEntry,
+        shift: targetShift,
+        totalAmount: addedAmount,
+        remainingAmount: addedAmount,
+        history: Array.isArray(newEntry.history) && newEntry.history.length > 0 ? newEntry.history : [addedHistoryItem]
+      },
+      ...list
+    ];
+  }
+
+  const primary = matching[0];
+  const mergedHistory = [];
+  matching.forEach(d => {
+    if (Array.isArray(d.history) && d.history.length > 0) {
+      mergedHistory.push(...d.history);
+    } else {
+      mergedHistory.push({
+        date: d.date || toLocalIsoDate(new Date()),
+        shift: d.shift || targetShift,
+        itemType: d.itemType || 'food',
+        dishName: d.dishName || 'Previous Debit',
+        units: Number(d.remainingUnits ?? d.totalUnits ?? 1),
+        unitPrice: Number(d.unitPrice) || Number(d.remainingAmount ?? d.totalAmount ?? 0),
+        amount: Number(d.remainingAmount ?? d.totalAmount ?? 0),
+        notes: d.notes || '',
+        addedAt: d.createdAt || new Date().toISOString()
+      });
+    }
+  });
+  mergedHistory.push(addedHistoryItem);
+
+  const prevTotalAmt = matching.reduce((s, d) => s + Number(d.totalAmount ?? d.remainingAmount ?? 0), 0);
+  const prevRemAmt = matching.reduce((s, d) => s + Number(d.remainingAmount ?? d.totalAmount ?? 0), 0);
+  const nextTotalAmt = roundPricePrecision(prevTotalAmt + addedAmount);
+  const nextRemAmt = roundPricePrecision(prevRemAmt + addedAmount);
+
+  const allSameTypeAndPrice = matching.every(
+    d =>
+      d.itemType !== 'consolidated' &&
+      d.itemType === (newEntry.itemType || 'food') &&
+      Number(d.unitPrice) === Number(newEntry.unitPrice) &&
+      Number(d.unitPrice) > 0
+  );
+
+  let nextItemType = 'consolidated';
+  let nextUnitPrice = 1;
+  let nextTotalUnits = nextTotalAmt;
+  let nextRemainingUnits = nextRemAmt;
+  let nextDishName = `${primary.dishName || 'Previous'} + ${newEntry.dishName || 'Added'}`;
+
+  if (allSameTypeAndPrice) {
+    nextItemType = newEntry.itemType || primary.itemType || 'food';
+    nextUnitPrice = Number(newEntry.unitPrice);
+    nextTotalUnits = matching.reduce((s, d) => s + Number(d.totalUnits || 0), 0) + addedUnits;
+    nextRemainingUnits = matching.reduce((s, d) => s + Number(d.remainingUnits || 0), 0) + addedUnits;
+    nextDishName = newEntry.dishName || primary.dishName;
+  } else {
+    const distinctLabels = Array.from(
+      new Set(mergedHistory.map(h => h.dishName).filter(Boolean))
+    );
+    nextDishName = distinctLabels.length <= 3
+      ? distinctLabels.join(' + ')
+      : `${distinctLabels.slice(0, 2).join(' + ')} + ${distinctLabels.length - 2} more`;
+  }
+
+  const combinedNotes = [
+    ...new Set([
+      ...matching.map(d => d.notes).filter(Boolean),
+      newEntry.notes
+    ].filter(Boolean))
+  ].join(' | ');
+
+  const updatedPrimary = {
+    ...primary,
+    waiterName: primary.waiterName || newEntry.waiterName,
+    itemType: nextItemType,
+    dishId: allSameTypeAndPrice ? (newEntry.dishId || primary.dishId) : 'consolidated',
+    dishName: nextDishName,
+    unitPrice: nextUnitPrice,
+    totalUnits: nextTotalUnits,
+    remainingUnits: nextRemainingUnits,
+    totalAmount: nextTotalAmt,
+    remainingAmount: nextRemAmt,
+    shift: targetShift,
+    date: newEntry.date || primary.date,
+    notes: combinedNotes,
+    history: mergedHistory,
+    updatedAt: new Date().toISOString()
+  };
+
+  const matchingIds = new Set(matching.map(m => m.id));
+  const others = list.filter(d => !matchingIds.has(d.id));
+  return [updatedPrimary, ...others];
+}
