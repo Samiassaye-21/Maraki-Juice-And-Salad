@@ -67,9 +67,22 @@ import {
   LayoutDashboard,
   Wallet,
   Target,
-  Tag
+  Tag,
+  Crown,
+  CupSoda,
+  Salad,
+  Sandwich,
+  Egg,
+  Utensils,
+  Home,
+  Globe,
+  LayoutGrid,
+  Delete,
+  Flame,
+  ChevronRight
 } from 'lucide-react';
-import { dbService, isSupabaseConfigured } from './lib/supabaseClient';
+import { dbService, isSupabaseConfigured, setApplyingRemoteSync } from './lib/supabaseClient';
+import { TRANSLATIONS } from './utils/i18n';
 
 export const MARAKI_REAL_FOOD_MENU = [
   { 
@@ -470,6 +483,32 @@ export function formatWaiterDisplayName(waiterStr) {
 }
 
 export default function App() {
+  // Theme (Light / Dark) & Language (Amharic / English)
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('maraki_theme');
+    return saved === 'dark' ? 'dark' : 'light';
+  });
+  const [language, setLanguage] = useState(() => {
+    const saved = localStorage.getItem('maraki_language');
+    return saved === 'en' ? 'en' : 'am';
+  });
+  const [chefViewTab, setChefViewTab] = useState('menu'); // 'menu' | 'today'
+  const [checkoutModalStep, setCheckoutModalStep] = useState(0); // 0 = closed, 1 = service, 2 = shift, 3 = waiter
+  const orderPanelRef = useRef(null);
+
+  const t = TRANSLATIONS[language] || TRANSLATIONS.am;
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem('maraki_theme', theme);
+    dbService.saveAppState('maraki_theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('maraki_language', language);
+    dbService.saveAppState('maraki_language', language);
+  }, [language]);
+
   // --- SYSTEM SEPARATION: CHEF KITCHEN POS vs OWNER COMMAND CENTER vs SHIFT RECONCILIATION ---
   const [systemMode, setSystemMode] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -714,15 +753,141 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('maraki_standard_juice_price', String(standardJuicePrice));
+    dbService.saveAppState('maraki_standard_juice_price', standardJuicePrice);
   }, [standardJuicePrice]);
 
   useEffect(() => {
     localStorage.setItem('maraki_waiters_list_v3', JSON.stringify(waitersList));
+    dbService.saveAppState('maraki_waiters_list_v3', waitersList);
   }, [waitersList]);
 
   useEffect(() => {
     localStorage.setItem('maraki_waste_boxes', wasteBoxes.toString());
+    dbService.saveAppState('maraki_waste_boxes', wasteBoxes);
   }, [wasteBoxes]);
+
+  // Fetch all latest data (app_state, menu_items, orders, expenses, adari) from Supabase on startup
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    let cancelled = false;
+
+    (async () => {
+      const [remoteState, remoteMenu, remoteOrders, remoteExpenses, remoteAdari] = await Promise.all([
+        dbService.fetchAllAppState(),
+        dbService.fetchMenuItems(),
+        dbService.fetchOrders(),
+        dbService.fetchExpenses(),
+        dbService.fetchAdari()
+      ]);
+
+      if (cancelled) return;
+
+      setApplyingRemoteSync(true);
+      try {
+        if (remoteState && typeof remoteState === 'object') {
+          Object.entries(remoteState).forEach(([key, val]) => {
+            if (val === undefined) return;
+            const serialized = typeof val === 'string' ? val : JSON.stringify(val);
+            localStorage.setItem(key, serialized);
+          });
+
+          if (Array.isArray(remoteState.maraki_shift_settlements)) {
+            setSettlementsHistory(remoteState.maraki_shift_settlements);
+          }
+          if (Array.isArray(remoteState.maraki_waiters_list_v3)) {
+            setWaitersList(remoteState.maraki_waiters_list_v3);
+          }
+          if (Number(remoteState.maraki_standard_juice_price) > 0) {
+            setStandardJuicePrice(Number(remoteState.maraki_standard_juice_price));
+          }
+          if (remoteState.maraki_waste_boxes !== undefined) {
+            setWasteBoxes(Number(remoteState.maraki_waste_boxes) || 0);
+          }
+          if (remoteState.maraki_box_starting_stock !== undefined) {
+            setBoxInventoryInitial(Number(remoteState.maraki_box_starting_stock) || 0);
+          }
+          if (typeof remoteState.maraki_owner_password === 'string' && remoteState.maraki_owner_password) {
+            setOwnerPassword(remoteState.maraki_owner_password);
+          }
+          if (typeof remoteState.maraki_chef_pin === 'string' && remoteState.maraki_chef_pin) {
+            setChefPin(remoteState.maraki_chef_pin);
+          }
+          if (typeof remoteState.maraki_reconciliation_pin === 'string' && remoteState.maraki_reconciliation_pin) {
+            setReconciliationPin(remoteState.maraki_reconciliation_pin);
+          }
+          if (remoteState.maraki_theme === 'dark' || remoteState.maraki_theme === 'light') {
+            setTheme(remoteState.maraki_theme);
+          }
+          if (remoteState.maraki_language === 'en' || remoteState.maraki_language === 'am') {
+            setLanguage(remoteState.maraki_language);
+          }
+        }
+
+        if ((!remoteState || !remoteState.maraki_actual_expenses) && Array.isArray(remoteExpenses) && remoteExpenses.length > 0) {
+          localStorage.setItem('maraki_actual_expenses', JSON.stringify(remoteExpenses));
+        }
+
+        if ((!remoteState || !remoteState.maraki_waiter_pending_debts) && Array.isArray(remoteAdari) && remoteAdari.length > 0) {
+          const mappedDebts = remoteAdari.map(row =>
+            row.items && typeof row.items === 'object' && !Array.isArray(row.items)
+              ? { ...row.items, status: row.status === 'paid' ? 'settled' : (row.items.status || 'pending') }
+              : {
+                  id: row.id,
+                  waiterName: row.customer_name,
+                  totalAmount: Number(row.amount) || 0,
+                  remainingAmount: row.status === 'paid' ? 0 : Number(row.amount) || 0,
+                  status: row.status === 'paid' ? 'settled' : 'pending',
+                  createdAt: row.created_at
+                }
+          );
+          localStorage.setItem('maraki_waiter_pending_debts', JSON.stringify(mappedDebts));
+        }
+
+        if (Array.isArray(remoteMenu) && remoteMenu.length > 0) {
+          setFoodMenu(prev => {
+            const prevById = new Map(prev.map(i => [i.id, i]));
+            return remoteMenu.map(item => {
+              const existing = prevById.get(item.id);
+              return existing
+                ? {
+                    ...existing,
+                    ...item,
+                    homePrice: item.homePrice ?? existing.homePrice ?? null,
+                    originalPrice: item.originalPrice ?? existing.originalPrice ?? null
+                  }
+                : item;
+            });
+          });
+        }
+
+        if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
+          setSentOrders(prev => {
+            const merged = new Map();
+            remoteOrders.forEach(o => merged.set(o.id, o));
+            prev.forEach(o => {
+              if (!merged.has(o.id)) merged.set(o.id, o);
+            });
+            return Array.from(merged.values()).sort(
+              (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+            );
+          });
+        }
+
+        window.dispatchEvent(new CustomEvent('maraki-supabase-synced'));
+      } finally {
+        setTimeout(() => setApplyingRemoteSync(false), 100);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleUpdateMenu = (updatedMenu) => {
+    dbService.syncMenuItems(updatedMenu, foodMenu);
+    setFoodMenu(updatedMenu);
+  };
 
   // Auto-return to menu after successful order submission without needing manual interaction
   useEffect(() => {
@@ -762,6 +927,7 @@ export default function App() {
   const clearCurrentOrder = () => {
     setCart([]);
     setOrderStep(1);
+    setCheckoutModalStep(0);
     setOrderType('Takeaway');
     setSelectedShiftType('Day');
     setActiveCategory('All');
@@ -996,6 +1162,7 @@ export default function App() {
       showToast(`📅 Showing orders for: ${formatted}`);
     } else {
       // Edit past order in sentOrders
+      dbService.updateOrder(editingDateTarget, { ethiopianDate: formatted });
       setSentOrders(prev => prev.map(o => {
         if (o.id === editingDateTarget) {
           return {
@@ -1136,16 +1303,19 @@ export default function App() {
     if (newOwnerPassInput.trim()) {
       setOwnerPassword(newOwnerPassInput.trim());
       localStorage.setItem('maraki_owner_password', newOwnerPassInput.trim());
+      dbService.saveAppState('maraki_owner_password', newOwnerPassInput.trim());
       updated = true;
     }
     if (newChefPinInput.trim()) {
       setChefPin(newChefPinInput.trim());
       localStorage.setItem('maraki_chef_pin', newChefPinInput.trim());
+      dbService.saveAppState('maraki_chef_pin', newChefPinInput.trim());
       updated = true;
     }
     if (newReconciliationPinInput.trim()) {
       setReconciliationPin(newReconciliationPinInput.trim());
       localStorage.setItem('maraki_reconciliation_pin', newReconciliationPinInput.trim());
+      dbService.saveAppState('maraki_reconciliation_pin', newReconciliationPinInput.trim());
       updated = true;
     }
     if (systemMode === 'owner') {
@@ -1307,6 +1477,7 @@ export default function App() {
   const handleDeleteOrder = (orderId) => {
     if (window.confirm('ይህን ትዕዛዝ በእርግጥ መሰረዝ ይፈልጋሉ? (Are you sure you want to delete this order?)')) {
       setSentOrders(prev => prev.filter(o => o.id !== orderId));
+      dbService.deleteOrder(orderId);
       showToast('ትዕዛዙ ተሰርዟል (Order deleted)');
     }
   };
@@ -1319,6 +1490,7 @@ export default function App() {
         const nextStatus = isCooked 
           ? '🏃 በአስተጋጅ ተወስዷል (Taken by Waiter)' 
           : '🍳 በኩሽና ተዘጋጅቷል (Cooked by Chef)';
+        dbService.updateOrder(orderId, { status: nextStatus });
         return { ...o, status: nextStatus };
       }
       return o;
@@ -1392,6 +1564,7 @@ export default function App() {
     if (!isNaN(val) && val >= 0) {
       setBoxInventoryInitial(val);
       localStorage.setItem('maraki_box_starting_stock', val.toString());
+      dbService.saveAppState('maraki_box_starting_stock', val);
       setShowBoxStockModal(false);
       showToast(`📦 የሳጥን መነሻ ክምችት ወደ ${val} ተስተካክሏል!`);
     }
@@ -1403,6 +1576,7 @@ export default function App() {
       const pass = window.prompt('እባክዎ የባለቤት ይለፍ ቃል ያስገቡ (Enter Owner Password):');
       if (pass === ownerPassword) {
         setSentOrders(prev => prev.filter(o => o.ethiopianDate !== orderEthDate.formatted));
+        dbService.deleteOrdersByDate(orderEthDate.formatted);
         showToast('የዕለቱ ትዕዛዞች ተሰርዘዋል / አዲስ ቀን ተጀምሯል!');
       } else if (pass !== null) {
         alert('የተሳሳተ የይለፍ ቃል! (Incorrect Password)');
@@ -1411,23 +1585,60 @@ export default function App() {
   };
 
   // ==============================================================
-  // 1. SYSTEM GATEWAY: PORTAL SELECTOR (CHEF vs OWNER)
+  // 1. SYSTEM GATEWAY: PORTAL SELECTOR (CHEF vs OWNER vs RECONCILIATION)
   // ==============================================================
   if (systemMode === 'portal') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-900 flex flex-col items-center justify-center p-4 sm:p-6 text-white selection:bg-emerald-500 selection:text-white">
-        
+      <div className={`min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 selection:bg-emerald-500 selection:text-white transition-colors ${
+        theme === 'dark'
+          ? 'bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 text-white'
+          : 'bg-gradient-to-br from-slate-50 via-emerald-50/60 to-slate-100 text-slate-900'
+      }`}>
+        {/* Top Utility Bar (Language & Theme) */}
+        <div className="w-full max-w-5xl flex items-center justify-end gap-2 mb-6">
+          <button
+            type="button"
+            onClick={() => setLanguage(prev => prev === 'en' ? 'am' : 'en')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
+              theme === 'dark'
+                ? 'bg-white/10 hover:bg-white/15 border-white/15 text-slate-200'
+                : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-sm'
+            }`}
+          >
+            <Globe className="w-3.5 h-3.5 text-emerald-500" />
+            <span>{language === 'en' ? 'EN / አማ' : 'አማ / EN'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
+              theme === 'dark'
+                ? 'bg-white/10 hover:bg-white/15 border-white/15 text-slate-200'
+                : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-sm'
+            }`}
+            title={theme === 'dark' ? t.lightMode : t.darkMode}
+          >
+            {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-600" />}
+            <span>{theme === 'dark' ? t.lightMode : t.darkMode}</span>
+          </button>
+        </div>
+
         {/* Branding & Welcome */}
         <div className="text-center max-w-md mx-auto space-y-2 mb-8 animate-in fade-in">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white text-4xl shadow-2xl shadow-emerald-500/30 mb-2">
-            🥗
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-xl shadow-emerald-600/25 mb-2">
+            <UtensilsCrossed className="w-8 h-8" />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">MARAKI</h1>
-          <p className="text-xs font-black text-emerald-400 uppercase tracking-widest">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight">MARAKI</h1>
+          <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
             Juice & Salad Restaurant System
           </p>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-slate-300 text-xs font-bold mt-2 border border-white/10">
-            <span>የስራ ክፍል ይምረጡ (Choose Work Station)</span>
+          <div className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold mt-2 border ${
+            theme === 'dark'
+              ? 'bg-white/10 text-slate-300 border-white/10'
+              : 'bg-white text-slate-600 border-slate-200 shadow-sm'
+          }`}>
+            <span>{t.chooseStation}</span>
           </div>
         </div>
 
@@ -1437,36 +1648,43 @@ export default function App() {
           {/* Portal 1: Chef Kitchen Station */}
           <div 
             onClick={() => navigateToSystem('chef')}
-            className="group bg-white/10 hover:bg-white/15 backdrop-blur-xl border-2 border-emerald-500/40 hover:border-emerald-400 rounded-3xl p-6 sm:p-7 transition-all cursor-pointer shadow-xl hover:shadow-2xl hover:scale-[1.02] flex flex-col justify-between space-y-5"
+            className={`group backdrop-blur-xl border rounded-3xl p-6 sm:p-7 transition-all cursor-pointer shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex flex-col justify-between space-y-5 ${
+              theme === 'dark'
+                ? 'bg-slate-900/80 border-slate-800 hover:border-emerald-500/60'
+                : 'bg-white border-slate-200 hover:border-emerald-400'
+            }`}
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center text-3xl shadow-inner">
-                  👩‍🍳
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 flex items-center justify-center">
+                  <ChefHat className="w-6 h-6" />
                 </div>
-                <span className="text-[11px] font-black px-3 py-1 rounded-full border bg-white/10 text-slate-300 border-white/20">
-                  🔒 PIN Required
+                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border flex items-center gap-1 ${
+                  theme === 'dark' ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-600 border-slate-200'
+                }`}>
+                  <Lock className="w-3 h-3" />
+                  <span>{t.pinRequired}</span>
                 </span>
               </div>
 
               <div>
-                <h2 className="text-xl font-black text-white group-hover:text-emerald-300 transition-colors flex items-center gap-2">
-                  <span>Kitchen POS Station</span>
+                <h2 className="text-xl font-black group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                  {t.kitchenStation}
                 </h2>
-                <p className="text-xs font-black text-emerald-400 tracking-wide mt-0.5">
-                  CHEF KITCHEN STATION (POS)
+                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-wide mt-0.5">
+                  {t.kitchenSubtitle}
                 </p>
-                <p className="text-xs text-slate-300 font-bold mt-2 leading-relaxed">
-                  Food order entry, takeaway packaging, home discounts, day & night shifts, beU delivery, and kitchen tickets.
+                <p className={`text-xs font-medium mt-2 leading-relaxed ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                  {t.kitchenDesc}
                 </p>
               </div>
 
-              <div className="pt-2 border-t border-white/10 space-y-1.5 text-xs text-slate-300 font-bold">
-                <div className="flex items-center gap-2 text-emerald-300">
-                  <span>✓</span> <span>Food menu selection & fast order entry</span>
+              <div className={`pt-3 border-t space-y-1.5 text-xs font-semibold ${theme === 'dark' ? 'border-slate-800 text-slate-300' : 'border-slate-100 text-slate-700'}`}>
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> <span>{t.kitchenFeat1}</span>
                 </div>
-                <div className="flex items-center gap-2 text-emerald-300">
-                  <span>✓</span> <span>Receipt printing & chef queue</span>
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> <span>{t.kitchenFeat2}</span>
                 </div>
               </div>
             </div>
@@ -1474,9 +1692,9 @@ export default function App() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); navigateToSystem('chef'); }}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 transition-all group-hover:shadow-emerald-500/30 active:scale-98"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all active:scale-98"
             >
-              <span>Enter Chef Station</span>
+              <span>{t.enterKitchen}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -1484,36 +1702,43 @@ export default function App() {
           {/* Portal 2: Owner Command Center */}
           <div 
             onClick={() => navigateToSystem('owner')}
-            className="group bg-white/10 hover:bg-white/15 backdrop-blur-xl border-2 border-emerald-500/40 hover:border-emerald-400 rounded-3xl p-6 sm:p-7 transition-all cursor-pointer shadow-xl hover:shadow-2xl hover:scale-[1.02] flex flex-col justify-between space-y-5"
+            className={`group backdrop-blur-xl border rounded-3xl p-6 sm:p-7 transition-all cursor-pointer shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex flex-col justify-between space-y-5 ${
+              theme === 'dark'
+                ? 'bg-slate-900/80 border-slate-800 hover:border-emerald-500/60'
+                : 'bg-white border-slate-200 hover:border-emerald-400'
+            }`}
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center text-3xl shadow-inner">
-                  👑
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 flex items-center justify-center">
+                  <Crown className="w-6 h-6" />
                 </div>
-                <span className="text-[11px] font-black px-3 py-1 rounded-full border bg-white/10 text-slate-300 border-white/20">
-                  🔒 PIN Required
+                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border flex items-center gap-1 ${
+                  theme === 'dark' ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-600 border-slate-200'
+                }`}>
+                  <Lock className="w-3 h-3" />
+                  <span>{t.pinRequired}</span>
                 </span>
               </div>
 
               <div>
-                <h2 className="text-xl font-black text-white group-hover:text-emerald-300 transition-colors flex items-center gap-2">
-                  <span>Owner Command Center</span>
+                <h2 className="text-xl font-black group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                  {t.ownerCenter}
                 </h2>
-                <p className="text-xs font-black text-emerald-400 tracking-wide mt-0.5">
-                  OWNER COMMAND CENTER & AUDIT
+                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-wide mt-0.5">
+                  {t.ownerSubtitle}
                 </p>
-                <p className="text-xs text-slate-300 font-bold mt-2 leading-relaxed">
-                  Financial planning, shift income reports, packaging box inventory, waiter performance, and daily analytics.
+                <p className={`text-xs font-medium mt-2 leading-relaxed ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                  {t.ownerDesc}
                 </p>
               </div>
 
-              <div className="pt-2 border-t border-white/10 space-y-1.5 text-xs text-slate-300 font-bold">
-                <div className="flex items-center gap-2 text-emerald-300">
-                  <span>✓</span> <span>Shift income reports & daily/monthly analytics</span>
+              <div className={`pt-3 border-t space-y-1.5 text-xs font-semibold ${theme === 'dark' ? 'border-slate-800 text-slate-300' : 'border-slate-100 text-slate-700'}`}>
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> <span>{t.ownerFeat1}</span>
                 </div>
-                <div className="flex items-center gap-2 text-emerald-300">
-                  <span>✓</span> <span>Calendar, expenses & waiter performance</span>
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> <span>{t.ownerFeat2}</span>
                 </div>
               </div>
             </div>
@@ -1521,46 +1746,53 @@ export default function App() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); navigateToSystem('owner'); }}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-950/30 flex items-center justify-center gap-2 transition-all group-hover:shadow-emerald-500/30 active:scale-98"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all active:scale-98"
             >
-              <span>Enter Owner Center</span>
+              <span>{t.enterOwner}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Portal 3: Shift Reconciliation & Waiter Cash Audit (Internal System) */}
+          {/* Portal 3: Shift Reconciliation & Waiter Cash Audit */}
           <div 
             onClick={() => navigateToSystem('reconciliation')}
-            className="group bg-white/10 hover:bg-white/15 backdrop-blur-xl border-2 border-emerald-500/40 hover:border-emerald-400 rounded-3xl p-6 sm:p-7 transition-all cursor-pointer shadow-xl hover:shadow-2xl hover:scale-[1.02] flex flex-col justify-between space-y-5"
+            className={`group backdrop-blur-xl border rounded-3xl p-6 sm:p-7 transition-all cursor-pointer shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex flex-col justify-between space-y-5 ${
+              theme === 'dark'
+                ? 'bg-slate-900/80 border-slate-800 hover:border-emerald-500/60'
+                : 'bg-white border-slate-200 hover:border-emerald-400'
+            }`}
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center text-3xl shadow-inner">
-                  📋
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 flex items-center justify-center">
+                  <ClipboardCheck className="w-6 h-6" />
                 </div>
-                <span className="text-[11px] font-black px-3 py-1 rounded-full border bg-white/10 text-slate-300 border-white/20">
-                  🔒 PIN Required
+                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border flex items-center gap-1 ${
+                  theme === 'dark' ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-600 border-slate-200'
+                }`}>
+                  <Lock className="w-3 h-3" />
+                  <span>{t.pinRequired}</span>
                 </span>
               </div>
 
               <div>
-                <h2 className="text-xl font-black text-white group-hover:text-emerald-300 transition-colors flex items-center gap-2">
-                  <span>Shift Reconciliation</span>
+                <h2 className="text-xl font-black group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                  {t.shiftAudit}
                 </h2>
-                <p className="text-xs font-black text-emerald-400 tracking-wide mt-0.5">
-                  SHIFT RECONCILIATION & CASH AUDIT
+                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-wide mt-0.5">
+                  {t.shiftAuditSubtitle}
                 </p>
-                <p className="text-xs text-slate-300 font-bold mt-2 leading-relaxed">
-                  Daily income sheet, anti-skimming food box engine, juice cups inventory, drawer cash handoff, and thermal slips.
+                <p className={`text-xs font-medium mt-2 leading-relaxed ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                  {t.shiftAuditDesc}
                 </p>
               </div>
 
-              <div className="pt-2 border-t border-white/10 space-y-1.5 text-xs text-slate-300 font-bold">
-                <div className="flex items-center gap-2 text-emerald-300">
-                  <span>✓</span> <span>🥤 Juice Cups vs 🥗 Food Boxes Sold</span>
+              <div className={`pt-3 border-t space-y-1.5 text-xs font-semibold ${theme === 'dark' ? 'border-slate-800 text-slate-300' : 'border-slate-100 text-slate-700'}`}>
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> <span>{t.shiftFeat1}</span>
                 </div>
-                <div className="flex items-center gap-2 text-emerald-300">
-                  <span>✓</span> <span>💰 Cash Drawer, Telebirr & Bank Handoff</span>
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> <span>{t.shiftFeat2}</span>
                 </div>
               </div>
             </div>
@@ -1568,9 +1800,9 @@ export default function App() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); navigateToSystem('reconciliation'); }}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-950/30 flex items-center justify-center gap-2 transition-all group-hover:shadow-emerald-500/30 active:scale-98"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all active:scale-98"
             >
-              <span>Enter Shift Audit</span>
+              <span>{t.enterShiftAudit}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -1582,10 +1814,14 @@ export default function App() {
           <button
             type="button"
             onClick={handleInstallApp}
-            className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-black flex items-center gap-2 transition-all border border-white/15 backdrop-blur-md"
+            className={`px-5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all border ${
+              theme === 'dark'
+                ? 'bg-white/10 hover:bg-white/15 text-white border-white/15'
+                : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-sm'
+            }`}
           >
-            <Smartphone className="w-4 h-4 text-emerald-400" />
-            <span>📲 አፑን በስልክዎ ወይም በኮምፒውተርዎ ላይ ይጫኑ (Install App)</span>
+            <Smartphone className="w-4 h-4 text-emerald-500" />
+            <span>{t.installApp}</span>
           </button>
         </div>
 
@@ -1600,58 +1836,63 @@ export default function App() {
     systemMode === 'chef' && !isChefAuth
       ? {
           key: 'chef',
-          badge: 'Kitchen Station',
-          icon: '👩‍🍳',
-          title: 'Kitchen POS Station',
-          subtitle: 'Chef Station Security PIN',
-          placeholder: 'Enter Chef PIN...',
-          unlockLabel: 'Unlock Kitchen Station'
+          badge: t.kitchenStation,
+          IconComp: ChefHat,
+          title: t.kitchenStation,
+          subtitle: t.kitchenSubtitle,
+          placeholder: 'PIN...',
+          unlockLabel: t.unlockStation
         }
       : systemMode === 'owner' && !isOwnerAuth
       ? {
           key: 'owner',
-          badge: 'Owner Center',
-          icon: '👑',
-          title: 'Owner Command Center',
-          subtitle: 'Executive Management & Income Analysis',
-          placeholder: 'Enter Owner Password...',
-          unlockLabel: 'Unlock Owner Center'
+          badge: t.ownerCenter,
+          IconComp: Crown,
+          title: t.ownerCenter,
+          subtitle: t.ownerSubtitle,
+          placeholder: 'Password...',
+          unlockLabel: t.unlockStation
         }
       : (systemMode === 'reconciliation' || systemMode === 'shift') && !isReconciliationAuth
       ? {
           key: 'reconciliation',
-          badge: 'Shift Audit',
-          icon: '📋',
-          title: 'Shift Reconciliation',
-          subtitle: 'Daily Income Sheet & Cash Audit PIN',
-          placeholder: 'Enter Shift Audit PIN...',
-          unlockLabel: 'Unlock Shift Audit'
+          badge: t.shiftAudit,
+          IconComp: ClipboardCheck,
+          title: t.shiftAudit,
+          subtitle: t.shiftAuditSubtitle,
+          placeholder: 'PIN...',
+          unlockLabel: t.unlockStation
         }
       : null;
 
   if (portalLockConfig) {
+    const LockStationIcon = portalLockConfig.IconComp;
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-teal-950 to-slate-950 flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/30 text-center space-y-4">
+      <div className={`min-h-screen flex flex-col items-center justify-center p-4 transition-colors ${
+        theme === 'dark'
+          ? 'bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950'
+          : 'bg-gradient-to-br from-slate-100 via-emerald-50 to-slate-200'
+      }`}>
+        <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 dark:border-slate-800 text-center space-y-4">
           <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={() => navigateToSystem('portal')}
-              className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1"
+              className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white flex items-center gap-1"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Portals</span>
+              <span>{t.backToPortals}</span>
             </button>
-            <span className="text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 px-2.5 py-0.5 rounded-full">
               {portalLockConfig.badge}
             </span>
           </div>
 
-          <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center text-3xl shadow-lg shadow-emerald-900/30 mx-auto">
-            {portalLockConfig.icon}
+          <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 flex items-center justify-center mx-auto shadow-inner">
+            <LockStationIcon className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-black text-slate-900">{portalLockConfig.title}</h2>
-          <p className="text-xs text-slate-500 font-bold">{portalLockConfig.subtitle}</p>
+          <h2 className="text-xl font-black text-slate-900 dark:text-white">{portalLockConfig.title}</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">{portalLockConfig.subtitle}</p>
 
           <form onSubmit={(e) => handlePortalLoginSubmit(e, portalLockConfig.key)} className="space-y-3">
             <div className="relative">
@@ -1660,21 +1901,21 @@ export default function App() {
                 placeholder={portalLockConfig.placeholder}
                 value={pinInput}
                 onChange={(e) => { setPinInput(e.target.value); setLoginError(null); }}
-                className="w-full bg-slate-50 border-2 border-emerald-300 focus:border-emerald-600 rounded-2xl py-3 pl-10 pr-10 text-center font-black text-lg text-slate-900 tracking-widest outline-none"
+                className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-emerald-500 rounded-2xl py-3 pl-10 pr-10 text-center font-black text-lg text-slate-900 dark:text-white tracking-widest outline-none"
                 autoFocus
               />
-              <Key className="w-4 h-4 text-emerald-600 absolute left-3.5 top-3.5" />
+              <Key className="w-4 h-4 text-emerald-500 absolute left-3.5 top-3.5" />
               <button
                 type="button"
                 onClick={() => setShowPasswordText(!showPasswordText)}
-                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
+                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
                 {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
 
             {loginError && (
-              <p className="text-xs font-black text-rose-600 bg-rose-50 py-1.5 px-3 rounded-xl border border-rose-200">
+              <p className="text-xs font-black text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 py-1.5 px-3 rounded-xl border border-rose-200 dark:border-rose-800">
                 {loginError}
               </p>
             )}
@@ -1686,7 +1927,7 @@ export default function App() {
                   key={num}
                   type="button"
                   onClick={() => handleKeypadPress(num.toString())}
-                  className="py-3 bg-slate-100 hover:bg-emerald-50 text-slate-800 font-black text-lg rounded-2xl border border-slate-200 transition-all active:scale-95"
+                  className="py-3 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-black text-lg rounded-2xl border border-slate-200 dark:border-slate-700 transition-all active:scale-95"
                 >
                   {num}
                 </button>
@@ -1694,29 +1935,29 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => handleKeypadPress('clear')}
-                className="py-3 bg-rose-50 text-rose-700 font-black text-xs rounded-2xl border border-rose-200"
+                className="py-3 bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 font-black text-xs rounded-2xl border border-rose-200 dark:border-rose-900"
               >
-                Clear
+                {t.clear}
               </button>
               <button
                 type="button"
                 onClick={() => handleKeypadPress('0')}
-                className="py-3 bg-slate-100 hover:bg-emerald-50 text-slate-800 font-black text-lg rounded-2xl border border-slate-200"
+                className="py-3 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-black text-lg rounded-2xl border border-slate-200 dark:border-slate-700"
               >
                 0
               </button>
               <button
                 type="button"
                 onClick={() => handleKeypadPress('backspace')}
-                className="py-3 bg-emerald-50 text-emerald-800 font-black text-sm rounded-2xl border border-emerald-200"
+                className="py-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 font-black text-sm rounded-2xl border border-emerald-200 dark:border-emerald-900 flex items-center justify-center"
               >
-                ⌫
+                <Delete className="w-4 h-4" />
               </button>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-950/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-600/25 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <Unlock className="w-4 h-4" />
               <span>{portalLockConfig.unlockLabel}</span>
@@ -1724,8 +1965,8 @@ export default function App() {
           </form>
 
           <p className="text-[11px] font-bold text-slate-400 flex items-center justify-center gap-1.5 pt-1">
-            <Lock className="w-3 h-3 text-emerald-600" />
-            <span>PIN required on every entry • Managed in Owner Settings</span>
+            <Lock className="w-3 h-3 text-emerald-500" />
+            <span>{t.enterPinPrompt}</span>
           </p>
         </div>
       </div>
@@ -1758,125 +1999,166 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] flex flex-col font-sans text-slate-800 antialiased selection:bg-emerald-600 selection:text-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans text-slate-800 dark:text-slate-100 antialiased selection:bg-emerald-600 selection:text-white transition-colors">
       
       {/* ============================================================== */}
-      {/* VIBRANT TOP APP BAR                                             */}
+      {/* CHEF KITCHEN POS NAVBAR (CLEAN PROFESSIONAL DESIGN)            */}
       {/* ============================================================== */}
-      {/* ============================================================== */}
-      {/* CHEF APP HEADER (VIBRANT EMERALD POS THEME)                      */}
-      {/* ============================================================== */}
-      {systemMode === 'chef' && (
-        <header className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white sticky top-0 z-50 shadow-lg shadow-emerald-800/10">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
-            
-            {/* Logo & Brand */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-xl shadow-inner">
-                👩‍🍳
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="font-black text-lg tracking-tight text-white drop-shadow-sm">MARAKI</h1>
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-white text-emerald-800 px-2 py-0.5 rounded-full shadow-sm">
-                    Chef Station
-                  </span>
+      {systemMode === 'chef' && (() => {
+        const todayOrdersCount = sentOrders.filter(o => o.ethiopianDate === orderEthDate.formatted).length;
+        return (
+          <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+              
+              {/* Left: Brand Lockup */}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 flex-shrink-0">
+                  <ChefHat className="w-5 h-5" />
                 </div>
-                <p className="text-[11px] text-emerald-100 flex items-center gap-1 font-bold">
-                  <span>የኩሽና ምግብ ማዘዣና ማዘጋጃ (Kitchen POS)</span>
-                </p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h1 className="font-black text-base sm:text-lg tracking-tight text-slate-900 dark:text-white">MARAKI</h1>
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 px-2 py-0.5 rounded-full">
+                      {t.kitchenStation}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold truncate hidden sm:block">
+                    {t.kitchenSubtitle}
+                  </p>
+                </div>
+              </div>
+
+              {/* Center: Workspace Tabs + Ethiopian Date */}
+              <div className="flex items-center gap-2">
+                <div className="hidden md:flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setChefViewTab('menu')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${
+                      chefViewTab === 'menu'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <UtensilsCrossed className="w-3.5 h-3.5" />
+                    <span>{t.menuAndOrder}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChefViewTab('today')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${
+                      chefViewTab === 'today'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Receipt className="w-3.5 h-3.5" />
+                    <span>{t.todaysOrders}</span>
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-600 text-white">
+                      {todayOrdersCount}
+                    </span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => openEthDateModal('current')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-all"
+                  title={t.changeDate}
+                >
+                  <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span className="hidden sm:inline">{orderEthDate.formatted}</span>
+                  <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded-md font-black">
+                    {t.changeDate}
+                  </span>
+                </button>
+              </div>
+
+              {/* Right: Language, Theme & Logout */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setLanguage(prev => prev === 'en' ? 'am' : 'en')}
+                  className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-black flex items-center gap-1 border border-slate-200 dark:border-slate-700 transition-all"
+                  title="Switch Language (English / አማርኛ)"
+                >
+                  <Globe className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>{language === 'en' ? 'EN' : 'አማ'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+                  className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 transition-all"
+                  title={theme === 'dark' ? t.lightMode : t.darkMode}
+                >
+                  {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigateToSystem('portal')}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-all"
+                  title={t.logout}
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>{t.logout}</span>
+                </button>
               </div>
             </div>
 
-            {/* Date & Shift */}
-            <div className="flex items-center gap-2">
+            {/* Mobile Sub-nav Tabs for Menu vs Today's Orders */}
+            <div className="md:hidden border-t border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center gap-2 bg-slate-50 dark:bg-slate-900">
               <button
                 type="button"
-                onClick={() => openEthDateModal('current')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl border border-white/25 text-white font-black text-xs shadow-inner transition-all hover:scale-[1.02]"
-                title="የኢትዮጵያ ቀን ቀይር"
+                onClick={() => setChefViewTab('menu')}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
+                  chefViewTab === 'menu'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                }`}
               >
-                <Calendar className="w-3.5 h-3.5 text-emerald-200" />
-                <span>{orderEthDate.formatted}</span>
-                <span className="text-[10px] bg-black/20 text-emerald-200 px-1.5 py-0.5 rounded-lg border border-white/10 flex items-center gap-0.5 font-bold">
-                  <Edit3 className="w-2.5 h-2.5" />
-                  <span>ቀይር</span>
-                </span>
+                <UtensilsCrossed className="w-3.5 h-3.5" />
+                <span>{t.menuAndOrder}</span>
               </button>
-
-              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 bg-black/20 text-white text-xs font-black rounded-2xl border border-white/10">
-                <span>{orderEthDate.shift}</span>
-              </span>
-            </div>
-
-            {/* Chef Station Actions */}
-            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => navigateToSystem('reconciliation')}
-                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1.5 border border-white/25 transition-all shadow-sm active:scale-95"
-                title="የፈረቃና የገቢ ማስታረቂያ (Shift Reconciliation)"
+                onClick={() => setChefViewTab('today')}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
+                  chefViewTab === 'today'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                }`}
               >
-                <ClipboardCheck className="w-3.5 h-3.5 text-emerald-200" />
-                <span className="hidden sm:inline">የፈረቃ ርክክብ</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleInstallApp}
-                className="px-2.5 py-1.5 bg-emerald-800/80 hover:bg-emerald-800 text-white rounded-xl text-xs font-black flex items-center gap-1.5 border border-emerald-400/30 shadow-md transition-all active:scale-95"
-                title="አፑን ጫን"
-              >
-                <Smartphone className="w-3.5 h-3.5 text-emerald-300" />
-                <span className="hidden md:inline">አፑን ጫን</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleLockChef}
-                className="px-2.5 py-1.5 bg-black/20 hover:bg-black/30 text-emerald-100 rounded-xl text-xs font-black flex items-center gap-1 border border-white/15 transition-all shadow-sm"
-                title="ኩሽናውን ቆልፍ (Lock)"
-              >
-                <Lock className="w-3.5 h-3.5 text-emerald-200" />
-                <span>ቆልፍ</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigateToSystem('portal')}
-                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/20 transition-all shadow-sm"
-                title="ወደ ሲስተም ምርጫ ተመለስ (Switch Portal)"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">ውጣ / Switch</span>
+                <Receipt className="w-3.5 h-3.5" />
+                <span>{t.todaysOrders} ({todayOrdersCount})</span>
               </button>
             </div>
-
-          </div>
-        </header>
-      )}
+          </header>
+        );
+      })()}
 
       {/* ============================================================== */}
-      {/* OWNER EXECUTIVE HEADER (DISTINCT DARK SLATE + EMERALD THEME)   */}
+      {/* OWNER EXECUTIVE HEADER (MATCHING PROFESSIONAL DESIGN)          */}
       {/* ============================================================== */}
       {systemMode === 'owner' && (
-        <header className="bg-slate-900 text-white sticky top-0 z-50 border-b border-emerald-500/20 shadow-lg shadow-slate-950/20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+        <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-slate-900 dark:text-white sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
             
             {/* Logo & Brand */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center text-xl shadow-md shadow-emerald-500/20 font-black">
-                👑
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 flex-shrink-0">
+                <Crown className="w-5 h-5" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h1 className="font-black text-lg tracking-tight text-white">MARAKI</h1>
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                    Owner Executive
+                  <h1 className="font-black text-base sm:text-lg tracking-tight">MARAKI</h1>
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 px-2 py-0.5 rounded-full">
+                    {t.ownerCenter}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400 font-bold">
-                  Analytics, Stock Cross-Check, Shift Alarms & Finance
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold truncate hidden md:block">
+                  {t.ownerExecSubtitle}
                 </p>
               </div>
             </div>
@@ -1885,27 +2167,26 @@ export default function App() {
             <button
               type="button"
               onClick={() => openEthDateModal('current')}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 text-white font-black text-xs transition-all"
-              title="Change Ethiopian Date"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-xs transition-all"
+              title={t.changeDate}
             >
-              <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+              <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span>{orderEthDate.formatted}</span>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-lg flex items-center gap-0.5 font-bold">
-                <Edit3 className="w-2.5 h-2.5" />
-                <span>Edit</span>
+              <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded-md font-black">
+                {t.changeDate}
               </span>
             </button>
 
             {/* Owner Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setOwnerSection('sheet')}
                 className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
-                title="Open Daily Income Sheet"
+                title={t.dailySheet}
               >
                 <ClipboardCheck className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Daily Sheet</span>
+                <span className="hidden sm:inline">{t.dailySheet}</span>
               </button>
 
               <button
@@ -1914,12 +2195,12 @@ export default function App() {
                 className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all border active:scale-95 ${
                   ownerSection === 'menu'
                     ? 'bg-amber-400 text-slate-950 border-amber-300'
-                    : 'bg-white/10 hover:bg-white/15 text-emerald-300 border-white/10'
+                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-emerald-300 border-slate-200 dark:border-slate-700'
                 }`}
-                title="Edit Menu & Juice Prices"
+                title={t.prices}
               >
                 <Tag className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Prices</span>
+                <span className="hidden sm:inline">{t.prices}</span>
               </button>
 
               <button
@@ -1937,41 +2218,40 @@ export default function App() {
                   setClearConfirmError('');
                   setShowSettingsModal(true);
                 }}
-                className="px-2.5 py-1.5 bg-white/10 hover:bg-white/15 text-slate-200 rounded-xl text-xs font-black border border-white/10 transition-all flex items-center gap-1"
-                title="Change Passwords & Settings"
+                className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-black border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1"
+                title={t.settings}
               >
-                <Settings className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden sm:inline">Settings</span>
+                <Settings className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="hidden xl:inline">{t.settings}</span>
               </button>
 
               <button
                 type="button"
-                onClick={handleInstallApp}
-                className="px-2.5 py-1.5 bg-white/10 hover:bg-white/15 text-slate-200 rounded-xl text-xs font-black flex items-center gap-1.5 border border-white/10 transition-all active:scale-95"
-                title="Install Application"
+                onClick={() => setLanguage(prev => prev === 'en' ? 'am' : 'en')}
+                className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-black flex items-center gap-1 border border-slate-200 dark:border-slate-700 transition-all"
+                title="Switch Language (English / አማርኛ)"
               >
-                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden md:inline">Install</span>
+                <Globe className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>{language === 'en' ? 'EN' : 'አማ'}</span>
               </button>
 
               <button
                 type="button"
-                onClick={handleLockOwner}
-                className="px-2.5 py-1.5 bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 rounded-xl text-xs font-black flex items-center gap-1 border border-rose-500/25 transition-all"
-                title="Lock Owner Session"
+                onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+                className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 transition-all"
+                title={theme === 'dark' ? t.lightMode : t.darkMode}
               >
-                <Lock className="w-3.5 h-3.5" />
-                <span>Lock</span>
+                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
               </button>
 
               <button
                 type="button"
                 onClick={() => navigateToSystem('portal')}
-                className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/10 transition-all"
-                title="Switch Work Station"
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-all"
+                title={t.logout}
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Portal</span>
+                <span className="hidden sm:inline">{t.logout}</span>
               </button>
             </div>
 
@@ -1988,963 +2268,926 @@ export default function App() {
       )}
 
       {/* ============================================================== */}
-      {/* 1. SIMPLE 4-STEP ORDERING WIZARD                                */}
+      {/* 1. KITCHEN POS: REAL MENU + RIGHT-SIDE TICKET + TODAY'S ORDERS */}
       {/* ============================================================== */}
-      {systemMode === 'chef' && (
-        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full pb-28">
-          
-          {/* STEP PROGRESS INDICATOR (5-STEP SEQUENTIAL WIZARD) */}
-          <div className="mb-6 bg-white p-3 sm:p-3.5 rounded-3xl shadow-md shadow-emerald-900/5 border border-emerald-100">
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2 text-center">
-              
-              {/* Step 1 Pill: Food */}
-              <button
-                type="button"
-                onClick={() => setOrderStep(1)}
-                className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all ${
-                  orderStep === 1 
-                    ? 'bg-emerald-600 text-white font-black shadow-md shadow-emerald-600/30' 
-                    : orderStep > 1 
-                      ? 'bg-emerald-50 text-emerald-800 font-bold hover:bg-emerald-100' 
-                      : 'text-slate-400 font-semibold'
-                }`}
-              >
-                <div className="flex items-center gap-1 text-[11px] sm:text-xs">
-                  <span>1. Food</span>
-                  {cart.length > 0 && (
-                    <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[9px] font-black flex items-center justify-center">
-                      {cart.reduce((s, i) => s + i.qty, 0)}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[9px] opacity-80 hidden sm:inline">ምግብ</span>
-              </button>
+      {systemMode === 'chef' && (() => {
+        const todayOrders = sentOrders.filter(o => o.ethiopianDate === orderEthDate.formatted);
+        const todayDishesMap = {};
+        let todayTotalDishes = 0;
+        let todayTotalBoxes = 0;
+        let todayTotalSales = 0;
 
-              {/* Step 2 Pill: Service (Takeaway vs Home) - Cannot be jumped */}
-              <button
-                type="button"
-                disabled={cart.length === 0}
-                onClick={() => cart.length > 0 && setOrderStep(2)}
-                className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all ${
-                  orderStep === 2 
-                    ? 'bg-emerald-600 text-white font-black shadow-md shadow-emerald-600/30' 
-                    : orderStep > 2 
-                      ? 'bg-emerald-50 text-emerald-800 font-bold hover:bg-emerald-100' 
-                      : 'text-slate-400 font-semibold disabled:opacity-40'
-                }`}
-              >
-                <div className="flex items-center gap-1 text-[11px] sm:text-xs">
-                  <span>2. Service</span>
-                </div>
-                <span className="text-[9px] opacity-80 hidden sm:inline">🥡 / 🏠</span>
-              </button>
+        todayOrders.forEach(o => {
+          todayTotalBoxes += Number(o.boxesCount || 0);
+          todayTotalSales += Number(o.totalAmount || 0);
+          (o.items || []).forEach(it => {
+            const qty = Number(it.qty || 0);
+            todayTotalDishes += qty;
+            const key = it.id || it.name;
+            if (!todayDishesMap[key]) {
+              todayDishesMap[key] = {
+                id: key,
+                name: it.name,
+                englishName: it.englishName || it.name,
+                qty: 0
+              };
+            }
+            todayDishesMap[key].qty += qty;
+          });
+        });
 
-              {/* Step 3 Pill: Shift */}
-              <button
-                type="button"
-                disabled={orderStep < 3 && cart.length === 0}
-                onClick={() => orderStep >= 3 && setOrderStep(3)}
-                className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all ${
-                  orderStep === 3 
-                    ? 'bg-emerald-600 text-white font-black shadow-md shadow-emerald-600/30' 
-                    : orderStep > 3 
-                      ? 'bg-emerald-50 text-emerald-800 font-bold hover:bg-emerald-100' 
-                      : 'text-slate-400 font-semibold disabled:opacity-40'
-                }`}
-              >
-                <div className="flex items-center gap-1 text-[11px] sm:text-xs">
-                  <span>3. Shift</span>
-                </div>
-                <span className="text-[9px] opacity-80 hidden sm:inline">ፈረቃ</span>
-              </button>
+        const todayDishesSummary = Object.values(todayDishesMap).sort((a, b) => b.qty - a.qty);
 
-              {/* Step 4 Pill: Waiter */}
-              <button
-                type="button"
-                disabled={orderStep < 4}
-                onClick={() => orderStep >= 4 && setOrderStep(4)}
-                className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all ${
-                  orderStep === 4 
-                    ? 'bg-emerald-600 text-white font-black shadow-md shadow-emerald-600/30' 
-                    : orderStep > 4 
-                      ? 'bg-emerald-50 text-emerald-800 font-bold hover:bg-emerald-100' 
-                      : 'text-slate-400 font-semibold disabled:opacity-40'
-                }`}
-              >
-                <div className="flex items-center gap-1 text-[11px] sm:text-xs">
-                  <span>4. Waiter</span>
-                </div>
-                <span className="text-[9px] opacity-80 hidden sm:inline">አስተናጋጅ</span>
-              </button>
+        const categories = [
+          { id: 'All', label: t.catAll, Icon: LayoutGrid, count: foodMenu.filter(d => d.isAvailable !== false).length },
+          { id: 'Juices', label: t.catJuices, Icon: CupSoda, count: foodMenu.filter(d => d.isAvailable !== false && (d.category === 'Juices' || d.category === 'Milkshake' || d.category === 'Drinks' || d.itemType === 'juice' || d.containerType === 'cup')).length },
+          { id: 'Salad', label: t.catSalad, Icon: Salad, count: foodMenu.filter(d => d.isAvailable !== false && d.category === 'Salad').length },
+          { id: 'Pasta & Rice', label: t.catPasta, Icon: Utensils, count: foodMenu.filter(d => d.isAvailable !== false && d.category === 'Pasta & Rice').length },
+          { id: 'Eggs & Firfir', label: t.catEggs, Icon: Egg, count: foodMenu.filter(d => d.isAvailable !== false && d.category === 'Eggs & Firfir').length },
+          { id: 'Sandwiches', label: t.catSandwiches, Icon: Sandwich, count: foodMenu.filter(d => d.isAvailable !== false && d.category === 'Sandwiches').length }
+        ];
 
-              {/* Step 5 Pill: Submit */}
-              <button
-                type="button"
-                disabled={orderStep < 5}
-                onClick={() => orderStep >= 5 && setOrderStep(5)}
-                className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all ${
-                  orderStep === 5 
-                    ? 'bg-emerald-600 text-white font-black shadow-md shadow-emerald-600/30' 
-                    : 'text-slate-400 font-semibold disabled:opacity-40'
-                }`}
-              >
-                <div className="flex items-center gap-1 text-[11px] sm:text-xs">
-                  <span>5. Review</span>
-                </div>
-                <span className="text-[9px] opacity-80 hidden sm:inline">ማጠቃለያ</span>
-              </button>
+        const cartItemsTotalQty = cart.reduce((s, i) => s + i.qty, 0);
 
-            </div>
-          </div>
-
-          {/* ============================================================== */}
-          {/* STEP 1: CHOOSE FOOD FROM MENU                                  */}
-          {/* ============================================================== */}
-          {orderStep === 1 && (
-            <div className="space-y-4 animate-in fade-in duration-200">
-              
-              {/* Header Title & Search */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-emerald-100 shadow-sm">
-                <div>
-                  <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-black">
-                      1
-                    </span>
-                    <span>የምግብ አይነት ይምረጡ (Choose Food from Menu)</span>
-                  </h2>
-                  <p className="text-xs text-slate-400 font-bold mt-0.5">
-                    {orderType === 'Takeaway'
-                      ? 'የሚፈልጉትን ምግብ ይጫኑ፤ ቀጥሎ ቴክአዌይ ወይም ቤት ውስጥ መሆኑን ይመርጣሉ'
-                      : 'የሚፈልጉትን ምግብ ይጫኑ፤ በቤት ውስጥ (🍽️) ስለቀረበ የቦክስ እቃ አይወጣም'}
-                  </p>
-                </div>
-
-                {/* Search Box */}
-                <div className="relative w-full sm:w-64">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    placeholder="ፈልግ / Search food..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-emerald-50/60 border border-emerald-100 rounded-2xl pl-9 pr-3 py-2 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-
-              {/* Category Filter Tabs */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                {[
-                  { id: 'All', label: '🌟 ሁሉም (All)' },
-                  { id: 'Juices', label: '🥤 ጁሶች (Juices)' },
-                  { id: 'Salad', label: '🥗 ሳላድና ፍራፍሬ' },
-                  { id: 'Pasta & Rice', label: '🍝 ፓስታ እና ሩዝ' },
-                  { id: 'Eggs & Firfir', label: '🍳 እንቁላል እና ፍርፍር' },
-                  { id: 'Sandwiches', label: '🥪 ሳንድዊች' }
-                ].map(cat => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setActiveCategory(cat.id)}
-                    className={`px-4 py-2 rounded-2xl font-black text-xs whitespace-nowrap transition-all ${
-                      activeCategory === cat.id
-                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/20 scale-[1.02]'
-                        : 'bg-white text-slate-700 hover:bg-emerald-50 border border-emerald-100'
-                    }`}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* FOOD DISHES GRID */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                {filteredDishes.map(dish => {
-                  const inCart = cart.find(i => i.id === dish.id);
-                  const effectivePrice = getDishEffectivePrice(dish, orderType);
-                  const hasCrossedOriginal = Number(dish.originalPrice) > Number(dish.price);
-                  const isDiscounted = orderType === 'Home' && effectivePrice < Number(dish.price);
-                  return (
-                    <div
-                      key={dish.id}
-                      data-dish-id={dish.id}
-                      onClick={() => !inCart && toggleOrAddFood(dish)}
-                      className={`relative bg-white rounded-3xl p-3 border transition-all cursor-pointer flex flex-col justify-between group select-none ${
-                        inCart 
-                          ? 'border-emerald-500 shadow-xl shadow-emerald-600/15 ring-2 ring-emerald-500/30' 
-                          : 'border-emerald-100 hover:border-emerald-300 shadow-sm hover:shadow-md'
-                      }`}
-                    >
+        return (
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex-1 w-full pb-24 lg:pb-8">
+            {chefViewTab === 'menu' ? (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                
+                {/* LEFT COLUMN: REAL MENU & CATEGORIES (8 COLS) */}
+                <div className="lg:col-span-8 space-y-4">
+                  
+                  {/* Search & Category Header Card */}
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm space-y-3.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
-                        {/* Food Image */}
-                        <div className="w-full h-32 rounded-2xl overflow-hidden relative bg-emerald-50 mb-2.5 shadow-inner">
-                          {dish.imageUrl && (
-                            <img 
-                              src={dish.imageUrl} 
-                              alt={dish.name} 
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const fallback = e.currentTarget.parentElement.querySelector('.image-emoji-fallback');
-                                if (fallback) fallback.style.display = 'flex';
-                              }}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          )}
-                          <div 
-                            className="image-emoji-fallback w-full h-full items-center justify-center text-4xl bg-emerald-50"
-                            style={{ display: dish.imageUrl ? 'none' : 'flex' }}
-                          >
-                            {dish.emoji}
-                          </div>
-
-                          {/* Packaging Tag */}
-                          <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-white text-[9px] font-black px-2 py-0.5 rounded-lg border border-white/20">
-                            {orderType === 'Takeaway' ? '🥡 1 ቦክስ' : '🍽️ ቤት ውስጥ'}
-                          </div>
-
-                          {/* Discount Badge on Image for Dine-In Home prices */}
-                          {isDiscounted && (
-                            <div className="absolute bottom-2 left-2 bg-emerald-700 text-white text-[9px] font-black px-2 py-0.5 rounded-lg shadow-sm border border-emerald-500">
-                              🏠 {formatEtb(effectivePrice)} ETB
-                            </div>
-                          )}
-
-                          {/* Selected Quantity Indicator Pill */}
-                          {inCart && (
-                            <div className="absolute top-2 right-2 bg-emerald-600 text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center shadow-lg border border-white">
-                              {inCart.qty}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Dish Details */}
-                        <h3 className="font-black text-slate-900 text-xs sm:text-sm leading-snug line-clamp-1">
-                          {dish.name}
-                        </h3>
-                        <span className="text-[10px] font-bold text-emerald-700 block mt-0.5 line-clamp-1">
-                          {dish.englishName}
-                        </span>
+                        <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                          <UtensilsCrossed className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                          <span>{t.menuAndOrder}</span>
+                        </h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                          {orderType === 'Takeaway'
+                            ? `${t.takeaway} • ${t.takeawayBox}`
+                            : `${t.homeDineIn} • ${t.dineInHome}`}
+                        </p>
                       </div>
 
-                      {/* Price & Quantity Controls */}
-                      <div className="mt-3 pt-2 border-t border-emerald-50 flex items-center justify-between">
-                        <div>
-                          <div className="flex items-baseline gap-1">
-                            <span className={`font-black text-xs sm:text-sm ${
-                              isDiscounted
-                                ? 'text-emerald-700'
-                                : hasCrossedOriginal
-                                  ? 'text-rose-600'
-                                  : 'text-slate-900'
-                            }`}>
-                              {formatEtb(effectivePrice)}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-bold">ETB</span>
-                          </div>
-                          {isDiscounted ? (
-                            <span className="text-[9px] text-slate-400 line-through font-bold block">
-                              {formatEtb(dish.price)} ETB
-                            </span>
-                          ) : hasCrossedOriginal ? (
-                            <span className="text-[9px] text-slate-400 line-through font-bold block">
-                              {formatEtb(dish.originalPrice)} ETB
-                            </span>
-                          ) : null}
-                        </div>
-
-                        {inCart ? (
-                          <div 
-                            className="flex items-center gap-1.5 bg-emerald-50 p-1 rounded-xl border border-emerald-200"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => updateCartQty(dish.id, -1)}
-                              className="w-7 h-7 rounded-lg bg-white text-emerald-800 hover:bg-emerald-100 flex items-center justify-center font-black shadow-sm"
-                            >
-                              <Minus className="w-3.5 h-3.5" />
-                            </button>
-                            <span className="font-black text-xs text-emerald-900 px-1">
-                              {inCart.qty}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => updateCartQty(dish.id, 1)}
-                              className="w-7 h-7 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 flex items-center justify-center font-black shadow-sm"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ) : (
+                      <div className="relative w-full sm:w-72">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5" />
+                        <input
+                          type="text"
+                          placeholder={t.searchFood}
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-8 py-2 text-xs font-bold text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                        {searchQuery && (
                           <button
                             type="button"
-                            onClick={(e) => { e.stopPropagation(); toggleOrAddFood(dish); }}
-                            className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-black flex items-center gap-1 transition-all"
+                            onClick={() => setSearchQuery('')}
+                            className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                           >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>ምረጥ</span>
+                            <X className="w-4 h-4" />
                           </button>
                         )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
 
-            </div>
-          )}
-
-          {/* ============================================================== */}
-          {/* ============================================================== */}
-          {/* STEP 2: CHOOSE SERVICE TYPE (TAKEAWAY vs HOME 300 ETB)         */}
-          {/* ============================================================== */}
-          {orderStep === 2 && (
-            <div className="space-y-6 animate-in fade-in duration-200 max-w-2xl mx-auto">
-              
-              <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm text-center">
-                <span className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 font-black inline-flex items-center justify-center text-sm mb-2 shadow-sm">
-                  2
-                </span>
-                <h2 className="text-xl font-black text-slate-900">
-                  የአገልግሎት ዓይነት ይምረጡ (Choose Service Type)
-                </h2>
-                <p className="text-xs text-slate-500 font-bold mt-1">
-                  ትዕዛዙ ቴክአዌይ (Takeaway) ነው ወይስ በሬስቶራንት ውስጥ የሚበላ (Home)?
-                </p>
-              </div>
-
-              {/* 2 Big Visual Touch-Friendly Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                
-                {/* 1. Takeaway Card */}
-                <div
-                  onClick={() => setOrderType('Takeaway')}
-                  className={`p-6 sm:p-7 rounded-3xl border-2 text-left transition-all flex flex-col justify-between gap-5 cursor-pointer active:scale-[0.98] ${
-                    orderType === 'Takeaway'
-                      ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-700/15 ring-4 ring-emerald-500/20'
-                      : 'border-slate-200 bg-white hover:border-emerald-300 hover:shadow-md'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-3xl shadow-inner">
-                      🥡
-                    </div>
-                    {orderType === 'Takeaway' ? (
-                      <span className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-sm">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                        <span>ተመርጧል (Selected)</span>
-                      </span>
-                    ) : (
-                      <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
-                        ይምረጡ
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <h3 className="text-xl font-black text-slate-900">
-                      🥡 ቴክአዌይ (Takeaway)
-                    </h3>
-                    <p className="text-xs font-bold text-slate-500 leading-relaxed">
-                      ለደጃፍ ወይም ይዘውት ለሚሄዱ ደንበኞች። የምግብ ማሸጊያ ቦክስ በየምግቡ ይቆጠራል (1 Box per item)።
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-emerald-200/60 flex items-center justify-between text-xs font-black">
-                    <span className="text-slate-600">ዋጋ (Pricing):</span>
-                    <span className="text-emerald-800 bg-emerald-100/80 px-2.5 py-1 rounded-xl">
-                      መደበኛ ዋጋ (Normal)
-                    </span>
-                  </div>
-                </div>
-
-                {/* 2. Home (Dine-In 300 ETB) Card */}
-                <div
-                  onClick={() => setOrderType('Home')}
-                  className={`p-6 sm:p-7 rounded-3xl border-2 text-left transition-all flex flex-col justify-between gap-5 cursor-pointer active:scale-[0.98] ${
-                    orderType === 'Home'
-                      ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-600/15 ring-4 ring-emerald-500/20'
-                      : 'border-slate-200 bg-white hover:border-emerald-300 hover:shadow-md'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-900 flex items-center justify-center text-3xl shadow-inner">
-                      🏠
-                    </div>
-                    {orderType === 'Home' ? (
-                      <span className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-sm">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                        <span>ተመርጧል (Selected)</span>
-                      </span>
-                    ) : (
-                      <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
-                        ይምረጡ
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-black text-slate-900">
-                        🏠 ቤት ውስጥ (Home)
-                      </h3>
-                      <span className="bg-emerald-700 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm">
-                        300 ETB
-                      </span>
-                    </div>
-                    <p className="text-xs font-bold text-slate-500 leading-relaxed">
-                      በሬስቶራንት ውስጥ ተቀምጠው ለሚመገቡ ደንበኞች። ቦክስ አይወጣም (0 Boxes)።
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-emerald-100 flex items-center justify-between text-xs font-black">
-                    <span className="text-slate-600">ልዩ ቅናሽ (Discount):</span>
-                    <span className="text-emerald-900 bg-emerald-100/90 border border-emerald-200 px-2.5 py-1 rounded-xl">
-                      ✨ የ 320 ብር ምግቦች በ 300 ብር!
-                    </span>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Order Pricing Preview Box */}
-              <div className="bg-white p-4 sm:p-5 rounded-3xl border border-emerald-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xl">
-                    {orderType === 'Home' ? '🏠' : '🥡'}
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-400 block">የተመረጠው አገልግሎት</span>
-                    <span className="text-sm font-black text-slate-900">
-                      {orderType === 'Home' ? 'ቤት ውስጥ (Home) • የ 300 ብር ቅናሽ ተተግብሯል' : 'ቴክአዌይ (Takeaway) • የማሸጊያ ቦክስ ይቆጠራል'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-xs font-bold text-slate-400 block">የአሁን ድምር ዋጋ (Total)</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-slate-900">{formatEtb(totalSubtotal)}</span>
-                    <span className="text-xs font-black text-emerald-700">ETB</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 2 Back & Next Action Buttons */}
-              <div className="flex items-center justify-between pt-2">
-                <button
-                  type="button"
-                  onClick={() => setOrderStep(1)}
-                  className="px-5 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-black text-xs sm:text-sm flex items-center gap-2 transition-all"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>ወደ ምግብ መረጣ (Back to Food)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setOrderStep(3)}
-                  className="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-700/20 transition-all scale-[1.02]"
-                >
-                  <span>ቀጣይ ወደ ፈረቃ (Next: Shift) →</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-
-            </div>
-          )}
-
-          {/* ============================================================== */}
-          {/* STEP 3: IS IT DAY, NIGHT, OR BEU?                              */}
-          {/* ============================================================== */}
-          {orderStep === 3 && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              
-              <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm text-center max-w-xl mx-auto">
-                <span className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 font-black inline-flex items-center justify-center text-sm mb-2">
-                  3
-                </span>
-                <h2 className="text-lg font-black text-slate-900">
-                  ቀን፣ ማታ ወይስ ቢዩ? (Day, Night or BEU?)
-                </h2>
-                <p className="text-xs text-slate-400 font-bold mt-1">
-                  ይህ ትዕዛዝ የተዘጋጀው በየትኛው ፈረቃ ነው ወይስ በቢዩ ዴሊቨሪ?
-                </p>
-              </div>
-
-              {/* 3 BIG VISUAL CARDS */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
-                
-                {/* 1. Day Shift Card */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedShiftType('Day')}
-                  className={`p-6 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-3 ${
-                    selectedShiftType === 'Day'
-                      ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-600/10 scale-105 ring-2 ring-emerald-500/20'
-                      : 'border-emerald-100/80 bg-white hover:border-emerald-300'
-                  }`}
-                >
-                  <div className="w-16 h-16 rounded-3xl bg-emerald-100 text-emerald-800 flex items-center justify-center shadow-inner">
-                    <Sun className="w-9 h-9" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-base text-slate-900">☀️ ቀን (Day Shift)</h3>
-                    <p className="text-xs text-slate-400 font-bold mt-0.5">የቀን ፈረቃ ትዕዛዝ</p>
-                  </div>
-                  {selectedShiftType === 'Day' && (
-                    <span className="text-[11px] font-black text-emerald-800 bg-emerald-200/80 px-3 py-1 rounded-full">
-                      ✓ ተመርጧል (Selected)
-                    </span>
-                  )}
-                </button>
-
-                {/* 2. Night Shift Card */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedShiftType('Night')}
-                  className={`p-6 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-3 ${
-                    selectedShiftType === 'Night'
-                      ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-600/10 scale-105 ring-2 ring-emerald-500/20'
-                      : 'border-emerald-100/80 bg-white hover:border-emerald-300'
-                  }`}
-                >
-                  <div className="w-16 h-16 rounded-3xl bg-emerald-100 text-emerald-800 flex items-center justify-center shadow-inner">
-                    <Moon className="w-9 h-9" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-base text-slate-900">🌙 ማታ (Night Shift)</h3>
-                    <p className="text-xs text-slate-400 font-bold mt-0.5">የማታ ፈረቃ ትዕዛዝ</p>
-                  </div>
-                  {selectedShiftType === 'Night' && (
-                    <span className="text-[11px] font-black text-emerald-800 bg-emerald-200/80 px-3 py-1 rounded-full">
-                      ✓ ተመርጧል (Selected)
-                    </span>
-                  )}
-                </button>
-
-                {/* 3. BEU Delivery Card */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedShiftType('BEU');
-                    setSelectedWaiter('የቢዩ አሽከርካሪ (BEU Driver)');
-                    setOrderType('Takeaway');
-                  }}
-                  className={`p-6 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-3 ${
-                    selectedShiftType === 'BEU'
-                      ? 'border-teal-600 bg-teal-50/80 shadow-xl shadow-teal-600/10 scale-105'
-                      : 'border-emerald-100 bg-white hover:border-teal-200'
-                  }`}
-                >
-                  <div className="w-16 h-16 rounded-3xl bg-teal-100 text-teal-700 flex items-center justify-center shadow-inner">
-                    <Truck className="w-9 h-9" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-base text-slate-900">🛵 ቢዩ (BEU Delivery)</h3>
-                    <p className="text-xs text-slate-400 font-bold mt-0.5">የቢዩ አሽከርካሪ ትዕዛዝ</p>
-                  </div>
-                  {selectedShiftType === 'BEU' && (
-                    <span className="text-[11px] font-black text-teal-700 bg-teal-200/60 px-3 py-1 rounded-full">
-                      ✓ ተመርጧል (Selected)
-                    </span>
-                  )}
-                </button>
-
-              </div>
-
-              {/* If BEU Delivery is selected, optional BEU Order # input */}
-              {selectedShiftType === 'BEU' && (
-                <div className="max-w-md mx-auto bg-teal-50 border border-teal-200 p-4 rounded-3xl animate-in fade-in">
-                  <label className="block text-xs font-black text-teal-900 mb-1.5">
-                    የቢዩ ትዕዛዝ ቁጥር (BEU Order # - Optional):
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="ለምሳሌ፡ BEU-4921"
-                    value={beuOrderId}
-                    onChange={(e) => setBeuOrderId(e.target.value)}
-                    className="w-full bg-white border border-teal-300 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-              )}
-
-              {/* Step 2 Back & Next Action Buttons */}
-              <div className="flex items-center justify-between max-w-2xl mx-auto pt-4">
-                <button
-                  type="button"
-                  onClick={() => setOrderStep(2)}
-                  className="px-5 py-3 rounded-2xl bg-white hover:bg-emerald-50 text-slate-700 border border-emerald-200 font-black text-xs flex items-center gap-2 transition-all"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>ወደ አገልግሎት (Back: Service)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setOrderStep(4)}
-                  className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-700/20 transition-all scale-[1.02]"
-                >
-                  <span>ቀጥል ወደ አስተናጋጅ (Next: Waiter)</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-
-            </div>
-          )}
-
-          {/* ============================================================== */}
-          {/* STEP 4: WHO IS THE WAITER THAT TAKES IT?                        */}
-          {/* ============================================================== */}
-          {orderStep === 4 && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              
-              <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm text-center max-w-xl mx-auto">
-                <span className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 font-black inline-flex items-center justify-center text-sm mb-2">
-                  4
-                </span>
-                <h2 className="text-lg font-black text-slate-900">
-                  ምግቡን የወሰደው አስተናጋጅ ማን ነው?
-                </h2>
-                <p className="text-xs text-slate-400 font-bold mt-1">
-                  (Who is the Waiter that takes the food?)
-                </p>
-              </div>
-
-              {/* WAITER SELECTION CARDS (6 OFFICIAL WAITERS) */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 max-w-2xl mx-auto">
-                {waitersList.map(waiter => {
-                  const isSelected = (selectedWaiter === waiter.fullName || selectedWaiter === waiter.amharic) && !customWaiterName.trim();
-                  return (
-                    <button
-                      key={waiter.fullName || waiter.amharic}
-                      type="button"
-                      onClick={() => {
-                        setSelectedWaiter(waiter.fullName || waiter.amharic);
-                        setCustomWaiterName('');
-                      }}
-                      className={`p-4 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-2 select-none ${
-                        isSelected
-                          ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-600/15 ring-2 ring-emerald-500/30 scale-[1.03]'
-                          : 'border-emerald-100 bg-white hover:border-emerald-300 hover:shadow-md'
-                      }`}
-                    >
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-colors ${
-                        isSelected ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-800'
-                      }`}>
-                        {waiter.emoji || '👨‍🍳'}
-                      </div>
-                      <div className="text-center">
-                        <span className="font-black text-sm text-slate-900 block leading-tight">
-                          {waiter.amharic}
-                        </span>
-                        <span className="text-[11px] font-extrabold text-emerald-700 block mt-0.5">
-                          {waiter.english}
-                        </span>
-                      </div>
-                      {isSelected && (
-                        <span className="text-[10px] font-black text-emerald-800 bg-emerald-200/80 px-2.5 py-0.5 rounded-full mt-0.5">
-                          ✓ ተመርጧል (Selected)
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Add Custom Waiter Name Input */}
-              <div className="max-w-md mx-auto bg-white p-4 rounded-3xl border border-emerald-100 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-black text-slate-700">ሌላ ስም መጻፍ ይፈልጋሉ? (Custom Name):</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="የአስተናጋጅ ስም ጻፍ (e.g. ሰላማዊት)..."
-                    value={customWaiterName}
-                    onChange={(e) => setCustomWaiterName(e.target.value)}
-                    className="flex-1 bg-emerald-50/60 border border-emerald-200 rounded-2xl px-4 py-2 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  {customWaiterName.trim() && (
-                    <button
-                      type="button"
-                      onClick={handleAddCustomWaiter}
-                      className="px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-black hover:bg-emerald-700 transition-all"
-                    >
-                      + አስቀምጥ
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Step 3 Back & Next Action Buttons */}
-              <div className="flex items-center justify-between max-w-2xl mx-auto pt-4">
-                <button
-                  type="button"
-                  onClick={() => setOrderStep(3)}
-                  className="px-5 py-3 rounded-2xl bg-white hover:bg-emerald-50 text-slate-700 border border-emerald-200 font-black text-xs flex items-center gap-2 transition-all"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>ወደ ፈረቃ (Back: Shift)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setOrderStep(5)}
-                  className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-700/20 transition-all scale-[1.02]"
-                >
-                  <span>ቀጥል ወደ ማረጋገጫ (Next: Submit)</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-
-            </div>
-          )}
-
-          {/* ============================================================== */}
-          {/* STEP 5: REVIEW & SUBMIT TO OWNER                               */}
-          {/* ============================================================== */}
-          {orderStep === 5 && (
-            <div className="space-y-5 animate-in fade-in duration-200 max-w-sm sm:max-w-md mx-auto text-center">
-              
-              <div>
-                <span className="w-9 h-9 rounded-2xl bg-[#E2F4EB] text-[#126848] font-black inline-flex items-center justify-center text-sm mb-2 shadow-sm">
-                  5
-                </span>
-                <h2 className="text-xl sm:text-2xl font-black text-[#1C201D] tracking-tight">
-                  ትዕዛዙን አረጋግጠው ያስገቡ
-                </h2>
-                <p className="text-xs font-semibold text-[#666E67] mt-1">
-                  Confirm & Review Order Ticket
-                </p>
-              </div>
-
-              {/* TICKET RECEIPT CARD (MATCHING SUBMISSION LAYOUT) */}
-              <div className="w-full bg-white rounded-[32px] shadow-sm border border-[#E9E4D6] overflow-hidden text-left">
-                
-                {/* 1. Food Items List */}
-                <div className="p-5 sm:p-6 space-y-3">
-                  {cart.map((item, idx) => (
-                    <div key={item.id || idx} className="flex items-center gap-3.5 pb-2.5 border-b border-[#F2EEE4] last:border-b-0 last:pb-0">
-                      <span className="bg-[#E2F4EB] text-[#126848] font-black text-xs px-2.5 py-1 rounded-xl flex-shrink-0">
-                        {item.qty}×
-                      </span>
-                      <span className="font-black text-sm sm:text-base text-[#1C201D] tracking-tight">
-                        {item.name}
-                      </span>
-                    </div>
-                  ))}
-
-                  {/* Total Price Box */}
-                  <div className="bg-[#EBF6F0] rounded-2xl p-4 flex items-center justify-between mt-3">
-                    <span className="font-black text-sm text-[#1C201D]">ድምር ዋጋ</span>
-                    <div className="flex items-baseline">
-                      <span className="text-3xl font-black text-[#1C201D] tracking-tight">
-                        {formatEtb(totalSubtotal)}
-                      </span>
-                      <span className="text-xs font-black text-[#107049] ml-1.5">
-                        ETB
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dashed Tear Line with Circular Notches */}
-                <div className="relative py-1 bg-white">
-                  <div className="border-t-2 border-dashed border-[#DDD7C8] w-full" />
-                  <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#FDFBF7] border-r border-[#DDD7C8]" />
-                  <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#FDFBF7] border-l border-[#DDD7C8]" />
-                </div>
-
-                {/* 2. Metadata Details Rows */}
-                <div className="p-5 sm:p-6 space-y-4 bg-white">
-                  
-                  {/* Date */}
-                  <div className="flex items-start justify-between text-xs">
-                    <div className="flex items-center gap-2 text-[#5A625B] font-bold">
-                      <Calendar className="w-4 h-4 text-[#7A837C]" />
-                      <span>ቀን</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-1.5 justify-end">
-                        <span className="font-black text-xs text-[#1D211E]">
-                          {orderEthDate.formatted}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => openEthDateModal('current')}
-                          className="text-[10px] text-emerald-700 hover:underline font-bold"
-                          title="ቀን ቀይር"
-                        >
-                          (ቀይር)
-                        </button>
-                      </div>
-                      <span className="text-[11px] font-semibold text-[#7D847E] block mt-0.5">
-                        {getFormattedGregorianDate()}
-                      </span>
+                    {/* Real Menu Category Tabs with Lucide Icons */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 border-t border-slate-100 dark:border-slate-800">
+                      {categories.map(cat => {
+                        const CatIcon = cat.Icon;
+                        const active = activeCategory === cat.id;
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => setActiveCategory(cat.id)}
+                            className={`px-3.5 py-2 rounded-xl font-bold text-xs whitespace-nowrap flex items-center gap-2 transition-all border ${
+                              active
+                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm shadow-emerald-600/20'
+                                : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-400'
+                            }`}
+                          >
+                            <CatIcon className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
+                            <span>{cat.label}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-black ${
+                              active
+                                ? 'bg-white/20 text-white'
+                                : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                            }`}>
+                              {cat.count}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* Shift */}
-                  <div className="flex items-start justify-between text-xs">
-                    <div className="flex items-center gap-2 text-[#5A625B] font-bold">
-                      <Sun className="w-4 h-4 text-[#7A837C]" />
-                      <span>ፈረቃ</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-black text-xs text-[#1D211E] block">
-                        {selectedShiftType === 'Day' ? 'Day Shift' : selectedShiftType === 'Night' ? 'Night Shift' : 'BEU Delivery'}
-                      </span>
-                      <span className="text-[11px] font-semibold text-[#7D847E] block mt-0.5">
-                        {selectedShiftType === 'BEU' ? (beuOrderId || 'BEU Delivery') : orderType === 'Home' ? 'In-Store Home' : 'In-Store Takeaway'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Order Type */}
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 text-[#5A625B] font-bold">
-                      <ShoppingBag className="w-4 h-4 text-[#7A837C]" />
-                      <span>አገልግሎት</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-black text-xs text-[#1D211E]">
-                        {orderType === 'Home' ? 'ቤት ውስጥ  Home' : 'ቴክአዌይ  Takeaway'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Waiter */}
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 text-[#5A625B] font-bold">
-                      <User className="w-4 h-4 text-[#7A837C]" />
-                      <span>የወሰደው</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-black text-xs text-[#1D211E]">
-                        {formatWaiterDisplayName(customWaiterName.trim() || selectedWaiter)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Boxes Count */}
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 text-[#5A625B] font-bold">
-                      <Box className="w-4 h-4 text-[#7A837C]" />
-                      <span>የወጣ ቦክስ</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-black text-xs text-[#1D211E]">
-                        {orderType === 'Home' 
-                          ? '0  Takeaway Box' 
-                          : `${totalBoxesInOrder}  Takeaway Box`}
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleFinalSubmit}
-                  className="w-full bg-[#107049] hover:bg-[#0D5B3B] active:scale-[0.98] transition-all text-white rounded-3xl py-4 px-6 flex items-center justify-center gap-3.5 shadow-xl shadow-[#107049]/25 select-none"
-                >
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <Check className="w-5 h-5 text-white stroke-[3]" />
-                  </div>
-                  <div className="text-left">
-                    <span className="font-black text-sm sm:text-base text-white block leading-tight">
-                      ትዕዛዙን መዝግብ / አስገባ
-                    </span>
-                    <span className="text-[11px] font-semibold text-white/80 block mt-0.5">
-                      Confirm & Submit Order
-                    </span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setOrderStep(4)}
-                  className="w-full py-3 rounded-2xl bg-white hover:bg-emerald-50 text-slate-600 border border-emerald-100 font-black text-xs flex items-center justify-center gap-1.5 transition-all"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>ወደ አስተናጋጅ ተመለስ (Back: Waiter)</span>
-                </button>
-              </div>
-
-            </div>
-          )}
-
-          {/* ============================================================== */}
-          {/* FLOATING ACTION BOTTOM BAR (When in Step 1)                      */}
-          {/* ============================================================== */}
-          {orderStep === 1 && (
-            <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-emerald-100 py-3 px-4 shadow-2xl z-40">
-              <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
-                
-                {/* Summary Info */}
-                <div>
-                  {cart.length > 0 ? (
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-base text-slate-900">
-                          {formatEtb(totalSubtotal)} <span className="text-xs text-emerald-700">ETB</span>
-                        </span>
-                        <span className="text-xs text-slate-400 font-bold">•</span>
-                        {orderType === 'Takeaway' ? (
-                          <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-lg">
-                            🥡 {totalBoxesInOrder} ቦክስ
-                          </span>
-                        ) : (
-                          <span className="text-xs font-black text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded-lg border border-emerald-300">
-                            🏠 ቤት ውስጥ (0 ቦክስ)
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-slate-400 font-bold truncate max-w-xs sm:max-w-md">
-                        {cart.map(i => `${i.qty}x ${i.name}`).join(', ')}
-                      </p>
+                  {/* Real Restaurant Menu Cards Grid */}
+                  {filteredDishes.length === 0 ? (
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-10 text-center">
+                      <UtensilsCrossed className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400">{t.noMatchingDishes}</p>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-slate-400 text-xs font-bold">
-                      <ShoppingBag className="w-4 h-4" />
-                      <span>እባክዎ የሚዘጋጀውን ምግብ ይምረጡ (Choose food from menu)</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
+                      {filteredDishes.map(dish => {
+                        const inCart = cart.find(i => i.id === dish.id);
+                        const effectivePrice = getDishEffectivePrice(dish, orderType);
+                        const hasCrossedOriginal = Number(dish.originalPrice) > Number(dish.price);
+                        const isDiscounted = orderType === 'Home' && effectivePrice < Number(dish.price);
+                        const primaryTitle = language === 'en' ? (dish.englishName || dish.name) : dish.name;
+                        const secondaryTitle = language === 'en' ? dish.name : dish.englishName;
+                        const isDrink = dish.containerType === 'cup' || dish.itemType === 'juice';
+
+                        return (
+                          <div
+                            key={dish.id}
+                            data-dish-id={dish.id}
+                            onClick={() => !inCart && toggleOrAddFood(dish)}
+                            className={`relative bg-white dark:bg-slate-900 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between group select-none overflow-hidden ${
+                              inCart
+                                ? 'border-emerald-500 shadow-lg shadow-emerald-600/10 ring-2 ring-emerald-500/25'
+                                : 'border-slate-200 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-500/50 shadow-sm hover:shadow-md'
+                            }`}
+                          >
+                            {/* Dish Image Header */}
+                            <div className="w-full h-36 relative bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                              {dish.imageUrl && (
+                                <img
+                                  src={dish.imageUrl}
+                                  alt={primaryTitle}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const fallback = e.currentTarget.parentElement.querySelector('.image-icon-fallback');
+                                    if (fallback) fallback.style.display = 'flex';
+                                  }}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                              )}
+                              <div
+                                className="image-icon-fallback w-full h-full items-center justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                style={{ display: dish.imageUrl ? 'none' : 'flex' }}
+                              >
+                                {isDrink ? <CupSoda className="w-10 h-10" /> : <UtensilsCrossed className="w-10 h-10" />}
+                              </div>
+
+                              {/* Packaging Badge */}
+                              <div className="absolute top-2.5 left-2.5 bg-slate-900/75 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 border border-white/15">
+                                {orderType === 'Takeaway' ? (
+                                  <>
+                                    <Package className="w-3 h-3 text-emerald-400" />
+                                    <span>{t.takeawayBox}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Home className="w-3 h-3 text-emerald-400" />
+                                    <span>{t.dineInHome}</span>
+                                  </>
+                                )}
+                              </div>
+
+                              {/* Discount Badge */}
+                              {isDiscounted && (
+                                <div className="absolute bottom-2.5 left-2.5 bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1">
+                                  <Home className="w-3 h-3" />
+                                  <span>{formatEtb(effectivePrice)} ETB</span>
+                                </div>
+                              )}
+
+                              {/* Active Quantity Pill */}
+                              {inCart && (
+                                <div className="absolute top-2.5 right-2.5 bg-emerald-600 text-white text-xs font-black w-7 h-7 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-slate-900">
+                                  {inCart.qty}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Card Body */}
+                            <div className="p-3.5 flex-1 flex flex-col justify-between gap-3">
+                              <div>
+                                <div className="flex items-start justify-between gap-2">
+                                  <h3 className="font-black text-sm text-slate-900 dark:text-white leading-snug line-clamp-1">
+                                    {primaryTitle}
+                                  </h3>
+                                </div>
+                                {secondaryTitle && secondaryTitle !== primaryTitle && (
+                                  <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 block mt-0.5 line-clamp-1">
+                                    {secondaryTitle}
+                                  </span>
+                                )}
+                                {dish.description && (
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                                    {dish.description}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Price & Action */}
+                              <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                                <div>
+                                  <div className="flex items-baseline gap-1">
+                                    <span className={`font-black text-base ${
+                                      isDiscounted
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : hasCrossedOriginal
+                                          ? 'text-rose-600 dark:text-rose-400'
+                                          : 'text-slate-900 dark:text-white'
+                                    }`}>
+                                      {formatEtb(effectivePrice)}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-bold">ETB</span>
+                                  </div>
+                                  {(isDiscounted || hasCrossedOriginal) && (
+                                    <span className="text-[10px] text-slate-400 line-through font-semibold block">
+                                      {formatEtb(isDiscounted ? dish.price : dish.originalPrice)} ETB
+                                    </span>
+                                  )}
+                                </div>
+
+                                {inCart ? (
+                                  <div
+                                    className="flex items-center gap-1 bg-emerald-500/10 dark:bg-emerald-500/15 p-1 rounded-xl border border-emerald-500/30"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={() => updateCartQty(dish.id, -1)}
+                                      className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center shadow-xs"
+                                    >
+                                      <Minus className="w-3.5 h-3.5" />
+                                    </button>
+                                    <span className="font-black text-xs text-emerald-700 dark:text-emerald-300 px-1.5 min-w-[20px] text-center">
+                                      {inCart.qty}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => updateCartQty(dish.id, 1)}
+                                      className="w-7 h-7 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 flex items-center justify-center shadow-xs"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); toggleOrAddFood(dish); }}
+                                    className="px-3 py-1.5 rounded-xl bg-emerald-600/10 hover:bg-emerald-600 text-emerald-700 dark:text-emerald-300 hover:text-white text-xs font-black flex items-center gap-1 transition-all border border-emerald-600/20"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>{t.add}</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Compact Today's Ordered Foods Strip below menu for quick kitchen glance */}
+                  {todayDishesSummary.length > 0 && (
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <h3 className="text-xs font-black text-slate-800 dark:text-white flex items-center gap-2 uppercase tracking-wider">
+                          <Flame className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                          <span>{t.dishBreakdownTitle} ({todayOrders.length})</span>
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => setChefViewTab('today')}
+                          className="text-xs font-black text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                        >
+                          <span>{t.todaysOrders}</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {todayDishesSummary.map(item => (
+                          <span
+                            key={item.id}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200"
+                          >
+                            <span className="px-1.5 py-0.5 rounded-md bg-emerald-600 text-white text-[10px] font-black">
+                              {item.qty}×
+                            </span>
+                            <span>{language === 'en' ? item.englishName : item.name}</span>
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {/* Next Button */}
-                <div className="flex items-center gap-2">
-                  {cart.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setCart([])}
-                      className="px-3 py-2.5 rounded-2xl text-xs font-black text-rose-600 hover:bg-rose-50 transition-all"
-                    >
-                      አጥፋ
-                    </button>
-                  )}
+                {/* RIGHT COLUMN: LIVE ORDER TICKET PANEL (4 COLS) */}
+                <aside ref={orderPanelRef} className="lg:col-span-4 lg:sticky lg:top-20">
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden">
+                    
+                    {/* Ticket Header */}
+                    <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/50">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                          <Receipt className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-sm text-slate-900 dark:text-white">{t.currentOrder}</h3>
+                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                            {cartItemsTotalQty} {t.itemsCount}
+                          </span>
+                        </div>
+                      </div>
+                      {cart.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={clearCurrentOrder}
+                          className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 px-2.5 py-1 rounded-lg transition-all"
+                        >
+                          {t.clearOrder}
+                        </button>
+                      )}
+                    </div>
 
-                  <button
-                    type="button"
-                    disabled={cart.length === 0}
-                    onClick={() => setOrderStep(2)}
-                    className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 text-white disabled:text-slate-400 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-700/20 disabled:shadow-none transition-all active:scale-95"
-                  >
-                    <span>ቀጥል (Next: 🥡 Takeaway / 🏠 Home)</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
+                    {/* Added Foods List */}
+                    <div className="p-4 max-h-64 overflow-y-auto space-y-2.5 border-b border-slate-100 dark:border-slate-800">
+                      {cart.length === 0 ? (
+                        <div className="py-8 text-center space-y-2">
+                          <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                            <ShoppingBag className="w-5 h-5" />
+                          </div>
+                          <p className="text-xs font-black text-slate-700 dark:text-slate-300">{t.emptyCartTitle}</p>
+                          <p className="text-[11px] text-slate-400 font-medium max-w-[220px] mx-auto">
+                            {t.emptyCartHint}
+                          </p>
+                        </div>
+                      ) : (
+                        cart.map(item => {
+                          const unitPrice = getDishEffectivePrice(item, orderType);
+                          const itemTitle = language === 'en' ? (item.englishName || item.name) : item.name;
+                          return (
+                            <div
+                              key={item.id}
+                              className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700/70"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-black text-slate-900 dark:text-white truncate">{itemTitle}</p>
+                                <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                  {formatEtb(unitPrice * item.qty)} ETB
+                                  <span className="text-slate-400 font-normal ml-1">({formatEtb(unitPrice)})</span>
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => updateCartQty(item.id, -1)}
+                                  className="w-6 h-6 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 flex items-center justify-center"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="text-xs font-black w-5 text-center text-slate-900 dark:text-white">
+                                  {item.qty}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateCartQty(item.id, 1)}
+                                  className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeDishFromCart(item.id)}
+                                  className="w-6 h-6 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 flex items-center justify-center ml-0.5"
+                                  title="Remove"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Ticket Summary & Add Order Action */}
+                    <div className="p-4 space-y-3 bg-slate-50/70 dark:bg-slate-800/40">
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="font-black text-sm text-slate-900 dark:text-white">{t.totalAmount}</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                            {formatEtb(totalSubtotal)}
+                          </span>
+                          <span className="text-xs font-black text-slate-500">ETB</span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={cart.length === 0}
+                        onClick={() => setCheckoutModalStep(1)}
+                        className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-200 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 disabled:shadow-none transition-all active:scale-[0.98]"
+                      >
+                        <span>{t.completeOrder}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                  </div>
+                </aside>
 
               </div>
-            </div>
-          )}
+            ) : (
+              /* ============================================================== */
+              /* TODAY'S ORDERED FOODS & TICKETS VIEW                           */
+              /* ============================================================== */
+              <div className="space-y-5 animate-in fade-in duration-200">
+                
+                {/* Today's KPI Summary Row */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold mb-1">
+                      <span>{t.ordersCountLabel}</span>
+                      <Receipt className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <p className="text-2xl font-black text-slate-900 dark:text-white">{todayOrders.length}</p>
+                  </div>
 
-        </main>
-      )}
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold mb-1">
+                      <span>{t.dishesPreparedLabel}</span>
+                      <UtensilsCrossed className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <p className="text-2xl font-black text-slate-900 dark:text-white">{todayTotalDishes}</p>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold mb-1">
+                      <span>{t.boxesUsedLabel}</span>
+                      <Package className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <p className="text-2xl font-black text-slate-900 dark:text-white">{todayTotalBoxes}</p>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold mb-1">
+                      <span>{t.salesTodayLabel}</span>
+                      <Wallet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                      {formatEtb(todayTotalSales)} <span className="text-xs">ETB</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Aggregated Dishes Ordered Today */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2 mb-3">
+                    <Flame className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>{t.dishBreakdownTitle} • {orderEthDate.formatted}</span>
+                  </h3>
+                  {todayDishesSummary.length === 0 ? (
+                    <p className="text-xs font-semibold text-slate-400">{t.noOrdersToday}</p>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+                      {todayDishesSummary.map(item => (
+                        <div
+                          key={item.id}
+                          className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2"
+                        >
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                            {language === 'en' ? item.englishName : item.name}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-lg bg-emerald-600 text-white text-xs font-black flex-shrink-0">
+                            {item.qty}×
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Order Tickets Feed for Today */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <Receipt className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>{t.orderFeedTitle}</span>
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setChefViewTab('menu')}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{t.menuAndOrder}</span>
+                    </button>
+                  </div>
+
+                  {todayOrders.length === 0 ? (
+                    <div className="py-10 text-center text-slate-400 text-xs font-bold">
+                      {t.noOrdersToday}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
+                      {todayOrders.map(order => {
+                        const isCooked = (order.status || '').includes('ተዘጋጅቷል');
+                        return (
+                          <div
+                            key={order.id}
+                            className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50 p-4 flex flex-col justify-between gap-3"
+                          >
+                            <div className="space-y-2.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                  <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                  <span>{order.timestamp || order.cookedAt}</span>
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black flex items-center gap-1 ${
+                                  order.channel === 'BEU Delivery'
+                                    ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300'
+                                    : order.orderType === 'Home'
+                                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                      : 'bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
+                                }`}>
+                                  {order.channel === 'BEU Delivery' ? <Truck className="w-3 h-3" /> : order.orderType === 'Home' ? <Home className="w-3 h-3" /> : <Package className="w-3 h-3" />}
+                                  <span>{order.channel === 'BEU Delivery' ? 'BEU' : order.orderType === 'Home' ? t.homeDineIn : t.takeaway}</span>
+                                </span>
+                              </div>
+
+                              <div className="space-y-1">
+                                {(order.items || []).map((item, idx) => (
+                                  <div key={idx} className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
+                                    <span>
+                                      <span className="text-emerald-600 dark:text-emerald-400 font-black mr-1.5">{item.qty}×</span>
+                                      {language === 'en' ? (item.englishName || item.name) : item.name}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="pt-2.5 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
+                              <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate">
+                                <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                                <span className="truncate">{formatWaiterDisplayName(order.waiterName)}</span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleToggleOrderStatus(order.id)}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all flex-shrink-0 ${
+                                  isCooked
+                                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                                    : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                                }`}
+                              >
+                                {isCooked ? t.cookedStatus : t.takenStatus}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Mobile Floating Cart Bar (opens step modal or scrolls to ticket) */}
+            {chefViewTab === 'menu' && cart.length > 0 && (
+              <div className="lg:hidden fixed bottom-3 left-4 right-4 z-40">
+                <button
+                  type="button"
+                  onClick={() => setCheckoutModalStep(1)}
+                  className="w-full py-3 px-4 rounded-2xl bg-emerald-600 text-white shadow-xl shadow-emerald-900/30 flex items-center justify-between text-xs font-black"
+                >
+                  <span className="flex items-center gap-2">
+                    <Receipt className="w-4 h-4" />
+                    <span>{t.completeOrder} ({cartItemsTotalQty})</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span>{formatEtb(totalSubtotal)} ETB</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
+                </button>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* STEP-BY-STEP CHECKOUT MODAL (SERVICE -> SHIFT -> WAITER)       */}
+            {/* ============================================================== */}
+            {checkoutModalStep > 0 && (
+              <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+                <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+                  
+                  {/* Modal Header & Step Progress */}
+                  <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-800/50">
+                    <div>
+                      <h3 className="font-black text-base text-slate-900 dark:text-white">
+                        {checkoutModalStep === 1
+                          ? t.chooseServiceTitle
+                          : checkoutModalStep === 2
+                            ? t.chooseShiftTitle
+                            : t.chooseWaiterTitle}
+                      </h3>
+                      <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                        {checkoutModalStep === 1
+                          ? t.chooseServiceSub
+                          : checkoutModalStep === 2
+                            ? t.chooseShiftSub
+                            : t.chooseWaiterSub}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCheckoutModalStep(0)}
+                      className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Stepper Pills */}
+                  <div className="px-6 pt-4 grid grid-cols-3 gap-2">
+                    {[
+                      { step: 1, label: `1. ${t.serviceType}` },
+                      { step: 2, label: `2. ${t.shift}` },
+                      { step: 3, label: `3. ${t.waiter}` }
+                    ].map(s => (
+                      <div
+                        key={s.step}
+                        className={`py-1.5 px-2 rounded-xl text-center text-[11px] font-black border transition-all ${
+                          checkoutModalStep === s.step
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : checkoutModalStep > s.step
+                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        {s.label}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Modal Body */}
+                  <div className="p-6 space-y-4">
+                    
+                    {/* STEP 1: SERVICE TYPE */}
+                    {checkoutModalStep === 1 && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOrderType('Takeaway');
+                              if (selectedShiftType === 'BEU') setSelectedShiftType('Day');
+                            }}
+                            className={`p-4 rounded-2xl border-2 text-left transition-all flex flex-col gap-2 ${
+                              selectedShiftType !== 'BEU' && orderType === 'Takeaway'
+                                ? 'border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/20'
+                                : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-emerald-400'
+                            }`}
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                              <Package className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-black text-sm text-slate-900 dark:text-white">{t.takeaway}</p>
+                              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">{t.takeawayBox}</p>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOrderType('Home');
+                              if (selectedShiftType === 'BEU') setSelectedShiftType('Day');
+                            }}
+                            className={`p-4 rounded-2xl border-2 text-left transition-all flex flex-col gap-2 ${
+                              selectedShiftType !== 'BEU' && orderType === 'Home'
+                                ? 'border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/20'
+                                : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-emerald-400'
+                            }`}
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                              <Home className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-black text-sm text-slate-900 dark:text-white">{t.homeDineIn}</p>
+                              <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">300 ETB • 0 Box</p>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedShiftType('BEU');
+                              setSelectedWaiter('የቢዩ አሽከርካሪ (BEU Driver)');
+                              setOrderType('Takeaway');
+                            }}
+                            className={`p-4 rounded-2xl border-2 text-left transition-all flex flex-col gap-2 ${
+                              selectedShiftType === 'BEU'
+                                ? 'border-teal-600 bg-teal-500/10 ring-2 ring-teal-500/20'
+                                : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-teal-400'
+                            }`}
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                              <Truck className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-black text-sm text-slate-900 dark:text-white">{t.beuDelivery}</p>
+                              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">BEU Driver</p>
+                            </div>
+                          </button>
+                        </div>
+
+                        {selectedShiftType === 'BEU' && (
+                          <input
+                            type="text"
+                            placeholder={t.beuOrderIdPlaceholder}
+                            value={beuOrderId}
+                            onChange={(e) => setBeuOrderId(e.target.value)}
+                            className="w-full bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-teal-500"
+                          />
+                        )}
+
+                        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-bold">
+                          <span className="text-slate-500 dark:text-slate-400">{t.boxesOut}: {orderType === 'Home' ? 0 : totalBoxesInOrder}</span>
+                          <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{formatEtb(totalSubtotal)} ETB</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* STEP 2: SHIFT */}
+                    {checkoutModalStep === 2 && (
+                      <div className="grid grid-cols-2 gap-3.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedShiftType('Day')}
+                          className={`p-5 rounded-2xl border-2 text-center transition-all flex flex-col items-center gap-2.5 ${
+                            selectedShiftType === 'Day'
+                              ? 'border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/20'
+                              : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-emerald-400'
+                          }`}
+                        >
+                          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                            <Sun className="w-6 h-6" />
+                          </div>
+                          <span className="font-black text-sm text-slate-900 dark:text-white">{t.dayShift}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedShiftType('Night')}
+                          className={`p-5 rounded-2xl border-2 text-center transition-all flex flex-col items-center gap-2.5 ${
+                            selectedShiftType === 'Night'
+                              ? 'border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/20'
+                              : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-emerald-400'
+                          }`}
+                        >
+                          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                            <Moon className="w-6 h-6" />
+                          </div>
+                          <span className="font-black text-sm text-slate-900 dark:text-white">{t.nightShift}</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* STEP 3: WAITER */}
+                    {checkoutModalStep === 3 && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                          {waitersList.map(waiter => {
+                            const isSelected = (selectedWaiter === waiter.fullName || selectedWaiter === waiter.amharic) && !customWaiterName.trim();
+                            const waiterLabel = language === 'en' ? (waiter.english || waiter.amharic) : (waiter.amharic || waiter.english);
+                            return (
+                              <button
+                                key={waiter.fullName || waiter.amharic}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedWaiter(waiter.fullName || waiter.amharic);
+                                  setCustomWaiterName('');
+                                }}
+                                className={`p-3 rounded-2xl border-2 text-center transition-all flex flex-col items-center gap-1.5 ${
+                                  isSelected
+                                    ? 'border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/20'
+                                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-emerald-400'
+                                }`}
+                              >
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                                  isSelected ? 'bg-emerald-600 text-white' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                }`}>
+                                  <User className="w-4 h-4" />
+                                </div>
+                                <span className="text-xs font-black text-slate-900 dark:text-white leading-tight">{waiterLabel}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            placeholder={t.customWaiterPlaceholder}
+                            value={customWaiterName}
+                            onChange={(e) => setCustomWaiterName(e.target.value)}
+                            className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                          {customWaiterName.trim() && (
+                            <button
+                              type="button"
+                              onClick={handleAddCustomWaiter}
+                              className="px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-black"
+                            >
+                              {t.saveWaiter}
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-xs font-bold">
+                          <span className="text-slate-700 dark:text-slate-200">
+                            {orderType === 'Home' ? t.homeDineIn : t.takeaway} • {selectedShiftType === 'Night' ? t.nightShift : t.dayShift}
+                          </span>
+                          <span className="text-base font-black text-emerald-700 dark:text-emerald-300">{formatEtb(totalSubtotal)} ETB</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Modal Footer Navigation */}
+                  <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between gap-3">
+                    {checkoutModalStep > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => setCheckoutModalStep(prev => prev - 1)}
+                        className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-black text-xs flex items-center gap-1.5"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>{t.back}</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setCheckoutModalStep(0)}
+                        className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-black text-xs"
+                      >
+                        {t.close}
+                      </button>
+                    )}
+
+                    {checkoutModalStep === 1 && (
+                      selectedShiftType === 'BEU' ? (
+                        <button
+                          type="button"
+                          onClick={handleFinalSubmit}
+                          className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>{t.submitOrder}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutModalStep(2)}
+                          className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md"
+                        >
+                          <span>{t.next}</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      )
+                    )}
+
+                    {checkoutModalStep === 2 && (
+                      <button
+                        type="button"
+                        onClick={() => setCheckoutModalStep(3)}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md"
+                      >
+                        <span>{t.next}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
+                    {checkoutModalStep === 3 && (
+                      <button
+                        type="button"
+                        onClick={handleFinalSubmit}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>{t.submitOrder}</span>
+                      </button>
+                    )}
+                  </div>
+
+                </div>
+              </div>
+            )}
+          </main>
+        );
+      })()}
 
       {/* ============================================================== */}
       {/* 2. OWNER EXECUTIVE COMMAND CENTER (6-SECTION SIDEBAR LAYOUT)   */}
@@ -2977,8 +3220,8 @@ export default function App() {
             <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-sm">
-                    👑
+                  <span className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-black text-sm">
+                    <Crown className="w-4 h-4" />
                 </span>
                 <h2 className="text-lg font-black text-slate-900">
                   Owner Command Center & Orders Audit
@@ -3739,9 +3982,9 @@ export default function App() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex-1 w-full flex flex-col lg:flex-row gap-6 animate-in fade-in duration-200">
             {/* EXECUTIVE LEFT SIDEBAR (DESKTOP) / SCROLLABLE NAV BAR (MOBILE) */}
             <aside className="lg:w-64 flex-shrink-0">
-              <div className="bg-slate-900 text-white rounded-3xl p-3 shadow-xl border border-slate-800 lg:sticky lg:top-20 flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible">
-                <div className="hidden lg:block px-3 py-2 mb-1 border-b border-slate-800">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
+              <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-3xl p-3 shadow-sm border border-slate-200 dark:border-slate-800 lg:sticky lg:top-20 flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible">
+                <div className="hidden lg:block px-3 py-2 mb-1 border-b border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
                     Owner Navigation
                   </span>
                 </div>
@@ -3763,12 +4006,12 @@ export default function App() {
                       }}
                       className={`px-3.5 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center justify-between gap-2 whitespace-nowrap ${
                         isActive
-                          ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/30 border-l-4 border-emerald-300'
-                          : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                          ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       <span className="flex items-center gap-2.5">
-                        <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-emerald-400'}`} />
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
                         <span>{item.label}</span>
                       </span>
                       {item.badge !== null && item.badge !== undefined && (
@@ -3777,7 +4020,7 @@ export default function App() {
                             ? 'bg-rose-600 text-white animate-pulse'
                             : isActive
                               ? 'bg-white/20 text-white'
-                              : 'bg-slate-800 text-slate-300'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                         }`}>
                           {item.badge}
                         </span>
@@ -3786,11 +4029,11 @@ export default function App() {
                   );
                 })}
 
-                <div className="hidden lg:block mt-3 pt-3 border-t border-slate-800 px-2">
+                <div className="hidden lg:block mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 px-2">
                   <button
                     type="button"
                     onClick={() => navigateToSystem('reconciliation')}
-                    className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-300 text-[11px] font-black flex items-center justify-center gap-1.5 border border-white/10"
+                    className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-emerald-700 dark:text-emerald-300 text-[11px] font-black flex items-center justify-center gap-1.5 border border-slate-200 dark:border-white/10"
                   >
                     <ClipboardCheck className="w-3.5 h-3.5" />
                     <span>Full-Screen Daily Sheet</span>
@@ -3837,6 +4080,7 @@ export default function App() {
                   onUpdateSettlements={(updated) => {
                     setSettlementsHistory(updated);
                     localStorage.setItem('maraki_shift_settlements', JSON.stringify(updated));
+                    dbService.saveAppState('maraki_shift_settlements', updated);
                   }}
                 />
               )}
@@ -3852,7 +4096,7 @@ export default function App() {
               {ownerSection === 'menu' && (
                 <OwnerMenuPriceManager
                   foodMenu={foodMenu}
-                  onUpdateMenu={(updated) => setFoodMenu(updated)}
+                  onUpdateMenu={handleUpdateMenu}
                   defaultMenu={MARAKI_REAL_FOOD_MENU}
                   standardJuicePrice={standardJuicePrice}
                   onUpdateStandardJuicePrice={(rate) => setStandardJuicePrice(rate)}
@@ -3870,6 +4114,7 @@ export default function App() {
                   onClearOrders={() => {
                     setSentOrders([]);
                     localStorage.removeItem('maraki_chef_sent_orders');
+                    dbService.clearAllOrders();
                   }}
                 />
               )}
@@ -3884,6 +4129,7 @@ export default function App() {
                   onClearOrders={() => {
                     setSentOrders([]);
                     localStorage.removeItem('maraki_chef_sent_orders');
+                    dbService.clearAllOrders();
                   }}
                 />
               )}
@@ -4192,18 +4438,18 @@ export default function App() {
             </div>
 
             {/* Header Titles */}
-            <h2 className="text-2xl sm:text-3xl font-black text-[#1C201D] tracking-tight text-center mt-3">
-              ትዕዛዙ ተመዝግቧል!
+            <h2 className="text-2xl sm:text-3xl font-black text-[#1C201D] dark:text-white tracking-tight text-center mt-3">
+              {t.orderSubmittedTitle}
             </h2>
-            <p className="text-xs sm:text-sm font-semibold text-[#666E67] text-center mt-1 tracking-wide">
-              Order sent & successfully logged
+            <p className="text-xs sm:text-sm font-semibold text-[#666E67] dark:text-slate-400 text-center mt-1 tracking-wide">
+              {t.orderSubmittedSub}
             </p>
 
             {/* Auto-Return Countdown Progress Indicator */}
             <div className="mt-3 flex flex-col items-center gap-1.5 w-full max-w-xs animate-in fade-in">
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#E2F4EB] text-[#126848] text-[11px] font-black">
-                <span className="w-2 h-2 rounded-full bg-[#126848] animate-ping" />
-                <span>ወደ ምግብ መምረጫው በራስ-ሰር በመመለስ ላይ...</span>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#E2F4EB] dark:bg-emerald-950/60 text-[#126848] dark:text-emerald-300 text-[11px] font-black">
+                <span className="w-2 h-2 rounded-full bg-[#126848] dark:bg-emerald-400 animate-ping" />
+                <span>{t.autoReturning}</span>
               </div>
               <div className="w-full h-1.5 bg-[#E8E2D5] rounded-full overflow-hidden">
                 <div 
@@ -4759,12 +5005,13 @@ export default function App() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             if (clearConfirmPass.trim() !== ownerPassword) {
                               setClearConfirmError('Incorrect Owner Password.');
                               return;
                             }
                             clearAllBusinessData({ includeSettings: clearIncludeSettings });
+                            await dbService.clearAllCloudData({ includeSettings: clearIncludeSettings });
                             window.location.reload();
                           }}
                           className="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[11px] font-black shadow-xs"

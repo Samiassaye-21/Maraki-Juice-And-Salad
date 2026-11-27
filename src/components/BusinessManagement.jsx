@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { clearAllBusinessData, toLocalIsoDate } from '../utils/reconciliationHelpers';
+import { dbService } from '../lib/supabaseClient';
 import { 
   Building, 
   Calendar, 
@@ -242,9 +243,14 @@ export default function BusinessManagement({
     return saved ? JSON.parse(saved) : [];
   });
   const [showWaiterDebtsModal, setShowWaiterDebtsModal] = useState(false);
+  const prevWaiterDebtsRef = useRef(waiterPendingDebts);
+  const prevExpensesRef = useRef(actualExpenses);
 
   useEffect(() => {
     localStorage.setItem('maraki_waiter_pending_debts', JSON.stringify(waiterPendingDebts));
+    dbService.saveAppState('maraki_waiter_pending_debts', waiterPendingDebts);
+    dbService.syncAdariList(waiterPendingDebts, prevWaiterDebtsRef.current);
+    prevWaiterDebtsRef.current = waiterPendingDebts;
   }, [waiterPendingDebts]);
 
   useEffect(() => {
@@ -257,8 +263,39 @@ export default function BusinessManagement({
         }
       }
     };
+    const handleRemoteSync = () => {
+      try {
+        const load = (k, fallback) => {
+          const v = localStorage.getItem(k);
+          return v ? JSON.parse(v) : fallback;
+        };
+        setRecurringExpenses(load('maraki_plan_recurring', []));
+        setPurchasePlans(load('maraki_plan_purchases', []));
+        setSalaryPlans(load('maraki_plan_salaries', []));
+        setTasks(load('maraki_plan_tasks', []));
+        setGoals(load('maraki_plan_goals', []));
+        setNotes(load('maraki_plan_notes', []));
+        const exp = load('maraki_actual_expenses', []);
+        prevExpensesRef.current = exp;
+        setActualExpenses(exp);
+        setDayCloses(load('maraki_day_closes', []));
+        const debts = load('maraki_waiter_pending_debts', []);
+        prevWaiterDebtsRef.current = debts;
+        setWaiterPendingDebts(debts);
+        const ob = localStorage.getItem('maraki_opening_cash_balance');
+        if (ob !== null) setOpeningBalance(Number(ob) || 0);
+        const ei = localStorage.getItem('maraki_expected_income');
+        if (ei !== null) setExpectedMonthlyIncome(Number(ei) || 0);
+      } catch (err) {
+        console.error('Remote sync reload error:', err);
+      }
+    };
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('maraki-supabase-synced', handleRemoteSync);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('maraki-supabase-synced', handleRemoteSync);
+    };
   }, []);
 
   const activeWaiterDebtsCount = useMemo(() => {
@@ -294,17 +331,49 @@ export default function BusinessManagement({
     }
   }, []);
 
-  // LocalStorage Sync Effects
-  useEffect(() => { localStorage.setItem('maraki_plan_recurring', JSON.stringify(recurringExpenses)); }, [recurringExpenses]);
-  useEffect(() => { localStorage.setItem('maraki_plan_purchases', JSON.stringify(purchasePlans)); }, [purchasePlans]);
-  useEffect(() => { localStorage.setItem('maraki_plan_salaries', JSON.stringify(salaryPlans)); }, [salaryPlans]);
-  useEffect(() => { localStorage.setItem('maraki_plan_tasks', JSON.stringify(tasks)); }, [tasks]);
-  useEffect(() => { localStorage.setItem('maraki_plan_goals', JSON.stringify(goals)); }, [goals]);
-  useEffect(() => { localStorage.setItem('maraki_plan_notes', JSON.stringify(notes)); }, [notes]);
-  useEffect(() => { localStorage.setItem('maraki_actual_expenses', JSON.stringify(actualExpenses)); }, [actualExpenses]);
-  useEffect(() => { localStorage.setItem('maraki_opening_cash_balance', openingBalance.toString()); }, [openingBalance]);
-  useEffect(() => { localStorage.setItem('maraki_expected_income', expectedMonthlyIncome.toString()); }, [expectedMonthlyIncome]);
-  useEffect(() => { localStorage.setItem('maraki_day_closes', JSON.stringify(dayCloses)); }, [dayCloses]);
+  // LocalStorage + Supabase Sync Effects
+  useEffect(() => {
+    localStorage.setItem('maraki_plan_recurring', JSON.stringify(recurringExpenses));
+    dbService.saveAppState('maraki_plan_recurring', recurringExpenses);
+  }, [recurringExpenses]);
+  useEffect(() => {
+    localStorage.setItem('maraki_plan_purchases', JSON.stringify(purchasePlans));
+    dbService.saveAppState('maraki_plan_purchases', purchasePlans);
+  }, [purchasePlans]);
+  useEffect(() => {
+    localStorage.setItem('maraki_plan_salaries', JSON.stringify(salaryPlans));
+    dbService.saveAppState('maraki_plan_salaries', salaryPlans);
+  }, [salaryPlans]);
+  useEffect(() => {
+    localStorage.setItem('maraki_plan_tasks', JSON.stringify(tasks));
+    dbService.saveAppState('maraki_plan_tasks', tasks);
+  }, [tasks]);
+  useEffect(() => {
+    localStorage.setItem('maraki_plan_goals', JSON.stringify(goals));
+    dbService.saveAppState('maraki_plan_goals', goals);
+  }, [goals]);
+  useEffect(() => {
+    localStorage.setItem('maraki_plan_notes', JSON.stringify(notes));
+    dbService.saveAppState('maraki_plan_notes', notes);
+  }, [notes]);
+  useEffect(() => {
+    localStorage.setItem('maraki_actual_expenses', JSON.stringify(actualExpenses));
+    dbService.saveAppState('maraki_actual_expenses', actualExpenses);
+    dbService.syncExpenses(actualExpenses, prevExpensesRef.current);
+    prevExpensesRef.current = actualExpenses;
+  }, [actualExpenses]);
+  useEffect(() => {
+    localStorage.setItem('maraki_opening_cash_balance', openingBalance.toString());
+    dbService.saveAppState('maraki_opening_cash_balance', openingBalance);
+  }, [openingBalance]);
+  useEffect(() => {
+    localStorage.setItem('maraki_expected_income', expectedMonthlyIncome.toString());
+    dbService.saveAppState('maraki_expected_income', expectedMonthlyIncome);
+  }, [expectedMonthlyIncome]);
+  useEffect(() => {
+    localStorage.setItem('maraki_day_closes', JSON.stringify(dayCloses));
+    dbService.saveAppState('maraki_day_closes', dayCloses);
+  }, [dayCloses]);
 
   // UI Interactive States
   const [showQuickAddMenu, setShowQuickAddMenu] = useState(false);
@@ -953,7 +1022,7 @@ export default function BusinessManagement({
     setNotes([]);
     setDayCloses([]);
     if (onClearOrders) onClearOrders();
-    clearAllBusinessData({ includeSettings: false });
+    clearAllBusinessData({ includeSettings: false, syncCloud: true });
     window.location.reload();
   };
 
@@ -1947,15 +2016,15 @@ export default function BusinessManagement({
           </div>
 
           {/* ONE-TAP QUICK EXPENSE PRESETS WITH 10S UNDO */}
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-5 rounded-3xl shadow-lg shadow-slate-950/10 space-y-3">
+          <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 p-5 rounded-3xl shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-amber-400" />
-                <h4 className="text-xs font-black uppercase tracking-wider text-amber-300">
+                <Zap className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                <h4 className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-300">
                   ፈጣን የዕለት ወጪ መመዝገቢያ (One-Tap Quick Presets)
                 </h4>
               </div>
-              <span className="text-[10px] text-slate-400 font-bold">አንዴ በመንካት ወዲያውኑ ይመዘገባል (10 ሰከንድ ቀልብስ አለው)</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">አንዴ በመንካት ወዲያውኑ ይመዘገባል (10 ሰከንድ ቀልብስ አለው)</span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
@@ -1971,14 +2040,14 @@ export default function BusinessManagement({
                   key={idx}
                   type="button"
                   onClick={() => handleQuickPreset(preset.title, preset.category, preset.amount, 'Cash')}
-                  className="bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 rounded-2xl p-3 text-left transition-all group flex flex-col justify-between gap-2"
+                  className="bg-slate-50 dark:bg-white/10 hover:bg-slate-100 dark:hover:bg-white/20 active:scale-95 border border-slate-200 dark:border-white/10 rounded-2xl p-3 text-left transition-all group flex flex-col justify-between gap-2"
                 >
                   <span className="text-2xl">{preset.emoji}</span>
                   <div>
-                    <span className="font-black text-xs text-white block truncate leading-tight group-hover:text-amber-300">
+                    <span className="font-black text-xs text-slate-900 dark:text-white block truncate leading-tight group-hover:text-emerald-600 dark:group-hover:text-amber-300">
                       {preset.title.split(' ')[0]}
                     </span>
-                    <span className="text-xs font-black text-emerald-400 block mt-0.5">
+                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 block mt-0.5">
                       +{preset.amount} ETB
                     </span>
                   </div>

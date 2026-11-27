@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { computePackagingAudit, getOrderIsoDate, toLocalIsoDate } from '../utils/reconciliationHelpers';
 import { toEthiopianDateString } from './BusinessManagement';
+import { dbService } from '../lib/supabaseClient';
 
 export default function BoxInventoryAudit({ orders = [], settlements = [], onStockChanged }) {
   const [activeItem, setActiveItem] = useState('box'); // 'box' | 'cup'
@@ -49,28 +50,50 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
 
   useEffect(() => {
     localStorage.setItem('maraki_box_purchases_v1', JSON.stringify(purchases));
+    dbService.saveAppState('maraki_box_purchases_v1', purchases);
     // Sync legacy total bought into maraki_box_starting_stock so older views stay aligned
     const totalBoxes = purchases.filter(p => p.itemType === 'box').reduce((s, p) => s + Number(p.qty || 0), 0);
     localStorage.setItem('maraki_box_starting_stock', String(totalBoxes));
+    dbService.saveAppState('maraki_box_starting_stock', totalBoxes);
     if (onStockChanged) onStockChanged();
   }, [purchases]);
 
   useEffect(() => {
     localStorage.setItem('maraki_box_manual_issues_v1', JSON.stringify(manualIssues));
+    dbService.saveAppState('maraki_box_manual_issues_v1', manualIssues);
     if (onStockChanged) onStockChanged();
   }, [manualIssues]);
 
   useEffect(() => {
     localStorage.setItem('maraki_stock_thresholds_v1', JSON.stringify(thresholds));
+    dbService.saveAppState('maraki_stock_thresholds_v1', thresholds);
   }, [thresholds]);
 
   useEffect(() => {
     localStorage.setItem('maraki_waste_boxes', String(wasteBoxes));
+    dbService.saveAppState('maraki_waste_boxes', wasteBoxes);
   }, [wasteBoxes]);
 
   useEffect(() => {
     localStorage.setItem('maraki_waste_cups', String(wasteCups));
+    dbService.saveAppState('maraki_waste_cups', wasteCups);
   }, [wasteCups]);
+
+  useEffect(() => {
+    const handleRemoteSync = () => {
+      const audit = computePackagingAudit({ orders, settlements });
+      setPurchases(audit.purchases);
+      setManualIssues(audit.manualIssues);
+      try {
+        const savedThresh = localStorage.getItem('maraki_stock_thresholds_v1');
+        if (savedThresh) setThresholds(JSON.parse(savedThresh));
+      } catch (e) {}
+      setWasteBoxes(Number(localStorage.getItem('maraki_waste_boxes')) || 0);
+      setWasteCups(Number(localStorage.getItem('maraki_waste_cups')) || 0);
+    };
+    window.addEventListener('maraki-supabase-synced', handleRemoteSync);
+    return () => window.removeEventListener('maraki-supabase-synced', handleRemoteSync);
+  }, [orders, settlements]);
 
   // Forms
   const [buyQty, setBuyQty] = useState('');

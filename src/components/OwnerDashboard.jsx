@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   BellRing,
   Package,
@@ -32,6 +32,13 @@ export default function OwnerDashboard({
   onNavigateSection
 }) {
   const todayIso = toLocalIsoDate(new Date());
+  const [syncTick, setSyncTick] = useState(0);
+
+  useEffect(() => {
+    const onSynced = () => setSyncTick(t => t + 1);
+    window.addEventListener('maraki-supabase-synced', onSynced);
+    return () => window.removeEventListener('maraki-supabase-synced', onSynced);
+  }, []);
 
   // Resolve localStorage collections safely
   const pendingDebts = useMemo(() => {
@@ -40,7 +47,7 @@ export default function OwnerDashboard({
     } catch (e) {
       return [];
     }
-  }, []);
+  }, [syncTick]);
 
   const ownerExpenses = useMemo(() => {
     try {
@@ -48,7 +55,7 @@ export default function OwnerDashboard({
     } catch (e) {
       return [];
     }
-  }, []);
+  }, [syncTick]);
 
   const recurringPayables = useMemo(() => {
     try {
@@ -56,7 +63,7 @@ export default function OwnerDashboard({
     } catch (e) {
       return [];
     }
-  }, []);
+  }, [syncTick]);
 
   const tasks = useMemo(() => {
     try {
@@ -64,7 +71,7 @@ export default function OwnerDashboard({
     } catch (e) {
       return [];
     }
-  }, []);
+  }, [syncTick]);
 
   // Today's Settlements & Chef Orders
   const todaySettlements = useMemo(
@@ -140,15 +147,15 @@ export default function OwnerDashboard({
   return (
     <div className="space-y-6 text-slate-800">
       {/* HERO WELCOME BAR */}
-      <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white rounded-3xl p-6 shadow-xl border border-emerald-800/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] font-black uppercase tracking-widest text-emerald-400">
+          <span className="text-[11px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
             Maraki Juice & Salad • Executive Command
           </span>
           <h1 className="text-xl sm:text-2xl font-black tracking-tight mt-1">
             Owner Overview — {toEthiopianDateString(`${todayIso}T12:00:00`)}
           </h1>
-          <p className="text-xs text-slate-300 font-bold mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-1">
             Today ({todayIso}) • {todayOrders.length} Chef Orders • {todaySettlements.length} Shift Sheets Closed
           </p>
         </div>
@@ -157,7 +164,7 @@ export default function OwnerDashboard({
           <button
             type="button"
             onClick={() => onNavigateSection('sheet')}
-            className="px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+            className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
           >
             <ClipboardCheck className="w-4 h-4" />
             <span>Open Daily Sheet</span>
@@ -165,7 +172,7 @@ export default function OwnerDashboard({
           <button
             type="button"
             onClick={() => onNavigateSection('analysis')}
-            className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-black text-xs flex items-center gap-1.5 border border-white/15 active:scale-95 transition-all"
+            className="px-4 py-2.5 rounded-2xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-800 dark:text-white font-black text-xs flex items-center gap-1.5 border border-slate-200 dark:border-white/15 active:scale-95 transition-all"
           >
             <BarChart3 className="w-4 h-4 text-emerald-300" />
             <span>Deep Reports</span>

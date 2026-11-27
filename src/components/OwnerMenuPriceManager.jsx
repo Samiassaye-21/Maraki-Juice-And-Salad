@@ -19,6 +19,7 @@ import {
   Truck
 } from 'lucide-react';
 import { isFoodItemForBeu, computeBeuPrice, formatEtb } from '../utils/beuHelpers';
+import { dbService } from '../lib/supabaseClient';
 
 const CATEGORIES = [
   { id: 'All', label: 'All Items' },
@@ -53,6 +54,7 @@ export default function OwnerMenuPriceManager({
 
   useEffect(() => {
     localStorage.setItem('maraki_menu_edit_pin_lock', String(requirePinToSave));
+    dbService.saveAppState('maraki_menu_edit_pin_lock', requirePinToSave);
   }, [requirePinToSave]);
 
   // Price Change Audit History
@@ -67,7 +69,21 @@ export default function OwnerMenuPriceManager({
 
   useEffect(() => {
     localStorage.setItem('maraki_price_change_log_v1', JSON.stringify(priceAuditLog));
+    dbService.saveAppState('maraki_price_change_log_v1', priceAuditLog);
   }, [priceAuditLog]);
+
+  useEffect(() => {
+    const handleRemoteSync = () => {
+      const savedPin = localStorage.getItem('maraki_menu_edit_pin_lock');
+      if (savedPin !== null) setRequirePinToSave(savedPin === 'true');
+      try {
+        const savedLog = localStorage.getItem('maraki_price_change_log_v1');
+        if (savedLog) setPriceAuditLog(JSON.parse(savedLog));
+      } catch (e) {}
+    };
+    window.addEventListener('maraki-supabase-synced', handleRemoteSync);
+    return () => window.removeEventListener('maraki-supabase-synced', handleRemoteSync);
+  }, []);
 
   const recordAudit = (itemName, oldPrice, newPrice, detail = '') => {
     const entry = {
@@ -411,26 +427,26 @@ export default function OwnerMenuPriceManager({
       )}
 
       {/* 1. STANDARD JUICE CUP PRICE (FOR DAILY SHEET & beU) */}
-      <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white p-5 rounded-3xl border border-emerald-800/40 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Coffee className="w-5 h-5 text-emerald-400" />
+            <Coffee className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <h2 className="text-sm sm:text-base font-black">Standard Juice Cup Rate (Daily Income Sheet & beU)</h2>
           </div>
-          <p className="text-xs text-slate-300 font-bold">
+          <p className="text-xs text-slate-500 dark:text-slate-300 font-bold">
             Used automatically when calculating cups sold, beU delivery deductions, and unpaid juice waiter debts.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <div className="flex items-center gap-1 bg-white/10 p-1 rounded-xl border border-white/15">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/10 p-1 rounded-xl border border-slate-200 dark:border-white/15">
             {[150, 170, 180, 200].map(preset => (
               <button
                 key={preset}
                 type="button"
                 onClick={() => setDraftJuicePrice(String(preset))}
                 className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
-                  Number(draftJuicePrice) === preset ? 'bg-emerald-500 text-slate-950' : 'text-slate-200 hover:bg-white/10'
+                  Number(draftJuicePrice) === preset ? 'bg-emerald-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/10'
                 }`}
               >
                 {preset}
@@ -443,13 +459,13 @@ export default function OwnerMenuPriceManager({
               min="1"
               value={draftJuicePrice}
               onChange={(e) => setDraftJuicePrice(e.target.value)}
-              className="w-24 bg-white text-slate-900 rounded-xl px-3 py-2 text-sm font-black outline-none"
+              className="w-24 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-black outline-none"
             />
-            <span className="text-xs font-black text-emerald-300">ETB / cup</span>
+            <span className="text-xs font-black text-emerald-700 dark:text-emerald-300">ETB / cup</span>
             <button
               type="button"
               onClick={handleSaveStandardJuiceRate}
-              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm active:scale-95"
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-sm active:scale-95"
             >
               <Save className="w-3.5 h-3.5" />
               <span>Update Rate</span>

@@ -1,5 +1,6 @@
 import { toEthiopianDateString } from '../components/BusinessManagement';
 import { getOrderBeuMetrics, roundPricePrecision } from './beuHelpers';
+import { dbService } from '../lib/supabaseClient';
 
 /**
  * Safely convert a YYYY-MM-DD string or ISO timestamp to local YYYY-MM-DD.
@@ -455,13 +456,14 @@ export function saveShiftDefaultWaiters(nextMap) {
     Night: (nextMap?.Night || '').trim() || DEFAULT_SHIFT_WAITERS.Night
   };
   localStorage.setItem('maraki_shift_default_waiters_v1', JSON.stringify(clean));
+  dbService.saveAppState('maraki_shift_default_waiters_v1', clean);
   try {
     window.dispatchEvent(new Event('maraki-shift-waiters-updated'));
   } catch (e) {}
   return clean;
 }
 
-export function clearAllBusinessData({ includeSettings = false } = {}) {
+export function clearAllBusinessData({ includeSettings = false, syncCloud = false } = {}) {
   try {
     const dynamicPrefixes = [
       'maraki_sales_orders_',
@@ -526,6 +528,9 @@ export function clearAllBusinessData({ includeSettings = false } = {}) {
       try {
         window.dispatchEvent(new Event('maraki-shift-waiters-updated'));
       } catch (e) {}
+    }
+    if (syncCloud) {
+      dbService.clearAllCloudData({ includeSettings });
     }
     return true;
   } catch (e) {

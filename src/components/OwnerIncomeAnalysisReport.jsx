@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   BarChart3,
   Calendar,
@@ -151,6 +151,14 @@ export default function OwnerIncomeAnalysisReport({
     }
   }, [orders]);
 
+  const [syncTick, setSyncTick] = useState(0);
+
+  useEffect(() => {
+    const onSynced = () => setSyncTick(t => t + 1);
+    window.addEventListener('maraki-supabase-synced', onSynced);
+    return () => window.removeEventListener('maraki-supabase-synced', onSynced);
+  }, []);
+
   const actualOwnerExpenses = useMemo(() => {
     try {
       const saved = localStorage.getItem('maraki_actual_expenses');
@@ -158,7 +166,7 @@ export default function OwnerIncomeAnalysisReport({
     } catch (e) {
       return [];
     }
-  }, []);
+  }, [syncTick]);
 
   const allPendingDebts = useMemo(() => {
     try {
@@ -167,7 +175,7 @@ export default function OwnerIncomeAnalysisReport({
     } catch (e) {
       return [];
     }
-  }, []);
+  }, [syncTick]);
 
   const filterCfg = { timeRange, selectedDate, customStartDate, customEndDate };
 
@@ -1145,58 +1153,58 @@ export default function OwnerIncomeAnalysisReport({
           )}
 
           {/* FINANCIAL AUDIT & TRUE NET PROFIT CARD */}
-          <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white rounded-3xl p-6 shadow-xl border border-emerald-800/40 space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/15 pb-4">
+          <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-white/15 pb-4">
               <div>
                 <h2 className="text-base sm:text-lg font-black tracking-tight">Financial Cash Flow & Estimated Net Profit</h2>
-                <p className="text-xs text-emerald-200/80 font-bold">{rangeTitle} • {metrics.settlementsCount} reconciled shifts</p>
+                <p className="text-xs text-slate-500 dark:text-emerald-200/80 font-bold">{rangeTitle} • {metrics.settlementsCount} reconciled shifts</p>
               </div>
-              <span className="px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-xs font-black text-emerald-200">
+              <span className="px-3 py-1 bg-emerald-500/15 border border-emerald-500/30 rounded-full text-xs font-black text-emerald-700 dark:text-emerald-200">
                 Drawer Cash + Net Profit
               </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-              <div className="bg-white/10 p-3.5 rounded-2xl border border-white/10">
-                <span className="text-[10px] text-emerald-200 block font-bold">Gross Sales</span>
+              <div className="bg-slate-50 dark:bg-white/10 p-3.5 rounded-2xl border border-slate-200 dark:border-white/10">
+                <span className="text-[10px] text-slate-500 dark:text-emerald-200 block font-bold">Gross Sales</span>
                 <span className="text-base font-black tabular-nums mt-1 block">{metrics.totalGrossSales.toLocaleString()} ETB</span>
               </div>
-              <div className="bg-white/10 p-3.5 rounded-2xl border border-white/10">
-                <span className="text-[10px] text-rose-300 block font-bold">beU Deduction</span>
-                <span className="text-base font-black text-rose-200 tabular-nums mt-1 block">-{metrics.totalBeuDeduction.toLocaleString()} ETB</span>
+              <div className="bg-rose-50 dark:bg-white/10 p-3.5 rounded-2xl border border-rose-200 dark:border-white/10">
+                <span className="text-[10px] text-rose-600 dark:text-rose-300 block font-bold">beU Deduction</span>
+                <span className="text-base font-black text-rose-700 dark:text-rose-200 tabular-nums mt-1 block">-{metrics.totalBeuDeduction.toLocaleString()} ETB</span>
               </div>
-              <div className="bg-white/10 p-3.5 rounded-2xl border border-white/10">
-                <span className="text-[10px] text-rose-300 block font-bold">All Expenses (Shift+Owner)</span>
-                <span className="text-base font-black text-rose-200 tabular-nums mt-1 block">-{metrics.totalAllExpenses.toLocaleString()} ETB</span>
+              <div className="bg-rose-50 dark:bg-white/10 p-3.5 rounded-2xl border border-rose-200 dark:border-white/10">
+                <span className="text-[10px] text-rose-600 dark:text-rose-300 block font-bold">All Expenses (Shift+Owner)</span>
+                <span className="text-base font-black text-rose-700 dark:text-rose-200 tabular-nums mt-1 block">-{metrics.totalAllExpenses.toLocaleString()} ETB</span>
               </div>
-              <div className="bg-white/10 p-3.5 rounded-2xl border border-white/10">
-                <span className="text-[10px] text-emerald-200 block font-bold">Bank Transfers</span>
-                <span className="text-base font-black text-emerald-200 tabular-nums mt-1 block">-{metrics.totalBankTransfers.toLocaleString()} ETB</span>
+              <div className="bg-slate-50 dark:bg-white/10 p-3.5 rounded-2xl border border-slate-200 dark:border-white/10">
+                <span className="text-[10px] text-slate-500 dark:text-emerald-200 block font-bold">Bank Transfers</span>
+                <span className="text-base font-black text-emerald-700 dark:text-emerald-200 tabular-nums mt-1 block">-{metrics.totalBankTransfers.toLocaleString()} ETB</span>
               </div>
-              <div className="bg-white/10 p-3.5 rounded-2xl border border-white/10">
-                <span className="text-[10px] text-emerald-200 block font-bold">Recovered Debts</span>
-                <span className="text-base font-black text-emerald-300 tabular-nums mt-1 block">+{metrics.totalRecoveredAdded.toLocaleString()} ETB</span>
+              <div className="bg-emerald-50 dark:bg-white/10 p-3.5 rounded-2xl border border-emerald-200 dark:border-white/10">
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-200 block font-bold">Recovered Debts</span>
+                <span className="text-base font-black text-emerald-700 dark:text-emerald-300 tabular-nums mt-1 block">+{metrics.totalRecoveredAdded.toLocaleString()} ETB</span>
               </div>
-              <div className="bg-white/10 p-3.5 rounded-2xl border border-white/10">
-                <span className="text-[10px] text-rose-300 block font-bold">New Pending Debt</span>
-                <span className="text-base font-black text-rose-200 tabular-nums mt-1 block">-{metrics.totalPendingDeducted.toLocaleString()} ETB</span>
+              <div className="bg-rose-50 dark:bg-white/10 p-3.5 rounded-2xl border border-rose-200 dark:border-white/10">
+                <span className="text-[10px] text-rose-600 dark:text-rose-300 block font-bold">New Pending Debt</span>
+                <span className="text-base font-black text-rose-700 dark:text-rose-200 tabular-nums mt-1 block">-{metrics.totalPendingDeducted.toLocaleString()} ETB</span>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white/15 rounded-2xl p-4 border border-emerald-400/30">
-                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-200 block">
+              <div className="bg-emerald-50 dark:bg-white/15 rounded-2xl p-4 border border-emerald-200 dark:border-emerald-400/30">
+                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-200 block">
                   Physical Cash Collected in Drawer
                 </span>
-                <p className="text-3xl font-black text-white tabular-nums mt-1">
-                  {metrics.totalPhysicalCash.toLocaleString()} <span className="text-sm text-emerald-300">ETB</span>
+                <p className="text-3xl font-black text-slate-900 dark:text-white tabular-nums mt-1">
+                  {metrics.totalPhysicalCash.toLocaleString()} <span className="text-sm text-emerald-600 dark:text-emerald-300">ETB</span>
                 </p>
               </div>
-              <div className="bg-white/10 rounded-2xl p-4 border border-white/15">
-                <span className="text-[11px] font-black uppercase tracking-wider text-slate-300 block">
+              <div className="bg-slate-50 dark:bg-white/10 rounded-2xl p-4 border border-slate-200 dark:border-white/15">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-300 block">
                   Estimated Net Profit (Sales − Expenses − Restock Cost − beU Fee)
                 </span>
-                <p className={`text-3xl font-black tabular-nums mt-1 ${metrics.estimatedNetProfit >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                <p className={`text-3xl font-black tabular-nums mt-1 ${metrics.estimatedNetProfit >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}`}>
                   {metrics.estimatedNetProfit.toLocaleString()} <span className="text-sm">ETB</span>
                 </p>
               </div>
