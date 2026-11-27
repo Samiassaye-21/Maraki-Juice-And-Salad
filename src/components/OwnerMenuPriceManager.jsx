@@ -19,7 +19,8 @@ import {
   Truck,
   Camera,
   ImagePlus,
-  X
+  X,
+  Pencil
 } from 'lucide-react';
 import { isFoodItemForBeu, computeBeuPrice, formatEtb } from '../utils/beuHelpers';
 import { getDishBoxType, getDishBoxTypeMap, saveDishBoxTypeMap } from '../utils/reconciliationHelpers';
@@ -182,6 +183,7 @@ export default function OwnerMenuPriceManager({
   const [newBoxType, setNewBoxType] = useState('standard_box'); // 'standard_box' | 'chofan_box'
   const [boxTypeMap, setBoxTypeMap] = useState(() => getDishBoxTypeMap());
   const [uploadingItemId, setUploadingItemId] = useState(null);
+  const [editingItem, setEditingItem] = useState(null); // { id, name, englishName, category, itemType, price, originalPrice, homePrice, emoji, description, imageUrl, isAvailable, boxType }
 
   useEffect(() => {
     const syncBoxTypes = () => setBoxTypeMap(getDishBoxTypeMap());
@@ -386,6 +388,95 @@ export default function OwnerMenuPriceManager({
     } catch (err) {
       showNotice('Could not load selected image file.');
     }
+  };
+
+  const openEditModal = (item) => {
+    const draft = getDraft(item);
+    const curBox = getDishBoxType(item, {}, boxTypeMap);
+    const isDrinkCat = ['Juices', 'Milkshake', 'Drinks'].includes(item.category) || item.containerType === 'cup' || item.itemType === 'juice';
+    setEditingItem({
+      id: item.id,
+      name: item.name || '',
+      englishName: item.englishName || '',
+      category: item.category || (isDrinkCat ? 'Juices' : 'Salad'),
+      itemType: isDrinkCat ? 'juice' : 'food',
+      price: draft.price,
+      originalPrice: draft.originalPrice,
+      homePrice: draft.homePrice,
+      emoji: item.emoji || (isDrinkCat ? '🥤' : '🥗'),
+      description: item.description || '',
+      imageUrl: item.imageUrl || '',
+      isAvailable: item.isAvailable !== false,
+      boxType: curBox === 'chofan_box' ? 'chofan_box' : 'standard_box'
+    });
+  };
+
+  const handleEditModalImageChange = async (file) => {
+    if (!file) return;
+    try {
+      const compressed = await compressMenuImageFile(file);
+      setEditingItem(prev => (prev ? { ...prev, imageUrl: compressed } : prev));
+    } catch (err) {
+      showNotice('Could not load selected image file.');
+    }
+  };
+
+  const handleSaveEditModal = (e) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    const priceNum = Number(editingItem.price);
+    if (!editingItem.name.trim() || isNaN(priceNum) || priceNum < 0) return;
+    const origNum = editingItem.originalPrice === '' ? null : Number(editingItem.originalPrice);
+    const homeNum = editingItem.homePrice === '' ? null : Number(editingItem.homePrice);
+    if (origNum !== null && (isNaN(origNum) || origNum < 0)) return;
+    if (homeNum !== null && (isNaN(homeNum) || homeNum < 0)) return;
+
+    const targetId = editingItem.id;
+    const originalItem = foodMenu.find(m => m.id === targetId);
+
+    runWithPermission(() => {
+      const isDrinkCat = ['Juices', 'Milkshake', 'Drinks'].includes(editingItem.category);
+      const isJuice = editingItem.itemType === 'juice' || isDrinkCat;
+
+      const updated = foodMenu.map(m => {
+        if (m.id !== targetId) return m;
+        return {
+          ...m,
+          name: editingItem.name.trim(),
+          englishName: editingItem.englishName.trim() || editingItem.name.trim(),
+          category: isJuice && !isDrinkCat ? 'Juices' : editingItem.category,
+          itemType: isJuice ? 'juice' : 'food',
+          containerType: isJuice ? 'cup' : 'box',
+          price: priceNum,
+          originalPrice: origNum,
+          homePrice: homeNum,
+          emoji: editingItem.emoji.trim() || (isJuice ? '🥤' : '🥗'),
+          description: editingItem.description.trim(),
+          imageUrl: editingItem.imageUrl || '',
+          isAvailable: editingItem.isAvailable !== false
+        };
+      });
+
+      if (!isJuice) {
+        const updatedMap = saveDishBoxTypeMap({ ...boxTypeMap, [targetId]: editingItem.boxType || 'standard_box' });
+        setBoxTypeMap(updatedMap);
+      }
+
+      recordAudit(
+        `${editingItem.name.trim()} (${editingItem.englishName.trim() || ''})`,
+        `${originalItem?.name || ''} • ${originalItem?.price ?? ''} ETB`,
+        `Edited → ${priceNum} ETB${homeNum !== null ? ` / Home ${homeNum}` : ''}`
+      );
+
+      onUpdateMenu(updated);
+      setDraftPrices(prev => {
+        const copy = { ...prev };
+        delete copy[targetId];
+        return copy;
+      });
+      setEditingItem(null);
+      showNotice(`Saved changes for "${editingItem.englishName.trim() || editingItem.name.trim()}"`);
+    });
   };
 
   const handleAddNewItem = (e) => {
@@ -808,8 +899,8 @@ export default function OwnerMenuPriceManager({
               <tr className="bg-slate-50 text-slate-500 font-black border-b border-slate-200">
                 <th className="py-3 px-3">Menu Item & Photo</th>
                 <th className="py-3 px-3">Category / Stock</th>
-                <th className="py-3 px-3">Final Price (Red/Base)</th>
-                <th className="py-3 px-3">Original (Crossed-Out)</th>
+                <th className="py-3 px-3">Selling Price (Final)</th>
+                <th className="py-3 px-3">Old Price (Crossed-Out)</th>
                 <th className="py-3 px-3">🛵 BEU Price (×0.85)</th>
                 <th className="py-3 px-3">Home / Dine-In (ETB)</th>
                 <th className="py-3 px-3 text-center">Chef POS Status</th>
@@ -964,6 +1055,15 @@ export default function OwnerMenuPriceManager({
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
+                          onClick={() => openEditModal(item)}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-xs font-black inline-flex items-center gap-1 transition-all"
+                          title="Edit full dish details, name, category, photo & prices"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleSaveSingleItem(item)}
                           className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
                             isDirty
@@ -1024,6 +1124,233 @@ export default function OwnerMenuPriceManager({
           </div>
         )}
       </div>
+
+      {/* EDIT MENU ITEM & PRICES MODAL */}
+      {editingItem && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setEditingItem(null)}
+        >
+          <form
+            onSubmit={handleSaveEditModal}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-emerald-200 space-y-4"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-slate-900">
+                    Edit Menu Item & Prices
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-bold">
+                    Update dish name, category, photo, packaging stock type & all prices
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Photo + Names Row */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
+              <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center text-2xl shrink-0">
+                {editingItem.imageUrl ? (
+                  <img src={editingItem.imageUrl} alt={editingItem.englishName || editingItem.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{editingItem.emoji || '🥗'}</span>
+                )}
+              </div>
+              <div className="space-y-1.5 flex-1">
+                <span className="text-[11px] font-black text-slate-700 block">Dish / Juice Photo</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="cursor-pointer px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black inline-flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>{editingItem.imageUrl ? 'Change Photo' : 'Upload Image'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleEditModalImageChange(e.target.files?.[0])}
+                      className="hidden"
+                    />
+                  </label>
+                  {editingItem.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingItem(prev => ({ ...prev, imageUrl: '' }))}
+                      className="px-2.5 py-1.5 rounded-xl bg-rose-50 text-rose-700 text-xs font-black border border-rose-200"
+                    >
+                      Remove Photo
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-black text-slate-700 block mb-1">Amharic / Display Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingItem.name}
+                  onChange={(e) => setEditingItem(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs font-black outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-black text-slate-700 block mb-1">English Name</label>
+                <input
+                  type="text"
+                  value={editingItem.englishName}
+                  onChange={(e) => setEditingItem(prev => ({ ...prev, englishName: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-black text-slate-700 block mb-1">Category</label>
+                <select
+                  value={editingItem.category}
+                  onChange={(e) => {
+                    const cat = e.target.value;
+                    const isJuice = ['Juices', 'Milkshake', 'Drinks'].includes(cat);
+                    setEditingItem(prev => ({ ...prev, category: cat, itemType: isJuice ? 'juice' : 'food' }));
+                  }}
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+                >
+                  {CATEGORIES.filter(c => c.id !== 'All').map(c => (
+                    <option key={c.id} value={c.id}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-1">
+                  <label className="text-[11px] font-black text-slate-700 block mb-1">Emoji</label>
+                  <input
+                    type="text"
+                    value={editingItem.emoji}
+                    onChange={(e) => setEditingItem(prev => ({ ...prev, emoji: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-sm text-center outline-none"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-[11px] font-black text-slate-700 block mb-1">Chef POS Visibility</label>
+                  <button
+                    type="button"
+                    onClick={() => setEditingItem(prev => ({ ...prev, isAvailable: !prev.isAvailable }))}
+                    className={`w-full px-3 py-2 rounded-xl text-xs font-black border flex items-center justify-center gap-1.5 ${
+                      editingItem.isAvailable
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : 'bg-slate-100 text-slate-600 border-slate-300'
+                    }`}
+                  >
+                    {editingItem.isAvailable ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                    <span>{editingItem.isAvailable ? 'Visible' : 'Hidden'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-200/80">
+              <div>
+                <label className="text-[11px] font-black text-slate-800 block mb-1">Selling Price (Final ETB) *</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  required
+                  value={editingItem.price}
+                  onChange={(e) => setEditingItem(prev => ({ ...prev, price: e.target.value }))}
+                  className="w-full bg-white border border-slate-300 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs font-black outline-none"
+                />
+                {!['Juices', 'Milkshake', 'Drinks'].includes(editingItem.category) && (
+                  <span className="text-[10px] font-black text-teal-800 block mt-1">
+                    🛵 BEU (×0.85): {formatEtb(computeBeuPrice(editingItem.price))} ETB
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <label className="text-[11px] font-black text-slate-700 block mb-1">Home / Dine-In Price</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  placeholder="Optional"
+                  value={editingItem.homePrice}
+                  onChange={(e) => setEditingItem(prev => ({ ...prev, homePrice: e.target.value }))}
+                  className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-black text-slate-700 block mb-1">Crossed-Out Old Price</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  placeholder="Promo display only"
+                  value={editingItem.originalPrice}
+                  onChange={(e) => setEditingItem(prev => ({ ...prev, originalPrice: e.target.value }))}
+                  className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+                />
+              </div>
+            </div>
+
+            {!['Juices', 'Milkshake', 'Drinks'].includes(editingItem.category) && (
+              <div>
+                <label className="text-[11px] font-black text-slate-700 block mb-1">Takeaway Stock Box Deduction</label>
+                <select
+                  value={editingItem.boxType}
+                  onChange={(e) => setEditingItem(prev => ({ ...prev, boxType: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black outline-none"
+                >
+                  <option value="standard_box">📦 Standard Takeaway Box</option>
+                  <option value="chofan_box">🥡 Chao Fan / Rice & Pasta Box</option>
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="text-[11px] font-black text-slate-700 block mb-1">Short Description (Optional)</label>
+              <input
+                type="text"
+                value={editingItem.description}
+                onChange={(e) => setEditingItem(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Ingredients or short note shown on Chef POS card..."
+                className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-black"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Save Item Changes</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* OWNER PASSWORD PERMISSION MODAL */}
       {pinModalOpen && (
