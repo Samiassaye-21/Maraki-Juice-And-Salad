@@ -25,6 +25,12 @@ import {
   getOrderIsoDate
 } from '../utils/reconciliationHelpers';
 import { getOrderBeuMetrics, formatEtb, roundPricePrecision } from '../utils/beuHelpers';
+import {
+  computeIngredientInventorySummary,
+  loadIngredients,
+  loadRecipes,
+  loadIngredientTxns
+} from '../utils/ingredientInventoryEngine';
 
 export default function OwnerDashboard({
   orders = [],
@@ -38,7 +44,11 @@ export default function OwnerDashboard({
   useEffect(() => {
     const onSynced = () => setSyncTick(t => t + 1);
     window.addEventListener('maraki-supabase-synced', onSynced);
-    return () => window.removeEventListener('maraki-supabase-synced', onSynced);
+    window.addEventListener('maraki-ingredients-updated', onSynced);
+    return () => {
+      window.removeEventListener('maraki-supabase-synced', onSynced);
+      window.removeEventListener('maraki-ingredients-updated', onSynced);
+    };
   }, []);
 
   // Resolve localStorage collections safely
@@ -136,6 +146,28 @@ export default function OwnerDashboard({
     { key: 'cups', label: 'Juice Cups', emoji: '🥤', data: stockAudit.cups }
   ].filter(s => s.data && (s.data.status === 'finished' || s.data.status === 'low'));
 
+  // General Ingredient Inventory & Purchase Warnings
+  const ingredientSummary = useMemo(
+    () =>
+      computeIngredientInventorySummary({
+        ingredients: loadIngredients(),
+        recipes: loadRecipes(),
+        orders,
+        transactions: loadIngredientTxns(),
+        menuItems: foodMenu,
+        todayIso
+      }),
+    [orders, foodMenu, todayIso, syncTick]
+  );
+
+  const activeIngredientAlerts = useMemo(() => {
+    const hasStarted = ingredientSummary.ingredientStatuses.some(
+      i => i.initialStock > 0 || i.purchasedQty > 0 || i.usedQty > 0
+    );
+    if (!hasStarted) return [];
+    return ingredientSummary.alerts.slice(0, 4);
+  }, [ingredientSummary]);
+
   // Today's KPI numbers
   const todayDrawerCash = todaySettlements.reduce((s, x) => s + Number(x.physicalCashInDrawer || 0), 0);
   const todayGrossSales = todaySettlements.reduce((s, x) => s + Number(x.totalGrossSales || 0), 0);
@@ -187,9 +219,33 @@ export default function OwnerDashboard({
         </div>
       </div>
 
-      {/* LIVE ALARM CENTER (CHEF MISMATCHES + 3-STOCK OUT-OF-STOCK / LOW ALERTS) */}
-      {(activeMismatchAlarms.some(a => !a.unsavedOnly) || stockAlerts.length > 0) && (
+      {/* LIVE ALARM CENTER (CHEF MISMATCHES + 3-STOCK OUT-OF-STOCK + INGREDIENT PURCHASE ALERTS) */}
+      {(activeMismatchAlarms.some(a => !a.unsavedOnly) || stockAlerts.length > 0 || activeIngredientAlerts.length > 0) && (
         <div className="space-y-3">
+          {activeIngredientAlerts.map(ing => (
+            <div
+              key={ing.id}
+              onClick={() => onNavigateSection('ingredients')}
+              className={`cursor-pointer border-2 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm transition-all ${
+                ing.status === 'purchase_required'
+                  ? 'bg-rose-50 border-rose-500 text-rose-950'
+                  : 'bg-amber-50 border-amber-400 text-amber-950'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{ing.emoji || '🥗'}</span>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-black">{ing.alertMessage}</h3>
+                  <p className="text-[11px] font-bold opacity-80">
+                    Suggested Purchase: +{ing.suggestedPurchaseQty} {ing.purchaseUnit}
+                  </p>
+                </div>
+              </div>
+              <span className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-black">
+                Manage Ingredients →
+              </span>
+            </div>
+          ))}
           {activeMismatchAlarms.filter(a => !a.unsavedOnly).map(alarm => (
             <div
               key={alarm.id}
@@ -415,12 +471,12 @@ export default function OwnerDashboard({
             </button>
             <button
               type="button"
-              onClick={() => onNavigateSection('stock')}
+              onClick={() => onNavigateSection('ingredients')}
               className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition-all"
             >
-              <span className="text-lg block">📦</span>
-              <span className="text-xs font-black text-slate-900 block mt-1">Buy / Check Boxes</span>
-              <span className="text-[10px] font-bold text-slate-500">Stock Cross-Check</span>
+              <span className="text-lg block">🌾</span>
+              <span className="text-xs font-black text-slate-900 block mt-1">Ingredients & BOM</span>
+              <span className="text-[10px] font-bold text-slate-500">Recipes & Raw Stock</span>
             </button>
             <button
               type="button"

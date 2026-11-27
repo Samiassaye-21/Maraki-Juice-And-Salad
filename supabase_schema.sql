@@ -157,3 +157,44 @@ SET name = EXCLUDED.name,
     container_type = EXCLUDED.container_type,
     image_url = EXCLUDED.image_url,
     description = EXCLUDED.description;
+
+-- 9. General Ingredient & Stock Management Schema (Normalized Companion Tables)
+-- Active clients also sync seamlessly via app_state keys: maraki_ingredients_v1, maraki_recipes_v1, maraki_ingredient_txns_v1
+CREATE TABLE IF NOT EXISTS public.ingredients (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    english_name TEXT,
+    category TEXT DEFAULT 'General',
+    purchase_unit TEXT NOT NULL DEFAULT 'kg',
+    recipe_unit TEXT NOT NULL DEFAULT 'g',
+    recipe_units_per_purchase_unit NUMERIC NOT NULL DEFAULT 1000,
+    initial_stock NUMERIC DEFAULT 0,
+    min_stock_level NUMERIC DEFAULT 0,
+    reorder_level NUMERIC DEFAULT 0,
+    target_stock_level NUMERIC DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.product_recipes (
+    product_id TEXT PRIMARY KEY REFERENCES public.menu_items(id) ON DELETE CASCADE,
+    yield_unit TEXT NOT NULL DEFAULT 'order',
+    ingredients JSONB NOT NULL DEFAULT '[]'::jsonb,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.inventory_transactions (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    ingredient_id TEXT NOT NULL,
+    qty NUMERIC NOT NULL,
+    signed_qty NUMERIC NOT NULL,
+    unit TEXT NOT NULL,
+    cost NUMERIC DEFAULT 0,
+    supplier TEXT,
+    staff_name TEXT,
+    order_id TEXT,
+    reason TEXT,
+    note TEXT,
+    tx_date DATE DEFAULT CURRENT_DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);

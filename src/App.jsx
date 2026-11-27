@@ -5,7 +5,16 @@ import OwnerIncomeAnalysisReport from './components/OwnerIncomeAnalysisReport';
 import OwnerDashboard from './components/OwnerDashboard';
 import BoxInventoryAudit from './components/BoxInventoryAudit';
 import OwnerMenuPriceManager from './components/OwnerMenuPriceManager';
+import IngredientInventoryManager from './components/IngredientInventoryManager';
 import { computePackagingAudit, getShiftDefaultWaiters, saveShiftDefaultWaiters, clearAllBusinessData } from './utils/reconciliationHelpers';
+import {
+  computeIngredientInventorySummary,
+  loadIngredients,
+  loadRecipes,
+  loadIngredientTxns,
+  recordOrderStockAudit,
+  isOrderCancelledOrRefunded
+} from './utils/ingredientInventoryEngine';
 import {
   isFoodItemForBeu,
   computeBeuPrice,
@@ -36,6 +45,7 @@ import {
   Sun, 
   Moon, 
   Box, 
+  Boxes,
   Receipt,
   ArrowRight,
   ArrowLeft,
@@ -696,7 +706,7 @@ export default function App() {
   const [ownerSection, setOwnerSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const sec = params.get('section');
-    const valid = ['dashboard', 'analysis', 'stock', 'menu', 'finance', 'plans', 'orders'];
+    const valid = ['dashboard', 'analysis', 'stock', 'ingredients', 'menu', 'finance', 'plans', 'orders'];
     if (sec && valid.includes(sec)) return sec;
     const saved = localStorage.getItem('maraki_owner_active_section');
     if (saved && valid.includes(saved)) return saved;
@@ -941,7 +951,14 @@ export default function App() {
 
   const handleDeleteChefOrderFromSheet = useCallback(async (orderId) => {
     if (!orderId) return;
-    setSentOrders(prev => prev.filter(o => o.id !== orderId));
+    setSentOrders(prev => {
+      const target = prev.find(o => o.id === orderId);
+      if (target && !isOrderCancelledOrRefunded(target)) {
+        recordOrderStockAudit({ order: target, action: 'reversed' });
+      }
+      return prev.filter(o => o.id !== orderId);
+    });
+    setStockVersion(v => v + 1);
     await dbService.deleteOrder(orderId);
   }, []);
 
@@ -1138,6 +1155,8 @@ export default function App() {
     // 1. OPTIMISTIC UI: Save Owner BEU order & show Chef her clean normal receipt confirmation
     recentSubmittedOrderTimesRef.current.set(orderData.id, Date.now());
     setSentOrders(prev => [orderData, ...prev]);
+    recordOrderStockAudit({ order: orderData, action: 'completed' });
+    setStockVersion(v => v + 1);
     setOrderSuccessModal({
       ...orderData,
       items: chefDisplayItems,
@@ -1530,13 +1549,38 @@ export default function App() {
     return true;
   });
 
-  // Delete Order (Owner correction)
+  // Delete Order (Owner correction + reverse ingredient consumption)
   const handleDeleteOrder = (orderId) => {
     if (window.confirm('ይህን ትዕዛዝ በእርግጥ መሰረዝ ይፈልጋሉ? (Are you sure you want to delete this order?)')) {
-      setSentOrders(prev => prev.filter(o => o.id !== orderId));
+      setSentOrders(prev => {
+        const target = prev.find(o => o.id === orderId);
+        if (target && !isOrderCancelledOrRefunded(target)) {
+          recordOrderStockAudit({ order: target, action: 'reversed' });
+        }
+        return prev.filter(o => o.id !== orderId);
+      });
+      setStockVersion(v => v + 1);
       dbService.deleteOrder(orderId);
-      showToast('ትዕዛዙ ተሰርዟል (Order deleted)');
+      showToast('ትዕዛዙ ተሰርዟል (Order deleted & stock reversed)');
     }
+  };
+
+  // Toggle Cancel/Refund on an order (reverses or restores ingredient inventory consumption)
+  const handleToggleCancelRefundOrder = (orderId) => {
+    setSentOrders(prev =>
+      prev.map(o => {
+        if (o.id !== orderId) return o;
+        const wasCancelled = isOrderCancelledOrRefunded(o);
+        const nextStatus = wasCancelled
+          ? 'ተዘጋጅቶ ተወስዷል (Cooked & Taken)'
+          : '❌ Cancelled / Refunded (ተሰርዟል)';
+        recordOrderStockAudit({ order: o, action: wasCancelled ? 'completed' : 'reversed' });
+        dbService.updateOrder(orderId, { status: nextStatus });
+        return { ...o, status: nextStatus, isCancelled: !wasCancelled };
+      })
+    );
+    setStockVersion(v => v + 1);
+    showToast('የትዕዛዝ ሁኔታ እና የግብአት ክምችት ተስተካክሏል (Order & inventory updated)');
   };
 
   // Toggle Order Status (Cooked vs Taken)
@@ -3252,6 +3296,16 @@ export default function App() {
       {/* ============================================================== */}
       {systemMode === 'owner' && (() => {
         const pkgAudit = computePackagingAudit({ orders: sentOrders, settlements: settlementsHistory, menuItems: foodMenu });
+        const ingSummary = computeIngredientInventorySummary({
+          ingredients: loadIngredients(),
+          recipes: loadRecipes(),
+          orders: sentOrders,
+          transactions: loadIngredientTxns(),
+          menuItems: foodMenu
+        });
+        const ingHasActivity = ingSummary.ingredientStatuses.some(
+          i => i.initialStock > 0 || i.purchasedQty > 0 || i.usedQty > 0
+        );
         const mismatchCount = settlementsHistory.filter(s => s.chefAudit?.hasMismatch).length;
         const stdStatus = pkgAudit.standardBoxes?.status;
         const chofanStatus = pkgAudit.chofanBoxes?.status;
@@ -3266,6 +3320,7 @@ export default function App() {
         const navItems = [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: mismatchCount > 0 ? `${mismatchCount} 🚨` : null, alert: mismatchCount > 0 },
           { id: 'analysis', label: 'Income & Reports', icon: BarChart3, badge: settlementsHistory.length, alert: mismatchCount > 0 },
+          { id: 'ingredients', label: 'Ingredients & Stock', icon: Boxes, badge: ingHasActivity && ingSummary.totals.alertsCount > 0 ? `${ingSummary.totals.alertsCount} ⚠️` : ingSummary.totals.totalIngredients, alert: ingHasActivity && ingSummary.totals.purchaseRequiredCount > 0 },
           { id: 'stock', label: 'Box & Stock Audit', icon: Package, badge: stockAlert || ((pkgAudit.boxes.bought + pkgAudit.cups.bought) > 0 ? pkgAudit.boxes.totalRemaining : null), alert: Boolean(stockAlert) },
           { id: 'menu', label: 'Menu & Prices', icon: Tag, badge: foodMenu.length },
           { id: 'finance', label: 'Finance', icon: Wallet, badge: null },
@@ -4017,6 +4072,20 @@ export default function App() {
                           <span>ቲኬት እይ</span>
                         </button>
 
+                        {/* Cancel / Refund Toggle (Reverses Ingredient Stock) */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCancelRefundOrder(order.id)}
+                          className={`px-2.5 py-2 rounded-xl text-xs font-black border transition-all ${
+                            isOrderCancelledOrRefunded(order)
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                          }`}
+                          title={isOrderCancelledOrRefunded(order) ? 'Restore order' : 'Cancel / Refund order & reverse ingredients'}
+                        >
+                          {isOrderCancelledOrRefunded(order) ? '↩️ Restore' : '✖ Cancel/Refund'}
+                        </button>
+
                         {/* Delete Order Button */}
                         <button
                           type="button"
@@ -4127,6 +4196,13 @@ export default function App() {
                   settlements={settlementsHistory}
                   foodMenu={foodMenu}
                   onStockChanged={() => setStockVersion(v => v + 1)}
+                />
+              )}
+
+              {ownerSection === 'ingredients' && (
+                <IngredientInventoryManager
+                  foodMenu={foodMenu}
+                  orders={sentOrders}
                 />
               )}
 

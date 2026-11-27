@@ -120,7 +120,8 @@ export const dbService = {
         'maraki_opening_cash_balance',
         'maraki_expected_income',
         'maraki_price_change_log_v1',
-        'maraki_schedule_reminders'
+        'maraki_schedule_reminders',
+        'maraki_ingredient_txns_v1'
       ];
       if (includeSettings) {
         dataKeys.push(
@@ -128,7 +129,10 @@ export const dbService = {
           'maraki_shift_default_waiters_v1',
           'maraki_waiters_list_v3',
           'maraki_stock_thresholds_v1',
-          'maraki_menu_edit_pin_lock'
+          'maraki_menu_edit_pin_lock',
+          'maraki_ingredients_v1',
+          'maraki_recipes_v1',
+          'maraki_ingredient_engine_initialized_v1'
         );
       }
       await supabase.from('app_state').delete().in('key', dataKeys);
