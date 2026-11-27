@@ -933,6 +933,18 @@ export default function App() {
     setFoodMenu(updatedMenu);
   };
 
+  const handleUpdateChefOrder = useCallback(async (updatedOrder) => {
+    if (!updatedOrder || !updatedOrder.id) return;
+    setSentOrders(prev => prev.map(o => (o.id === updatedOrder.id ? updatedOrder : o)));
+    await dbService.updateOrder(updatedOrder.id, updatedOrder);
+  }, []);
+
+  const handleDeleteChefOrderFromSheet = useCallback(async (orderId) => {
+    if (!orderId) return;
+    setSentOrders(prev => prev.filter(o => o.id !== orderId));
+    await dbService.deleteOrder(orderId);
+  }, []);
+
   // Auto-return to menu after successful order submission without needing manual interaction
   useEffect(() => {
     if (!orderSuccessModal) return;
@@ -2041,6 +2053,8 @@ export default function App() {
         theme={theme}
         onToggleTheme={handleToggleTheme}
         onRefreshOrders={syncFromSupabase}
+        onUpdateOrder={handleUpdateChefOrder}
+        onDeleteOrder={handleDeleteChefOrderFromSheet}
         onBackToPortal={() => navigateToSystem('portal')}
         onSwitchToChef={() => navigateToSystem('chef')}
         onSwitchToOwner={() => navigateToSystem('owner')}
@@ -4112,6 +4126,8 @@ export default function App() {
                   theme={theme}
                   onToggleTheme={handleToggleTheme}
                   onRefreshOrders={syncFromSupabase}
+                  onUpdateOrder={handleUpdateChefOrder}
+                  onDeleteOrder={handleDeleteChefOrderFromSheet}
                   orders={sentOrders}
                   waiters={waitersList}
                   foodMenu={foodMenu}

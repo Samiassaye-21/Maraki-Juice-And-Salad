@@ -31,10 +31,11 @@ import {
   RotateCcw,
   BellRing,
   Sparkles as WandSparkles,
-  LogOut
+  LogOut,
+  Edit3
 } from 'lucide-react';
 import { toEthiopianDateString, toEthiopianShortDate } from './BusinessManagement';
-import WaiterPendingLedgerModal from './WaiterPendingLedgerModal';
+import WaiterPendingLedgerModal, { DEFAULT_WAITERS_LIST } from './WaiterPendingLedgerModal';
 import ShiftSlipModal from './ShiftSlipModal';
 import {
   aggregateChefOrders,
@@ -45,7 +46,7 @@ import {
   getWaiterPendingSummary,
   consolidateWaiterDebt
 } from '../utils/reconciliationHelpers';
-import { formatEtb } from '../utils/beuHelpers';
+import { formatEtb, isFoodItemForBeu, computeBeuPrice, roundPricePrecision } from '../utils/beuHelpers';
 import { dbService, isSupabaseConfigured } from '../lib/supabaseClient';
 
 // Standard Maraki price per juice cup
@@ -133,6 +134,8 @@ export default function ShiftReconciliation({
   theme = 'light',
   onToggleTheme,
   onRefreshOrders,
+  onUpdateOrder,
+  onDeleteOrder,
   onBackToPortal,
   onSwitchToChef,
   onSwitchToOwner,
@@ -284,6 +287,10 @@ export default function ShiftReconciliation({
     return {};
   });
   const [hasManualFoodOverride, setHasManualFoodOverride] = useState(false);
+  const [showAddFromMenu, setShowAddFromMenu] = useState(false);
+  const [menuAddSearch, setMenuAddSearch] = useState('');
+  const [editingChefOrder, setEditingChefOrder] = useState(null);
+  const [isSavingChefOrderEdit, setIsSavingChefOrderEdit] = useState(false);
   const [dbFetchedOrders, setDbFetchedOrders] = useState(null);
   const [isSyncingDbOrders, setIsSyncingDbOrders] = useState(false);
 
@@ -384,9 +391,231 @@ export default function ShiftReconciliation({
   };
 
   const filteredDishes = useMemo(() => {
-    if (activeFoodCategory === 'All') return dishesList;
-    return dishesList.filter(d => d.category === activeFoodCategory);
-  }, [dishesList, activeFoodCategory]);
+    const q = menuAddSearch.trim().toLowerCase();
+    return dishesList.filter(d => {
+      if (activeFoodCategory !== 'All' && d.category !== activeFoodCategory) return false;
+      if (q) {
+        const hay = `${d.name} ${d.englishName || ''} ${d.category || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [dishesList, activeFoodCategory, menuAddSearch]);
+
+  const orderedAssignedDishes = useMemo(() => {
+    return Object.entries(foodAssignments)
+      .filter(([, qty]) => Number(qty) > 0)
+      .map(([dishId, qty]) => {
+        const dish = dishesList.find(d => d.id === dishId);
+        const chefEntry = chefSummary?.dishCounts?.[dishId];
+        return {
+          id: dishId,
+          name: dish?.name || chefEntry?.name || dishId,
+          englishName: dish?.englishName || chefEntry?.englishName || '',
+          category: dish?.category || 'Other',
+          price: Number(dish?.price ?? chefEntry?.price ?? 0),
+          qty: Number(qty || 0),
+          fromChef: Boolean(chefEntry && chefEntry.qty > 0),
+          chefQty: chefEntry?.qty || 0
+        };
+      })
+      .sort((a, b) => Number(b.fromChef) - Number(a.fromChef) || b.qty - a.qty);
+  }, [foodAssignments, dishesList, chefSummary]);
+
+  const fullEditableMenuDishes = useMemo(() => {
+    const map = new Map();
+    DEFAULT_RECONCILIATION_DISHES.forEach(d => map.set(d.id, d));
+    let resolvedMenu = Array.isArray(foodMenu) && foodMenu.length > 0 ? foodMenu : [];
+    if (resolvedMenu.length === 0) {
+      try {
+        const saved = localStorage.getItem('maraki_chef_food_menu_v2');
+        if (saved) resolvedMenu = JSON.parse(saved);
+      } catch (e) {}
+    }
+    if (Array.isArray(resolvedMenu)) {
+      resolvedMenu.forEach(item => {
+        map.set(item.id, item);
+      });
+    }
+    return Array.from(map.values());
+  }, [foodMenu]);
+
+  const availableEditWaiters = useMemo(() => {
+    const set = new Set(DEFAULT_WAITERS_LIST);
+    (waiters || []).forEach(w => {
+      const name = typeof w === 'string' ? w : (w.fullName || w.amharic);
+      if (name) set.add(name);
+    });
+    return Array.from(set);
+  }, [waiters]);
+
+  const openEditChefOrderModal = (ord) => {
+    const isNight = (ord.shiftType || ord.shift || '').toLowerCase().includes('night');
+    const isBeu = ord.channel === 'BEU Delivery' || ord.isBeuOrder;
+    const isHome = !isBeu && (ord.orderType === 'Home' || ord.channel === 'In-Store Home');
+    setEditingChefOrder({
+      original: ord,
+      id: ord.id,
+      shift: isNight ? 'Night' : 'Day',
+      serviceMode: isBeu ? 'BEU' : isHome ? 'Home' : 'Takeaway',
+      beuOrderId: ord.beuOrderId || '',
+      waiterName: ord.waiterName || (isBeu ? 'የቢዩ አሽከርካሪ (BEU Driver)' : 'ሀብታሙ (Habtamu)'),
+      items: (ord.items || []).map(i => ({ ...i, qty: Number(i.qty || 1) })),
+      addDishId: fullEditableMenuDishes[0]?.id || 'm1'
+    });
+  };
+
+  const handleEditOrderItemQty = (idx, delta) => {
+    setEditingChefOrder(prev => {
+      if (!prev) return null;
+      const nextItems = prev.items
+        .map((it, i) => (i === idx ? { ...it, qty: Math.max(0, Number(it.qty || 0) + delta) } : it))
+        .filter(it => it.qty > 0);
+      return { ...prev, items: nextItems };
+    });
+  };
+
+  const handleAddDishToEditingOrder = () => {
+    if (!editingChefOrder) return;
+    const dish = fullEditableMenuDishes.find(d => d.id === editingChefOrder.addDishId);
+    if (!dish) return;
+    setEditingChefOrder(prev => {
+      if (!prev) return null;
+      const existingIdx = prev.items.findIndex(i => i.id === dish.id);
+      if (existingIdx >= 0) {
+        return {
+          ...prev,
+          items: prev.items.map((it, idx) => idx === existingIdx ? { ...it, qty: Number(it.qty || 0) + 1 } : it)
+        };
+      }
+      return {
+        ...prev,
+        items: [
+          ...prev.items,
+          {
+            id: dish.id,
+            name: dish.name,
+            englishName: dish.englishName || dish.name,
+            qty: 1,
+            price: Number(dish.price || 0),
+            basePrice: Number(dish.price || 0),
+            homePrice: dish.homePrice ?? null
+          }
+        ]
+      };
+    });
+  };
+
+  const handleSaveEditedChefOrder = async (e) => {
+    if (e) e.preventDefault();
+    if (!editingChefOrder || editingChefOrder.items.length === 0) return;
+    setIsSavingChefOrderEdit(true);
+    try {
+      const isBeu = editingChefOrder.serviceMode === 'BEU';
+      const isHome = editingChefOrder.serviceMode === 'Home';
+      const shiftLabel = editingChefOrder.shift === 'Night' ? 'Night Shift' : 'Day Shift';
+      const channelLabel = isBeu ? 'BEU Delivery' : isHome ? 'In-Store Home' : 'In-Store Takeaway';
+      const orderTypeLabel = isHome ? 'Home' : 'Takeaway';
+
+      const recomputedItems = editingChefOrder.items.map(it => {
+        const menuDish = fullEditableMenuDishes.find(d => d.id === it.id) || it;
+        const baseFinal = Number(menuDish.price ?? it.basePrice ?? it.normalPrice ?? it.price ?? 0);
+        const homeVal = menuDish.homePrice !== undefined && menuDish.homePrice !== null ? Number(menuDish.homePrice) : baseFinal;
+        const isFood = isFoodItemForBeu(menuDish);
+        let unitSoldPrice = baseFinal;
+        let itemBeuApplied = false;
+        if (isBeu && isFood) {
+          unitSoldPrice = computeBeuPrice(baseFinal);
+          itemBeuApplied = true;
+        } else if (isHome) {
+          unitSoldPrice = homeVal;
+        }
+        return {
+          ...it,
+          basePrice: baseFinal,
+          homePrice: menuDish.homePrice ?? it.homePrice ?? null,
+          price: unitSoldPrice,
+          normalPrice: itemBeuApplied ? baseFinal : unitSoldPrice,
+          beuDeductionPerUnit: itemBeuApplied ? roundPricePrecision(baseFinal - unitSoldPrice) : 0,
+          beuDeductionPct: itemBeuApplied ? 15 : 0,
+          isBeuItem: itemBeuApplied
+        };
+      });
+
+      const hasBeuFood = recomputedItems.some(i => i.isBeuItem);
+      const normalSubtotal = roundPricePrecision(
+        recomputedItems.reduce((s, i) => s + Number(i.normalPrice ?? i.price ?? 0) * Number(i.qty || 0), 0)
+      );
+      const totalAmount = roundPricePrecision(
+        recomputedItems.reduce((s, i) => s + Number(i.price || 0) * Number(i.qty || 0), 0)
+      );
+      const boxesCount = isHome ? 0 : recomputedItems.reduce((s, i) => s + Number(i.qty || 0), 0);
+      const beuDeductionAmount = isBeu && hasBeuFood ? Math.max(0, roundPricePrecision(normalSubtotal - totalAmount)) : 0;
+
+      const updatedOrder = {
+        ...editingChefOrder.original,
+        shiftType: editingChefOrder.shift,
+        shift: shiftLabel,
+        orderType: orderTypeLabel,
+        channel: channelLabel,
+        beuOrderId: isBeu ? editingChefOrder.beuOrderId.trim() : '',
+        waiterName: editingChefOrder.waiterName.trim() || editingChefOrder.original.waiterName,
+        paymentMethod: isBeu ? 'BEU Account' : 'Kitchen Dispatch',
+        items: recomputedItems,
+        boxesCount,
+        boxesUsed: boxesCount,
+        totalAmount,
+        isBeuOrder: isBeu,
+        beuDeductionPct: isBeu && hasBeuFood ? 15 : 0,
+        normalSubtotal,
+        beuDeductionAmount
+      };
+
+      setDbFetchedOrders(prev => {
+        const baseList = Array.isArray(prev) ? prev : resolvedOrders;
+        const next = baseList.map(o => (o.id === updatedOrder.id ? updatedOrder : o));
+        try {
+          localStorage.setItem('maraki_chef_sent_orders', JSON.stringify(next));
+        } catch (err) {}
+        return next;
+      });
+      if (onUpdateOrder) {
+        await onUpdateOrder(updatedOrder);
+      } else {
+        await dbService.updateOrder(updatedOrder.id, updatedOrder);
+      }
+      setHasManualFoodOverride(false);
+      setEditingChefOrder(null);
+    } finally {
+      setIsSavingChefOrderEdit(false);
+    }
+  };
+
+  const handleDeleteEditedChefOrder = async () => {
+    if (!editingChefOrder) return;
+    if (!window.confirm('Delete this Chef order from database?')) return;
+    const idToDelete = editingChefOrder.id;
+    setIsSavingChefOrderEdit(true);
+    try {
+      setDbFetchedOrders(prev => {
+        const baseList = Array.isArray(prev) ? prev : resolvedOrders;
+        const next = baseList.filter(o => o.id !== idToDelete);
+        try {
+          localStorage.setItem('maraki_chef_sent_orders', JSON.stringify(next));
+        } catch (err) {}
+        return next;
+      });
+      if (onDeleteOrder) {
+        await onDeleteOrder(idToDelete);
+      } else {
+        await dbService.deleteOrder(idToDelete);
+      }
+      setHasManualFoodOverride(false);
+      setEditingChefOrder(null);
+    } finally {
+      setIsSavingChefOrderEdit(false);
+    }
+  };
 
   const updateDishQty = (dishId, delta) => {
     setHasManualFoodOverride(true);
@@ -1623,10 +1852,19 @@ export default function ShiftReconciliation({
                             {(ord.items || []).map(i => `${i.qty}× ${i.name}`).join(', ')}
                           </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-[11px] font-black text-emerald-800 block">
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[11px] font-black text-emerald-800">
                             {isHomeOrd ? `${ordQty} dish` : `${ordQty} box`}
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => openEditChefOrderModal(ord)}
+                            className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-900 border border-slate-200 text-[10px] font-black flex items-center gap-1 transition-all"
+                            title="Edit Shift, Waiter, Service or Dishes for this Chef Order"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            <span>Edit</span>
+                          </button>
                         </div>
                       </div>
                     );
@@ -1678,76 +1916,164 @@ export default function ShiftReconciliation({
             )}
           </div>
 
-          {/* Dish Category Selector */}
-          <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs font-black text-slate-700">
-              Assign Sold Food Dishes:
-            </span>
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              {['All', 'Sandwiches', 'Salad', 'Pasta & Rice', 'Eggs & Firfir'].map(cat => (
+          {/* Ordered Dishes Only (Highlighted) + Quick "+ Add from Menu" Button */}
+          <div className="pt-2 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-slate-800">
+                  Ordered &amp; Assigned Dishes:
+                </span>
+                <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
+                  {orderedAssignedDishes.length} type(s) • {totalAssignedBoxes} total • {totalFoodRevenue.toLocaleString()} ETB
+                </span>
+              </div>
+              {!isShiftClosed && (
                 <button
-                  key={cat}
                   type="button"
-                  onClick={() => setActiveFoodCategory(cat)}
-                  className={`px-3 py-1 rounded-xl text-[11px] font-black transition-all ${
-                    activeFoodCategory === cat
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  onClick={() => setShowAddFromMenu(prev => !prev)}
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
                 >
-                  {cat === 'All' ? '🌟 All Dishes' : cat}
+                  {showAddFromMenu ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5 stroke-[3]" />}
+                  <span>{showAddFromMenu ? 'Close Menu Picker' : '+ Add from Menu'}</span>
                 </button>
-              ))}
+              )}
             </div>
-          </div>
 
-          {/* Stepper Dishes Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-72 overflow-y-auto p-2 border border-slate-200 rounded-2xl bg-slate-50/70">
-            {filteredDishes.map(dish => {
-              const qty = foodAssignments[dish.id] || 0;
-              const subtotal = qty * dish.price;
-              return (
-                <div 
-                  key={dish.id}
-                  className={`p-2.5 rounded-2xl border transition-all flex items-center justify-between gap-2 ${
-                    qty > 0 
-                      ? 'bg-white border-2 border-emerald-500 shadow-sm' 
-                      : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-200'
-                  }`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black text-slate-900 truncate">
-                      {dish.name}
-                    </p>
-                    <p className="text-[10px] text-emerald-700 font-bold">
-                      {dish.price} ETB {qty > 0 && `• ${subtotal.toLocaleString()} ETB`}
-                    </p>
+            {/* Optional Compact Menu Picker (Opens ONLY when clicking "+ Add from Menu") */}
+            {showAddFromMenu && !isShiftClosed && (
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-emerald-200 space-y-3 animate-in fade-in">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                    {['All', 'Sandwiches', 'Salad', 'Pasta & Rice', 'Eggs & Firfir'].map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setActiveFoodCategory(cat)}
+                        className={`px-2.5 py-1 rounded-xl text-[11px] font-black transition-all ${
+                          activeFoodCategory === cat
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {cat === 'All' ? '🌟 All' : cat}
+                      </button>
+                    ))}
                   </div>
-
-                  {/* Stepper: [-] Qty [+] */}
-                  <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-xl border border-slate-200">
-                    <button
-                      type="button"
-                      onClick={() => updateDishQty(dish.id, -1)}
-                      disabled={qty === 0}
-                      className="w-6 h-6 rounded-lg bg-slate-200 hover:bg-slate-300 disabled:opacity-30 text-slate-800 flex items-center justify-center font-black active:scale-90"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="w-6 text-center text-xs font-black text-emerald-900">
-                      {qty}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => updateDishQty(dish.id, 1)}
-                      className="w-6 h-6 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center font-black active:scale-90"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
+                  <div className="relative flex-1 min-w-[180px] max-w-xs">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
+                    <input
+                      type="text"
+                      value={menuAddSearch}
+                      onChange={(e) => setMenuAddSearch(e.target.value)}
+                      placeholder="Search menu dish..."
+                      className="w-full bg-white border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                    />
                   </div>
                 </div>
-              );
-            })}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-56 overflow-y-auto">
+                  {filteredDishes.map(dish => {
+                    const currentQty = foodAssignments[dish.id] || 0;
+                    return (
+                      <button
+                        key={dish.id}
+                        type="button"
+                        onClick={() => updateDishQty(dish.id, 1)}
+                        className={`p-2.5 rounded-xl border text-left flex items-center justify-between gap-2 transition-all active:scale-95 ${
+                          currentQty > 0
+                            ? 'bg-emerald-50 border-emerald-500 shadow-2xs'
+                            : 'bg-white border-slate-200 hover:border-emerald-400'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-slate-900 truncate">{dish.name}</p>
+                          <p className="text-[10px] font-bold text-emerald-700">
+                            {dish.price} ETB {currentQty > 0 ? `• Added (${currentQty})` : ''}
+                          </p>
+                        </div>
+                        <span className="px-2 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-black shrink-0">
+                          + Add
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Highlighted Ordered Dishes List (Only Selected / Chef-Ordered Foods) */}
+            {orderedAssignedDishes.length === 0 ? (
+              <div className="p-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 text-center space-y-2">
+                <p className="text-xs font-bold text-slate-600">
+                  No food dishes ordered by Chef for this shift yet.
+                </p>
+                {!isShiftClosed && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddFromMenu(true)}
+                    className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-black inline-flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Dish from Menu</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                {orderedAssignedDishes.map(dish => {
+                  const subtotal = dish.qty * dish.price;
+                  return (
+                    <div
+                      key={dish.id}
+                      className="p-3 rounded-2xl bg-emerald-50/90 border-2 border-emerald-500 ring-2 ring-emerald-500/15 shadow-sm flex items-center justify-between gap-2 transition-all"
+                    >
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-black text-slate-900 truncate">
+                            {dish.name}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md border ${
+                            dish.fromChef
+                              ? 'bg-white text-emerald-800 border-emerald-200'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                          }`}>
+                            {dish.fromChef ? '🍳 From Chef' : '➕ Menu Added'}
+                          </span>
+                          <span className="text-[10px] text-emerald-800 font-black">
+                            {dish.price} × {dish.qty} = {subtotal.toLocaleString()} ETB
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Stepper: [-] Qty [+] */}
+                      <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-xl border border-emerald-300 shadow-2xs shrink-0">
+                        <button
+                          type="button"
+                          disabled={isShiftClosed}
+                          onClick={() => updateDishQty(dish.id, -1)}
+                          className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-rose-100 hover:text-rose-700 disabled:opacity-30 text-slate-800 flex items-center justify-center font-black active:scale-90"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="w-6 text-center text-xs font-black text-emerald-900">
+                          {dish.qty}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={isShiftClosed}
+                          onClick={() => updateDishQty(dish.id, 1)}
+                          className="w-6 h-6 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 text-white flex items-center justify-center font-black active:scale-90"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* PHYSICAL BOX vs ORDERS VERIFICATION SUMMARY */}
@@ -3108,6 +3434,205 @@ export default function ShiftReconciliation({
           </div>
         );
       })()}
+
+      {/* ============================================================== */}
+      {/* MODAL 7: EDIT CHEF ORDER (SHIFT / SERVICE / WAITER / ITEMS)    */}
+      {/* ============================================================== */}
+      {editingChefOrder && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <form
+            onSubmit={handleSaveEditedChefOrder}
+            className="bg-white rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-emerald-200 space-y-4 text-slate-800 my-auto"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-slate-900">
+                    Edit Chef Order #{String(editingChefOrder.id).slice(-6).toUpperCase()}
+                  </h3>
+                  <p className="text-[11px] font-bold text-slate-500">
+                    Fix Shift, Service (Takeaway/Home/BEU), Waiter, or Dishes — synced directly to Supabase
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingChefOrder(null)}
+                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Shift Selection */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-700 block">Shift:</label>
+              <div className="grid grid-cols-2 gap-2">
+                {['Day', 'Night'].map(sh => (
+                  <button
+                    key={sh}
+                    type="button"
+                    onClick={() => setEditingChefOrder(prev => ({ ...prev, shift: sh }))}
+                    className={`py-2 px-3 rounded-xl text-xs font-black border-2 transition-all ${
+                      editingChefOrder.shift === sh
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-slate-50 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    {sh === 'Day' ? '☀️ Day Shift' : '🌙 Night Shift'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Service / Channel */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-700 block">Service / Channel:</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'Takeaway', label: '📦 Takeaway' },
+                  { id: 'Home', label: '🏠 Home' },
+                  { id: 'BEU', label: '🛵 BEU' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setEditingChefOrder(prev => ({
+                      ...prev,
+                      serviceMode: opt.id,
+                      waiterName: opt.id === 'BEU' ? 'የቢዩ አሽከርካሪ (BEU Driver)' : prev.waiterName
+                    }))}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-black border-2 transition-all ${
+                      editingChefOrder.serviceMode === opt.id
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-slate-50 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {editingChefOrder.serviceMode === 'BEU' && (
+                <input
+                  type="text"
+                  value={editingChefOrder.beuOrderId}
+                  onChange={(e) => setEditingChefOrder(prev => ({ ...prev, beuOrderId: e.target.value }))}
+                  placeholder="BEU Order # (optional)"
+                  className="w-full mt-1.5 bg-slate-50 border border-teal-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 outline-none"
+                />
+              )}
+            </div>
+
+            {/* Waiter / Taker */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-700 block">Waiter / Taker:</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <select
+                  value={availableEditWaiters.includes(editingChefOrder.waiterName) ? editingChefOrder.waiterName : '__custom__'}
+                  onChange={(e) => {
+                    if (e.target.value !== '__custom__') {
+                      setEditingChefOrder(prev => ({ ...prev, waiterName: e.target.value }));
+                    }
+                  }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 outline-none"
+                >
+                  {availableEditWaiters.map(w => (
+                    <option key={w} value={w}>{w}</option>
+                  ))}
+                  {!availableEditWaiters.includes(editingChefOrder.waiterName) && (
+                    <option value="__custom__">{editingChefOrder.waiterName || 'Custom'}</option>
+                  )}
+                </select>
+                <input
+                  type="text"
+                  value={editingChefOrder.waiterName}
+                  onChange={(e) => setEditingChefOrder(prev => ({ ...prev, waiterName: e.target.value }))}
+                  placeholder="Or type custom waiter..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Order Items List + Add Item */}
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-700 block">Order Dishes ({editingChefOrder.items.length}):</label>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                {editingChefOrder.items.map((it, idx) => (
+                  <div key={`${it.id}-${idx}`} className="flex items-center justify-between gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200 text-xs">
+                    <span className="font-black text-slate-900 truncate flex-1">{it.name}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleEditOrderItemQty(idx, -1)}
+                        className="w-6 h-6 rounded-lg bg-white border border-slate-200 font-black flex items-center justify-center"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="w-6 text-center font-black text-emerald-900">{it.qty}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleEditOrderItemQty(idx, 1)}
+                        className="w-6 h-6 rounded-lg bg-emerald-600 text-white font-black flex items-center justify-center"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <select
+                  value={editingChefOrder.addDishId}
+                  onChange={(e) => setEditingChefOrder(prev => ({ ...prev, addDishId: e.target.value }))}
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900 outline-none"
+                >
+                  {fullEditableMenuDishes.map(d => (
+                    <option key={d.id} value={d.id}>{d.name} ({d.price} ETB)</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleAddDishToEditingOrder}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-900 text-xs font-black shrink-0"
+                >
+                  + Add Dish
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={handleDeleteEditedChefOrder}
+                disabled={isSavingChefOrderEdit}
+                className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-black flex items-center gap-1"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete</span>
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingChefOrder(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingChefOrderEdit || editingChefOrder.items.length === 0}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-black shadow-sm"
+                >
+                  {isSavingChefOrderEdit ? 'Saving...' : 'Save Order Changes'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
 
     </div>
   );

@@ -304,9 +304,16 @@ export const dbService = {
         const dbPatch = {};
         if (patch.status !== undefined) dbPatch.status = patch.status;
         if (patch.ethiopianDate !== undefined) dbPatch.ethiopian_date = patch.ethiopianDate;
-        if (patch.waiterName !== undefined) dbPatch.waiter_name = patch.waiterName;
+        if (patch.shift !== undefined) dbPatch.shift = patch.shift === 'Night Shift' ? 'Night Shift' : 'Day Shift';
+        if (patch.channel !== undefined) dbPatch.channel = patch.channel === 'BEU Delivery' ? 'BEU Delivery' : 'In-Store';
+        if (patch.orderType !== undefined) dbPatch.order_type = patch.orderType === 'Home' ? 'Home' : 'Takeaway';
+        if (patch.beuOrderId !== undefined) dbPatch.beu_order_id = patch.beuOrderId || null;
+        if (patch.waiterName !== undefined) dbPatch.waiter_name = patch.waiterName || null;
         if (patch.paymentMethod !== undefined) dbPatch.payment_method = patch.paymentMethod;
-        if (patch.totalAmount !== undefined) dbPatch.total_amount = patch.totalAmount;
+        if (patch.totalAmount !== undefined) dbPatch.total_amount = Number(patch.totalAmount) || 0;
+        if (patch.boxesUsed !== undefined) dbPatch.boxes_used = Number(patch.boxesUsed) || 0;
+        if (patch.cupsUsed !== undefined) dbPatch.cups_used = Number(patch.cupsUsed) || 0;
+        if (patch.items !== undefined) dbPatch.items = patch.items;
         const { error } = await supabase.from('orders').update(dbPatch).eq('id', id);
         if (error) console.warn('Supabase order update warning:', error);
       } catch (err) {
