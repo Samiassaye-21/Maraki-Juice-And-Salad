@@ -571,14 +571,6 @@ export default function App() {
   const [selectedShiftType, setSelectedShiftType] = useState('Day'); // 'Day', 'Night', 'BEU'
   const [beuOrderId, setBeuOrderId] = useState('');
 
-  // ----------------------------------------------------------------
-  // BEU DELIVERY MODE
-  // When true: Chef POS shows only food items (no juices/drinks/milkshakes)
-  // priced at 85% of current red/final selling price (-15% BEU deduction).
-  // Computed live from foodMenu — never duplicated or overwriting normal menu.
-  // ----------------------------------------------------------------
-  const [isBeuMode, setIsBeuMode] = useState(false);
-
   // Step 3 Selection: Waiter who takes it
   const [waitersList, setWaitersList] = useState(() => {
     const saved = localStorage.getItem('maraki_waiters_list_v3');
@@ -624,15 +616,12 @@ export default function App() {
   });
 
   /**
-   * BEU food menu: food-only items at 85% of current red/final price.
-   * Automatically mirrors normal menu prices & availability without duplicating data.
+   * BEU food menu derived dynamically from foodMenu (food-only, 85% of final price).
+   * Used silently behind the scenes when taker is BEU Delivery; never duplicates products.
    */
   const beuFoodMenu = useMemo(() => {
     return foodMenu.filter(isFoodItemForBeu).map(toBeuMenuItem);
   }, [foodMenu]);
-
-  /** Active menu shown in Step 1 — switches automatically with BEU mode */
-  const activeStepOneMenu = isBeuMode ? beuFoodMenu : foodMenu;
   const [standardJuicePrice, setStandardJuicePrice] = useState(() => {
     const saved = Number(localStorage.getItem('maraki_standard_juice_price'));
     return saved > 0 ? saved : 170;
@@ -775,63 +764,13 @@ export default function App() {
     setOrderStep(1);
     setOrderType('Takeaway');
     setSelectedShiftType('Day');
-    setIsBeuMode(false);
     setActiveCategory('All');
     setBeuOrderId('');
     setCustomWaiterName('');
     setShowAddWaiterInput(false);
   };
 
-  /**
-   * Synchronize cart and Chef POS state when switching between Normal Menu (In-Store)
-   * and BEU Delivery Menu (Food-only, 85% of current red/final selling price).
-   */
-  const handleSwitchOrderChannel = (nextIsBeu, nextNormalShift = 'Day') => {
-    setIsBeuMode(nextIsBeu);
-    if (nextIsBeu) {
-      setSelectedShiftType('BEU');
-      setOrderType('Takeaway');
-      setSelectedWaiter('የቢዩ አሽከርካሪ (BEU Driver)');
-      setCart(prev => {
-        const nextCart = [];
-        let removedDrinks = 0;
-        prev.forEach(item => {
-          const liveItem = foodMenu.find(f => f.id === item.id) || item;
-          if (!isFoodItemForBeu(liveItem)) {
-            removedDrinks += item.qty;
-            return;
-          }
-          nextCart.push({ ...toBeuMenuItem(liveItem), qty: item.qty });
-        });
-        if (removedDrinks > 0) {
-          showToast(`🛵 BEU Delivery = Food Only: ${removedDrinks} drink item(s) removed`);
-        }
-        return nextCart;
-      });
-      setActiveCategory(prev => {
-        if (prev === 'All') return 'All';
-        const hasCat = beuFoodMenu.some(i => i.category === prev && i.isAvailable !== false);
-        return hasCat ? prev : 'All';
-      });
-    } else {
-      const targetShift = nextNormalShift === 'Night' ? 'Night' : 'Day';
-      setSelectedShiftType(targetShift);
-      setCart(prev =>
-        prev.map(item => {
-          const liveItem = foodMenu.find(f => f.id === item.id);
-          return liveItem
-            ? { ...liveItem, qty: item.qty, isBeuItem: false }
-            : { ...item, price: item.normalFinalPrice ?? item.price, isBeuItem: false };
-        })
-      );
-      if (selectedWaiter === 'የቢዩ አሽከርካሪ (BEU Driver)') {
-        const defaults = getShiftDefaultWaiters();
-        setSelectedWaiter(defaults[targetShift] || 'ሀብታሙ (Habtamu)');
-      }
-    }
-  };
-
-  // Keep cart prices & availability automatically synchronized whenever Owner edits foodMenu
+  // Keep cart items synchronized whenever Owner edits foodMenu
   useEffect(() => {
     setCart(prev => {
       if (prev.length === 0) return prev;
@@ -843,70 +782,33 @@ export default function App() {
             changed = true;
             return null;
           }
-          if (isBeuMode) {
-            if (!isFoodItemForBeu(liveItem)) {
-              changed = true;
-              return null;
-            }
-            const converted = { ...toBeuMenuItem(liveItem), qty: cartItem.qty };
-            if (
-              cartItem.price !== converted.price ||
-              cartItem.normalFinalPrice !== converted.normalFinalPrice ||
-              !cartItem.isBeuItem
-            ) {
-              changed = true;
-            }
-            return converted;
-          } else {
-            if (
-              cartItem.price !== liveItem.price ||
-              cartItem.homePrice !== liveItem.homePrice ||
-              cartItem.isBeuItem
-            ) {
-              changed = true;
-              return { ...liveItem, qty: cartItem.qty, isBeuItem: false };
-            }
-            return cartItem;
+          if (cartItem.price !== liveItem.price || cartItem.homePrice !== liveItem.homePrice) {
+            changed = true;
+            return { ...liveItem, qty: cartItem.qty };
           }
+          return cartItem;
         })
         .filter(Boolean);
       return changed ? updated : prev;
     });
-  }, [foodMenu, isBeuMode]);
+  }, [foodMenu]);
 
-  // Packaging & Amount Math
-  // - If BEU Delivery: always Takeaway (1 Box per food dish) and priced at Final Selling Price * 0.85 (-15%).
-  // - If Home (ቤት ውስጥ): All 320 ETB dishes decrease to 300 ETB; other prices stay the same (0 Boxes).
-  const activeIsBeu = isBeuMode || selectedShiftType === 'BEU';
-  const effectiveOrderType = activeIsBeu ? 'Takeaway' : orderType;
-
-  const totalNormalSubtotal = roundPricePrecision(
-    cart.reduce((sum, item) => {
-      const normalPrice = activeIsBeu
-        ? Number(item.normalFinalPrice ?? item.price ?? 0)
-        : getDishEffectivePrice(item, effectiveOrderType);
-      return sum + normalPrice * item.qty;
-    }, 0)
-  );
-
+  // Packaging & Amount Math for Chef UI (normal menu prices shown to chef)
   const totalSubtotal = roundPricePrecision(
     cart.reduce((sum, item) => {
-      const unitPrice = activeIsBeu
-        ? computeBeuPrice(item.normalFinalPrice ?? item.price)
-        : getDishEffectivePrice(item, effectiveOrderType);
-      return sum + unitPrice * item.qty;
+      const effectivePrice = getDishEffectivePrice(item, orderType);
+      return sum + effectivePrice * item.qty;
     }, 0)
   );
 
-  const totalBeuDeductionInOrder = activeIsBeu
-    ? Math.max(0, roundPricePrecision(totalNormalSubtotal - totalSubtotal))
-    : 0;
-
-  const totalBoxesInOrder = effectiveOrderType === 'Takeaway'
+  const totalBoxesInOrder = orderType === 'Takeaway'
     ? cart.reduce((sum, item) => sum + item.qty, 0)
     : 0;
 
   // --- SUBMIT ORDER ---
+  // Behind the scenes: if taker is BEU Driver or channel is BEU Delivery,
+  // automatically apply BEU menu price (Current Final Price * 0.85, food items only)
+  // and send full BEU + 15% deduction breakdown to the Owner without showing the process to the chef.
   const handleFinalSubmit = async () => {
     if (cart.length === 0) {
       showToast('⚠️ እባክዎ ቢያንስ አንድ ምግብ ይምረጡ (Please choose at least 1 food item)');
@@ -915,51 +817,66 @@ export default function App() {
     }
 
     const effectiveWaiter = customWaiterName.trim() || selectedWaiter;
-    const isBeu = activeIsBeu;
+    const isBeuTaker = /beu|ቢዩ/i.test(effectiveWaiter);
+    const isBeu = selectedShiftType === 'BEU' || isBeuTaker;
     const finalOrderType = isBeu ? 'Takeaway' : orderType;
-    const shiftLabel = isBeu ? 'Day Shift' : (selectedShiftType === 'Day' ? 'Day Shift' : 'Night Shift');
+    const shiftLabel = selectedShiftType === 'Night' ? 'Night Shift' : 'Day Shift';
     const channelLabel = isBeu
       ? 'BEU Delivery'
       : (finalOrderType === 'Home' ? 'In-Store Home' : 'In-Store Takeaway');
     const finalPayment = isBeu ? 'BEU Account' : 'Kitchen Dispatch';
 
-    // Freeze live item prices into historical order record (never recalculated retroactively)
-    const frozenItems = cart
-      .filter(i => !isBeu || isFoodItemForBeu(i))
-      .map(i => {
-        const liveItem = foodMenu.find(f => f.id === i.id) || i;
-        const normalFinalPrice = Number(liveItem.price ?? i.normalFinalPrice ?? i.price ?? 0);
-        const soldUnitPrice = isBeu
-          ? computeBeuPrice(normalFinalPrice)
-          : getDishEffectivePrice(liveItem, finalOrderType);
-        return {
-          id: i.id,
-          name: i.name,
-          englishName: i.englishName,
-          qty: i.qty,
-          price: soldUnitPrice,
-          normalPrice: isBeu ? normalFinalPrice : soldUnitPrice,
-          beuDeductionPerUnit: isBeu ? roundPricePrecision(normalFinalPrice - soldUnitPrice) : 0,
-          beuDeductionPct: isBeu ? 15 : 0,
-          basePrice: normalFinalPrice,
-          homePrice: liveItem.homePrice ?? null,
-          isBeuItem: isBeu
-        };
-      });
+    // Chef receipt display items (keeps normal menu pricing on the chef confirmation view)
+    const chefDisplayItems = cart.map(i => {
+      const liveItem = foodMenu.find(f => f.id === i.id) || i;
+      const chefUnitPrice = getDishEffectivePrice(liveItem, finalOrderType);
+      return {
+        id: i.id,
+        name: i.name,
+        englishName: i.englishName,
+        qty: i.qty,
+        price: chefUnitPrice
+      };
+    });
+    const chefDisplayTotal = roundPricePrecision(
+      chefDisplayItems.reduce((sum, i) => sum + i.price * i.qty, 0)
+    );
 
-    if (frozenItems.length === 0) {
-      showToast('⚠️ BEU Delivery supports food items only');
-      setOrderStep(1);
-      return;
-    }
+    // Owner order items: when BEU Delivery/Driver is chosen, automatically pull from live beuFoodMenu
+    // (food items only, 85% of current red/final selling price; non-food drinks never receive BEU food pricing).
+    const frozenItems = cart.map(i => {
+      const liveItem = foodMenu.find(f => f.id === i.id) || i;
+      const beuEntry = isBeu && isFoodItemForBeu(liveItem)
+        ? (beuFoodMenu.find(b => b.id === i.id) || toBeuMenuItem(liveItem))
+        : null;
+      const normalFinalPrice = Number(liveItem.price ?? i.price ?? 0);
+      const soldUnitPrice = beuEntry
+        ? beuEntry.price
+        : getDishEffectivePrice(liveItem, finalOrderType);
+      const itemBeuApplied = Boolean(beuEntry);
+      return {
+        id: i.id,
+        name: i.name,
+        englishName: i.englishName,
+        qty: i.qty,
+        price: soldUnitPrice,
+        normalPrice: itemBeuApplied ? beuEntry.normalFinalPrice : soldUnitPrice,
+        beuDeductionPerUnit: itemBeuApplied ? beuEntry.beuDeduction : 0,
+        beuDeductionPct: itemBeuApplied ? 15 : 0,
+        basePrice: normalFinalPrice,
+        homePrice: liveItem.homePrice ?? null,
+        isBeuItem: itemBeuApplied
+      };
+    });
 
+    const hasBeuFood = frozenItems.some(i => i.isBeuItem);
     const frozenNormalSubtotal = roundPricePrecision(
       frozenItems.reduce((sum, i) => sum + i.normalPrice * i.qty, 0)
     );
     const frozenTotalAmount = roundPricePrecision(
       frozenItems.reduce((sum, i) => sum + i.price * i.qty, 0)
     );
-    const frozenDeductionAmount = isBeu
+    const frozenDeductionAmount = isBeu && hasBeuFood
       ? Math.max(0, roundPricePrecision(frozenNormalSubtotal - frozenTotalAmount))
       : 0;
     const frozenBoxesCount = finalOrderType === 'Takeaway'
@@ -986,9 +903,9 @@ export default function App() {
       paymentMethod: finalPayment,
       totalAmount: frozenTotalAmount,
       boxesCount: frozenBoxesCount,
-      // BEU Delivery metadata — stored for historical accuracy
+      // BEU Delivery metadata — stored for historical accuracy & Owner reporting
       isBeuOrder: isBeu,
-      beuDeductionPct: isBeu ? 15 : 0,
+      beuDeductionPct: isBeu && hasBeuFood ? 15 : 0,
       normalSubtotal: frozenNormalSubtotal,
       beuDeductionAmount: frozenDeductionAmount,
       items: frozenItems,
@@ -996,11 +913,13 @@ export default function App() {
       createdAt: new Date().toISOString()
     };
 
-    // 1. OPTIMISTIC UI: Update state & show receipt confirmation instantly (0ms latency!)
+    // 1. OPTIMISTIC UI: Save Owner BEU order & show Chef her clean normal receipt confirmation
     setSentOrders(prev => [orderData, ...prev]);
     setOrderSuccessModal({
       ...orderData,
-      foodSummary: frozenItems.map(i => `${i.qty}x ${i.name}`).join(', ')
+      items: chefDisplayItems,
+      totalAmount: chefDisplayTotal,
+      foodSummary: chefDisplayItems.map(i => `${i.qty}x ${i.name}`).join(', ')
     });
     clearCurrentOrder();
 
@@ -1248,9 +1167,8 @@ export default function App() {
     }
   };
 
-  // Filtered dishes for Step 1 (Optimized with useDeferredValue for 60fps typing)
-  // Uses BEU menu (food-only, 85% price) or normal menu depending on isBeuMode
-  const filteredDishes = activeStepOneMenu.filter(item => {
+  // Filtered dishes for Step 1 (Normal Menu shown to Chef; BEU 15% pricing calculated automatically on submit)
+  const filteredDishes = foodMenu.filter(item => {
     if (item.isAvailable === false) return false;
     const q = deferredSearchQuery.toLowerCase().trim();
     const matchesSearch = !q ||
@@ -1855,7 +1773,7 @@ export default function App() {
             {/* Logo & Brand */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-xl shadow-inner">
-                {activeIsBeu ? '🛵' : '👩‍🍳'}
+                👩‍🍳
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1863,11 +1781,6 @@ export default function App() {
                   <span className="text-[10px] font-black uppercase tracking-wider bg-white text-emerald-800 px-2 py-0.5 rounded-full shadow-sm">
                     Chef Station
                   </span>
-                  {activeIsBeu && (
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full shadow-sm">
-                      BEU Delivery • -15% Food Only
-                    </span>
-                  )}
                 </div>
                 <p className="text-[11px] text-emerald-100 flex items-center gap-1 font-bold">
                   <span>የኩሽና ምግብ ማዘዣና ማዘጋጃ (Kitchen POS)</span>
@@ -2190,86 +2103,32 @@ export default function App() {
           {orderStep === 1 && (
             <div className="space-y-4 animate-in fade-in duration-200">
               
-              {/* Header Title, BEU Switcher & Search */}
-              <div className={`p-4 rounded-3xl border shadow-sm space-y-3 transition-all ${
-                activeIsBeu
-                  ? 'bg-gradient-to-r from-teal-50/90 via-white to-amber-50/70 border-teal-400 ring-2 ring-teal-500/15'
-                  : 'bg-white border-emerald-100'
-              }`}>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-base font-black text-slate-900 flex items-center gap-2 flex-wrap">
-                      <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black ${
-                        activeIsBeu ? 'bg-teal-600 text-white' : 'bg-emerald-100 text-emerald-800'
-                      }`}>
-                        {activeIsBeu ? '🛵' : '1'}
-                      </span>
-                      <span>
-                        {activeIsBeu
-                          ? 'የቢዩ ዴሊቨሪ ሜኑ (BEU Delivery Menu — Food Only)'
-                          : 'የምግብ አይነት ይምረጡ (Choose Food from Menu)'}
-                      </span>
-                    </h2>
-                    <p className="text-xs text-slate-500 font-bold mt-0.5">
-                      {activeIsBeu
-                        ? 'BEU Delivery mode active: Food items only (no juices/drinks/milkshakes) • Price = Red/Final Selling Price × 0.85 (-15%)'
-                        : effectiveOrderType === 'Takeaway'
-                          ? 'የሚፈልጉትን ምግብ ይጫኑ፤ ቀጥሎ ቴክአዌይ ወይም ቤት ውስጥ መሆኑን ይመርጣሉ'
-                          : 'የሚፈልጉትን ምግብ ይጫኑ፤ በቤት ውስጥ (🍽️) ስለቀረበ የቦክስ እቃ አይወጣም'}
-                    </p>
-                  </div>
-
-                  {/* Search Box */}
-                  <div className="relative w-full sm:w-64">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                    <input
-                      type="text"
-                      placeholder="ፈልግ / Search food..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-emerald-50/60 border border-emerald-100 rounded-2xl pl-9 pr-3 py-2 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
+              {/* Header Title & Search */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-emerald-100 shadow-sm">
+                <div>
+                  <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-black">
+                      1
+                    </span>
+                    <span>የምግብ አይነት ይምረጡ (Choose Food from Menu)</span>
+                  </h2>
+                  <p className="text-xs text-slate-400 font-bold mt-0.5">
+                    {orderType === 'Takeaway'
+                      ? 'የሚፈልጉትን ምግብ ይጫኑ፤ ቀጥሎ ቴክአዌይ ወይም ቤት ውስጥ መሆኑን ይመርጣሉ'
+                      : 'የሚፈልጉትን ምግብ ይጫኑ፤ በቤት ውስጥ (🍽️) ስለቀረበ የቦክስ እቃ አይወጣም'}
+                  </p>
                 </div>
 
-                {/* Channel / Menu Switcher: Normal Menu vs BEU Delivery Menu */}
-                <div className="pt-2 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-2.5">
-                  <div className="inline-flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200">
-                    <button
-                      type="button"
-                      data-testid="menu-mode-normal"
-                      onClick={() => handleSwitchOrderChannel(false, selectedShiftType === 'Night' ? 'Night' : 'Day')}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
-                        !activeIsBeu
-                          ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-                      }`}
-                    >
-                      <Store className="w-3.5 h-3.5" />
-                      <span>🍽️ Normal Menu (መደበኛ)</span>
-                    </button>
-                    <button
-                      type="button"
-                      data-testid="menu-mode-beu"
-                      onClick={() => handleSwitchOrderChannel(true)}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
-                        activeIsBeu
-                          ? 'bg-teal-600 text-white shadow-md shadow-teal-700/20'
-                          : 'text-slate-600 hover:text-teal-800 hover:bg-teal-50'
-                      }`}
-                    >
-                      <Truck className="w-3.5 h-3.5" />
-                      <span>🛵 BEU Delivery (-15%)</span>
-                    </button>
-                  </div>
-
-                  {activeIsBeu && (
-                    <div className="flex items-center gap-2 text-[11px] font-black text-teal-900 bg-amber-100/90 border border-amber-300 px-3 py-1.5 rounded-2xl">
-                      <span>✅ Food Only</span>
-                      <span className="opacity-50">•</span>
-                      <span>BEU Price = Final Price × 0.85 (-15% Deduction)</span>
-                    </div>
-                  )}
+                {/* Search Box */}
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="ፈልግ / Search food..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-emerald-50/60 border border-emerald-100 rounded-2xl pl-9 pr-3 py-2 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
                 </div>
               </div>
 
@@ -2277,14 +2136,11 @@ export default function App() {
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
                 {[
                   { id: 'All', label: '🌟 ሁሉም (All)' },
-                  ...(!activeIsBeu ? [{ id: 'Juices', label: '🥤 ጁሶች (Juices)' }] : []),
+                  { id: 'Juices', label: '🥤 ጁሶች (Juices)' },
                   { id: 'Salad', label: '🥗 ሳላድና ፍራፍሬ' },
                   { id: 'Pasta & Rice', label: '🍝 ፓስታ እና ሩዝ' },
                   { id: 'Eggs & Firfir', label: '🍳 እንቁላል እና ፍርፍር' },
-                  { id: 'Sandwiches', label: '🥪 ሳንድዊች' },
-                  ...(activeStepOneMenu.some(i => i.isAvailable !== false && !['Juices', 'Salad', 'Pasta & Rice', 'Eggs & Firfir', 'Sandwiches'].includes(i.category))
-                    ? [{ id: 'Other', label: '🍽️ ሌሎች (Other)' }]
-                    : [])
+                  { id: 'Sandwiches', label: '🥪 ሳንድዊች' }
                 ].map(cat => (
                   <button
                     key={cat.id}
@@ -2292,7 +2148,7 @@ export default function App() {
                     onClick={() => setActiveCategory(cat.id)}
                     className={`px-4 py-2 rounded-2xl font-black text-xs whitespace-nowrap transition-all ${
                       activeCategory === cat.id
-                        ? (activeIsBeu ? 'bg-teal-600 text-white shadow-md shadow-teal-700/20 scale-[1.02]' : 'bg-emerald-600 text-white shadow-md shadow-emerald-700/20 scale-[1.02]')
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/20 scale-[1.02]'
                         : 'bg-white text-slate-700 hover:bg-emerald-50 border border-emerald-100'
                     }`}
                   >
@@ -2301,22 +2157,22 @@ export default function App() {
                 ))}
               </div>
 
-              {/* FOOD DISHES GRID (Switches dynamically between Normal & BEU Menu) */}
+              {/* FOOD DISHES GRID */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                 {filteredDishes.map(dish => {
                   const inCart = cart.find(i => i.id === dish.id);
-                  const effectivePrice = getDishEffectivePrice(dish, effectiveOrderType);
-                  const hasCrossedOriginal = Number(dish.originalPrice) > Number(activeIsBeu ? dish.normalFinalPrice : dish.price);
-                  const isHomeDiscount = !activeIsBeu && effectiveOrderType === 'Home' && effectivePrice < Number(dish.price);
+                  const effectivePrice = getDishEffectivePrice(dish, orderType);
+                  const hasCrossedOriginal = Number(dish.originalPrice) > Number(dish.price);
+                  const isDiscounted = orderType === 'Home' && effectivePrice < Number(dish.price);
                   return (
                     <div
                       key={dish.id}
                       data-dish-id={dish.id}
                       onClick={() => !inCart && toggleOrAddFood(dish)}
                       className={`relative bg-white rounded-3xl p-3 border transition-all cursor-pointer flex flex-col justify-between group select-none ${
-                        inCart
-                          ? (activeIsBeu ? 'border-teal-600 shadow-xl shadow-teal-600/15 ring-2 ring-teal-500/30' : 'border-emerald-500 shadow-xl shadow-emerald-600/15 ring-2 ring-emerald-500/30')
-                          : (activeIsBeu ? 'border-teal-200 hover:border-teal-400 shadow-sm hover:shadow-md' : 'border-emerald-100 hover:border-emerald-300 shadow-sm hover:shadow-md')
+                        inCart 
+                          ? 'border-emerald-500 shadow-xl shadow-emerald-600/15 ring-2 ring-emerald-500/30' 
+                          : 'border-emerald-100 hover:border-emerald-300 shadow-sm hover:shadow-md'
                       }`}
                     >
                       <div>
@@ -2341,31 +2197,21 @@ export default function App() {
                             {dish.emoji}
                           </div>
 
-                          {/* Packaging / Channel Tag */}
-                          <div className={`absolute top-2 left-2 backdrop-blur-md text-white text-[9px] font-black px-2 py-0.5 rounded-lg border border-white/20 ${
-                            activeIsBeu ? 'bg-teal-900/80' : 'bg-black/60'
-                          }`}>
-                            {activeIsBeu
-                              ? '🛵 BEU -15% • 🥡 1 ቦክስ'
-                              : (effectiveOrderType === 'Takeaway' ? '🥡 1 ቦክስ' : '🍽️ ቤት ውስጥ')}
+                          {/* Packaging Tag */}
+                          <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-white text-[9px] font-black px-2 py-0.5 rounded-lg border border-white/20">
+                            {orderType === 'Takeaway' ? '🥡 1 ቦክስ' : '🍽️ ቤት ውስጥ'}
                           </div>
 
-                          {/* BEU Deduction Pill or Dine-In Home badge */}
-                          {activeIsBeu ? (
-                            <div className="absolute bottom-2 left-2 bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-lg shadow-sm border border-amber-300">
-                              15% BEU Deducted
-                            </div>
-                          ) : isHomeDiscount ? (
+                          {/* Discount Badge on Image for Dine-In Home prices */}
+                          {isDiscounted && (
                             <div className="absolute bottom-2 left-2 bg-emerald-700 text-white text-[9px] font-black px-2 py-0.5 rounded-lg shadow-sm border border-emerald-500">
                               🏠 {formatEtb(effectivePrice)} ETB
                             </div>
-                          ) : null}
+                          )}
 
                           {/* Selected Quantity Indicator Pill */}
                           {inCart && (
-                            <div className={`absolute top-2 right-2 text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center shadow-lg border border-white ${
-                              activeIsBeu ? 'bg-teal-600' : 'bg-emerald-600'
-                            }`}>
+                            <div className="absolute top-2 right-2 bg-emerald-600 text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center shadow-lg border border-white">
                               {inCart.qty}
                             </div>
                           )}
@@ -2385,23 +2231,17 @@ export default function App() {
                         <div>
                           <div className="flex items-baseline gap-1">
                             <span className={`font-black text-xs sm:text-sm ${
-                              activeIsBeu
-                                ? 'text-teal-700'
-                                : isHomeDiscount
-                                  ? 'text-emerald-700'
-                                  : hasCrossedOriginal
-                                    ? 'text-rose-600'
-                                    : 'text-slate-900'
+                              isDiscounted
+                                ? 'text-emerald-700'
+                                : hasCrossedOriginal
+                                  ? 'text-rose-600'
+                                  : 'text-slate-900'
                             }`}>
                               {formatEtb(effectivePrice)}
                             </span>
                             <span className="text-[10px] text-slate-400 font-bold">ETB</span>
                           </div>
-                          {activeIsBeu ? (
-                            <span className="text-[9px] text-slate-400 font-bold block">
-                              Normal: <span className="line-through">{formatEtb(dish.normalFinalPrice)} ETB</span>
-                            </span>
-                          ) : isHomeDiscount ? (
+                          {isDiscounted ? (
                             <span className="text-[9px] text-slate-400 line-through font-bold block">
                               {formatEtb(dish.price)} ETB
                             </span>
@@ -2414,9 +2254,7 @@ export default function App() {
 
                         {inCart ? (
                           <div 
-                            className={`flex items-center gap-1.5 p-1 rounded-xl border ${
-                              activeIsBeu ? 'bg-teal-50 border-teal-200' : 'bg-emerald-50 border-emerald-200'
-                            }`}
+                            className="flex items-center gap-1.5 bg-emerald-50 p-1 rounded-xl border border-emerald-200"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
@@ -2432,9 +2270,7 @@ export default function App() {
                             <button
                               type="button"
                               onClick={() => updateCartQty(dish.id, 1)}
-                              className={`w-7 h-7 rounded-lg text-white flex items-center justify-center font-black shadow-sm ${
-                                activeIsBeu ? 'bg-teal-600 hover:bg-teal-700' : 'bg-emerald-600 hover:bg-emerald-700'
-                              }`}
+                              className="w-7 h-7 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 flex items-center justify-center font-black shadow-sm"
                             >
                               <Plus className="w-3.5 h-3.5" />
                             </button>
@@ -2443,11 +2279,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); toggleOrAddFood(dish); }}
-                            className={`px-2.5 py-1.5 rounded-xl text-[11px] font-black flex items-center gap-1 transition-all ${
-                              activeIsBeu
-                                ? 'bg-teal-50 hover:bg-teal-100 text-teal-800'
-                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
-                            }`}
+                            className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-black flex items-center gap-1 transition-all"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             <span>ምረጥ</span>
@@ -2528,30 +2360,18 @@ export default function App() {
 
                 {/* 2. Home (Dine-In 300 ETB) Card */}
                 <div
-                  onClick={() => {
-                    if (activeIsBeu) {
-                      showToast('🛵 BEU Delivery is always Takeaway (no dine-in Home pricing)');
-                      return;
-                    }
-                    setOrderType('Home');
-                  }}
-                  className={`p-6 sm:p-7 rounded-3xl border-2 text-left transition-all flex flex-col justify-between gap-5 ${
-                    activeIsBeu
-                      ? 'border-slate-200 bg-slate-50 opacity-55 cursor-not-allowed'
-                      : effectiveOrderType === 'Home'
-                        ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-600/15 ring-4 ring-emerald-500/20 cursor-pointer active:scale-[0.98]'
-                        : 'border-slate-200 bg-white hover:border-emerald-300 hover:shadow-md cursor-pointer active:scale-[0.98]'
+                  onClick={() => setOrderType('Home')}
+                  className={`p-6 sm:p-7 rounded-3xl border-2 text-left transition-all flex flex-col justify-between gap-5 cursor-pointer active:scale-[0.98] ${
+                    orderType === 'Home'
+                      ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-600/15 ring-4 ring-emerald-500/20'
+                      : 'border-slate-200 bg-white hover:border-emerald-300 hover:shadow-md'
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-900 flex items-center justify-center text-3xl shadow-inner">
                       🏠
                     </div>
-                    {activeIsBeu ? (
-                      <span className="text-[11px] font-black text-teal-800 bg-teal-100 px-3 py-1 rounded-full">
-                        🛵 BEU = Takeaway Only
-                      </span>
-                    ) : effectiveOrderType === 'Home' ? (
+                    {orderType === 'Home' ? (
                       <span className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-sm">
                         <Check className="w-3.5 h-3.5 stroke-[3]" />
                         <span>ተመርጧል (Selected)</span>
@@ -2591,16 +2411,12 @@ export default function App() {
               <div className="bg-white p-4 sm:p-5 rounded-3xl border border-emerald-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xl">
-                    {activeIsBeu ? '🛵' : effectiveOrderType === 'Home' ? '🏠' : '🥡'}
+                    {orderType === 'Home' ? '🏠' : '🥡'}
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-400 block">የተመረጠው አገልግሎት</span>
                     <span className="text-sm font-black text-slate-900">
-                      {activeIsBeu
-                        ? '🛵 BEU Delivery • ቴክአዌይ ብቻ (15% BEU Deduction Applied)'
-                        : effectiveOrderType === 'Home'
-                          ? 'ቤት ውስጥ (Home) • የ 300 ብር ቅናሽ ተተግብሯል'
-                          : 'ቴክአዌይ (Takeaway) • የማሸጊያ ቦክስ ይቆጠራል'}
+                      {orderType === 'Home' ? 'ቤት ውስጥ (Home) • የ 300 ብር ቅናሽ ተተግብሯል' : 'ቴክአዌይ (Takeaway) • የማሸጊያ ቦክስ ይቆጠራል'}
                     </span>
                   </div>
                 </div>
@@ -2662,7 +2478,7 @@ export default function App() {
                 {/* 1. Day Shift Card */}
                 <button
                   type="button"
-                  onClick={() => handleSwitchOrderChannel(false, 'Day')}
+                  onClick={() => setSelectedShiftType('Day')}
                   className={`p-6 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-3 ${
                     selectedShiftType === 'Day'
                       ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-600/10 scale-105 ring-2 ring-emerald-500/20'
@@ -2686,7 +2502,7 @@ export default function App() {
                 {/* 2. Night Shift Card */}
                 <button
                   type="button"
-                  onClick={() => handleSwitchOrderChannel(false, 'Night')}
+                  onClick={() => setSelectedShiftType('Night')}
                   className={`p-6 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-3 ${
                     selectedShiftType === 'Night'
                       ? 'border-emerald-600 bg-emerald-50/90 shadow-xl shadow-emerald-600/10 scale-105 ring-2 ring-emerald-500/20'
@@ -2710,7 +2526,11 @@ export default function App() {
                 {/* 3. BEU Delivery Card */}
                 <button
                   type="button"
-                  onClick={() => handleSwitchOrderChannel(true)}
+                  onClick={() => {
+                    setSelectedShiftType('BEU');
+                    setSelectedWaiter('የቢዩ አሽከርካሪ (BEU Driver)');
+                    setOrderType('Takeaway');
+                  }}
                   className={`p-6 rounded-3xl border-2 text-center transition-all flex flex-col items-center justify-center gap-3 ${
                     selectedShiftType === 'BEU'
                       ? 'border-teal-600 bg-teal-50/80 shadow-xl shadow-teal-600/10 scale-105'
@@ -2722,7 +2542,7 @@ export default function App() {
                   </div>
                   <div>
                     <h3 className="font-black text-base text-slate-900">🛵 ቢዩ (BEU Delivery)</h3>
-                    <p className="text-xs text-slate-400 font-bold mt-0.5">የቢዩ አሽከርካሪ ትዕዛዝ (-15%)</p>
+                    <p className="text-xs text-slate-400 font-bold mt-0.5">የቢዩ አሽከርካሪ ትዕዛዝ</p>
                   </div>
                   {selectedShiftType === 'BEU' && (
                     <span className="text-[11px] font-black text-teal-700 bg-teal-200/60 px-3 py-1 rounded-full">
@@ -2733,30 +2553,19 @@ export default function App() {
 
               </div>
 
-              {/* If BEU Delivery is selected, optional BEU Order # input & 15% BEU breakdown */}
+              {/* If BEU Delivery is selected, optional BEU Order # input */}
               {selectedShiftType === 'BEU' && (
-                <div className="max-w-md mx-auto bg-teal-50 border border-teal-200 p-4 rounded-3xl space-y-3 animate-in fade-in">
-                  <div className="bg-white/90 rounded-2xl p-3 border border-teal-200 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="font-black text-teal-900 block">🛵 BEU Food-Only 15% Applied</span>
-                      <span className="text-[11px] font-bold text-slate-500">
-                        Normal: {formatEtb(totalNormalSubtotal)} ETB • Deduction (-15%): <strong className="text-rose-600">-{formatEtb(totalBeuDeductionInOrder)} ETB</strong>
-                      </span>
-                    </div>
-                    <span className="font-black text-sm text-teal-800">{formatEtb(totalSubtotal)} ETB</span>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black text-teal-900 mb-1.5">
-                      የቢዩ ትዕዛዝ ቁጥር (BEU Order # - Optional):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="ለምሳሌ፡ BEU-4921"
-                      value={beuOrderId}
-                      onChange={(e) => setBeuOrderId(e.target.value)}
-                      className="w-full bg-white border border-teal-300 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-teal-500"
-                    />
-                  </div>
+                <div className="max-w-md mx-auto bg-teal-50 border border-teal-200 p-4 rounded-3xl animate-in fade-in">
+                  <label className="block text-xs font-black text-teal-900 mb-1.5">
+                    የቢዩ ትዕዛዝ ቁጥር (BEU Order # - Optional):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="ለምሳሌ፡ BEU-4921"
+                    value={beuOrderId}
+                    onChange={(e) => setBeuOrderId(e.target.value)}
+                    className="w-full bg-white border border-teal-300 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-teal-500"
+                  />
                 </div>
               )}
 
@@ -2915,60 +2724,20 @@ export default function App() {
                 
                 {/* 1. Food Items List */}
                 <div className="p-5 sm:p-6 space-y-3">
-                  {activeIsBeu && (
-                    <div className="bg-teal-50 border border-teal-200 text-teal-900 px-3 py-2 rounded-2xl text-[11px] font-black flex items-center justify-between">
-                      <span>🛵 BEU Delivery Menu (Food Only)</span>
-                      <span className="bg-amber-300 text-slate-950 px-2 py-0.5 rounded-full text-[10px]">-15% Applied</span>
+                  {cart.map((item, idx) => (
+                    <div key={item.id || idx} className="flex items-center gap-3.5 pb-2.5 border-b border-[#F2EEE4] last:border-b-0 last:pb-0">
+                      <span className="bg-[#E2F4EB] text-[#126848] font-black text-xs px-2.5 py-1 rounded-xl flex-shrink-0">
+                        {item.qty}×
+                      </span>
+                      <span className="font-black text-sm sm:text-base text-[#1C201D] tracking-tight">
+                        {item.name}
+                      </span>
                     </div>
-                  )}
-
-                  {cart.map((item, idx) => {
-                    const unitPrice = activeIsBeu
-                      ? computeBeuPrice(item.normalFinalPrice ?? item.price)
-                      : getDishEffectivePrice(item, effectiveOrderType);
-                    const lineTotal = roundPricePrecision(unitPrice * item.qty);
-                    return (
-                      <div key={item.id || idx} className="flex items-center justify-between gap-3 pb-2.5 border-b border-[#F2EEE4] last:border-b-0 last:pb-0">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="bg-[#E2F4EB] text-[#126848] font-black text-xs px-2.5 py-1 rounded-xl flex-shrink-0">
-                            {item.qty}×
-                          </span>
-                          <div className="min-w-0">
-                            <span className="font-black text-sm sm:text-base text-[#1C201D] tracking-tight block truncate">
-                              {item.name}
-                            </span>
-                            {activeIsBeu && item.normalFinalPrice !== undefined && (
-                              <span className="text-[10px] font-bold text-slate-400 block">
-                                {formatEtb(item.normalFinalPrice)} × 0.85 = <strong className="text-teal-700">{formatEtb(unitPrice)} ETB</strong>
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <span className="font-black text-xs text-[#1C201D] shrink-0">
-                          {formatEtb(lineTotal)} ETB
-                        </span>
-                      </div>
-                    );
-                  })}
-
-                  {activeIsBeu && (
-                    <div className="bg-amber-50/80 border border-amber-200 rounded-2xl px-3.5 py-2.5 space-y-1 text-xs">
-                      <div className="flex justify-between font-bold text-slate-600">
-                        <span>Normal Selling Value:</span>
-                        <span>{formatEtb(totalNormalSubtotal)} ETB</span>
-                      </div>
-                      <div className="flex justify-between font-black text-rose-700">
-                        <span>BEU 15% Deduction:</span>
-                        <span>-{formatEtb(totalBeuDeductionInOrder)} ETB</span>
-                      </div>
-                    </div>
-                  )}
+                  ))}
 
                   {/* Total Price Box */}
                   <div className="bg-[#EBF6F0] rounded-2xl p-4 flex items-center justify-between mt-3">
-                    <span className="font-black text-sm text-[#1C201D]">
-                      {activeIsBeu ? 'BEU ድምር ዋጋ (Net Total)' : 'ድምር ዋጋ'}
-                    </span>
+                    <span className="font-black text-sm text-[#1C201D]">ድምር ዋጋ</span>
                     <div className="flex items-baseline">
                       <span className="text-3xl font-black text-[#1C201D] tracking-tight">
                         {formatEtb(totalSubtotal)}
@@ -3113,26 +2882,19 @@ export default function App() {
           {/* FLOATING ACTION BOTTOM BAR (When in Step 1)                      */}
           {/* ============================================================== */}
           {orderStep === 1 && (
-            <div className={`fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t py-3 px-4 shadow-2xl z-40 ${
-              activeIsBeu ? 'border-teal-300' : 'border-emerald-100'
-            }`}>
+            <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-emerald-100 py-3 px-4 shadow-2xl z-40">
               <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
                 
                 {/* Summary Info */}
                 <div>
                   {cart.length > 0 ? (
                     <div>
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
                         <span className="font-black text-base text-slate-900">
-                          {formatEtb(totalSubtotal)} <span className={`text-xs ${activeIsBeu ? 'text-teal-700' : 'text-emerald-700'}`}>ETB</span>
+                          {formatEtb(totalSubtotal)} <span className="text-xs text-emerald-700">ETB</span>
                         </span>
-                        {activeIsBeu && (
-                          <span className="text-[10px] font-black text-teal-900 bg-amber-200 px-2 py-0.5 rounded-lg border border-amber-300">
-                            🛵 BEU -15% (-{formatEtb(totalBeuDeductionInOrder)} ETB)
-                          </span>
-                        )}
                         <span className="text-xs text-slate-400 font-bold">•</span>
-                        {effectiveOrderType === 'Takeaway' ? (
+                        {orderType === 'Takeaway' ? (
                           <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-lg">
                             🥡 {totalBoxesInOrder} ቦክስ
                           </span>
@@ -3149,11 +2911,7 @@ export default function App() {
                   ) : (
                     <div className="flex items-center gap-2 text-slate-400 text-xs font-bold">
                       <ShoppingBag className="w-4 h-4" />
-                      <span>
-                        {activeIsBeu
-                          ? 'BEU Delivery Menu active — select food items (-15% auto-calculated)'
-                          : 'እባክዎ የሚዘጋጀውን ምግብ ይምረጡ (Choose food from menu)'}
-                      </span>
+                      <span>እባክዎ የሚዘጋጀውን ምግብ ይምረጡ (Choose food from menu)</span>
                     </div>
                   )}
                 </div>
@@ -3173,18 +2931,10 @@ export default function App() {
                   <button
                     type="button"
                     disabled={cart.length === 0}
-                    onClick={() => setOrderStep(activeIsBeu ? 3 : 2)}
-                    className={`px-5 py-3 rounded-2xl disabled:bg-slate-200 text-white disabled:text-slate-400 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg disabled:shadow-none transition-all active:scale-95 ${
-                      activeIsBeu
-                        ? 'bg-teal-600 hover:bg-teal-700 shadow-teal-700/20'
-                        : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-700/20'
-                    }`}
+                    onClick={() => setOrderStep(2)}
+                    className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 text-white disabled:text-slate-400 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-700/20 disabled:shadow-none transition-all active:scale-95"
                   >
-                    <span>
-                      {activeIsBeu
-                        ? 'ቀጥል (Next: 🛵 BEU Details)'
-                        : 'ቀጥል (Next: 🥡 Takeaway / 🏠 Home)'}
-                    </span>
+                    <span>ቀጥል (Next: 🥡 Takeaway / 🏠 Home)</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -4471,33 +4221,15 @@ export default function App() {
               {/* Food Items List */}
               <div className="p-5 sm:p-6 space-y-3">
                 {orderSuccessModal.items?.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between gap-3 pb-2.5 border-b border-[#F2EEE4] last:border-b-0 last:pb-0">
-                    <div className="flex items-center gap-3.5">
-                      <span className="bg-[#E2F4EB] text-[#126848] font-black text-xs px-2.5 py-1 rounded-xl flex-shrink-0">
-                        {item.qty}×
-                      </span>
-                      <span className="font-black text-sm sm:text-base text-[#1C201D] tracking-tight">
-                        {item.name}
-                      </span>
-                    </div>
-                    <span className="font-black text-xs text-[#1C201D]">
-                      {formatEtb(roundPricePrecision(item.price * item.qty))} ETB
+                  <div key={idx} className="flex items-center gap-3.5 pb-2.5 border-b border-[#F2EEE4] last:border-b-0 last:pb-0">
+                    <span className="bg-[#E2F4EB] text-[#126848] font-black text-xs px-2.5 py-1 rounded-xl flex-shrink-0">
+                      {item.qty}×
+                    </span>
+                    <span className="font-black text-sm sm:text-base text-[#1C201D] tracking-tight">
+                      {item.name}
                     </span>
                   </div>
                 ))}
-
-                {orderSuccessModal.channel === 'BEU Delivery' && getOrderBeuMetrics(orderSuccessModal).deductionAmount > 0 && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl px-3.5 py-2.5 space-y-1 text-xs">
-                    <div className="flex justify-between font-bold text-slate-600">
-                      <span>Normal Value:</span>
-                      <span>{formatEtb(getOrderBeuMetrics(orderSuccessModal).normalSubtotal)} ETB</span>
-                    </div>
-                    <div className="flex justify-between font-black text-rose-700">
-                      <span>BEU 15% Deduction:</span>
-                      <span>-{formatEtb(getOrderBeuMetrics(orderSuccessModal).deductionAmount)} ETB</span>
-                    </div>
-                  </div>
-                )}
 
                 {/* Total Price Box */}
                 <div className="bg-[#EBF6F0] rounded-2xl p-4 flex items-center justify-between mt-3">
