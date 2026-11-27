@@ -42,6 +42,7 @@ import {
   getShiftDefaultWaiters,
   saveShiftDefaultWaiters
 } from '../utils/reconciliationHelpers';
+import { formatEtb } from '../utils/beuHelpers';
 
 // Standard Maraki price per juice cup
 export const DEFAULT_JUICE_PRICE = 170;
@@ -1436,6 +1437,14 @@ export default function ShiftReconciliation({
                         {chefComparison.hasDishTypeVariance && (
                           <span className="ml-2 text-emerald-800 font-black">
                             (Different dish types clicked, total count matches — OK ✔)
+                          </span>
+                        )}
+                        {chefSummary.beuOrdersCount > 0 && (
+                          <span className="block mt-1 text-teal-800 font-black">
+                            🛵 BEU Food Orders: {chefSummary.beuOrdersCount} ({chefSummary.beuBoxes} boxes) •
+                            Normal Value: {formatEtb(chefSummary.beuNormalRevenue)} ETB •
+                            15% BEU Deduction: <span className="text-rose-700">-{formatEtb(chefSummary.beuFoodDeduction)} ETB</span> •
+                            BEU Net: {formatEtb(chefSummary.beuFoodRevenue)} ETB
                           </span>
                         )}
                       </>

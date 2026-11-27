@@ -1,4 +1,5 @@
 import { toEthiopianDateString } from '../components/BusinessManagement';
+import { getOrderBeuMetrics, roundPricePrecision } from './beuHelpers';
 
 /**
  * Safely convert a YYYY-MM-DD string or ISO timestamp to local YYYY-MM-DD.
@@ -122,14 +123,25 @@ export function aggregateChefOrders(orders = [], dateStr, shift = 'all', dishesL
   let homeDishes = 0;
   let beuOrdersCount = 0;
   let beuBoxes = 0;
+  let beuFoodRevenue = 0;
+  let beuNormalRevenue = 0;
+  let beuFoodDeduction = 0;
+  let inStoreRevenue = 0;
   let totalRevenue = 0;
   const dishCounts = {};
 
   matchedOrders.forEach(order => {
     const isHome = order.orderType === 'Home' || order.channel === 'In-Store Home';
-    const isBeu = order.channel === 'BEU Delivery';
-    if (isBeu) beuOrdersCount += 1;
-    totalRevenue += Number(order.totalAmount || 0);
+    const bm = getOrderBeuMetrics(order);
+    if (bm.isBeu) {
+      beuOrdersCount += 1;
+      beuFoodRevenue = roundPricePrecision(beuFoodRevenue + bm.netTotal);
+      beuNormalRevenue = roundPricePrecision(beuNormalRevenue + bm.normalSubtotal);
+      beuFoodDeduction = roundPricePrecision(beuFoodDeduction + bm.deductionAmount);
+    } else {
+      inStoreRevenue = roundPricePrecision(inStoreRevenue + Number(order.totalAmount || 0));
+    }
+    totalRevenue = roundPricePrecision(totalRevenue + Number(order.totalAmount || 0));
 
     const items = Array.isArray(order.items) ? order.items : [];
     let orderFoodQty = 0;
@@ -146,10 +158,11 @@ export function aggregateChefOrders(orders = [], dateStr, shift = 'all', dishesL
           id: key,
           name: refDish?.name || item.name || key,
           englishName: refDish?.englishName || item.englishName || '',
-          price: Number(item.price || refDish?.price || 0),
+          price: Number(refDish?.price || item.price || 0),
           qty: 0,
           takeawayQty: 0,
           homeQty: 0,
+          beuQty: 0,
           revenue: 0
         };
       }
@@ -158,8 +171,9 @@ export function aggregateChefOrders(orders = [], dateStr, shift = 'all', dishesL
         dishCounts[key].homeQty += qty;
       } else {
         dishCounts[key].takeawayQty += qty;
+        if (bm.isBeu) dishCounts[key].beuQty += qty;
       }
-      dishCounts[key].revenue += qty * Number(item.price || 0);
+      dishCounts[key].revenue = roundPricePrecision(dishCounts[key].revenue + qty * Number(item.price || 0));
     });
 
     if (isHome) {
@@ -167,7 +181,7 @@ export function aggregateChefOrders(orders = [], dateStr, shift = 'all', dishesL
     } else {
       const boxes = order.boxesCount !== undefined ? Number(order.boxesCount || 0) : orderFoodQty;
       takeawayBoxes += boxes;
-      if (isBeu) beuBoxes += boxes;
+      if (bm.isBeu) beuBoxes += boxes;
     }
   });
 
@@ -179,6 +193,10 @@ export function aggregateChefOrders(orders = [], dateStr, shift = 'all', dishesL
     totalFoodItems: takeawayBoxes + homeDishes,
     beuOrdersCount,
     beuBoxes,
+    beuFoodRevenue,
+    beuNormalRevenue,
+    beuFoodDeduction,
+    inStoreRevenue,
     totalRevenue,
     dishCounts
   };

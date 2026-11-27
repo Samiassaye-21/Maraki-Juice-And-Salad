@@ -15,12 +15,16 @@ import {
   ShieldCheck,
   History,
   Save,
-  AlertTriangle
+  AlertTriangle,
+  Truck
 } from 'lucide-react';
+import { isFoodItemForBeu, computeBeuPrice, formatEtb } from '../utils/beuHelpers';
 
 const CATEGORIES = [
   { id: 'All', label: 'All Items' },
   { id: 'Juices', label: '🥤 Juices' },
+  { id: 'Milkshake', label: '🥛 Milkshakes' },
+  { id: 'Drinks', label: '🧃 Drinks' },
   { id: 'Salad', label: '🥗 Salads & Fruit' },
   { id: 'Pasta & Rice', label: '🍝 Pasta & Rice' },
   { id: 'Eggs & Firfir', label: '🍳 Eggs & Firfir' },
@@ -122,6 +126,7 @@ export default function OwnerMenuPriceManager({
   const [newCategory, setNewCategory] = useState('Salad');
   const [newItemType, setNewItemType] = useState('food'); // 'food' | 'juice'
   const [newPrice, setNewPrice] = useState('');
+  const [newOriginalPrice, setNewOriginalPrice] = useState('');
   const [newHomePrice, setNewHomePrice] = useState('');
   const [newEmoji, setNewEmoji] = useState('🥗');
 
@@ -157,6 +162,7 @@ export default function OwnerMenuPriceManager({
   const getDraft = (item) => {
     return draftPrices[item.id] || {
       price: String(item.price ?? ''),
+      originalPrice: item.originalPrice !== undefined && item.originalPrice !== null ? String(item.originalPrice) : '',
       homePrice: item.homePrice !== undefined && item.homePrice !== null ? String(item.homePrice) : ''
     };
   };
@@ -172,8 +178,10 @@ export default function OwnerMenuPriceManager({
   const handleSaveSingleItem = (item) => {
     const draft = getDraft(item);
     const nextPrice = Number(draft.price);
+    const nextOriginal = draft.originalPrice === '' ? null : Number(draft.originalPrice);
     const nextHome = draft.homePrice === '' ? null : Number(draft.homePrice);
     if (isNaN(nextPrice) || nextPrice < 0) return;
+    if (nextOriginal !== null && (isNaN(nextOriginal) || nextOriginal < 0)) return;
     if (nextHome !== null && (isNaN(nextHome) || nextHome < 0)) return;
 
     runWithPermission(() => {
@@ -182,14 +190,19 @@ export default function OwnerMenuPriceManager({
         return {
           ...m,
           price: nextPrice,
+          originalPrice: nextOriginal,
           homePrice: nextHome
         };
       });
-      if (nextPrice !== Number(item.price) || nextHome !== (item.homePrice ?? null)) {
+      if (
+        nextPrice !== Number(item.price) ||
+        nextOriginal !== (item.originalPrice ?? null) ||
+        nextHome !== (item.homePrice ?? null)
+      ) {
         recordAudit(
           `${item.name} (${item.englishName || ''})`,
           `${item.price} ETB${item.homePrice ? ` / Home ${item.homePrice}` : ''}`,
-          `${nextPrice} ETB${nextHome !== null ? ` / Home ${nextHome}` : ''}`
+          `${nextPrice} ETB${isFoodItemForBeu(item) ? ` (BEU ${formatEtb(computeBeuPrice(nextPrice))})` : ''}`
         );
       }
       onUpdateMenu(updated);
@@ -198,7 +211,7 @@ export default function OwnerMenuPriceManager({
         delete copy[item.id];
         return copy;
       });
-      showNotice(`Updated ${item.englishName || item.name} → ${nextPrice} ETB`);
+      showNotice(`Updated ${item.englishName || item.name} → ${formatEtb(nextPrice)} ETB${isFoodItemForBeu(item) ? ` (BEU ${formatEtb(computeBeuPrice(nextPrice))} ETB)` : ''}`);
     });
   };
 
@@ -212,18 +225,24 @@ export default function OwnerMenuPriceManager({
         const draft = draftPrices[m.id];
         if (!draft) return m;
         const nextPrice = Number(draft.price);
+        const nextOriginal = draft.originalPrice === '' ? null : Number(draft.originalPrice);
         const nextHome = draft.homePrice === '' ? null : Number(draft.homePrice);
         if (isNaN(nextPrice) || nextPrice < 0) return m;
+        if (nextOriginal !== null && (isNaN(nextOriginal) || nextOriginal < 0)) return m;
         if (nextHome !== null && (isNaN(nextHome) || nextHome < 0)) return m;
-        if (nextPrice !== Number(m.price) || nextHome !== (m.homePrice ?? null)) {
+        if (
+          nextPrice !== Number(m.price) ||
+          nextOriginal !== (m.originalPrice ?? null) ||
+          nextHome !== (m.homePrice ?? null)
+        ) {
           changedCount += 1;
           recordAudit(
             `${m.name} (${m.englishName || ''})`,
             `${m.price} ETB${m.homePrice ? ` / Home ${m.homePrice}` : ''}`,
-            `${nextPrice} ETB${nextHome !== null ? ` / Home ${nextHome}` : ''}`
+            `${nextPrice} ETB${isFoodItemForBeu(m) ? ` (BEU ${formatEtb(computeBeuPrice(nextPrice))})` : ''}`
           );
         }
-        return { ...m, price: nextPrice, homePrice: nextHome };
+        return { ...m, price: nextPrice, originalPrice: nextOriginal, homePrice: nextHome };
       });
       onUpdateMenu(updated);
       setDraftPrices({});
@@ -259,17 +278,20 @@ export default function OwnerMenuPriceManager({
     e.preventDefault();
     const priceNum = Number(newPrice);
     if (!newName.trim() || isNaN(priceNum) || priceNum <= 0) return;
+    const origNum = newOriginalPrice === '' ? null : Number(newOriginalPrice);
     const homeNum = newHomePrice === '' ? null : Number(newHomePrice);
 
     runWithPermission(() => {
-      const isJuice = newItemType === 'juice' || newCategory === 'Juices';
+      const isDrinkCat = ['Juices', 'Milkshake', 'Drinks'].includes(newCategory);
+      const isJuice = newItemType === 'juice' || isDrinkCat;
       const created = {
         id: `${isJuice ? 'j' : 'm'}-${Date.now()}`,
         name: newName.trim(),
         englishName: newEnglishName.trim() || newName.trim(),
-        category: isJuice ? 'Juices' : newCategory,
+        category: isJuice && !isDrinkCat ? 'Juices' : newCategory,
         itemType: isJuice ? 'juice' : 'food',
         price: priceNum,
+        originalPrice: origNum,
         homePrice: homeNum,
         containerType: isJuice ? 'cup' : 'box',
         isAvailable: true,
@@ -281,9 +303,10 @@ export default function OwnerMenuPriceManager({
       setNewName('');
       setNewEnglishName('');
       setNewPrice('');
+      setNewOriginalPrice('');
       setNewHomePrice('');
       setShowAddForm(false);
-      showNotice(`Added "${created.englishName}" at ${priceNum} ETB`);
+      showNotice(`Added "${created.englishName}" at ${formatEtb(priceNum)} ETB`);
     });
   };
 
@@ -442,7 +465,7 @@ export default function OwnerMenuPriceManager({
             <h3 className="text-sm font-black text-slate-900">➕ Add New Food Dish or Juice Item</h3>
             <button type="button" onClick={() => setShowAddForm(false)} className="text-xs font-bold text-slate-400 hover:text-slate-700">Close</button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 items-end">
             <div>
               <label className="text-[10px] font-black text-slate-600 block mb-1">Type *</label>
               <select
@@ -451,17 +474,17 @@ export default function OwnerMenuPriceManager({
                   const val = e.target.value;
                   setNewItemType(val);
                   if (val === 'juice') {
-                    setNewCategory('Juices');
+                    if (!['Juices', 'Milkshake', 'Drinks'].includes(newCategory)) setNewCategory('Juices');
                     setNewEmoji('🥤');
                   } else {
-                    if (newCategory === 'Juices') setNewCategory('Salad');
+                    if (['Juices', 'Milkshake', 'Drinks'].includes(newCategory)) setNewCategory('Salad');
                     setNewEmoji('🥗');
                   }
                 }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black"
               >
                 <option value="food">🍱 Food (Uses Box)</option>
-                <option value="juice">🥤 Juice (Uses Cup)</option>
+                <option value="juice">🥤 Drink / Juice / Shake</option>
               </select>
             </div>
             <div>
@@ -481,7 +504,7 @@ export default function OwnerMenuPriceManager({
                 type="text"
                 value={newEnglishName}
                 onChange={(e) => setNewEnglishName(e.target.value)}
-                placeholder="e.g. Avocado Juice"
+                placeholder="e.g. Egg Chao fan"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
               />
             </div>
@@ -489,7 +512,11 @@ export default function OwnerMenuPriceManager({
               <label className="text-[10px] font-black text-slate-600 block mb-1">Category</label>
               <select
                 value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewCategory(val);
+                  setNewItemType(['Juices', 'Milkshake', 'Drinks'].includes(val) ? 'juice' : 'food');
+                }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
               >
                 {CATEGORIES.filter(c => c.id !== 'All').map(c => (
@@ -498,21 +525,35 @@ export default function OwnerMenuPriceManager({
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-black text-slate-600 block mb-1">Base / Takeaway Price *</label>
+              <label className="text-[10px] font-black text-slate-600 block mb-1">Red / Final Price *</label>
               <input
                 type="number"
+                step="any"
                 required
                 min="1"
                 value={newPrice}
                 onChange={(e) => setNewPrice(e.target.value)}
-                placeholder="ETB"
+                placeholder="e.g. 337.50"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-600 block mb-1">Crossed-Out Orig.</label>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                value={newOriginalPrice}
+                onChange={(e) => setNewOriginalPrice(e.target.value)}
+                placeholder="e.g. 450"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
               />
             </div>
             <div>
               <label className="text-[10px] font-black text-slate-600 block mb-1">Home / Dine-In Price</label>
               <input
                 type="number"
+                step="any"
                 min="0"
                 value={newHomePrice}
                 onChange={(e) => setNewHomePrice(e.target.value)}
@@ -595,8 +636,10 @@ export default function OwnerMenuPriceManager({
               <tr className="bg-slate-50 text-slate-500 font-black border-b border-slate-200">
                 <th className="py-3 px-3">Menu Item</th>
                 <th className="py-3 px-3">Category</th>
-                <th className="py-3 px-3">Takeaway / Base Price (ETB)</th>
-                <th className="py-3 px-3">Home / Dine-In Price (ETB)</th>
+                <th className="py-3 px-3">Final Price (Red/Base)</th>
+                <th className="py-3 px-3">Original (Crossed-Out)</th>
+                <th className="py-3 px-3">🛵 BEU Price (×0.85)</th>
+                <th className="py-3 px-3">Home / Dine-In (ETB)</th>
                 <th className="py-3 px-3 text-center">Chef POS Status</th>
                 <th className="py-3 px-3 text-right">Actions</th>
               </tr>
@@ -605,6 +648,8 @@ export default function OwnerMenuPriceManager({
               {filteredItems.map(item => {
                 const draft = getDraft(item);
                 const autoHomeDefault = Number(draft.price) === 320 ? 300 : Number(draft.price || item.price);
+                const isFoodBeu = isFoodItemForBeu(item);
+                const liveBeuPrice = isFoodBeu ? computeBeuPrice(draft.price) : null;
                 const isDirty = Boolean(draftPrices[item.id]);
                 const isHidden = item.isAvailable === false;
                 return (
@@ -630,6 +675,7 @@ export default function OwnerMenuPriceManager({
                     <td className="py-3 px-3">
                       <input
                         type="number"
+                        step="any"
                         min="0"
                         value={draft.price}
                         onChange={(e) => updateDraftField(item, 'price', e.target.value)}
@@ -638,9 +684,39 @@ export default function OwnerMenuPriceManager({
                     </td>
 
                     <td className="py-3 px-3">
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={draft.originalPrice}
+                        onChange={(e) => updateDraftField(item, 'originalPrice', e.target.value)}
+                        placeholder="None"
+                        className="w-24 bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-500 outline-none placeholder:text-slate-300"
+                      />
+                    </td>
+
+                    <td className="py-3 px-3">
+                      {isFoodBeu ? (
+                        <div className="inline-flex flex-col">
+                          <span className="text-xs font-black text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-xl">
+                            {formatEtb(liveBeuPrice)} ETB
+                          </span>
+                          <span className="text-[9px] text-slate-400 font-bold mt-0.5">
+                            -15% of final price
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                          Drink (Excluded)
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="py-3 px-3">
                       <div className="flex items-center gap-1.5">
                         <input
                           type="number"
+                          step="any"
                           min="0"
                           value={draft.homePrice}
                           onChange={(e) => updateDraftField(item, 'homePrice', e.target.value)}

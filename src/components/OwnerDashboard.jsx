@@ -24,6 +24,7 @@ import {
   computePackagingAudit,
   getOrderIsoDate
 } from '../utils/reconciliationHelpers';
+import { getOrderBeuMetrics, formatEtb, roundPricePrecision } from '../utils/beuHelpers';
 
 export default function OwnerDashboard({
   orders = [],
@@ -124,7 +125,10 @@ export default function OwnerDashboard({
   // Today's KPI numbers
   const todayDrawerCash = todaySettlements.reduce((s, x) => s + Number(x.physicalCashInDrawer || 0), 0);
   const todayGrossSales = todaySettlements.reduce((s, x) => s + Number(x.totalGrossSales || 0), 0);
-  const todayChefSales = todayOrders.reduce((s, o) => s + Number(o.totalAmount || 0), 0);
+  const todayChefSales = roundPricePrecision(todayOrders.reduce((s, o) => s + Number(o.totalAmount || 0), 0));
+  const todayBeuFoodOrders = todayOrders.filter(o => o.channel === 'BEU Delivery' || o.isBeuOrder);
+  const todayBeuFoodNet = roundPricePrecision(todayBeuFoodOrders.reduce((s, o) => s + getOrderBeuMetrics(o).netTotal, 0));
+  const todayBeuFoodDeduction = roundPricePrecision(todayBeuFoodOrders.reduce((s, o) => s + getOrderBeuMetrics(o).deductionAmount, 0));
   const todayCupsSold = todaySettlements.reduce((s, x) => s + Number(x.juiceSold || 0), 0);
   const todayBeuCups = todaySettlements.reduce((s, x) => s + Number(x.beuDeliveryCups || 0), 0);
   const todayBoxesChef = todayOrders.reduce((s, o) => s + (o.orderType === 'Home' ? 0 : Number(o.boxesCount || 0)), 0);
@@ -275,7 +279,8 @@ export default function OwnerDashboard({
           </div>
           <p className="text-2xl font-black text-slate-900 tabular-nums">{todayOrders.length} <span className="text-xs font-bold text-slate-400">orders</span></p>
           <p className="text-[11px] text-slate-400 font-bold">
-            {todayBoxesChef} Takeaway Boxes • {todayChefSales.toLocaleString()} ETB
+            {todayBoxesChef} Boxes • {formatEtb(todayChefSales)} ETB
+            {todayBeuFoodOrders.length > 0 && ` • 🛵 ${todayBeuFoodOrders.length} BEU (-${formatEtb(todayBeuFoodDeduction)} ETB)`}
           </p>
         </div>
 

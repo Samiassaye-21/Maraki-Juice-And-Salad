@@ -42,6 +42,7 @@ import {
   compareChefVsIncomeSheet,
   computePackagingAudit
 } from '../utils/reconciliationHelpers';
+import { getOrderBeuMetrics, formatEtb, roundPricePrecision } from '../utils/beuHelpers';
 
 const DISH_LOOKUP = DEFAULT_RECONCILIATION_DISHES.reduce((acc, d) => {
   acc[d.id] = d;
@@ -270,8 +271,9 @@ export default function OwnerIncomeAnalysisReport({
     const totalBoxes = boxesFromSettlements > 0 ? boxesFromSettlements : chefFoodSummary.takeawayBoxes;
 
     const totalOrdersCount = filteredOrders.length;
-    const dayOrdersCount = filteredOrders.filter(o => getOrderShift(o) === 'Day').length;
-    const nightOrdersCount = filteredOrders.filter(o => getOrderShift(o) === 'Night').length;
+    const beuFoodOrdersList = filteredOrders.filter(o => o.channel === 'BEU Delivery' || o.isBeuOrder);
+    const dayOrdersCount = filteredOrders.filter(o => getOrderShift(o) === 'Day' && o.channel !== 'BEU Delivery').length;
+    const nightOrdersCount = filteredOrders.filter(o => getOrderShift(o) === 'Night' && o.channel !== 'BEU Delivery').length;
 
     const totalCupsGiven = filteredSettlements.reduce((sum, s) => sum + (Number(s.cupsGiven) || 0), 0);
     const totalCupsLeft = filteredSettlements.reduce((sum, s) => sum + (Number(s.cupsLeft) || 0), 0);
@@ -354,6 +356,12 @@ export default function OwnerIncomeAnalysisReport({
       totalOrdersCount,
       dayOrdersCount,
       nightOrdersCount,
+      beuFoodOrdersList,
+      beuFoodOrdersCount: chefFoodSummary.beuOrdersCount,
+      beuFoodBoxes: chefFoodSummary.beuBoxes,
+      beuFoodNetRevenue: chefFoodSummary.beuFoodRevenue,
+      beuFoodNormalRevenue: chefFoodSummary.beuNormalRevenue,
+      beuFoodDeduction: chefFoodSummary.beuFoodDeduction,
       totalCupsGiven,
       totalCupsLeft,
       totalJuiceCups,
@@ -576,9 +584,12 @@ export default function OwnerIncomeAnalysisReport({
       `📊 MARAKI JUICE & SALAD — OWNER BRIEF`,
       `📅 Period: ${rangeTitle} (${shiftFilter === 'all' ? 'All Shifts' : shiftFilter})`,
       `🍱 Food Boxes: ${metrics.totalBoxes} (${metrics.totalFoodRevenue.toLocaleString()} ETB)`,
-      `🧾 Kitchen Orders: ${metrics.totalOrdersCount} (☀️ ${metrics.dayOrdersCount} / 🌙 ${metrics.nightOrdersCount})`,
+      `🧾 Kitchen Orders: ${metrics.totalOrdersCount} (☀️ ${metrics.dayOrdersCount} / 🌙 ${metrics.nightOrdersCount} / 🛵 ${metrics.beuFoodOrdersCount} BEU)`,
+      ...(metrics.beuFoodOrdersCount > 0
+        ? [`🛵 BEU Food (${metrics.beuFoodBoxes} boxes): Normal ${formatEtb(metrics.beuFoodNormalRevenue)} ETB • -15% Deduction: -${formatEtb(metrics.beuFoodDeduction)} ETB • Net BEU: ${formatEtb(metrics.beuFoodNetRevenue)} ETB`]
+        : []),
       `🥤 Juice Cups: ${metrics.totalJuiceCups} (${metrics.inHouseJuiceCups} in-house + ${metrics.totalBeuCups} beU)`,
-      `🛵 beU Deduction: -${metrics.totalBeuDeduction.toLocaleString()} ETB`,
+      `🛵 beU Cups Deduction: -${metrics.totalBeuDeduction.toLocaleString()} ETB`,
       `💰 Gross Sales: ${metrics.totalGrossSales.toLocaleString()} ETB`,
       `💸 Expenses (Shift + Owner): -${metrics.totalAllExpenses.toLocaleString()} ETB`,
       `🏦 Bank Transfers: -${metrics.totalBankTransfers.toLocaleString()} ETB`,
@@ -879,7 +890,7 @@ export default function OwnerIncomeAnalysisReport({
       <div className="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-1.5 overflow-x-auto">
         {[
           { id: 'overview', label: '📈 Overview & Cash Flow', badge: mismatchAlerts.length > 0 ? `${mismatchAlerts.length} 🚨` : null, alert: mismatchAlerts.length > 0 },
-          { id: 'cups_beu', label: '🥤 Cups & beU', badge: metrics.totalJuiceCups },
+          { id: 'cups_beu', label: '🥤 Cups & beU', badge: metrics.totalJuiceCups + metrics.beuFoodOrdersCount },
           { id: 'food', label: '🍱 Food & Chef Audit', badge: metrics.totalBoxes },
           { id: 'expenses', label: '💸 Expenses (Separated)', badge: combinedExpenses.length },
           { id: 'pending', label: '⏳ Pending & Waiters', badge: filteredPendingDebts.length },
@@ -968,8 +979,8 @@ export default function OwnerIncomeAnalysisReport({
               </div>
               <p className="text-3xl font-black text-slate-900 tabular-nums">{metrics.totalOrdersCount.toLocaleString()}</p>
               <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
-                <span>Day / Night:</span>
-                <strong className="text-slate-700 font-black">☀️ {metrics.dayOrdersCount} • 🌙 {metrics.nightOrdersCount}</strong>
+                <span>Day / Night / BEU:</span>
+                <strong className="text-slate-700 font-black">☀️ {metrics.dayOrdersCount} • 🌙 {metrics.nightOrdersCount} • 🛵 {metrics.beuFoodOrdersCount}</strong>
               </div>
             </div>
 
@@ -988,12 +999,20 @@ export default function OwnerIncomeAnalysisReport({
             <div onClick={() => setSubView('cups_beu')} className="cursor-pointer bg-white p-5 rounded-3xl border border-slate-200 hover:border-emerald-400 shadow-xs space-y-2 transition-all">
               <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
                 <span className="flex items-center gap-1.5"><Truck className="w-4 h-4 text-emerald-600" /> beU Delivery</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-black">{metrics.beuSharePercent}% share</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-black">
+                  {metrics.beuFoodOrdersCount > 0 ? `${metrics.beuFoodOrdersCount} food` : `${metrics.beuSharePercent}% cups`}
+                </span>
               </div>
-              <p className="text-3xl font-black text-slate-900 tabular-nums">{metrics.totalBeuCups.toLocaleString()} <span className="text-xs text-slate-400">cups</span></p>
-              <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
-                <span>beU Deduction:</span>
-                <strong className="text-rose-700 font-black">-{metrics.totalBeuDeduction.toLocaleString()} ETB</strong>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">
+                {metrics.beuFoodOrdersCount > 0
+                  ? `${formatEtb(metrics.beuFoodNetRevenue)} ETB`
+                  : <>{metrics.totalBeuCups.toLocaleString()} <span className="text-xs text-slate-400">cups</span></>}
+              </p>
+              <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between gap-1">
+                <span>15% Food / Cup Deduct:</span>
+                <strong className="text-rose-700 font-black">
+                  -{formatEtb(metrics.beuFoodDeduction + metrics.totalBeuDeduction)} ETB
+                </strong>
               </div>
             </div>
           </div>
@@ -1101,6 +1120,90 @@ export default function OwnerIncomeAnalysisReport({
       {/* ============================================================== */}
       {subView === 'cups_beu' && (
         <div className="space-y-5">
+          {/* BEU DELIVERY FOOD ORDERS & 15% DEDUCTION REPORT */}
+          <div className="bg-white p-5 rounded-3xl border border-teal-200 shadow-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <span>🛵 BEU Delivery Food Orders & 15% Deduction Report</span>
+                </h3>
+                <p className="text-[11px] text-slate-500 font-bold">
+                  Food-only orders calculated from Final Price × 0.85 with historical BEU prices preserved ({rangeTitle})
+                </p>
+              </div>
+              <span className="text-xs font-black bg-teal-50 text-teal-900 border border-teal-200 px-3 py-1 rounded-xl">
+                {metrics.beuFoodOrdersCount} BEU Food Order(s)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <span className="text-[10px] font-black uppercase text-slate-400">BEU Food Orders / Boxes</span>
+                <p className="text-xl font-black text-slate-900 mt-1">{metrics.beuFoodOrdersCount} <span className="text-xs text-slate-500">({metrics.beuFoodBoxes} boxes)</span></p>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <span className="text-[10px] font-black uppercase text-slate-400">Normal Final Price Value</span>
+                <p className="text-xl font-black text-slate-900 mt-1 tabular-nums">{formatEtb(metrics.beuFoodNormalRevenue)} <span className="text-xs text-slate-500">ETB</span></p>
+              </div>
+              <div className="bg-rose-50 p-3.5 rounded-2xl border border-rose-200">
+                <span className="text-[10px] font-black uppercase text-rose-700">BEU 15% Deduction</span>
+                <p className="text-xl font-black text-rose-700 mt-1 tabular-nums">-{formatEtb(metrics.beuFoodDeduction)} <span className="text-xs">ETB</span></p>
+              </div>
+              <div className="bg-teal-50 p-3.5 rounded-2xl border border-teal-300">
+                <span className="text-[10px] font-black uppercase text-teal-800">Net BEU Receivable (85%)</span>
+                <p className="text-xl font-black text-teal-900 mt-1 tabular-nums">{formatEtb(metrics.beuFoodNetRevenue)} <span className="text-xs">ETB</span></p>
+              </div>
+            </div>
+
+            {metrics.beuFoodOrdersList.length === 0 ? (
+              <p className="text-xs text-slate-400 font-bold py-5 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                No BEU Delivery food orders logged in Chef POS for this period.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-teal-50/70 text-slate-600 font-black border-b border-teal-100">
+                    <tr>
+                      <th className="py-2.5 px-3">Date / Time</th>
+                      <th className="py-2.5 px-3">Order & BEU #</th>
+                      <th className="py-2.5 px-3">Food Items (Saved BEU Price)</th>
+                      <th className="py-2.5 px-3 text-right">Normal Value</th>
+                      <th className="py-2.5 px-3 text-right">15% Deduction</th>
+                      <th className="py-2.5 px-3 text-right">BEU Total (85%)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {metrics.beuFoodOrdersList.map(o => {
+                      const bm = getOrderBeuMetrics(o);
+                      return (
+                        <tr key={o.id} className="hover:bg-teal-50/30">
+                          <td className="py-2.5 px-3 whitespace-nowrap font-bold text-slate-700">
+                            {o.ethiopianDate || getOrderIsoDate(o)}
+                            <span className="block text-[10px] text-slate-400">{o.timestamp}</span>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="font-mono font-black text-slate-900">#{String(o.id).slice(-6).toUpperCase()}</span>
+                            <span className="block text-[10px] font-bold text-teal-700">{o.beuOrderId || 'BEU-Direct'}</span>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            {(o.items || []).map((i, idx) => (
+                              <span key={idx} className="inline-block mr-1.5 mb-0.5 px-2 py-0.5 rounded-lg bg-slate-100 text-[11px] font-bold text-slate-800">
+                                {i.qty}× {i.name} ({formatEtb(i.price)} ETB)
+                              </span>
+                            ))}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-600 tabular-nums">{formatEtb(bm.normalSubtotal)} ETB</td>
+                          <td className="py-2.5 px-3 text-right font-black text-rose-600 tabular-nums">-{formatEtb(bm.deductionAmount)} ETB</td>
+                          <td className="py-2.5 px-3 text-right font-black text-teal-900 tabular-nums">{formatEtb(bm.netTotal)} ETB</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
               <span className="text-[10px] font-black uppercase text-slate-400">Cups Given</span>
@@ -1202,12 +1305,13 @@ export default function OwnerIncomeAnalysisReport({
           {/* Chef Sent vs Income Sheet Comparison Summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-              <span className="text-[10px] font-black uppercase text-slate-400">Chef POS Sent (Takeaway + Home)</span>
+              <span className="text-[10px] font-black uppercase text-slate-400">Chef POS Sent (Takeaway + Home + BEU)</span>
               <p className="text-2xl font-black text-slate-900 mt-1">
                 {metrics.chefTotalFood} <span className="text-xs text-slate-500">dishes</span>
               </p>
               <span className="text-[11px] text-slate-500 font-bold">
-                {metrics.boxesFromOrders} Takeaway Boxes • {metrics.chefHomeDishes} Home Dine-in
+                {metrics.boxesFromOrders} Takeaway Boxes ({metrics.beuFoodBoxes} BEU) • {metrics.chefHomeDishes} Home Dine-in
+                {metrics.beuFoodDeduction > 0 && ` • -15% BEU: -${formatEtb(metrics.beuFoodDeduction)} ETB`}
               </span>
             </div>
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
