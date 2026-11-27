@@ -29,6 +29,7 @@ import { getOrderBeuMetrics, formatEtb, roundPricePrecision } from '../utils/beu
 export default function OwnerDashboard({
   orders = [],
   settlements = [],
+  foodMenu = [],
   onNavigateSection
 }) {
   const todayIso = toLocalIsoDate(new Date());
@@ -123,11 +124,17 @@ export default function OwnerDashboard({
     return alarms;
   }, [settlements, todaySettlements, orders, todayIso]);
 
-  // Packaging Stock Audit (Boxes + Cups)
+  // Packaging Stock Audit (Standard Takeaway Boxes + Chao Fan Boxes + Cups)
   const stockAudit = useMemo(
-    () => computePackagingAudit({ orders, settlements }),
-    [orders, settlements]
+    () => computePackagingAudit({ orders, settlements, menuItems: foodMenu }),
+    [orders, settlements, foodMenu, syncTick]
   );
+
+  const stockAlerts = [
+    { key: 'standardBoxes', label: 'Standard Takeaway Boxes', emoji: '📦', data: stockAudit.standardBoxes },
+    { key: 'chofanBoxes', label: 'Chao Fan Takeaway Boxes', emoji: '🥡', data: stockAudit.chofanBoxes },
+    { key: 'cups', label: 'Juice Cups', emoji: '🥤', data: stockAudit.cups }
+  ].filter(s => s.data && (s.data.status === 'finished' || s.data.status === 'low'));
 
   // Today's KPI numbers
   const todayDrawerCash = todaySettlements.reduce((s, x) => s + Number(x.physicalCashInDrawer || 0), 0);
@@ -163,25 +170,25 @@ export default function OwnerDashboard({
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => onNavigateSection('sheet')}
+            onClick={() => onNavigateSection('analysis')}
             className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
           >
-            <ClipboardCheck className="w-4 h-4" />
-            <span>Open Daily Sheet</span>
+            <BarChart3 className="w-4 h-4" />
+            <span>Income & Reports</span>
           </button>
           <button
             type="button"
-            onClick={() => onNavigateSection('analysis')}
+            onClick={() => onNavigateSection('stock')}
             className="px-4 py-2.5 rounded-2xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-800 dark:text-white font-black text-xs flex items-center gap-1.5 border border-slate-200 dark:border-white/15 active:scale-95 transition-all"
           >
-            <BarChart3 className="w-4 h-4 text-emerald-300" />
-            <span>Deep Reports</span>
+            <Package className="w-4 h-4 text-emerald-500" />
+            <span>Stock Control</span>
           </button>
         </div>
       </div>
 
-      {/* LIVE ALARM CENTER (CHEF MISMATCHES + LOW/FINISHED STOCK) */}
-      {(activeMismatchAlarms.some(a => !a.unsavedOnly) || stockAudit.boxes.status === 'finished' || stockAudit.boxes.status === 'low' || stockAudit.cups.status === 'finished' || stockAudit.cups.status === 'low') && (
+      {/* LIVE ALARM CENTER (CHEF MISMATCHES + 3-STOCK OUT-OF-STOCK / LOW ALERTS) */}
+      {(activeMismatchAlarms.some(a => !a.unsavedOnly) || stockAlerts.length > 0) && (
         <div className="space-y-3">
           {activeMismatchAlarms.filter(a => !a.unsavedOnly).map(alarm => (
             <div
@@ -208,61 +215,34 @@ export default function OwnerDashboard({
             </div>
           ))}
 
-          {(stockAudit.boxes.status === 'finished' || stockAudit.boxes.status === 'low') && (
+          {stockAlerts.map(item => (
             <div
+              key={item.key}
               onClick={() => onNavigateSection('stock')}
               className={`cursor-pointer border-2 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm transition-all ${
-                stockAudit.boxes.status === 'finished'
+                item.data.status === 'finished'
                   ? 'bg-rose-50 border-rose-500 text-rose-950'
                   : 'bg-amber-50 border-amber-400 text-amber-950'
               }`}
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl">{stockAudit.boxes.status === 'finished' ? '🔴' : '🟡'}</span>
+                <span className="text-2xl">{item.data.status === 'finished' ? '🚨' : '⚠️'}</span>
                 <div>
                   <h3 className="text-xs sm:text-sm font-black">
-                    {stockAudit.boxes.status === 'finished'
-                      ? 'FOOD BOXES FINISHED (OUT OF STOCK!)'
-                      : `LOW FOOD BOX STOCK: Only ${stockAudit.boxes.totalRemaining} boxes left`}
+                    {item.data.status === 'finished'
+                      ? `${item.emoji} ${item.label.toUpperCase()} — OUT OF STOCK!`
+                      : `${item.emoji} LOW ${item.label.toUpperCase()}: Only ${item.data.totalRemaining} left`}
                   </h3>
                   <p className="text-[11px] font-bold opacity-80">
-                    Bought: {stockAudit.boxes.bought} • Sold in Chef Orders: {stockAudit.boxes.sold} • Storage Left: {stockAudit.boxes.storageRemaining}
+                    Bought: {item.data.bought} • Auto-Deducted (Orders Out): {item.data.sold} • Storage Left: {item.data.storageRemaining}
                   </p>
                 </div>
               </div>
               <span className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-black">
-                Open Box Audit →
+                Restock Now →
               </span>
             </div>
-          )}
-
-          {(stockAudit.cups.status === 'finished' || stockAudit.cups.status === 'low') && (
-            <div
-              onClick={() => onNavigateSection('stock')}
-              className={`cursor-pointer border-2 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm transition-all ${
-                stockAudit.cups.status === 'finished'
-                  ? 'bg-rose-50 border-rose-500 text-rose-950'
-                  : 'bg-amber-50 border-amber-400 text-amber-950'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{stockAudit.cups.status === 'finished' ? '🔴' : '🟡'}</span>
-                <div>
-                  <h3 className="text-xs sm:text-sm font-black">
-                    {stockAudit.cups.status === 'finished'
-                      ? 'JUICE CUPS FINISHED (OUT OF STOCK!)'
-                      : `LOW JUICE CUP STOCK: Only ${stockAudit.cups.totalRemaining} cups left`}
-                  </h3>
-                  <p className="text-[11px] font-bold opacity-80">
-                    Bought: {stockAudit.cups.bought} • Sold: {stockAudit.cups.sold}
-                  </p>
-                </div>
-              </div>
-              <span className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-black">
-                Open Cup Audit →
-              </span>
-            </div>
-          )}
+          ))}
         </div>
       )}
 
@@ -334,42 +314,32 @@ export default function OwnerDashboard({
             </button>
           </div>
 
-          <div className="space-y-3">
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-black text-slate-800 block">📦 Food Boxes</span>
-                <span className="text-[10px] font-bold text-slate-400">
-                  Bought {stockAudit.boxes.bought} • Sold {stockAudit.boxes.sold}
+          <div className="space-y-2.5">
+            {[
+              { id: 'standardBoxes', label: '📦 Standard Takeaway Boxes', data: stockAudit.standardBoxes },
+              { id: 'chofanBoxes', label: '🥡 Chao Fan Takeaway Boxes', data: stockAudit.chofanBoxes },
+              { id: 'cups', label: '🥤 Juice Cups', data: stockAudit.cups }
+            ].map(row => (
+              <div key={row.id} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-black text-slate-800 block">{row.label}</span>
+                  <span className="text-[10px] font-bold text-slate-400">
+                    Bought {row.data.bought} • Deducted {row.data.sold}
+                  </span>
+                </div>
+                <span className={`text-xs font-black px-2.5 py-1 rounded-xl ${
+                  row.data.status === 'finished'
+                    ? 'bg-rose-100 text-rose-700'
+                    : row.data.status === 'low'
+                      ? 'bg-amber-100 text-amber-800'
+                      : row.data.status === 'unset'
+                        ? 'bg-slate-200 text-slate-600'
+                        : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {row.data.status === 'finished' ? 'OUT OF STOCK' : `${row.data.totalRemaining} left`}
                 </span>
               </div>
-              <span className={`text-sm font-black px-2.5 py-1 rounded-xl ${
-                stockAudit.boxes.status === 'finished'
-                  ? 'bg-rose-100 text-rose-700'
-                  : stockAudit.boxes.status === 'low'
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-emerald-100 text-emerald-800'
-              }`}>
-                {stockAudit.boxes.totalRemaining} left
-              </span>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-black text-slate-800 block">🥤 Juice Cups</span>
-                <span className="text-[10px] font-bold text-slate-400">
-                  Bought {stockAudit.cups.bought} • Sold {stockAudit.cups.sold}
-                </span>
-              </div>
-              <span className={`text-sm font-black px-2.5 py-1 rounded-xl ${
-                stockAudit.cups.status === 'finished'
-                  ? 'bg-rose-100 text-rose-700'
-                  : stockAudit.cups.status === 'low'
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-emerald-100 text-emerald-800'
-              }`}>
-                {stockAudit.cups.totalRemaining} left
-              </span>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -427,12 +397,12 @@ export default function OwnerDashboard({
           <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
-              onClick={() => onNavigateSection('sheet')}
+              onClick={() => onNavigateSection('orders')}
               className="p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-left transition-all"
             >
-              <span className="text-lg block">📋</span>
-              <span className="text-xs font-black text-emerald-950 block mt-1">Daily Sheet</span>
-              <span className="text-[10px] font-bold text-emerald-700">Close Shift</span>
+              <span className="text-lg block">🏆</span>
+              <span className="text-xs font-black text-emerald-950 block mt-1">Top Ordered Foods</span>
+              <span className="text-[10px] font-bold text-emerald-700">Orders & Popularity</span>
             </button>
             <button
               type="button"

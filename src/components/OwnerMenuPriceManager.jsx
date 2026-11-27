@@ -16,10 +16,43 @@ import {
   History,
   Save,
   AlertTriangle,
-  Truck
+  Truck,
+  Camera,
+  ImagePlus,
+  X
 } from 'lucide-react';
 import { isFoodItemForBeu, computeBeuPrice, formatEtb } from '../utils/beuHelpers';
+import { getDishBoxType, getDishBoxTypeMap, saveDishBoxTypeMap } from '../utils/reconciliationHelpers';
 import { dbService } from '../lib/supabaseClient';
+
+/**
+ * Resize and compress a selected image file into a lightweight JPEG data URL (~20-35KB)
+ * so it syncs reliably into Supabase menu_items.image_url and localStorage.
+ */
+function compressMenuImageFile(file, maxSize = 320, quality = 0.78) {
+  return new Promise((resolve, reject) => {
+    if (!file) return reject(new Error('No file'));
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Invalid image file'));
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const width = Math.max(1, Math.round(img.width * scale));
+        const height = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 const CATEGORIES = [
   { id: 'All', label: 'All Items' },
@@ -145,6 +178,20 @@ export default function OwnerMenuPriceManager({
   const [newOriginalPrice, setNewOriginalPrice] = useState('');
   const [newHomePrice, setNewHomePrice] = useState('');
   const [newEmoji, setNewEmoji] = useState('🥗');
+  const [newImageUrl, setNewImageUrl] = useState('');
+  const [newBoxType, setNewBoxType] = useState('standard_box'); // 'standard_box' | 'chofan_box'
+  const [boxTypeMap, setBoxTypeMap] = useState(() => getDishBoxTypeMap());
+  const [uploadingItemId, setUploadingItemId] = useState(null);
+
+  useEffect(() => {
+    const syncBoxTypes = () => setBoxTypeMap(getDishBoxTypeMap());
+    window.addEventListener('maraki-supabase-synced', syncBoxTypes);
+    window.addEventListener('maraki-dish-box-types-updated', syncBoxTypes);
+    return () => {
+      window.removeEventListener('maraki-supabase-synced', syncBoxTypes);
+      window.removeEventListener('maraki-dish-box-types-updated', syncBoxTypes);
+    };
+  }, []);
 
   const showNotice = (msg) => {
     setSavedNotice(msg);
@@ -290,6 +337,57 @@ export default function OwnerMenuPriceManager({
     });
   };
 
+  const handleToggleItemBoxType = (item) => {
+    if (item.containerType === 'cup' || item.itemType === 'juice') return;
+    runWithPermission(() => {
+      const current = getDishBoxType(item, {}, boxTypeMap);
+      const next = current === 'chofan_box' ? 'standard_box' : 'chofan_box';
+      const updatedMap = saveDishBoxTypeMap({ ...boxTypeMap, [item.id]: next });
+      setBoxTypeMap(updatedMap);
+      showNotice(
+        `${item.englishName || item.name} now deducts ${
+          next === 'chofan_box' ? '🥡 Chao Fan Box' : '📦 Standard Takeaway Box'
+        }`
+      );
+    });
+  };
+
+  const handleRowImageFileChange = async (item, file) => {
+    if (!file) return;
+    setUploadingItemId(item.id);
+    try {
+      const compressed = await compressMenuImageFile(file);
+      runWithPermission(() => {
+        const updated = foodMenu.map(m => (m.id === item.id ? { ...m, imageUrl: compressed } : m));
+        recordAudit(`${item.name} (${item.englishName || ''})`, item.imageUrl ? 'Photo' : 'No Photo', 'Updated Photo');
+        onUpdateMenu(updated);
+        showNotice(`Photo updated for ${item.englishName || item.name}`);
+      });
+    } catch (err) {
+      showNotice('Could not read that image file. Try PNG or JPG.');
+    } finally {
+      setUploadingItemId(null);
+    }
+  };
+
+  const handleClearRowImage = (item) => {
+    runWithPermission(() => {
+      const updated = foodMenu.map(m => (m.id === item.id ? { ...m, imageUrl: '' } : m));
+      onUpdateMenu(updated);
+      showNotice(`Removed photo for ${item.englishName || item.name}`);
+    });
+  };
+
+  const handleNewFormImageChange = async (file) => {
+    if (!file) return;
+    try {
+      const compressed = await compressMenuImageFile(file);
+      setNewImageUrl(compressed);
+    } catch (err) {
+      showNotice('Could not load selected image file.');
+    }
+  };
+
   const handleAddNewItem = (e) => {
     e.preventDefault();
     const priceNum = Number(newPrice);
@@ -300,8 +398,9 @@ export default function OwnerMenuPriceManager({
     runWithPermission(() => {
       const isDrinkCat = ['Juices', 'Milkshake', 'Drinks'].includes(newCategory);
       const isJuice = newItemType === 'juice' || isDrinkCat;
+      const newId = `${isJuice ? 'j' : 'm'}-${Date.now()}`;
       const created = {
-        id: `${isJuice ? 'j' : 'm'}-${Date.now()}`,
+        id: newId,
         name: newName.trim(),
         englishName: newEnglishName.trim() || newName.trim(),
         category: isJuice && !isDrinkCat ? 'Juices' : newCategory,
@@ -312,8 +411,13 @@ export default function OwnerMenuPriceManager({
         containerType: isJuice ? 'cup' : 'box',
         isAvailable: true,
         emoji: newEmoji || (isJuice ? '🥤' : '🥗'),
+        imageUrl: newImageUrl || '',
         description: ''
       };
+      if (!isJuice) {
+        const updatedMap = saveDishBoxTypeMap({ ...boxTypeMap, [newId]: newBoxType });
+        setBoxTypeMap(updatedMap);
+      }
       onUpdateMenu([...foodMenu, created]);
       recordAudit(`${created.name} (${created.englishName})`, 'New Item', `${priceNum} ETB`);
       setNewName('');
@@ -321,6 +425,8 @@ export default function OwnerMenuPriceManager({
       setNewPrice('');
       setNewOriginalPrice('');
       setNewHomePrice('');
+      setNewImageUrl('');
+      setNewBoxType('standard_box');
       setShowAddForm(false);
       showNotice(`Added "${created.englishName}" at ${formatEtb(priceNum)} ETB`);
     });
@@ -578,13 +684,63 @@ export default function OwnerMenuPriceManager({
               />
             </div>
           </div>
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-sm"
-            >
-              + Add to Live Menu
-            </button>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
+            <div className="md:col-span-5 flex items-center gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                {newImageUrl ? (
+                  <img src={newImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <ImagePlus className="w-6 h-6 text-slate-400" />
+                )}
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-600 block">Menu Photo (Upload from Device)</label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <label className="cursor-pointer px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-black inline-flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>{newImageUrl ? 'Change Photo' : 'Upload Image'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleNewFormImageChange(e.target.files?.[0])}
+                      className="hidden"
+                    />
+                  </label>
+                  {newImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setNewImageUrl('')}
+                      className="px-2 py-1 rounded-lg bg-rose-50 text-rose-700 text-[10px] font-black border border-rose-200"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {newItemType === 'food' && (
+              <div className="md:col-span-4">
+                <label className="text-[10px] font-black text-slate-600 block mb-1">Takeaway Stock Deduction</label>
+                <select
+                  value={newBoxType}
+                  onChange={(e) => setNewBoxType(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-black"
+                >
+                  <option value="standard_box">📦 Standard Takeaway Box</option>
+                  <option value="chofan_box">🥡 Chao Fan / Rice & Pasta Box</option>
+                </select>
+              </div>
+            )}
+
+            <div className={`${newItemType === 'food' ? 'md:col-span-3' : 'md:col-span-7'} flex justify-end`}>
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-sm"
+              >
+                + Add to Live Menu
+              </button>
+            </div>
           </div>
         </form>
       )}
@@ -650,8 +806,8 @@ export default function OwnerMenuPriceManager({
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 text-slate-500 font-black border-b border-slate-200">
-                <th className="py-3 px-3">Menu Item</th>
-                <th className="py-3 px-3">Category</th>
+                <th className="py-3 px-3">Menu Item & Photo</th>
+                <th className="py-3 px-3">Category / Stock</th>
                 <th className="py-3 px-3">Final Price (Red/Base)</th>
                 <th className="py-3 px-3">Original (Crossed-Out)</th>
                 <th className="py-3 px-3">🛵 BEU Price (×0.85)</th>
@@ -668,24 +824,71 @@ export default function OwnerMenuPriceManager({
                 const liveBeuPrice = isFoodBeu ? computeBeuPrice(draft.price) : null;
                 const isDirty = Boolean(draftPrices[item.id]);
                 const isHidden = item.isAvailable === false;
+                const itemBoxType = getDishBoxType(item, {}, boxTypeMap);
+                const isCup = itemBoxType === 'cup';
                 return (
                   <tr key={item.id} className={`hover:bg-slate-50/80 ${isHidden ? 'opacity-60 bg-slate-50' : ''}`}>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2.5">
-                        <span className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-base">
-                          {item.emoji || (item.containerType === 'cup' ? '🥤' : '🥗')}
-                        </span>
-                        <div>
+                        <div className="relative group shrink-0">
+                          <label
+                            title="Upload / Change Photo"
+                            className="cursor-pointer w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-200 overflow-hidden flex items-center justify-center text-lg hover:border-emerald-500 transition-all"
+                          >
+                            {item.imageUrl ? (
+                              <img src={item.imageUrl} alt={item.englishName || item.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{item.emoji || (item.containerType === 'cup' ? '🥤' : '🥗')}</span>
+                            )}
+                            <span className="absolute inset-0 bg-slate-900/55 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-2xl">
+                              <Camera className="w-4 h-4" />
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleRowImageFileChange(item, e.target.files?.[0])}
+                              className="hidden"
+                            />
+                          </label>
+                          {item.imageUrl && (
+                            <button
+                              type="button"
+                              onClick={() => handleClearRowImage(item)}
+                              title="Remove photo"
+                              className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-xs"
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="min-w-0">
                           <span className="font-black text-slate-900 block">{item.name}</span>
-                          <span className="text-[10px] font-bold text-slate-400">{item.englishName}</span>
+                          <span className="text-[10px] font-bold text-slate-400 block">{item.englishName}</span>
+                          {uploadingItemId === item.id && (
+                            <span className="text-[9px] font-black text-emerald-600">Uploading photo...</span>
+                          )}
                         </div>
                       </div>
                     </td>
 
                     <td className="py-3 px-3">
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 inline-block">
                         {item.category}
                       </span>
+                      {!isCup && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleItemBoxType(item)}
+                          title="Click to switch which Takeaway Box stock this dish deducts"
+                          className={`mt-1 block px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${
+                            itemBoxType === 'chofan_box'
+                              ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                              : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                          }`}
+                        >
+                          {itemBoxType === 'chofan_box' ? '🥡 Chao Fan Box' : '📦 Std Box'}
+                        </button>
+                      )}
                     </td>
 
                     <td className="py-3 px-3">

@@ -15,23 +15,23 @@ import {
   Settings2,
   ClipboardCheck
 } from 'lucide-react';
-import { computePackagingAudit, getOrderIsoDate, toLocalIsoDate } from '../utils/reconciliationHelpers';
+import { computePackagingAudit, getDishBoxType, getOrderIsoDate, toLocalIsoDate } from '../utils/reconciliationHelpers';
 import { toEthiopianDateString } from './BusinessManagement';
 import { dbService } from '../lib/supabaseClient';
 
-export default function BoxInventoryAudit({ orders = [], settlements = [], onStockChanged }) {
-  const [activeItem, setActiveItem] = useState('box'); // 'box' | 'cup'
+export default function BoxInventoryAudit({ orders = [], settlements = [], foodMenu = [], onStockChanged }) {
+  const [activeItem, setActiveItem] = useState('standard_box'); // 'standard_box' | 'chofan_box' | 'cup'
   const [refreshTick, setRefreshTick] = useState(0);
 
   // Persistent Purchases Ledger
   const [purchases, setPurchases] = useState(() => {
-    const audit = computePackagingAudit({ orders, settlements });
+    const audit = computePackagingAudit({ orders, settlements, menuItems: foodMenu });
     return audit.purchases;
   });
 
   // Persistent Manual Issues to Kitchen / Bar
   const [manualIssues, setManualIssues] = useState(() => {
-    const audit = computePackagingAudit({ orders, settlements });
+    const audit = computePackagingAudit({ orders, settlements, menuItems: foodMenu });
     return audit.manualIssues;
   });
 
@@ -39,20 +39,23 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
   const [thresholds, setThresholds] = useState(() => {
     try {
       const saved = localStorage.getItem('maraki_stock_thresholds_v1');
-      if (saved) return JSON.parse(saved);
+      if (saved) return { boxLow: 50, chofanBoxLow: 30, cupLow: 100, ...JSON.parse(saved) };
     } catch (e) {}
-    return { boxLow: 50, cupLow: 100 };
+    return { boxLow: 50, chofanBoxLow: 30, cupLow: 100 };
   });
 
   // Waste counters
   const [wasteBoxes, setWasteBoxes] = useState(() => Number(localStorage.getItem('maraki_waste_boxes')) || 0);
+  const [wasteChofanBoxes, setWasteChofanBoxes] = useState(() => Number(localStorage.getItem('maraki_waste_chofan_boxes')) || 0);
   const [wasteCups, setWasteCups] = useState(() => Number(localStorage.getItem('maraki_waste_cups')) || 0);
 
   useEffect(() => {
     localStorage.setItem('maraki_box_purchases_v1', JSON.stringify(purchases));
     dbService.saveAppState('maraki_box_purchases_v1', purchases);
     // Sync legacy total bought into maraki_box_starting_stock so older views stay aligned
-    const totalBoxes = purchases.filter(p => p.itemType === 'box').reduce((s, p) => s + Number(p.qty || 0), 0);
+    const totalBoxes = purchases
+      .filter(p => p.itemType === 'box' || p.itemType === 'standard_box' || p.itemType === 'chofan_box')
+      .reduce((s, p) => s + Number(p.qty || 0), 0);
     localStorage.setItem('maraki_box_starting_stock', String(totalBoxes));
     dbService.saveAppState('maraki_box_starting_stock', totalBoxes);
     if (onStockChanged) onStockChanged();
@@ -75,25 +78,36 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
   }, [wasteBoxes]);
 
   useEffect(() => {
+    localStorage.setItem('maraki_waste_chofan_boxes', String(wasteChofanBoxes));
+    dbService.saveAppState('maraki_waste_chofan_boxes', wasteChofanBoxes);
+  }, [wasteChofanBoxes]);
+
+  useEffect(() => {
     localStorage.setItem('maraki_waste_cups', String(wasteCups));
     dbService.saveAppState('maraki_waste_cups', wasteCups);
   }, [wasteCups]);
 
   useEffect(() => {
     const handleRemoteSync = () => {
-      const audit = computePackagingAudit({ orders, settlements });
+      const audit = computePackagingAudit({ orders, settlements, menuItems: foodMenu });
       setPurchases(audit.purchases);
       setManualIssues(audit.manualIssues);
       try {
         const savedThresh = localStorage.getItem('maraki_stock_thresholds_v1');
-        if (savedThresh) setThresholds(JSON.parse(savedThresh));
+        if (savedThresh) setThresholds({ boxLow: 50, chofanBoxLow: 30, cupLow: 100, ...JSON.parse(savedThresh) });
       } catch (e) {}
       setWasteBoxes(Number(localStorage.getItem('maraki_waste_boxes')) || 0);
+      setWasteChofanBoxes(Number(localStorage.getItem('maraki_waste_chofan_boxes')) || 0);
       setWasteCups(Number(localStorage.getItem('maraki_waste_cups')) || 0);
+      setRefreshTick(t => t + 1);
     };
     window.addEventListener('maraki-supabase-synced', handleRemoteSync);
-    return () => window.removeEventListener('maraki-supabase-synced', handleRemoteSync);
-  }, [orders, settlements]);
+    window.addEventListener('maraki-dish-box-types-updated', handleRemoteSync);
+    return () => {
+      window.removeEventListener('maraki-supabase-synced', handleRemoteSync);
+      window.removeEventListener('maraki-dish-box-types-updated', handleRemoteSync);
+    };
+  }, [orders, settlements, foodMenu]);
 
   // Forms
   const [buyQty, setBuyQty] = useState('');
@@ -115,28 +129,80 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
     return computePackagingAudit({
       orders,
       settlements,
+      menuItems: foodMenu,
       purchasesOverride: purchases,
       manualIssuesOverride: manualIssues
     });
-  }, [orders, settlements, purchases, manualIssues, thresholds, wasteBoxes, wasteCups, refreshTick]);
+  }, [orders, settlements, foodMenu, purchases, manualIssues, thresholds, wasteBoxes, wasteChofanBoxes, wasteCups, refreshTick]);
 
-  const currentStats = activeItem === 'box' ? audit.boxes : audit.cups;
-  const itemLabel = activeItem === 'box' ? 'Food Boxes' : 'Juice Cups';
-  const itemUnit = activeItem === 'box' ? 'boxes' : 'cups';
-  const avgValuePerUnit = activeItem === 'box' ? 250 : 170;
+  const ITEM_META = {
+    standard_box: {
+      label: 'Standard Takeaway Boxes',
+      shortLabel: 'Takeaway Box',
+      unit: 'boxes',
+      emoji: '📦',
+      station: 'Kitchen / Waiters',
+      avgValue: 250,
+      stats: audit.standardBoxes
+    },
+    chofan_box: {
+      label: 'Chao Fan Takeaway Boxes',
+      shortLabel: 'Chao Fan Box',
+      unit: 'boxes',
+      emoji: '🥡',
+      station: 'Kitchen / Waiters',
+      avgValue: 300,
+      stats: audit.chofanBoxes
+    },
+    cup: {
+      label: 'Juice Cups',
+      shortLabel: 'Juice Cups',
+      unit: 'cups',
+      emoji: '🥤',
+      station: 'Juice Bar',
+      avgValue: 170,
+      stats: audit.cups
+    }
+  };
 
-  // Recent Daily Usage Breakdown (last 7 days from Chef Orders or Settlements)
+  const activeMeta = ITEM_META[activeItem] || ITEM_META.standard_box;
+  const currentStats = activeMeta.stats;
+  const itemLabel = activeMeta.label;
+  const itemUnit = activeMeta.unit;
+  const avgValuePerUnit = activeMeta.avgValue;
+  const isBoxItem = activeItem === 'standard_box' || activeItem === 'chofan_box';
+
+  const menuLookup = useMemo(() => {
+    const map = {};
+    (foodMenu || []).forEach(m => { if (m?.id) map[m.id] = m; });
+    return map;
+  }, [foodMenu]);
+
+  // Recent Daily Usage Breakdown (last 7 days auto-deducted as orders go out)
   const dailyUsageRows = useMemo(() => {
     const map = {};
-    if (activeItem === 'box') {
+    if (isBoxItem) {
       orders.forEach(o => {
         const isHome = o.orderType === 'Home' || o.channel === 'In-Store Home';
         if (isHome) return;
         const d = getOrderIsoDate(o);
         if (!d) return;
+        const items = Array.isArray(o.items) ? o.items : [];
+        let qtyForType = 0;
+        if (items.length > 0) {
+          items.forEach(item => {
+            const q = Number(item.qty || 0);
+            if (q <= 0) return;
+            const bt = getDishBoxType(item, menuLookup);
+            if (bt === activeItem) qtyForType += q;
+          });
+        } else if (activeItem === 'standard_box') {
+          qtyForType = Number(o.boxesCount || 0);
+        }
+        if (qtyForType <= 0) return;
         if (!map[d]) map[d] = { date: d, ordersCount: 0, usedQty: 0 };
         map[d].ordersCount += 1;
-        map[d].usedQty += Number(o.boxesCount || 0);
+        map[d].usedQty += qtyForType;
       });
     } else {
       settlements.forEach(s => {
@@ -148,12 +214,14 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
       });
     }
     return Object.values(map).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
-  }, [activeItem, orders, settlements]);
+  }, [activeItem, isBoxItem, orders, settlements, menuLookup]);
 
   const persistPurchasesNow = (nextList) => {
     setPurchases(nextList);
     localStorage.setItem('maraki_box_purchases_v1', JSON.stringify(nextList));
-    const totalBoxes = nextList.filter(p => p.itemType === 'box').reduce((s, p) => s + Number(p.qty || 0), 0);
+    const totalBoxes = nextList
+      .filter(p => p.itemType === 'box' || p.itemType === 'standard_box' || p.itemType === 'chofan_box')
+      .reduce((s, p) => s + Number(p.qty || 0), 0);
     localStorage.setItem('maraki_box_starting_stock', String(totalBoxes));
     if (onStockChanged) onStockChanged();
   };
@@ -196,7 +264,7 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
       itemType: activeItem,
       qty,
       shift: issueShift,
-      issuedTo: activeItem === 'box' ? 'Kitchen / Waiters' : 'Juice Bar',
+      issuedTo: activeMeta.station,
       note: issueNote.trim(),
       date: issueDate,
       createdAt: new Date().toISOString()
@@ -217,8 +285,16 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
     persistIssuesNow(manualIssues.filter(i => i.id !== id));
   };
 
-  const filteredPurchases = purchases.filter(p => p.itemType === activeItem);
-  const filteredIssues = manualIssues.filter(i => i.itemType === activeItem);
+  const matchesActiveItem = (itemType) => {
+    if (activeItem === 'standard_box') return itemType === 'standard_box' || itemType === 'box';
+    return itemType === activeItem;
+  };
+  const filteredPurchases = purchases.filter(p => matchesActiveItem(p.itemType));
+  const filteredIssues = manualIssues.filter(i => matchesActiveItem(i.itemType));
+
+  const anyFinishedOrLow = Object.entries(ITEM_META).filter(
+    ([, m]) => m.stats.status === 'finished' || m.stats.status === 'low'
+  );
 
   const statusMeta = {
     finished: {
@@ -253,44 +329,54 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
 
   return (
     <div className="space-y-6 text-slate-800">
-      {/* HEADER + ITEM TOGGLE (BOXES vs CUPS) */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      {/* HEADER + 3-STOCK TOGGLE (STANDARD TAKEAWAY BOX / CHAO FAN BOX / JUICE CUPS) */}
+      <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-xl font-black">
-            {activeItem === 'box' ? '📦' : '🥤'}
+            {activeMeta.emoji}
           </div>
           <div>
             <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-              Box & Cup Stock Audit & Cross-Check
+              3-Stock Control: Takeaway Boxes, Chao Fan Boxes & Juice Cups
             </h1>
             <p className="text-xs text-slate-500 font-bold mt-0.5">
-              Track stock Bought → Given to Kitchen → Sold in Daily Orders, with Low/Finished Alerts
+              Auto-deducts live whenever orders go out • Alerts immediately when Low or Out of Stock
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200">
-            <button
-              type="button"
-              onClick={() => setActiveItem('box')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
-                activeItem === 'box' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Package className="w-3.5 h-3.5" />
-              <span>Food Boxes ({audit.boxes.totalRemaining})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveItem('cup')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
-                activeItem === 'cup' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Coffee className="w-3.5 h-3.5" />
-              <span>Juice Cups ({audit.cups.totalRemaining})</span>
-            </button>
+          <div className="flex flex-wrap items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 gap-1">
+            {[
+              { id: 'standard_box', emoji: '📦', label: 'Takeaway Box', data: audit.standardBoxes },
+              { id: 'chofan_box', emoji: '🥡', label: 'Chao Fan Box', data: audit.chofanBoxes },
+              { id: 'cup', emoji: '🥤', label: 'Juice Cups', data: audit.cups }
+            ].map(tab => {
+              const isAct = activeItem === tab.id;
+              const isAlert = tab.data.status === 'finished' || tab.data.status === 'low';
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveItem(tab.id)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                    isAct
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : isAlert
+                        ? tab.data.status === 'finished'
+                          ? 'bg-rose-100 text-rose-800'
+                          : 'bg-amber-100 text-amber-900'
+                        : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>{tab.emoji}</span>
+                  <span>{tab.label} ({tab.data.totalRemaining})</span>
+                  {tab.data.status === 'finished' && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-rose-600 text-white text-[9px] font-black animate-pulse">OUT</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <button
@@ -304,16 +390,78 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
         </div>
       </div>
 
+      {/* ALL-IN-ONE 3 STOCK OVERVIEW CARDS + OUT-OF-STOCK SUMMARY */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+        {Object.entries(ITEM_META).map(([key, meta]) => {
+          const st = meta.stats;
+          const isOut = st.status === 'finished';
+          const isLow = st.status === 'low';
+          const isSelected = activeItem === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActiveItem(key)}
+              className={`text-left p-4 rounded-3xl border-2 transition-all shadow-xs flex flex-col justify-between gap-2 ${
+                isOut
+                  ? 'bg-rose-50 border-rose-500 text-rose-950'
+                  : isLow
+                    ? 'bg-amber-50 border-amber-400 text-amber-950'
+                    : isSelected
+                      ? 'bg-emerald-50/70 border-emerald-500 text-slate-900'
+                      : 'bg-white border-slate-200 hover:border-emerald-300 text-slate-900'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-black flex items-center gap-1.5">
+                  <span className="text-lg">{meta.emoji}</span>
+                  <span>{meta.label}</span>
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  isOut
+                    ? 'bg-rose-600 text-white animate-pulse'
+                    : isLow
+                      ? 'bg-amber-500 text-slate-950'
+                      : st.status === 'unset'
+                        ? 'bg-slate-200 text-slate-600'
+                        : 'bg-emerald-600 text-white'
+                }`}>
+                  {isOut ? '🚨 OUT OF STOCK' : isLow ? '⚠️ LOW' : st.status === 'unset' ? 'UNSET' : 'OK'}
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between">
+                <span className={`text-2xl font-black tabular-nums ${isOut ? 'text-rose-700' : 'text-slate-900'}`}>
+                  {st.totalRemaining.toLocaleString()} <span className="text-xs font-bold opacity-70">{meta.unit}</span>
+                </span>
+                <span className="text-[11px] font-bold opacity-75">
+                  Bought {st.bought} • Deducted {st.sold}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
       {/* LOW STOCK THRESHOLD & WASTE EDITOR */}
       {showThresholdEdit && (
-        <div className="bg-white p-4 rounded-2xl border border-emerald-200 shadow-sm grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+        <div className="bg-white p-4 rounded-2xl border border-emerald-200 shadow-sm grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
           <div>
-            <label className="text-[11px] font-black text-slate-700 block mb-1">Box Low-Stock Alert Below</label>
+            <label className="text-[11px] font-black text-slate-700 block mb-1">Takeaway Box Low Alert</label>
             <input
               type="number"
               min="1"
               value={thresholds.boxLow}
               onChange={(e) => setThresholds(prev => ({ ...prev, boxLow: Math.max(1, Number(e.target.value) || 0) }))}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-black"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-black text-slate-700 block mb-1">Chao Fan Box Low Alert</label>
+            <input
+              type="number"
+              min="1"
+              value={thresholds.chofanBoxLow ?? 30}
+              onChange={(e) => setThresholds(prev => ({ ...prev, chofanBoxLow: Math.max(1, Number(e.target.value) || 0) }))}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-black"
             />
           </div>
@@ -328,12 +476,22 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
             />
           </div>
           <div>
-            <label className="text-[11px] font-black text-slate-700 block mb-1">Damaged/Wasted Boxes</label>
+            <label className="text-[11px] font-black text-slate-700 block mb-1">Damaged Takeaway Boxes</label>
             <input
               type="number"
               min="0"
               value={wasteBoxes}
               onChange={(e) => setWasteBoxes(Math.max(0, Number(e.target.value) || 0))}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-black"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-black text-slate-700 block mb-1">Damaged Chao Fan Boxes</label>
+            <input
+              type="number"
+              min="0"
+              value={wasteChofanBoxes}
+              onChange={(e) => setWasteChofanBoxes(Math.max(0, Number(e.target.value) || 0))}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-black"
             />
           </div>
@@ -394,7 +552,7 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
           <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-            3. Sold in {activeItem === 'box' ? 'Chef Orders' : 'Settlements'}
+            3. Auto-Deducted ({isBoxItem ? 'Orders Out' : 'Cups Sold'})
           </span>
           <p className="text-2xl font-black text-emerald-700 mt-1 tabular-nums">{currentStats.sold.toLocaleString()}</p>
           <span className="text-[11px] text-slate-500 font-bold block mt-1">
@@ -444,7 +602,7 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
           </div>
 
           {(() => {
-            const expectedAtStation = activeItem === 'box' ? currentStats.expectedInKitchen : currentStats.expectedInBar;
+            const expectedAtStation = isBoxItem ? currentStats.expectedInKitchen : currentStats.expectedInBar;
             if (currentStats.given === 0) {
               return (
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-600">
@@ -646,7 +804,7 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
             <div>
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
                 <ArrowRight className="w-4 h-4 text-emerald-600" />
-                <span>Give {itemLabel} to {activeItem === 'box' ? 'Kitchen / Waiters' : 'Juice Bar'}</span>
+                <span>Give {itemLabel} to {activeMeta.station}</span>
               </h3>
               <p className="text-[11px] text-slate-400 font-bold">Track packs handed out from your storage</p>
             </div>
@@ -750,7 +908,7 @@ export default function BoxInventoryAudit({ orders = [], settlements = [], onSto
               <div key={row.date} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
                 <span className="text-[10px] font-black text-slate-500 block">{row.date}</span>
                 <span className="text-lg font-black text-emerald-800 block mt-1">{row.usedQty}</span>
-                <span className="text-[10px] font-bold text-slate-400">{itemUnit} ({row.ordersCount} {activeItem === 'box' ? 'orders' : 'shifts'})</span>
+                <span className="text-[10px] font-bold text-slate-400">{itemUnit} ({row.ordersCount} {isBoxItem ? 'orders' : 'shifts'})</span>
               </div>
             ))}
           </div>

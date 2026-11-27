@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { clearAllBusinessData, toLocalIsoDate } from '../utils/reconciliationHelpers';
+import { clearAllBusinessData, getOrderIsoDate, getOrderShift, isDateInRange, toLocalIsoDate } from '../utils/reconciliationHelpers';
+import { getOrderBeuMetrics, roundPricePrecision } from '../utils/beuHelpers';
 import { dbService } from '../lib/supabaseClient';
 import { 
   Building, 
@@ -154,6 +155,7 @@ const INITIAL_DAY_CLOSES = [];
 
 export default function BusinessManagement({ 
   orders = [], 
+  settlements = [],
   totalRealSales = 0,
   onSwitchToOrdersLog,
   onClearOrders,
@@ -489,6 +491,127 @@ export default function BusinessManagement({
   const [inlineExpenseAmount, setInlineExpenseAmount] = useState('');
   const [inlineExpenseCategory, setInlineExpenseCategory] = useState('Ingredients');
   const [inlineExpenseMethod, setInlineExpenseMethod] = useState('Cash');
+  const [inlineExpenseDate, setInlineExpenseDate] = useState(() => toLocalIsoDate(new Date()));
+
+  // Finance Period Filter ('all' | 'daily' | 'weekly' | 'monthly' | 'custom')
+  const [financeRange, setFinanceRange] = useState('all');
+  const [financeDate, setFinanceDate] = useState(() => toLocalIsoDate(new Date()));
+  const [financeCustomStart, setFinanceCustomStart] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return toLocalIsoDate(d);
+  });
+  const [financeCustomEnd, setFinanceCustomEnd] = useState(() => toLocalIsoDate(new Date()));
+
+  const resolvedFinanceSettlements = useMemo(() => {
+    if (Array.isArray(settlements) && settlements.length > 0) return settlements;
+    try {
+      const saved = localStorage.getItem('maraki_shift_settlements');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  }, [settlements]);
+
+  const resolvedFinanceOrders = useMemo(() => {
+    if (Array.isArray(orders) && orders.length > 0) return orders;
+    try {
+      const saved = localStorage.getItem('maraki_chef_sent_orders');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  }, [orders]);
+
+  const financePeriodSummary = useMemo(() => {
+    const cfg = {
+      timeRange: financeRange,
+      selectedDate: financeDate,
+      customStartDate: financeCustomStart,
+      customEndDate: financeCustomEnd
+    };
+    const inPeriod = (dateStr) => financeRange === 'all' || isDateInRange(dateStr, cfg);
+
+    const periodOwnerExp = actualExpenses.filter(e => inPeriod(e.date));
+    const periodSettlements = resolvedFinanceSettlements.filter(s => inPeriod(s.date));
+    const periodOrders = resolvedFinanceOrders.filter(o => inPeriod(getOrderIsoDate(o)));
+
+    // Category buckets across owner expenses
+    let salaryTotal = 0;
+    let utilitiesTotal = 0;
+    let rentTotal = 0;
+    let ingredientsTotal = 0;
+    let suppliesTotal = 0;
+    let transportTotal = 0;
+    let maintenanceTotal = 0;
+    let generalTotal = 0;
+
+    periodOwnerExp.forEach(e => {
+      const amt = Number(e.amount || 0);
+      const cat = e.category || 'General';
+      if (cat === 'Salary') salaryTotal += amt;
+      else if (cat === 'Utilities' || cat === 'Bills') utilitiesTotal += amt;
+      else if (cat === 'Rent') rentTotal += amt;
+      else if (cat === 'Ingredients') ingredientsTotal += amt;
+      else if (cat === 'Supplies') suppliesTotal += amt;
+      else if (cat === 'Transport') transportTotal += amt;
+      else if (cat === 'Maintenance') maintenanceTotal += amt;
+      else generalTotal += amt;
+    });
+
+    const shiftExpensesTotal = periodSettlements.reduce((s, r) => s + Number(r.totalDailyExpenses || 0), 0);
+    const ownerExpensesTotal = periodOwnerExp.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const combinedExpensesTotal = roundPricePrecision(ownerExpensesTotal + shiftExpensesTotal);
+
+    // Total Income in Period: Settlements (In-Store Food + Juice) + Live Unsaved Chef In-Store Orders + BEU Net
+    const settledKeys = new Set(periodSettlements.map(s => `${s.date}|${(s.shift || 'Day').toLowerCase()}`));
+    const settledJuiceIncome = periodSettlements.reduce((s, r) => s + Number(r.grossJuiceRevenue || 0), 0);
+    const settledBeuCupsDeduction = periodSettlements.reduce((s, r) => s + Number(r.beuDeliveryDeduction || 0), 0);
+    const settledFoodIncome = periodSettlements.reduce((s, r) => s + Number(r.totalFoodRevenue || 0), 0);
+
+    let beuFoodIncome = 0;
+    let unsavedInStoreOrdersIncome = 0;
+    periodOrders.forEach(o => {
+      const bm = getOrderBeuMetrics(o);
+      if (bm.isBeu) {
+        beuFoodIncome += bm.netTotal;
+      } else {
+        const key = `${getOrderIsoDate(o)}|${getOrderShift(o).toLowerCase()}`;
+        if (!settledKeys.has(key)) {
+          unsavedInStoreOrdersIncome += Number(o.totalAmount || 0);
+        }
+      }
+    });
+
+    const totalPeriodIncome = roundPricePrecision(
+      Math.max(0, settledJuiceIncome - settledBeuCupsDeduction) +
+      settledBeuCupsDeduction +
+      settledFoodIncome +
+      unsavedInStoreOrdersIncome +
+      beuFoodIncome
+    );
+    const fallbackIncome = financeRange === 'all' && totalPeriodIncome === 0 ? totalRealSales : totalPeriodIncome;
+    const netProfit = roundPricePrecision(fallbackIncome - combinedExpensesTotal);
+
+    return {
+      periodOwnerExp,
+      salaryTotal,
+      utilitiesTotal,
+      rentTotal,
+      ingredientsTotal,
+      suppliesTotal,
+      transportTotal,
+      maintenanceTotal,
+      generalTotal,
+      shiftExpensesTotal,
+      ownerExpensesTotal,
+      combinedExpensesTotal,
+      totalIncome: fallbackIncome,
+      beuFoodIncome: roundPricePrecision(beuFoodIncome),
+      foodAndJuiceIncome: roundPricePrecision(fallbackIncome - beuFoodIncome),
+      netProfit
+    };
+  }, [actualExpenses, resolvedFinanceSettlements, resolvedFinanceOrders, financeRange, financeDate, financeCustomStart, financeCustomEnd, totalRealSales]);
 
   // ==============================================================
   // VERSION 2.0 RECALCULATED EXACT FINANCIAL FORMULAS
@@ -851,7 +974,7 @@ export default function BusinessManagement({
       title: inlineExpenseTitle.trim(),
       category: inlineExpenseCategory,
       amount: amt,
-      date: new Date().toISOString().split('T')[0],
+      date: inlineExpenseDate || toLocalIsoDate(new Date()),
       paymentMethod: inlineExpenseMethod,
       linkedPlan: 'Quick Entry'
     };
@@ -1813,66 +1936,142 @@ export default function BusinessManagement({
                   💸
                 </span>
                 <h3 className="text-base font-black text-slate-900">
-                  Business Expenses Ledger
+                  Finance: All Expenses (Salary, Utilities & Bills) + Net Profit
                 </h3>
               </div>
               <p className="text-xs text-slate-400 font-bold mt-1">
-                Ice, lemons, cleaning supplies, transportation, and daily operating costs paid in cash or digitally
+                Record every Salary, Utility (Electricity/Water/Internet), Rent, Ingredient & Transport cost to calculate exact Net Profit = Income − Expenses
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setFormInputs({ date: new Date().toISOString().split('T')[0], paymentMethod: 'Cash', category: 'Ingredients' });
-                setActiveQuickAddModal('expense');
-              }}
-              className="px-4 py-2.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black text-xs rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-rose-700/20 active:scale-95"
-            >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              <span>+ Record Expense</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'daily', label: 'Daily' },
+                  { id: 'weekly', label: 'Weekly' },
+                  { id: 'monthly', label: 'Monthly' },
+                  { id: 'custom', label: 'Custom' }
+                ].map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setFinanceRange(p.id)}
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-black transition-all ${
+                      financeRange === p.id ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              {financeRange !== 'all' && financeRange !== 'custom' && (
+                <input
+                  type="date"
+                  value={financeDate}
+                  onChange={(e) => setFinanceDate(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-black"
+                />
+              )}
+              {financeRange === 'custom' && (
+                <div className="flex items-center gap-1.5 text-xs font-bold">
+                  <input
+                    type="date"
+                    value={financeCustomStart}
+                    onChange={(e) => setFinanceCustomStart(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-xs font-bold"
+                  />
+                  <span>→</span>
+                  <input
+                    type="date"
+                    value={financeCustomEnd}
+                    onChange={(e) => setFinanceCustomEnd(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-xs font-bold"
+                  />
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setFormInputs({ date: toLocalIsoDate(new Date()), paymentMethod: 'Cash', category: 'Salary' });
+                  setActiveQuickAddModal('expense');
+                }}
+                className="px-4 py-2.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black text-xs rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-rose-700/20 active:scale-95"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>+ Record Expense / Salary</span>
+              </button>
+            </div>
           </div>
 
-          {/* 4 EXPENSE SUMMARY CARDS */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-1">
-              <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Total Expenses</span>
-              <p className="text-2xl font-black text-rose-600">{totalActualExpenses.toLocaleString()} <span className="text-xs font-bold text-slate-500">ETB</span></p>
-              <p className="text-[11px] text-slate-400 font-bold">{actualExpenses.length} recorded entries</p>
-            </div>
-
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-1">
-              <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Today's Expenses</span>
-              <p className="text-2xl font-black text-slate-900">
-                {actualExpenses
-                  .filter(e => e.date === new Date().toISOString().split('T')[0])
-                  .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
-                  .toLocaleString()} <span className="text-xs font-bold text-slate-500">ETB</span>
+          {/* INCOME vs TOTAL EXPENSES (INCL. SALARY & UTILITIES) -> NET PROFIT BANNER */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white p-5 rounded-3xl border border-emerald-200 shadow-sm space-y-1">
+              <span className="text-[11px] font-black uppercase text-emerald-700 tracking-wider">💰 Total Income ({financeRange})</span>
+              <p className="text-2xl font-black text-emerald-800 tabular-nums">{financePeriodSummary.totalIncome.toLocaleString()} <span className="text-xs font-bold text-slate-500">ETB</span></p>
+              <p className="text-[11px] text-slate-500 font-bold">
+                Food & Juice: {financePeriodSummary.foodAndJuiceIncome.toLocaleString()} • BEU: {financePeriodSummary.beuFoodIncome.toLocaleString()} ETB
               </p>
-              <p className="text-[11px] text-slate-400 font-bold">Today only</p>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-1">
-              <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Cash Paid</span>
-              <p className="text-2xl font-black text-slate-900">
-                {actualExpenses
+            <div className="bg-white p-5 rounded-3xl border border-rose-200 shadow-sm space-y-1">
+              <span className="text-[11px] font-black uppercase text-rose-600 tracking-wider">💸 Total All Expenses ({financeRange})</span>
+              <p className="text-2xl font-black text-rose-700 tabular-nums">-{financePeriodSummary.combinedExpensesTotal.toLocaleString()} <span className="text-xs font-bold text-slate-500">ETB</span></p>
+              <p className="text-[11px] text-slate-500 font-bold">
+                Owner/Salary/Utility: {financePeriodSummary.ownerExpensesTotal.toLocaleString()} + Shift Drawer: {financePeriodSummary.shiftExpensesTotal.toLocaleString()} ETB
+              </p>
+            </div>
+
+            <div className={`p-5 rounded-3xl border-2 shadow-sm space-y-1 ${financePeriodSummary.netProfit >= 0 ? 'bg-emerald-50 border-emerald-400' : 'bg-rose-50 border-rose-400'}`}>
+              <span className="text-[11px] font-black uppercase text-slate-600 tracking-wider">🏆 Net Profit (Income − Expenses)</span>
+              <p className={`text-2xl sm:text-3xl font-black tabular-nums ${financePeriodSummary.netProfit >= 0 ? 'text-emerald-900' : 'text-rose-700'}`}>
+                {financePeriodSummary.netProfit.toLocaleString()} <span className="text-xs font-bold">ETB</span>
+              </p>
+              <p className="text-[11px] font-bold text-slate-600">
+                Includes Salary ({financePeriodSummary.salaryTotal.toLocaleString()}) & Utilities/Rent ({(financePeriodSummary.utilitiesTotal + financePeriodSummary.rentTotal).toLocaleString()})
+              </p>
+            </div>
+          </div>
+
+          {/* 4 CATEGORY EXPENSE SUBTOTAL CARDS */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs space-y-1">
+              <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider">👥 Staff Salary</span>
+              <p className="text-xl font-black text-slate-900 tabular-nums">{financePeriodSummary.salaryTotal.toLocaleString()} <span className="text-xs font-bold text-slate-500">ETB</span></p>
+              <p className="text-[11px] text-slate-400 font-bold">Salaries & Staff Allowances</p>
+            </div>
+
+            <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs space-y-1">
+              <span className="text-[11px] font-black uppercase text-amber-700 tracking-wider">⚡ Utilities & Rent</span>
+              <p className="text-xl font-black text-slate-900 tabular-nums">
+                {(financePeriodSummary.utilitiesTotal + financePeriodSummary.rentTotal).toLocaleString()} <span className="text-xs font-bold text-slate-500">ETB</span>
+              </p>
+              <p className="text-[11px] text-slate-400 font-bold">Power/Water/WiFi: {financePeriodSummary.utilitiesTotal.toLocaleString()} • Rent: {financePeriodSummary.rentTotal.toLocaleString()}</p>
+            </div>
+
+            <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs space-y-1">
+              <span className="text-[11px] font-black uppercase text-emerald-700 tracking-wider">🥑 Stock & Ops</span>
+              <p className="text-xl font-black text-slate-900 tabular-nums">
+                {(financePeriodSummary.ingredientsTotal + financePeriodSummary.suppliesTotal + financePeriodSummary.transportTotal + financePeriodSummary.maintenanceTotal + financePeriodSummary.generalTotal).toLocaleString()} <span className="text-xs font-bold text-slate-500">ETB</span>
+              </p>
+              <p className="text-[11px] text-slate-400 font-bold">Ingredients, Packaging, Taxi, Cleaning</p>
+            </div>
+
+            <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs space-y-1">
+              <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider">💵 Cash vs Digital</span>
+              <p className="text-xl font-black text-slate-900 tabular-nums">
+                {financePeriodSummary.periodOwnerExp
                   .filter(e => e.paymentMethod === 'Cash' || !e.paymentMethod)
                   .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
-                  .toLocaleString()} <span className="text-xs font-bold text-slate-500">ETB</span>
+                  .toLocaleString()} <span className="text-xs font-bold text-slate-500">Cash</span>
               </p>
-              <p className="text-[11px] text-slate-400 font-bold">From Cash Drawer</p>
-            </div>
-
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-1">
-              <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Digital Paid</span>
-              <p className="text-2xl font-black text-emerald-700">
-                {actualExpenses
+              <p className="text-[11px] text-emerald-700 font-bold">
+                Digital: {financePeriodSummary.periodOwnerExp
                   .filter(e => e.paymentMethod === 'Telebirr' || e.paymentMethod === 'Bank / Telebirr' || e.paymentMethod === 'CBE Birr')
                   .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
-                  .toLocaleString()} <span className="text-xs font-bold text-slate-500">ETB</span>
+                  .toLocaleString()} ETB
               </p>
-              <p className="text-[11px] text-slate-400 font-bold">Telebirr / Bank Transfer</p>
             </div>
           </div>
 
@@ -1908,14 +2107,14 @@ export default function BusinessManagement({
             <form onSubmit={handleInlineExpenseSubmit} className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
                 {/* Title Input */}
-                <div className="sm:col-span-5">
+                <div className="sm:col-span-4">
                   <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                    Description
+                    Description (e.g. Salary, Electricity, Water)
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="ለምሳሌ፡ አቮካዶ፣ ወተት፣ ሰራተኛ ምሳ፣ በረዶ..."
+                    placeholder="ለምሳሌ፡ የሰራተኛ ደመወዝ፣ መብራት፣ ውሃ፣ አቮካዶ..."
                     value={inlineExpenseTitle}
                     onChange={(e) => setInlineExpenseTitle(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none transition-all"
@@ -1923,9 +2122,9 @@ export default function BusinessManagement({
                 </div>
 
                 {/* Amount Input */}
-                <div className="sm:col-span-3">
+                <div className="sm:col-span-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                    መጠን (Amount ETB)
+                    Amount (ETB)
                   </label>
                   <div className="relative">
                     <input
@@ -1936,9 +2135,9 @@ export default function BusinessManagement({
                       placeholder="0.00"
                       value={inlineExpenseAmount}
                       onChange={(e) => setInlineExpenseAmount(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl pl-3.5 pr-12 py-2.5 text-xs font-black text-slate-900 outline-none transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl pl-3 pr-10 py-2.5 text-xs font-black text-slate-900 outline-none transition-all"
                     />
-                    <span className="absolute right-3.5 top-2.5 text-[11px] font-black text-slate-400">
+                    <span className="absolute right-2.5 top-2.5 text-[10px] font-black text-slate-400">
                       ETB
                     </span>
                   </div>
@@ -1947,22 +2146,35 @@ export default function BusinessManagement({
                 {/* Category Select */}
                 <div className="sm:col-span-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                    ዘርፍ (Category)
+                    Category
                   </label>
                   <select
                     value={inlineExpenseCategory}
                     onChange={(e) => setInlineExpenseCategory(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl px-3 py-2.5 text-xs font-bold text-slate-800 outline-none transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl px-2.5 py-2.5 text-xs font-bold text-slate-800 outline-none transition-all"
                   >
                     <option value="Ingredients">🥑 ፍራፍሬ/ግብአት</option>
+                    <option value="Salary">👥 ደመወዝ (Salary)</option>
+                    <option value="Utilities">⚡ መብራት/ውሃ/ጋዝ (Utilities)</option>
+                    <option value="Rent">🏢 ኪራይ (Rent)</option>
                     <option value="Transport">🚕 ትራንስፖርት</option>
                     <option value="Maintenance">🧹 ጽዳት/ጥገና</option>
                     <option value="Supplies">📦 ማሸጊያ</option>
-                    <option value="Utilities">⚡ መብራት/ውሃ</option>
-                    <option value="Rent">🏢 ኪራይ</option>
-                    <option value="Salary">👥 ደመወዝ</option>
                     <option value="General">✨ ጠቅላላ</option>
                   </select>
+                </div>
+
+                {/* Date Input */}
+                <div className="sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={inlineExpenseDate}
+                    onChange={(e) => setInlineExpenseDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:bg-white rounded-2xl px-2.5 py-2.5 text-xs font-bold text-slate-800 outline-none transition-all"
+                  />
                 </div>
 
                 {/* Submit Button */}
@@ -2029,12 +2241,12 @@ export default function BusinessManagement({
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
               {[
+                { title: 'የሰራተኛ ደመወዝ (Staff Salary)', category: 'Salary', amount: 3500, emoji: '👥' },
+                { title: 'የመብራትና ጋዝ ቢል (Electricity)', category: 'Utilities', amount: 1500, emoji: '⚡' },
+                { title: 'የውሃና ኢንተርኔት (Water / WiFi)', category: 'Utilities', amount: 800, emoji: '💧' },
+                { title: 'የቤት ኪራይ (Shop Rent)', category: 'Rent', amount: 15000, emoji: '🏢' },
                 { title: 'የበረዶ ግዢ (Ice)', category: 'Ingredients', amount: 350, emoji: '🧊' },
-                { title: 'ሎሚና ዝንጅብል (Lemons)', category: 'Ingredients', amount: 250, emoji: '🍋' },
-                { title: 'ታክሲና ትራንስፖርት (Transport)', category: 'Transport', amount: 150, emoji: '🚕' },
-                { title: 'ሳሙናና ማጽጃ (Cleaning)', category: 'Maintenance', amount: 480, emoji: '🧹' },
-                { title: 'ተጨማሪ ማሸጊያ (Emergency Boxes)', category: 'Supplies', amount: 500, emoji: '📦' },
-                { title: 'የስኳር ግዢ (Sugar 10kg)', category: 'Ingredients', amount: 1100, emoji: '🧂' }
+                { title: 'ታክሲና ትራንስፖርት (Transport)', category: 'Transport', amount: 150, emoji: '🚕' }
               ].map((preset, idx) => (
                 <button
                   key={idx}
@@ -2124,21 +2336,7 @@ export default function BusinessManagement({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-bold text-slate-700">
-                  {actualExpenses.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-12 text-center">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
-                          <CheckCircle2 className="w-6 h-6" />
-                        </div>
-                        <h4 className="font-black text-sm text-slate-800">
-                          እስካሁን የተመዘገበ ወጪ የለም (No Expenses Recorded)
-                        </h4>
-                        <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto font-medium">
-                          የቢዝነሱ የሂሳብ መዝገብ ንፁህ ነው። አዲስ ወጪዎችን ለመመዝገብ ከላይ ያለውን ፈጣን መመዝገቢያ ወይም "+ አዲስ ወጪ መዝግብ" ይጠቀሙ።
-                        </p>
-                      </td>
-                    </tr>
-                  ) : actualExpenses
+                  {financePeriodSummary.periodOwnerExp
                     .filter(exp => {
                       if (expenseCategoryFilter !== 'all' && exp.category !== expenseCategoryFilter) return false;
                       if (expenseSearch.trim()) {
@@ -2149,11 +2347,11 @@ export default function BusinessManagement({
                     }).length === 0 ? (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-slate-400 text-xs font-bold">
-                        ለዚህ ፈልጎ የተገኘ ወጪ የለም
+                        {actualExpenses.length === 0 ? 'እስካሁን የተመዘገበ ወጪ የለም (No Expenses Recorded)' : 'ለዚህ ቀን/ዘርፍ የተመዘገበ ወጪ የለም'}
                       </td>
                     </tr>
                   ) : (
-                    actualExpenses
+                    financePeriodSummary.periodOwnerExp
                       .filter(exp => {
                         if (expenseCategoryFilter !== 'all' && exp.category !== expenseCategoryFilter) return false;
                         if (expenseSearch.trim()) {

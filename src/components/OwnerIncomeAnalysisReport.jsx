@@ -82,7 +82,10 @@ export default function OwnerIncomeAnalysisReport({
         name: item.name,
         englishName: item.englishName || item.name,
         category: item.category || 'Other',
-        price: Number(item.price || 0)
+        price: Number(item.price || 0),
+        containerType: item.containerType || 'box',
+        imageUrl: item.imageUrl || '',
+        emoji: item.emoji || (item.containerType === 'cup' ? '🥤' : '🥗')
       });
     });
     return Array.from(map.values());
@@ -408,12 +411,118 @@ export default function OwnerIncomeAnalysisReport({
 
     const beuOrderTypeBreakdown = Object.values(beuDishMap).sort((a, b) => b.beuNetTotal - a.beuNetTotal || b.qty - a.qty);
 
-    // Net profit estimate
+    // Live Unsaved Chef POS In-Store Food & Juice Orders (not yet closed in settlements so income stays accurate without Daily Sheet)
+    const settledShiftKeys = new Set(
+      filteredSettlements.map(s => `${s.date || ''}|${(s.shift || 'Day').toLowerCase()}`)
+    );
+    let unsavedInStoreFoodIncome = 0;
+    let unsavedChefCupIncome = 0;
+    let unsavedChefCupsCount = 0;
+
+    filteredOrders.forEach(o => {
+      const bm = getOrderBeuMetrics(o);
+      if (bm.isBeu) return; // BEU orders counted directly below
+      const key = `${getOrderIsoDate(o)}|${getOrderShift(o).toLowerCase()}`;
+      if (settledShiftKeys.has(key)) return;
+      (o.items || []).forEach(item => {
+        const q = Number(item.qty || 0);
+        if (q <= 0) return;
+        const ref = dynamicDishLookup[item.id] || DISH_LOOKUP[item.id];
+        const isCup =
+          (item.containerType || ref?.containerType) === 'cup' ||
+          /juice|smoothie|shake|drink/i.test(item.category || ref?.category || '');
+        const lineAmt = roundPricePrecision(q * Number(item.price || 0));
+        if (isCup) {
+          unsavedChefCupIncome += lineAmt;
+          unsavedChefCupsCount += q;
+        } else {
+          unsavedInStoreFoodIncome += lineAmt;
+        }
+      });
+    });
+
+    // Net profit estimate & Complete Income Pillars (BEU + Food + Juice)
     const beuFee = Math.round(totalBeuDeduction * (Number(beuCommissionPct || 0) / 100));
     const expectedBeuNetPayout = Math.max(0, totalBeuDeduction - beuFee);
     const totalBeuCombinedNormal = roundPricePrecision(chefFoodSummary.beuNormalRevenue + totalBeuDeduction);
     const totalBeuCombinedDeduction = roundPricePrecision(chefFoodSummary.beuFoodDeduction + beuFee);
     const totalBeuCombinedNet = roundPricePrecision(chefFoodSummary.beuFoodRevenue + expectedBeuNetPayout);
+
+    const totalInHouseJuiceRevenue = roundPricePrecision(
+      Math.max(0, grossJuiceRevenue - totalBeuDeduction) + unsavedChefCupIncome
+    );
+    const totalFoodIncomeAll = roundPricePrecision(totalFoodRevenue + unsavedInStoreFoodIncome);
+    const totalCombinedAllIncome = roundPricePrecision(
+      totalInHouseJuiceRevenue + totalFoodIncomeAll + totalBeuCombinedNet
+    );
+
+    // Owner Expense Breakdown (Salary, Utilities, Rent, Operating)
+    let ownerSalaryExp = 0;
+    let ownerUtilitiesExp = 0;
+    let ownerRentExp = 0;
+    let ownerOperatingExp = 0;
+    filteredOwnerExpenses.forEach(e => {
+      const amt = Number(e.amount || 0);
+      const c = e.category || 'General';
+      if (c === 'Salary') ownerSalaryExp += amt;
+      else if (c === 'Utilities' || c === 'Bills') ownerUtilitiesExp += amt;
+      else if (c === 'Rent') ownerRentExp += amt;
+      else ownerOperatingExp += amt;
+    });
+
+    // Most Ordered Foods & Drinks Ranking
+    const dishPopularityMap = {};
+    filteredOrders.forEach(o => {
+      const bm = getOrderBeuMetrics(o);
+      const isHome = o.orderType === 'Home' || o.channel === 'In-Store Home';
+      (o.items || []).forEach(item => {
+        const q = Number(item.qty || 0);
+        if (q <= 0) return;
+        const key = item.id || item.name || 'unknown';
+        const ref = dynamicDishLookup[key] || DISH_LOOKUP[key];
+        if (!dishPopularityMap[key]) {
+          dishPopularityMap[key] = {
+            id: key,
+            name: ref?.name || item.name || key,
+            englishName: ref?.englishName || item.englishName || '',
+            category: ref?.category || item.category || 'Food',
+            imageUrl: ref?.imageUrl || item.imageUrl || '',
+            emoji: ref?.emoji || (ref?.containerType === 'cup' ? '🥤' : '🥗'),
+            qty: 0,
+            revenue: 0,
+            takeawayQty: 0,
+            homeQty: 0,
+            beuQty: 0
+          };
+        }
+        dishPopularityMap[key].qty += q;
+        dishPopularityMap[key].revenue = roundPricePrecision(dishPopularityMap[key].revenue + q * Number(item.price || 0));
+        if (bm.isBeu) dishPopularityMap[key].beuQty += q;
+        else if (isHome) dishPopularityMap[key].homeQty += q;
+        else dishPopularityMap[key].takeawayQty += q;
+      });
+    });
+    // Include any dish entered in settlements without Chef order
+    Object.values(dishMap).forEach(dm => {
+      if (dm.incomeQty > 0 && !dishPopularityMap[dm.id]) {
+        const ref = dynamicDishLookup[dm.id] || DISH_LOOKUP[dm.id];
+        dishPopularityMap[dm.id] = {
+          id: dm.id,
+          name: dm.name,
+          englishName: dm.englishName || '',
+          category: ref?.category || 'Food',
+          imageUrl: ref?.imageUrl || '',
+          emoji: ref?.emoji || '🥗',
+          qty: dm.incomeQty,
+          revenue: roundPricePrecision(dm.incomeQty * Number(dm.price || 0)),
+          takeawayQty: dm.incomeQty,
+          homeQty: 0,
+          beuQty: 0
+        };
+      }
+    });
+    const mostOrderedDishes = Object.values(dishPopularityMap).sort((a, b) => b.qty - a.qty || b.revenue - a.revenue);
+    const totalOrderedUnits = mostOrderedDishes.reduce((s, d) => s + d.qty, 0);
 
     if (totalBeuCups > 0) {
       beuCategoryMap['Juice Cups'] = {
@@ -425,7 +534,9 @@ export default function OwnerIncomeAnalysisReport({
       };
     }
     const beuCategoryBreakdown = Object.values(beuCategoryMap).sort((a, b) => b.netTotal - a.netTotal || b.qty - a.qty);
-    const estimatedNetProfit = totalGrossSales - totalAllExpenses - periodPackagingSpend - beuFee;
+    const estimatedNetProfit = roundPricePrecision(
+      totalCombinedAllIncome - totalAllExpenses - periodPackagingSpend
+    );
 
     return {
       totalBoxes,
@@ -450,9 +561,21 @@ export default function OwnerIncomeAnalysisReport({
       totalBeuCombinedNet,
       totalCupsGiven,
       totalCupsLeft,
-      totalJuiceCups,
-      inHouseJuiceCups,
-      grossJuiceRevenue,
+      totalJuiceCups: totalJuiceCups + unsavedChefCupsCount,
+      inHouseJuiceCups: inHouseJuiceCups + unsavedChefCupsCount,
+      grossJuiceRevenue: grossJuiceRevenue + unsavedChefCupIncome,
+      totalInHouseJuiceRevenue,
+      totalFoodIncomeAll,
+      totalCombinedAllIncome,
+      unsavedInStoreFoodIncome,
+      unsavedChefCupIncome,
+      ownerSalaryExp,
+      ownerUtilitiesExp,
+      ownerRentExp,
+      ownerOperatingExp,
+      periodPackagingSpend,
+      mostOrderedDishes,
+      totalOrderedUnits,
       totalBeuCups,
       totalBeuDeduction,
       beuSharePercent,
@@ -747,7 +870,7 @@ export default function OwnerIncomeAnalysisReport({
               className="px-3.5 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 shadow-sm active:scale-95"
             >
               <FileText className="w-3.5 h-3.5" />
-              <span>Daily Sheet</span>
+              <span>Shift Reconciliation</span>
             </button>
           )}
 
@@ -991,8 +1114,8 @@ export default function OwnerIncomeAnalysisReport({
           { id: 'overview', label: '📈 Overview & Cash Flow', badge: mismatchAlerts.length > 0 ? `${mismatchAlerts.length} 🚨` : null, alert: mismatchAlerts.length > 0 },
           { id: 'cups', label: '🥤 Juice Cups', badge: metrics.totalJuiceCups },
           { id: 'beu', label: '🛵 BEU Delivery', badge: metrics.beuFoodOrdersCount + metrics.totalBeuCups },
-          { id: 'food', label: '🍱 Food & Chef Audit', badge: metrics.totalBoxes },
-          { id: 'expenses', label: '💸 Expenses (Separated)', badge: combinedExpenses.length },
+          { id: 'food', label: '🏆 Most Ordered & Food', badge: metrics.mostOrderedDishes.length || metrics.totalBoxes },
+          { id: 'expenses', label: '💸 Expenses (Salary/Utils)', badge: combinedExpenses.length },
           { id: 'pending', label: '⏳ Pending & Waiters', badge: filteredPendingDebts.length },
           { id: 'settlements', label: '🏦 Transfers & Day Closes', badge: filteredSettlements.length },
           ...(ordersAuditContent ? [{ id: 'orders', label: '🧾 Orders Log', badge: resolvedOrders.length }] : [])
@@ -1058,52 +1181,16 @@ export default function OwnerIncomeAnalysisReport({
             </div>
           )}
 
-          {/* BIG 4 KPI CARDS */}
+          {/* ALL INCOMES BREAKDOWN + NET PROFIT (BEU + FOOD + JUICE - EXPENSES = PROFIT) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div onClick={() => setSubView('food')} className="cursor-pointer bg-white p-5 rounded-3xl border border-slate-200 hover:border-emerald-400 shadow-xs space-y-2 transition-all">
-              <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-                <span className="flex items-center gap-1.5"><Package className="w-4 h-4 text-emerald-600" /> Food Boxes</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-black">Click for deep view</span>
-              </div>
-              <p className="text-3xl font-black text-slate-900 tabular-nums">{metrics.totalBoxes.toLocaleString()}</p>
-              <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
-                <span>Food Sales:</span>
-                <strong className="text-emerald-800 font-black">{metrics.totalFoodRevenue.toLocaleString()} ETB</strong>
-              </div>
-            </div>
-
-            <div onClick={() => ordersAuditContent && setSubView('orders')} className="cursor-pointer bg-white p-5 rounded-3xl border border-slate-200 hover:border-emerald-400 shadow-xs space-y-2 transition-all">
-              <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-                <span className="flex items-center gap-1.5"><Receipt className="w-4 h-4 text-emerald-600" /> Kitchen Orders</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-black">Chef POS</span>
-              </div>
-              <p className="text-3xl font-black text-slate-900 tabular-nums">{metrics.totalOrdersCount.toLocaleString()}</p>
-              <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
-                <span>Day / Night / BEU:</span>
-                <strong className="text-slate-700 font-black">☀️ {metrics.dayOrdersCount} • 🌙 {metrics.nightOrdersCount} • 🛵 {metrics.beuFoodOrdersCount}</strong>
-              </div>
-            </div>
-
-            <div onClick={() => setSubView('cups')} className="cursor-pointer bg-white p-5 rounded-3xl border border-slate-200 hover:border-emerald-400 shadow-xs space-y-2 transition-all">
-              <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-                <span className="flex items-center gap-1.5"><Coffee className="w-4 h-4 text-emerald-600" /> Juice Cups Sold</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-black">{effectiveJuicePrice} ETB/cup</span>
-              </div>
-              <p className="text-3xl font-black text-slate-900 tabular-nums">{metrics.totalJuiceCups.toLocaleString()}</p>
-              <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
-                <span>In-House / beU:</span>
-                <strong className="text-slate-700 font-black">{metrics.inHouseJuiceCups} • {metrics.totalBeuCups} beU</strong>
-              </div>
-            </div>
-
             <div onClick={() => setSubView('beu')} className="cursor-pointer bg-white p-5 rounded-3xl border border-teal-200 hover:border-teal-400 shadow-xs space-y-2 transition-all">
               <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-                <span className="flex items-center gap-1.5"><Truck className="w-4 h-4 text-teal-600" /> BEU Delivery</span>
+                <span className="flex items-center gap-1.5"><Truck className="w-4 h-4 text-teal-600" /> BEU Income (Net)</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 font-black">
                   {metrics.beuFoodOrdersCount} food • {metrics.totalBeuCups} cups
                 </span>
               </div>
-              <p className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">
+              <p className="text-2xl sm:text-3xl font-black text-teal-800 tabular-nums">
                 {formatEtb(metrics.totalBeuCombinedNet)} <span className="text-xs text-slate-400 font-bold">ETB</span>
               </p>
               <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between gap-1">
@@ -1113,7 +1200,95 @@ export default function OwnerIncomeAnalysisReport({
                 </strong>
               </div>
             </div>
+
+            <div onClick={() => setSubView('food')} className="cursor-pointer bg-white p-5 rounded-3xl border border-emerald-200 hover:border-emerald-400 shadow-xs space-y-2 transition-all">
+              <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
+                <span className="flex items-center gap-1.5"><Package className="w-4 h-4 text-emerald-600" /> Food Income</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-black">
+                  {metrics.totalBoxes} boxes • Top Dish
+                </span>
+              </div>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">
+                {formatEtb(metrics.totalFoodIncomeAll)} <span className="text-xs text-slate-400 font-bold">ETB</span>
+              </p>
+              <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
+                <span>Settled / Live Chef:</span>
+                <strong className="text-emerald-800 font-black">{formatEtb(metrics.totalFoodRevenue)} • {formatEtb(metrics.unsavedInStoreFoodIncome)}</strong>
+              </div>
+            </div>
+
+            <div onClick={() => setSubView('cups')} className="cursor-pointer bg-white p-5 rounded-3xl border border-slate-200 hover:border-emerald-400 shadow-xs space-y-2 transition-all">
+              <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
+                <span className="flex items-center gap-1.5"><Coffee className="w-4 h-4 text-emerald-600" /> Juice Income</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-black">{metrics.totalJuiceCups} cups @ {effectiveJuicePrice}</span>
+              </div>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">
+                {formatEtb(metrics.totalInHouseJuiceRevenue)} <span className="text-xs text-slate-400 font-bold">ETB</span>
+              </p>
+              <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
+                <span>In-House ({metrics.inHouseJuiceCups}) / BEU ({metrics.totalBeuCups}):</span>
+                <strong className="text-slate-700 font-black">{formatEtb(metrics.grossJuiceRevenue)} gross</strong>
+              </div>
+            </div>
+
+            <div onClick={() => setSubView('expenses')} className="cursor-pointer bg-emerald-50 p-5 rounded-3xl border-2 border-emerald-400 shadow-xs space-y-2 transition-all">
+              <div className="flex items-center justify-between text-emerald-900 text-xs font-black">
+                <span className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-emerald-700" /> Combined Total Income</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white text-emerald-800 font-black">{metrics.totalOrdersCount} orders</span>
+              </div>
+              <p className="text-2xl sm:text-3xl font-black text-emerald-950 tabular-nums">
+                {formatEtb(metrics.totalCombinedAllIncome)} <span className="text-xs text-emerald-700 font-bold">ETB</span>
+              </p>
+              <div className="pt-2 border-t border-emerald-200/70 text-[11px] flex justify-between">
+                <span className="text-emerald-800 font-bold">Net Profit (−Exp):</span>
+                <strong className={`font-black ${metrics.estimatedNetProfit >= 0 ? 'text-emerald-900' : 'text-rose-700'}`}>
+                  {formatEtb(metrics.estimatedNetProfit)} ETB
+                </strong>
+              </div>
+            </div>
           </div>
+
+          {/* TOP MOST-ORDERED DISHES QUICK WIDGET */}
+          {metrics.mostOrderedDishes.length > 0 && (
+            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <span>🏆 Top Ordered Foods & Drinks ({rangeTitle})</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setSubView('food')}
+                  className="text-xs font-black text-emerald-700 hover:underline"
+                >
+                  Full Most-Ordered Analysis →
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+                {metrics.mostOrderedDishes.slice(0, 5).map((dish, idx) => {
+                  const pct = metrics.totalOrderedUnits > 0 ? Math.round((dish.qty / metrics.totalOrderedUnits) * 100) : 0;
+                  return (
+                    <div key={dish.id} className={`p-3 rounded-2xl border flex items-center gap-2.5 ${idx === 0 ? 'bg-amber-50/70 border-amber-300' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                        {dish.imageUrl ? (
+                          <img src={dish.imageUrl} alt={dish.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-lg">{dish.emoji}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[10px] font-black text-emerald-700">#{idx + 1}</span>
+                          <span className="text-[10px] font-black text-slate-500">{pct}% share</span>
+                        </div>
+                        <p className="text-xs font-black text-slate-900 truncate">{dish.name}</p>
+                        <p className="text-[11px] font-bold text-slate-600">{dish.qty} ordered • {formatEtb(dish.revenue)} ETB</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* DAILY REVENUE TREND BAR CHART (when multiple days in range) */}
           {dailySeries.length > 0 && (
@@ -1166,16 +1341,16 @@ export default function OwnerIncomeAnalysisReport({
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
               <div className="bg-slate-50 dark:bg-white/10 p-3.5 rounded-2xl border border-slate-200 dark:border-white/10">
-                <span className="text-[10px] text-slate-500 dark:text-emerald-200 block font-bold">Gross Sales</span>
-                <span className="text-base font-black tabular-nums mt-1 block">{metrics.totalGrossSales.toLocaleString()} ETB</span>
+                <span className="text-[10px] text-slate-500 dark:text-emerald-200 block font-bold">Combined Income (All Channels)</span>
+                <span className="text-base font-black tabular-nums mt-1 block">{formatEtb(metrics.totalCombinedAllIncome)} ETB</span>
               </div>
               <div className="bg-rose-50 dark:bg-white/10 p-3.5 rounded-2xl border border-rose-200 dark:border-white/10">
-                <span className="text-[10px] text-rose-600 dark:text-rose-300 block font-bold">beU Deduction</span>
-                <span className="text-base font-black text-rose-700 dark:text-rose-200 tabular-nums mt-1 block">-{metrics.totalBeuDeduction.toLocaleString()} ETB</span>
+                <span className="text-[10px] text-rose-600 dark:text-rose-300 block font-bold">Salary + Utilities + Rent</span>
+                <span className="text-base font-black text-rose-700 dark:text-rose-200 tabular-nums mt-1 block">-{(metrics.ownerSalaryExp + metrics.ownerUtilitiesExp + metrics.ownerRentExp).toLocaleString()} ETB</span>
               </div>
               <div className="bg-rose-50 dark:bg-white/10 p-3.5 rounded-2xl border border-rose-200 dark:border-white/10">
-                <span className="text-[10px] text-rose-600 dark:text-rose-300 block font-bold">All Expenses (Shift+Owner)</span>
-                <span className="text-base font-black text-rose-700 dark:text-rose-200 tabular-nums mt-1 block">-{metrics.totalAllExpenses.toLocaleString()} ETB</span>
+                <span className="text-[10px] text-rose-600 dark:text-rose-300 block font-bold">All Expenses (Total)</span>
+                <span className="text-base font-black text-rose-700 dark:text-rose-200 tabular-nums mt-1 block">-{(metrics.totalAllExpenses + metrics.periodPackagingSpend).toLocaleString()} ETB</span>
               </div>
               <div className="bg-slate-50 dark:bg-white/10 p-3.5 rounded-2xl border border-slate-200 dark:border-white/10">
                 <span className="text-[10px] text-slate-500 dark:text-emerald-200 block font-bold">Bank Transfers</span>
@@ -1202,7 +1377,7 @@ export default function OwnerIncomeAnalysisReport({
               </div>
               <div className="bg-slate-50 dark:bg-white/10 rounded-2xl p-4 border border-slate-200 dark:border-white/15">
                 <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-300 block">
-                  Estimated Net Profit (Sales − Expenses − Restock Cost − beU Fee)
+                  Estimated Net Profit (All Income − Expenses & Salary/Utils − Restock)
                 </span>
                 <p className={`text-3xl font-black tabular-nums mt-1 ${metrics.estimatedNetProfit >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}`}>
                   {metrics.estimatedNetProfit.toLocaleString()} <span className="text-sm">ETB</span>
@@ -1717,6 +1892,131 @@ export default function OwnerIncomeAnalysisReport({
             </div>
           )}
 
+          {/* MOST ORDERED FOOD & DRINKS ANALYSIS (TOP SELLERS RANKING) */}
+          <div className="bg-white p-5 rounded-3xl border border-emerald-200 shadow-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                  <span>🏆 Most Ordered Food & Drinks Analysis ({rangeTitle})</span>
+                </h3>
+                <p className="text-[11px] text-slate-500 font-bold mt-0.5">
+                  Ranks your fastest-moving dishes & drinks across Takeaway, Home Dine-In & BEU Delivery
+                </p>
+              </div>
+              <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-black">
+                {metrics.totalOrderedUnits} Total Units Ordered
+              </span>
+            </div>
+
+            {metrics.mostOrderedDishes.length === 0 ? (
+              <p className="text-xs text-slate-400 font-bold py-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                No food or drink orders recorded in this date range yet.
+              </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200">
+                    <span className="text-[10px] font-black uppercase text-amber-800 block">🥇 #1 Most Ordered Item</span>
+                    <p className="text-sm font-black text-slate-900 mt-1 truncate">{metrics.mostOrderedDishes[0].name}</p>
+                    <span className="text-xs font-bold text-amber-900">
+                      {metrics.mostOrderedDishes[0].qty} ordered ({formatEtb(metrics.mostOrderedDishes[0].revenue)} ETB)
+                    </span>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-teal-50/80 border border-teal-200">
+                    <span className="text-[10px] font-black uppercase text-teal-800 block">🛵 Top BEU Ordered Dish</span>
+                    {(() => {
+                      const topBeu = [...metrics.mostOrderedDishes].sort((a, b) => b.beuQty - a.beuQty)[0];
+                      return topBeu && topBeu.beuQty > 0 ? (
+                        <>
+                          <p className="text-sm font-black text-slate-900 mt-1 truncate">{topBeu.name}</p>
+                          <span className="text-xs font-bold text-teal-900">{topBeu.beuQty} via BEU Delivery</span>
+                        </>
+                      ) : (
+                        <p className="text-xs font-bold text-slate-500 mt-1">No BEU orders in range</p>
+                      );
+                    })()}
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                    <span className="text-[10px] font-black uppercase text-slate-500 block">📉 Lowest Ordered (Active)</span>
+                    {(() => {
+                      const least = metrics.mostOrderedDishes[metrics.mostOrderedDishes.length - 1];
+                      return (
+                        <>
+                          <p className="text-sm font-black text-slate-900 mt-1 truncate">{least.name}</p>
+                          <span className="text-xs font-bold text-slate-600">{least.qty} ordered ({formatEtb(least.revenue)} ETB)</span>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-500 font-black border-b border-slate-200">
+                      <tr>
+                        <th className="py-2.5 px-3">Rank</th>
+                        <th className="py-2.5 px-3">Food / Drink Item</th>
+                        <th className="py-2.5 px-3">Popularity Bar</th>
+                        <th className="py-2.5 px-3 text-right">Qty Ordered</th>
+                        <th className="py-2.5 px-3 text-right">Channels (📦 / 🍽️ / 🛵)</th>
+                        <th className="py-2.5 px-3 text-right">Income Earned</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {metrics.mostOrderedDishes.map((d, idx) => {
+                        const maxQty = metrics.mostOrderedDishes[0].qty || 1;
+                        const barWidth = Math.max(6, Math.round((d.qty / maxQty) * 100));
+                        const sharePct = metrics.totalOrderedUnits > 0 ? Math.round((d.qty / metrics.totalOrderedUnits) * 100) : 0;
+                        return (
+                          <tr key={d.id} className="hover:bg-slate-50">
+                            <td className="py-2.5 px-3 font-black text-slate-700">
+                              <span className={`px-2 py-0.5 rounded-lg text-[11px] ${
+                                idx === 0 ? 'bg-amber-100 text-amber-900' : idx === 1 ? 'bg-slate-200 text-slate-800' : idx === 2 ? 'bg-orange-100 text-orange-900' : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                #{idx + 1}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 overflow-hidden flex items-center justify-center shrink-0">
+                                  {d.imageUrl ? (
+                                    <img src={d.imageUrl} alt={d.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span>{d.emoji}</span>
+                                  )}
+                                </div>
+                                <div>
+                                  <span className="font-black text-slate-900 block">{d.name}</span>
+                                  <span className="text-[10px] font-bold text-slate-400">{d.category}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 w-44">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${idx === 0 ? 'bg-amber-500' : 'bg-emerald-600'}`}
+                                    style={{ width: `${barWidth}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] font-black text-slate-600 tabular-nums w-8 text-right">{sharePct}%</span>
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-black text-slate-900 tabular-nums">{d.qty}</td>
+                            <td className="py-2.5 px-3 text-right text-[11px] font-bold text-slate-600 tabular-nums">
+                              📦 {d.takeawayQty} • 🍽️ {d.homeQty} • 🛵 {d.beuQty}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-black text-emerald-800 tabular-nums">{formatEtb(d.revenue)} ETB</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+
           {/* Dish-by-Dish Comparison Table */}
           <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-3">
             <h3 className="text-sm font-black text-slate-900">Dish-by-Dish Breakdown (Chef POS vs Income Sheet)</h3>
@@ -1770,20 +2070,30 @@ export default function OwnerIncomeAnalysisReport({
       {/* ============================================================== */}
       {subView === 'expenses' && (
         <div className="space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-              <span className="text-[10px] font-black uppercase text-slate-400">Shift Drawer Expenses</span>
-              <p className="text-2xl font-black text-rose-700 mt-1 tabular-nums">{metrics.totalShiftExpenses.toLocaleString()} ETB</p>
-              <span className="text-[11px] font-bold text-slate-500">{filteredShiftExpenses.length} items from Daily Sheet</span>
+              <span className="text-[10px] font-black uppercase text-indigo-700">👥 Owner Salary</span>
+              <p className="text-xl font-black text-slate-900 mt-1 tabular-nums">{metrics.ownerSalaryExp.toLocaleString()} ETB</p>
+              <span className="text-[11px] font-bold text-slate-400">Staff Salaries & Allowances</span>
             </div>
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-              <span className="text-[10px] font-black uppercase text-slate-400">Owner Business Expenses</span>
-              <p className="text-2xl font-black text-rose-700 mt-1 tabular-nums">{metrics.totalOwnerExp.toLocaleString()} ETB</p>
-              <span className="text-[11px] font-bold text-slate-500">{filteredOwnerExpenses.length} items from Finance</span>
+              <span className="text-[10px] font-black uppercase text-amber-700">⚡ Utilities & Rent</span>
+              <p className="text-xl font-black text-slate-900 mt-1 tabular-nums">{(metrics.ownerUtilitiesExp + metrics.ownerRentExp).toLocaleString()} ETB</p>
+              <span className="text-[11px] font-bold text-slate-400">Power, Water, WiFi & Shop Rent</span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <span className="text-[10px] font-black uppercase text-slate-400">Operating & Packaging</span>
+              <p className="text-xl font-black text-rose-700 mt-1 tabular-nums">{(metrics.ownerOperatingExp + metrics.periodPackagingSpend).toLocaleString()} ETB</p>
+              <span className="text-[11px] font-bold text-slate-400">Ingredients & Stock Purchases</span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <span className="text-[10px] font-black uppercase text-slate-400">Shift Drawer Expenses</span>
+              <p className="text-xl font-black text-rose-700 mt-1 tabular-nums">{metrics.totalShiftExpenses.toLocaleString()} ETB</p>
+              <span className="text-[11px] font-bold text-slate-500">{filteredShiftExpenses.length} shift drawer items</span>
             </div>
             <div className="bg-rose-50 p-4 rounded-2xl border border-rose-200 shadow-xs">
               <span className="text-[10px] font-black uppercase text-rose-700">Total Period Expenses</span>
-              <p className="text-2xl font-black text-rose-900 mt-1 tabular-nums">{metrics.totalAllExpenses.toLocaleString()} ETB</p>
+              <p className="text-xl font-black text-rose-900 mt-1 tabular-nums">{(metrics.totalAllExpenses + metrics.periodPackagingSpend).toLocaleString()} ETB</p>
               <span className="text-[11px] font-bold text-rose-700">{rangeTitle}</span>
             </div>
           </div>

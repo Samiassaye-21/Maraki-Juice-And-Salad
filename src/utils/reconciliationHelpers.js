@@ -293,18 +293,90 @@ export function compareChefVsIncomeSheet(chefSummary, foodAssignments = {}, dish
   };
 }
 
+export const DISH_BOX_TYPES_STORAGE_KEY = 'maraki_dish_box_types_v1';
+
 /**
- * Load & compute unified Box & Cup inventory audit stats across localStorage.
+ * Load owner-assigned dish packaging types ({ [dishId]: 'chofan_box' | 'standard_box' | 'cup' }).
+ */
+export function getDishBoxTypeMap() {
+  try {
+    const saved = localStorage.getItem(DISH_BOX_TYPES_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+/**
+ * Persist owner-assigned dish packaging type map locally and in Supabase app_state.
+ */
+export function saveDishBoxTypeMap(nextMap = {}) {
+  const clean = { ...(nextMap || {}) };
+  try {
+    localStorage.setItem(DISH_BOX_TYPES_STORAGE_KEY, JSON.stringify(clean));
+    dbService.saveAppState(DISH_BOX_TYPES_STORAGE_KEY, clean);
+    window.dispatchEvent(new Event('maraki-dish-box-types-updated'));
+  } catch (e) {}
+  return clean;
+}
+
+/**
+ * Resolve which physical packaging container an order item or dish uses:
+ * 'cup' | 'chofan_box' | 'standard_box'.
+ */
+export function getDishBoxType(itemOrDish, dishLookupMap = {}, boxTypeOverrides = null) {
+  if (!itemOrDish) return 'standard_box';
+  const overrides = boxTypeOverrides || getDishBoxTypeMap();
+  const id = itemOrDish.id || '';
+  const refDish = (id && dishLookupMap[id]) || null;
+
+  const explicit =
+    (id && overrides[id]) ||
+    itemOrDish.boxType ||
+    refDish?.boxType;
+  if (explicit === 'cup' || explicit === 'chofan_box' || explicit === 'standard_box') {
+    return explicit;
+  }
+
+  const containerType = (itemOrDish.containerType || refDish?.containerType || '').toLowerCase();
+  const menuType = (itemOrDish.menuType || refDish?.menuType || '').toLowerCase();
+  const category = (itemOrDish.category || refDish?.category || '').toLowerCase();
+  const fullName = `${itemOrDish.name || ''} ${itemOrDish.englishName || ''} ${refDish?.name || ''} ${refDish?.englishName || ''}`.toLowerCase();
+
+  if (
+    containerType === 'cup' ||
+    menuType === 'juice' ||
+    menuType === 'drink' ||
+    /juice|smoothie|shake|drink|tea|coffee|mojito|ጁስ|ሻይ|ቡና/.test(category)
+  ) {
+    return 'cup';
+  }
+
+  if (
+    category.includes('pasta') ||
+    category.includes('rice') ||
+    /chao\s*fan|chofan|chow\s*fan|fried\s*rice|\brice\b|\bpasta\b|spaghetti|macaroni|ሩዝ|ፓስታ|ቻው\s*ፋን|ቻውፋን/.test(fullName)
+  ) {
+    return 'chofan_box';
+  }
+
+  return 'standard_box';
+}
+
+/**
+ * Load & compute unified Stock & Packaging audit stats across localStorage
+ * for Standard Takeaway Boxes, Chao Fan Takeaway Boxes, and Juice Cups.
  */
 export function computePackagingAudit({
   orders = [],
   settlements = [],
+  menuItems = [],
   purchasesOverride = null,
   manualIssuesOverride = null
 } = {}) {
   let purchases = Array.isArray(purchasesOverride) ? purchasesOverride : [];
   let manualIssues = Array.isArray(manualIssuesOverride) ? manualIssuesOverride : [];
-  let thresholds = { boxLow: 50, cupLow: 100 };
+  let thresholds = { boxLow: 50, chofanBoxLow: 30, cupLow: 100 };
 
   if (!Array.isArray(purchasesOverride)) {
     try {
@@ -318,7 +390,7 @@ export function computePackagingAudit({
           purchases = [
             {
               id: 'seed-initial-boxes',
-              itemType: 'box',
+              itemType: 'standard_box',
               qty: legacyBoxes,
               unitCost: 0,
               totalCost: 0,
@@ -349,76 +421,170 @@ export function computePackagingAudit({
     if (savedThresh) thresholds = { ...thresholds, ...JSON.parse(savedThresh) };
   } catch (e) {}
 
-  const wasteBoxes = Number(localStorage.getItem('maraki_waste_boxes')) || 0;
+  let menuLookup = {};
+  try {
+    const srcMenu = Array.isArray(menuItems) && menuItems.length > 0
+      ? menuItems
+      : JSON.parse(localStorage.getItem('maraki_chef_food_menu_v2') || '[]');
+    srcMenu.forEach(m => {
+      if (m?.id) menuLookup[m.id] = m;
+    });
+  } catch (e) {}
+  const boxTypeOverrides = getDishBoxTypeMap();
+
+  const wasteStdBoxes = Number(localStorage.getItem('maraki_waste_boxes')) || 0;
+  const wasteChofanBoxes = Number(localStorage.getItem('maraki_waste_chofan_boxes')) || 0;
   const wasteCups = Number(localStorage.getItem('maraki_waste_cups')) || 0;
 
-  const boxesBought = purchases.filter(p => p.itemType === 'box').reduce((s, p) => s + Number(p.qty || 0), 0);
+  const isStdBoxType = (t) => t === 'box' || t === 'standard_box';
+  const isChofanBoxType = (t) => t === 'chofan_box';
+
+  const stdBoxesBought = purchases.filter(p => isStdBoxType(p.itemType)).reduce((s, p) => s + Number(p.qty || 0), 0);
+  const chofanBoxesBought = purchases.filter(p => isChofanBoxType(p.itemType)).reduce((s, p) => s + Number(p.qty || 0), 0);
   const cupsBought = purchases.filter(p => p.itemType === 'cup').reduce((s, p) => s + Number(p.qty || 0), 0);
-  const totalBoxSpend = purchases.filter(p => p.itemType === 'box').reduce((s, p) => s + Number(p.totalCost || 0), 0);
+
+  const totalStdBoxSpend = purchases.filter(p => isStdBoxType(p.itemType)).reduce((s, p) => s + Number(p.totalCost || 0), 0);
+  const totalChofanBoxSpend = purchases.filter(p => isChofanBoxType(p.itemType)).reduce((s, p) => s + Number(p.totalCost || 0), 0);
   const totalCupSpend = purchases.filter(p => p.itemType === 'cup').reduce((s, p) => s + Number(p.totalCost || 0), 0);
-  const avgBoxPurchaseCost = boxesBought > 0 && totalBoxSpend > 0 ? Math.round((totalBoxSpend / boxesBought) * 100) / 100 : 0;
+
+  const avgStdBoxCost = stdBoxesBought > 0 && totalStdBoxSpend > 0 ? Math.round((totalStdBoxSpend / stdBoxesBought) * 100) / 100 : 0;
+  const avgChofanBoxCost = chofanBoxesBought > 0 && totalChofanBoxSpend > 0 ? Math.round((totalChofanBoxSpend / chofanBoxesBought) * 100) / 100 : 0;
   const avgCupPurchaseCost = cupsBought > 0 && totalCupSpend > 0 ? Math.round((totalCupSpend / cupsBought) * 100) / 100 : 0;
 
-  const boxesGivenToKitchen = manualIssues.filter(i => i.itemType === 'box').reduce((s, i) => s + Number(i.qty || 0), 0);
+  const stdBoxesGiven = manualIssues.filter(i => isStdBoxType(i.itemType)).reduce((s, i) => s + Number(i.qty || 0), 0);
+  const chofanBoxesGiven = manualIssues.filter(i => isChofanBoxType(i.itemType)).reduce((s, i) => s + Number(i.qty || 0), 0);
   const cupsGivenToBar = manualIssues.filter(i => i.itemType === 'cup').reduce((s, i) => s + Number(i.qty || 0), 0);
 
-  // Boxes used from Chef Orders (System Truth)
-  const boxesSoldChef = orders.reduce((sum, o) => {
+  const settledShiftKeys = new Set(
+    (settlements || []).map(s => `${s.date || ''}|${(s.shift || 'Day').toLowerCase()}`)
+  );
+
+  // Auto-deducted quantities when Chef POS orders go out
+  let stdBoxesSoldChef = 0;
+  let chofanBoxesSoldChef = 0;
+  let liveUnsavedCupsChef = 0;
+
+  (orders || []).forEach(o => {
     const isHome = o.orderType === 'Home' || o.channel === 'In-Store Home';
-    if (isHome) return sum;
-    return sum + Number(o.boxesCount || 0);
-  }, 0);
+    const orderShiftKey = `${getOrderIsoDate(o)}|${getOrderShift(o).toLowerCase()}`;
+    const hasSettledShift = settledShiftKeys.has(orderShiftKey);
+    const items = Array.isArray(o.items) ? o.items : [];
 
-  // Cups sold from Shift Settlements
-  const cupsSoldSettlements = settlements.reduce((sum, s) => sum + Number(s.juiceSold || 0), 0);
+    if (items.length === 0) {
+      if (!isHome) stdBoxesSoldChef += Number(o.boxesCount || 0);
+      return;
+    }
 
-  const boxesStorageRemaining = Math.max(0, boxesBought - boxesGivenToKitchen);
-  const boxesTotalRemaining = boxesBought === 0 && boxesSoldChef === 0 ? 0 : Math.max(0, boxesBought - boxesSoldChef - wasteBoxes);
-  const boxesExpectedInKitchen = boxesGivenToKitchen - boxesSoldChef - wasteBoxes;
+    let orderStd = 0;
+    let orderChofan = 0;
+    items.forEach(item => {
+      const qty = Number(item.qty || 0);
+      if (qty <= 0) return;
+      const bType = getDishBoxType(item, menuLookup, boxTypeOverrides);
+      if (bType === 'cup') {
+        if (!hasSettledShift) liveUnsavedCupsChef += qty;
+      } else if (!isHome) {
+        if (bType === 'chofan_box') orderChofan += qty;
+        else orderStd += qty;
+      }
+    });
+
+    if (!isHome && orderStd === 0 && orderChofan === 0 && Number(o.boxesCount || 0) > 0) {
+      orderStd = Number(o.boxesCount || 0);
+    }
+    stdBoxesSoldChef += orderStd;
+    chofanBoxesSoldChef += orderChofan;
+  });
+
+  // Cups sold from closed Shift Settlements + live unsaved Chef cup orders
+  const cupsSoldSettlements = (settlements || []).reduce((sum, s) => sum + Number(s.juiceSold || 0), 0);
+  const cupsSoldTotal = cupsSoldSettlements + liveUnsavedCupsChef;
+
+  const buildStockStatus = (bought, remaining, lowThreshold) => {
+    if (bought <= 0) return 'unset';
+    if (remaining <= 0) return 'finished';
+    if (remaining <= lowThreshold) return 'low';
+    return 'healthy';
+  };
+
+  const stdStorageRemaining = Math.max(0, stdBoxesBought - stdBoxesGiven);
+  const stdTotalRemaining = stdBoxesBought === 0 && stdBoxesSoldChef === 0 ? 0 : Math.max(0, stdBoxesBought - stdBoxesSoldChef - wasteStdBoxes);
+  const stdExpectedInKitchen = stdBoxesGiven - stdBoxesSoldChef - wasteStdBoxes;
+  const stdStatus = buildStockStatus(stdBoxesBought, stdTotalRemaining, thresholds.boxLow);
+
+  const chofanStorageRemaining = Math.max(0, chofanBoxesBought - chofanBoxesGiven);
+  const chofanTotalRemaining = chofanBoxesBought === 0 && chofanBoxesSoldChef === 0 ? 0 : Math.max(0, chofanBoxesBought - chofanBoxesSoldChef - wasteChofanBoxes);
+  const chofanExpectedInKitchen = chofanBoxesGiven - chofanBoxesSoldChef - wasteChofanBoxes;
+  const chofanStatus = buildStockStatus(chofanBoxesBought, chofanTotalRemaining, thresholds.chofanBoxLow);
 
   const cupsStorageRemaining = Math.max(0, cupsBought - cupsGivenToBar);
-  const cupsTotalRemaining = cupsBought === 0 && cupsSoldSettlements === 0 ? 0 : Math.max(0, cupsBought - cupsSoldSettlements - wasteCups);
-  const cupsExpectedInBar = cupsGivenToBar - cupsSoldSettlements - wasteCups;
+  const cupsTotalRemaining = cupsBought === 0 && cupsSoldTotal === 0 ? 0 : Math.max(0, cupsBought - cupsSoldTotal - wasteCups);
+  const cupsExpectedInBar = cupsGivenToBar - cupsSoldTotal - wasteCups;
+  const cupStatus = buildStockStatus(cupsBought, cupsTotalRemaining, thresholds.cupLow);
 
-  const boxStatus =
-    boxesBought === 0
-      ? 'unset'
-      : boxesTotalRemaining <= 0
+  const combinedBoxesBought = stdBoxesBought + chofanBoxesBought;
+  const combinedBoxesGiven = stdBoxesGiven + chofanBoxesGiven;
+  const combinedBoxesSold = stdBoxesSoldChef + chofanBoxesSoldChef;
+  const combinedBoxesWaste = wasteStdBoxes + wasteChofanBoxes;
+  const combinedBoxesRemaining = stdTotalRemaining + chofanTotalRemaining;
+  const combinedBoxStatus =
+    stdStatus === 'finished' || chofanStatus === 'finished'
       ? 'finished'
-      : boxesTotalRemaining <= thresholds.boxLow
-      ? 'low'
-      : 'healthy';
-
-  const cupStatus =
-    cupsBought === 0
-      ? 'unset'
-      : cupsTotalRemaining <= 0
-      ? 'finished'
-      : cupsTotalRemaining <= thresholds.cupLow
-      ? 'low'
-      : 'healthy';
+      : stdStatus === 'low' || chofanStatus === 'low'
+        ? 'low'
+        : combinedBoxesBought === 0
+          ? 'unset'
+          : 'healthy';
 
   return {
     purchases,
     manualIssues,
     thresholds,
+    standardBoxes: {
+      bought: stdBoxesBought,
+      given: stdBoxesGiven,
+      sold: stdBoxesSoldChef,
+      waste: wasteStdBoxes,
+      spend: totalStdBoxSpend,
+      avgUnitCost: avgStdBoxCost,
+      storageRemaining: stdStorageRemaining,
+      expectedInKitchen: stdExpectedInKitchen,
+      totalRemaining: stdTotalRemaining,
+      status: stdStatus,
+      lowThreshold: thresholds.boxLow
+    },
+    chofanBoxes: {
+      bought: chofanBoxesBought,
+      given: chofanBoxesGiven,
+      sold: chofanBoxesSoldChef,
+      waste: wasteChofanBoxes,
+      spend: totalChofanBoxSpend,
+      avgUnitCost: avgChofanBoxCost,
+      storageRemaining: chofanStorageRemaining,
+      expectedInKitchen: chofanExpectedInKitchen,
+      totalRemaining: chofanTotalRemaining,
+      status: chofanStatus,
+      lowThreshold: thresholds.chofanBoxLow
+    },
     boxes: {
-      bought: boxesBought,
-      given: boxesGivenToKitchen,
-      sold: boxesSoldChef,
-      waste: wasteBoxes,
-      spend: totalBoxSpend,
-      avgUnitCost: avgBoxPurchaseCost,
-      storageRemaining: boxesStorageRemaining,
-      expectedInKitchen: boxesExpectedInKitchen,
-      totalRemaining: boxesTotalRemaining,
-      status: boxStatus,
+      bought: combinedBoxesBought,
+      given: combinedBoxesGiven,
+      sold: combinedBoxesSold,
+      waste: combinedBoxesWaste,
+      spend: totalStdBoxSpend + totalChofanBoxSpend,
+      avgUnitCost: combinedBoxesBought > 0 ? Math.round(((totalStdBoxSpend + totalChofanBoxSpend) / combinedBoxesBought) * 100) / 100 : 0,
+      storageRemaining: stdStorageRemaining + chofanStorageRemaining,
+      expectedInKitchen: stdExpectedInKitchen + chofanExpectedInKitchen,
+      totalRemaining: combinedBoxesRemaining,
+      status: combinedBoxStatus,
       lowThreshold: thresholds.boxLow
     },
     cups: {
       bought: cupsBought,
       given: cupsGivenToBar,
-      sold: cupsSoldSettlements,
+      sold: cupsSoldTotal,
+      soldSettlements: cupsSoldSettlements,
+      soldLiveOrders: liveUnsavedCupsChef,
       waste: wasteCups,
       spend: totalCupSpend,
       avgUnitCost: avgCupPurchaseCost,

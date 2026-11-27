@@ -696,7 +696,7 @@ export default function App() {
   const [ownerSection, setOwnerSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const sec = params.get('section');
-    const valid = ['dashboard', 'sheet', 'analysis', 'stock', 'menu', 'finance', 'plans', 'orders'];
+    const valid = ['dashboard', 'analysis', 'stock', 'menu', 'finance', 'plans', 'orders'];
     if (sec && valid.includes(sec)) return sec;
     const saved = localStorage.getItem('maraki_owner_active_section');
     if (saved && valid.includes(saved)) return saved;
@@ -2253,16 +2253,6 @@ export default function App() {
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setOwnerSection('sheet')}
-                className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
-                title={t.dailySheet}
-              >
-                <ClipboardCheck className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{t.dailySheet}</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => setOwnerSection('menu')}
                 className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all border active:scale-95 ${
                   ownerSection === 'menu'
@@ -3261,20 +3251,22 @@ export default function App() {
       {/* 2. OWNER EXECUTIVE COMMAND CENTER (6-SECTION SIDEBAR LAYOUT)   */}
       {/* ============================================================== */}
       {systemMode === 'owner' && (() => {
-        const pkgAudit = computePackagingAudit({ orders: sentOrders, settlements: settlementsHistory });
+        const pkgAudit = computePackagingAudit({ orders: sentOrders, settlements: settlementsHistory, menuItems: foodMenu });
         const mismatchCount = settlementsHistory.filter(s => s.chefAudit?.hasMismatch).length;
+        const stdStatus = pkgAudit.standardBoxes?.status;
+        const chofanStatus = pkgAudit.chofanBoxes?.status;
+        const cupStatus = pkgAudit.cups?.status;
         const stockAlert =
-          pkgAudit.boxes.status === 'finished' || pkgAudit.cups.status === 'finished'
-            ? 'FINISHED'
-            : (pkgAudit.boxes.status === 'low' || pkgAudit.cups.status === 'low')
+          stdStatus === 'finished' || chofanStatus === 'finished' || cupStatus === 'finished'
+            ? 'OUT OF STOCK'
+            : (stdStatus === 'low' || chofanStatus === 'low' || cupStatus === 'low')
               ? 'LOW'
               : null;
 
         const navItems = [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: mismatchCount > 0 ? `${mismatchCount} 🚨` : null, alert: mismatchCount > 0 },
-          { id: 'sheet', label: 'Daily Sheet', icon: ClipboardCheck, badge: null },
           { id: 'analysis', label: 'Income & Reports', icon: BarChart3, badge: settlementsHistory.length, alert: mismatchCount > 0 },
-          { id: 'stock', label: 'Box & Stock Audit', icon: Package, badge: stockAlert || (pkgAudit.boxes.bought > 0 ? pkgAudit.boxes.totalRemaining : null), alert: Boolean(stockAlert) },
+          { id: 'stock', label: 'Box & Stock Audit', icon: Package, badge: stockAlert || ((pkgAudit.boxes.bought + pkgAudit.cups.bought) > 0 ? pkgAudit.boxes.totalRemaining : null), alert: Boolean(stockAlert) },
           { id: 'menu', label: 'Menu & Prices', icon: Tag, badge: foodMenu.length },
           { id: 'finance', label: 'Finance', icon: Wallet, badge: null },
           { id: 'plans', label: 'Plans & Goals', icon: Target, badge: null }
@@ -4097,16 +4089,6 @@ export default function App() {
                   );
                 })}
 
-                <div className="hidden lg:block mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 px-2">
-                  <button
-                    type="button"
-                    onClick={() => navigateToSystem('reconciliation')}
-                    className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-emerald-700 dark:text-emerald-300 text-[11px] font-black flex items-center justify-center gap-1.5 border border-slate-200 dark:border-white/10"
-                  >
-                    <ClipboardCheck className="w-3.5 h-3.5" />
-                    <span>Full-Screen Daily Sheet</span>
-                  </button>
-                </div>
               </div>
             </aside>
 
@@ -4116,26 +4098,8 @@ export default function App() {
                 <OwnerDashboard
                   orders={sentOrders}
                   settlements={settlementsHistory}
-                  onNavigateSection={(sec) => setOwnerSection(sec)}
-                />
-              )}
-
-              {ownerSection === 'sheet' && (
-                <ShiftReconciliation
-                  embeddedMode={true}
-                  theme={theme}
-                  onToggleTheme={handleToggleTheme}
-                  onRefreshOrders={syncFromSupabase}
-                  onUpdateOrder={handleUpdateChefOrder}
-                  onDeleteOrder={handleDeleteChefOrderFromSheet}
-                  orders={sentOrders}
-                  waiters={waitersList}
                   foodMenu={foodMenu}
-                  standardJuicePrice={standardJuicePrice}
-                  onSwitchToOwnerPrices={() => setOwnerSection('menu')}
-                  onSavedSettlement={(rec) => {
-                    setSettlementsHistory(prev => [rec, ...prev.filter(s => s.id !== rec.id)]);
-                  }}
+                  onNavigateSection={(sec) => setOwnerSection(sec)}
                 />
               )}
 
@@ -4149,7 +4113,6 @@ export default function App() {
                   foodMenu={foodMenu}
                   standardJuicePrice={standardJuicePrice}
                   ordersAuditContent={ordersAuditBlock}
-                  onOpenShiftReconciliation={() => setOwnerSection('sheet')}
                   onUpdateSettlements={(updated) => {
                     setSettlementsHistory(updated);
                     localStorage.setItem('maraki_shift_settlements', JSON.stringify(updated));
@@ -4162,6 +4125,7 @@ export default function App() {
                 <BoxInventoryAudit
                   orders={sentOrders}
                   settlements={settlementsHistory}
+                  foodMenu={foodMenu}
                   onStockChanged={() => setStockVersion(v => v + 1)}
                 />
               )}
@@ -4182,6 +4146,7 @@ export default function App() {
                   visibleTabs={['expenses', 'topay', 'reports']}
                   defaultTab="expenses"
                   orders={sentOrders}
+                  settlements={settlementsHistory}
                   totalRealSales={totalRevenueAll}
                   onSwitchToOrdersLog={() => setOwnerSection('orders')}
                   onClearOrders={() => {
