@@ -569,17 +569,35 @@ export default function ShiftReconciliation({
   // SECTION 4: RECOVERING PENDING PAYMENTS FROM WAITERS
   // ==============================================================
   // Selection map: { debtId: { selected: boolean, unitsToRecover: number } }
-  // Connected dynamically to the pending page ledger & filtered by selected shift (Day vs Night).
+  // Connected dynamically to the pending page ledger & filtered by Day / Night / All.
   const [recoverySelections, setRecoverySelections] = useState({});
-  const [recoverAllShifts, setRecoverAllShifts] = useState(false);
+  const [recoveryFilterMode, setRecoveryFilterMode] = useState(selectedShift);
+
+  useEffect(() => {
+    setRecoveryFilterMode(selectedShift);
+  }, [selectedShift]);
+
+  const recoveryShiftStats = useMemo(() => {
+    const allPending = pendingDebts.filter(d => d && d.status === 'pending');
+    const dayPending = allPending.filter(d => (d.shift || 'Day') === 'Day');
+    const nightPending = allPending.filter(d => (d.shift || 'Day') === 'Night');
+    return {
+      dayCount: dayPending.length,
+      dayAmount: dayPending.reduce((s, d) => s + Number(d.remainingAmount || 0), 0),
+      nightCount: nightPending.length,
+      nightAmount: nightPending.reduce((s, d) => s + Number(d.remainingAmount || 0), 0),
+      allCount: allPending.length,
+      allAmount: allPending.reduce((s, d) => s + Number(d.remainingAmount || 0), 0)
+    };
+  }, [pendingDebts]);
 
   const activeDebtsForShift = useMemo(() => {
     return pendingDebts.filter(d => {
       if (!d || d.status !== 'pending') return false;
-      if (recoverAllShifts) return true;
-      return (d.shift || 'Day') === selectedShift;
+      if (recoveryFilterMode === 'All') return true;
+      return (d.shift || 'Day') === recoveryFilterMode;
     });
-  }, [pendingDebts, selectedShift, recoverAllShifts]);
+  }, [pendingDebts, recoveryFilterMode]);
 
   const otherShiftPendingCount = useMemo(() => {
     const otherShift = selectedShift === 'Day' ? 'Night' : 'Day';
@@ -1410,10 +1428,10 @@ export default function ShiftReconciliation({
               </span>
               <div>
                 <h2 className="text-sm sm:text-base font-black text-slate-900">
-                  2. FOOD BOX RECONCILIATION ("THE ANTI-SKIMMING ENGINE")
+                  2. FOOD BOX RECONCILIATION
                 </h2>
                 <p className="text-[11px] text-slate-500 font-bold">
-                  Kitchen packaging consumption vs waitstaff sales output (Total Boxes Sold ≡ Chef Sent Total)
+                  Chef POS orders fetched from database and verified against physical takeaway boxes
                 </p>
               </div>
             </div>
@@ -1489,55 +1507,46 @@ export default function ShiftReconciliation({
 
           </div>
 
-          {/* LIVE CHEF SENT ORDERS CROSS-CHECK BAR + RED ALARM ENGINE */}
+          {/* LIVE CHEF SENT ORDERS CROSS-CHECK BAR */}
           <div className={`rounded-2xl p-4 border-2 transition-all ${
             !chefComparison.hasChefOrders
               ? 'bg-slate-50 border-slate-200 text-slate-700'
-              : chefComparison.hasMismatch
-                ? 'bg-rose-50 border-rose-500 text-rose-950 shadow-md shadow-rose-500/15'
-                : 'bg-emerald-50/80 border-emerald-400 text-emerald-950'
+              : !hasBoxesEntered
+                ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
+                : chefComparison.hasMismatch
+                  ? 'bg-rose-50 border-rose-500 text-rose-950 shadow-md shadow-rose-500/15'
+                  : 'bg-emerald-50/80 border-emerald-400 text-emerald-950'
           }`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg font-black ${
                   !chefComparison.hasChefOrders
                     ? 'bg-slate-200 text-slate-600'
-                    : chefComparison.hasMismatch
+                    : hasBoxesEntered && chefComparison.hasMismatch
                       ? 'bg-rose-600 text-white animate-pulse'
                       : 'bg-emerald-600 text-white'
                 }`}>
-                  {chefComparison.hasMismatch ? <BellRing className="w-5 h-5" /> : chefComparison.hasChefOrders ? <CheckCircle2 className="w-5 h-5" /> : <ClipboardCheck className="w-5 h-5" />}
+                  {hasBoxesEntered && chefComparison.hasMismatch ? <BellRing className="w-5 h-5" /> : chefComparison.hasChefOrders ? <CheckCircle2 className="w-5 h-5" /> : <ClipboardCheck className="w-5 h-5" />}
                 </span>
                 <div>
                   <h3 className="text-xs sm:text-sm font-black">
                     {!chefComparison.hasChefOrders
-                      ? 'Chef Orders Cross-Check: 0 Chef POS Orders Logged for This Shift'
-                      : chefComparison.hasMismatch
-                        ? '🚨 RED ALARM: TOTAL FOOD COUNT DOES NOT MATCH CHEF SENT ORDERS!'
-                        : '✅ CHEF SENT TOTAL ≡ INCOME SHEET TOTAL MATCHED'}
+                      ? `No Chef Orders in Database for ${selectedDate} (${selectedShift} Shift)`
+                      : !hasBoxesEntered
+                        ? `Chef Orders Loaded from Database: ${chefSummary.totalOrders} order(s) (${chefComparison.chefTakeawayBoxes} Takeaway boxes)`
+                        : chefComparison.hasMismatch
+                          ? '🚨 Mismatch: Sheet Dishes Do Not Match Chef Orders'
+                          : '✅ Chef Orders Matched Physical Boxes & Sheet'}
                   </h3>
                   <p className="text-[11px] font-bold opacity-80 mt-0.5">
                     {chefComparison.hasChefOrders ? (
                       <>
                         Chef POS Sent: <strong>{chefSummary.totalOrders} orders</strong> ({chefComparison.chefTakeawayBoxes} Takeaway boxes
                         {chefComparison.chefHomeDishes > 0 ? ` + ${chefComparison.chefHomeDishes} Home dine-in` : ''} = <strong>{chefComparison.chefTotalFood} total</strong>) •
-                        Income Sheet Entered: <strong>{chefComparison.incomeSheetTotal} boxes/food</strong>
-                        {chefComparison.hasDishTypeVariance && (
-                          <span className="ml-2 text-emerald-800 font-black">
-                            (Different dish types clicked, total count matches — OK ✔)
-                          </span>
-                        )}
-                        {chefSummary.beuOrdersCount > 0 && (
-                          <span className="block mt-1 text-teal-800 font-black">
-                            🛵 BEU Food Orders: {chefSummary.beuOrdersCount} ({chefSummary.beuBoxes} boxes) •
-                            Normal Value: {formatEtb(chefSummary.beuNormalRevenue)} ETB •
-                            15% BEU Deduction: <span className="text-rose-700">-{formatEtb(chefSummary.beuFoodDeduction)} ETB</span> •
-                            BEU Net: {formatEtb(chefSummary.beuFoodRevenue)} ETB
-                          </span>
-                        )}
+                        Sheet Entered: <strong>{chefComparison.incomeSheetTotal} boxes/food</strong>
                       </>
                     ) : (
-                      'When Chef sends orders from Kitchen POS for this date & shift, total box count will automatically cross-check below.'
+                      'Orders submitted by the Chef appear here automatically from the database.'
                     )}
                   </p>
                 </div>
@@ -1579,8 +1588,55 @@ export default function ShiftReconciliation({
               </div>
             </div>
 
-            {/* Dish-by-Dish Discrepancy Table when Red Alarm fires */}
-            {chefComparison.hasMismatch && chefComparison.dishDiffs.length > 0 && (
+            {/* Real Chef Orders Display Directly Inside Section 2 */}
+            {chefSummary.matchedOrders.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-emerald-200/70 space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-black text-slate-700">
+                  <span>📋 Chef Sent Orders for {selectedDate} ({selectedShift} Shift):</span>
+                  <span className="text-emerald-700">{chefSummary.matchedOrders.length} order(s) fetched</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-0.5">
+                  {chefSummary.matchedOrders.map((ord) => {
+                    const ordQty = (ord.items || []).reduce((s, i) => s + Number(i.qty || 0), 0);
+                    const isHomeOrd = ord.orderType === 'Home' || ord.channel === 'In-Store Home';
+                    const isBeuOrd = ord.channel === 'BEU Delivery' || ord.isBeuOrder;
+                    return (
+                      <div key={ord.id} className="bg-white rounded-xl p-2.5 border border-slate-200 flex items-start justify-between gap-2 text-xs shadow-2xs">
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="font-mono font-black text-slate-900">#{String(ord.id).slice(-6).toUpperCase()}</span>
+                            <span className="text-[10px] text-slate-400 font-bold">{ord.timestamp || ''}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-black ${
+                              isBeuOrd
+                                ? 'bg-teal-50 text-teal-800 border border-teal-200'
+                                : isHomeOrd
+                                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                  : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                            }`}>
+                              {isBeuOrd ? '🛵 BEU' : isHomeOrd ? '🏠 Home' : '📦 Takeaway'}
+                            </span>
+                            {ord.waiterName && (
+                              <span className="text-[10px] font-bold text-slate-600 truncate">• {ord.waiterName}</span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-700 font-bold truncate">
+                            {(ord.items || []).map(i => `${i.qty}× ${i.name}`).join(', ')}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-[11px] font-black text-emerald-800 block">
+                            {isHomeOrd ? `${ordQty} dish` : `${ordQty} box`}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Dish-by-Dish Discrepancy Table when Mismatch fires */}
+            {hasBoxesEntered && chefComparison.hasMismatch && chefComparison.dishDiffs.length > 0 && (
               <div className="mt-3 pt-3 border-t border-rose-200 overflow-x-auto">
                 <p className="text-[11px] font-black text-rose-800 uppercase tracking-wider mb-2">
                   Exact Dish-by-Dish Mismatch Breakdown (Chef vs Income Sheet):
@@ -1694,9 +1750,28 @@ export default function ShiftReconciliation({
             })}
           </div>
 
-          {/* THE 3 ANTI-SKIMMING RECONCILIATION STATES (STATE A, B, C) */}
+          {/* PHYSICAL BOX vs ORDERS VERIFICATION SUMMARY */}
           <div className="pt-1">
-            {isFoodBoxesBalanced ? (
+            {!hasBoxesEntered ? (
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-2 text-slate-700">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-base">
+                    📦
+                  </span>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-black text-slate-900">
+                      Chef/Sheet Dishes Loaded: {totalAssignedBoxes} dishes ({totalFoodRevenue.toLocaleString()} ETB)
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-bold">
+                      Enter "Boxes Given" and "Boxes Left" above to verify physical takeaway boxes before saving the shift
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-black px-3 py-1 bg-slate-100 text-slate-700 rounded-xl border border-slate-200">
+                  Waiting for Box Count
+                </span>
+              </div>
+            ) : isFoodBoxesBalanced ? (
               <div className="bg-emerald-50 border-2 border-emerald-500/70 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-2 text-emerald-900 animate-in fade-in shadow-xs">
                 <div className="flex items-center gap-2.5">
                   <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg">
@@ -1704,15 +1779,15 @@ export default function ShiftReconciliation({
                   </span>
                   <div>
                     <h3 className="text-xs sm:text-sm font-black text-emerald-900">
-                      Food Boxes Balanced: {totalAssignedBoxes} / {targetFoodSold} assigned ({totalFoodRevenue.toLocaleString()} ETB)
+                      Food Boxes Verified: {totalAssignedBoxes} / {targetFoodSold} boxes matched ({totalFoodRevenue.toLocaleString()} ETB)
                     </h3>
                     <p className="text-[11px] text-emerald-700 font-bold">
-                      የኩሽና ቦክስና የአስተናጋጆች ትዕዛዝ ሙሉ በሙሉ ተመጣጥኗል (Save Settlement Enabled)
+                      የኩሽና ቦክስና የተመዘገቡ ምግቦች ሙሉ በሙሉ ተመጣጥነዋል (Ready to Save Shift)
                     </p>
                   </div>
                 </div>
                 <span className="text-xs font-black px-3 py-1 bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-300">
-                  STATE A: BALANCED ✔
+                  MATCHED ✔
                 </span>
               </div>
             ) : isUnderAssigned ? (
@@ -1723,36 +1798,36 @@ export default function ShiftReconciliation({
                   </span>
                   <div>
                     <h3 className="text-xs sm:text-sm font-black text-amber-900">
-                      Under-assigned: {Math.abs(boxDifference)} boxes remaining to assign
+                      {Math.abs(boxDifference)} Physical Box(es) Used Without Matching Food Orders
                     </h3>
                     <p className="text-[11px] text-amber-700 font-bold">
-                      ከኩሽና ከወጡት ቦክሶች {Math.abs(boxDifference)} የሚሆኑት አልተመደቡም፤ እባክዎ ምግቦቹን ይመድቡ
+                      Boxes Given − Boxes Left = {targetFoodSold} boxes used, but Chef/Sheet orders show {totalAssignedBoxes}. Check physical box count or add missing dishes.
                     </p>
                   </div>
                 </div>
                 <span className="text-xs font-black px-3 py-1 bg-amber-100 text-amber-800 rounded-xl border border-amber-300 flex items-center gap-1">
                   <Lock className="w-3.5 h-3.5" />
-                  <span>STATE B: UNDER-ASSIGNED ⚠️</span>
+                  <span>{Math.abs(boxDifference)} Box(es) Missing</span>
                 </span>
               </div>
             ) : (
               <div className="bg-rose-50 border-2 border-rose-500/70 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-2 text-rose-900 animate-in fade-in shadow-xs">
                 <div className="flex items-center gap-2.5">
                   <span className="w-8 h-8 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center text-lg">
-                    ❌
+                    ⚠️
                   </span>
                   <div>
                     <h3 className="text-xs sm:text-sm font-black text-rose-900">
-                      Over-assigned: Assigned exceeds physical boxes by {boxDifference}
+                      {boxDifference} More Dish(es) Entered Than Physical Boxes Used ({totalAssignedBoxes} dishes vs {targetFoodSold} boxes)
                     </h3>
                     <p className="text-[11px] text-rose-700 font-bold">
-                      የተመደቡት ምግቦች ብዛት በኩሽና ከተፈጁት ቦክሶች በ {boxDifference} በልጠዋል
+                      Please check "Boxes Left" count above or verify if any dish was Dine-In (Home) rather than a takeaway box
                     </p>
                   </div>
                 </div>
                 <span className="text-xs font-black px-3 py-1 bg-rose-100 text-rose-800 rounded-xl border border-rose-300 flex items-center gap-1">
                   <Lock className="w-3.5 h-3.5" />
-                  <span>STATE C: OVER-ASSIGNED ❌</span>
+                  <span>Check Box Count (+{boxDifference})</span>
                 </span>
               </div>
             )}
@@ -2038,42 +2113,20 @@ export default function ShiftReconciliation({
                 <h2 className="text-sm sm:text-base font-black text-slate-900 flex flex-wrap items-center gap-2">
                   <span>4. RECOVERING PENDING PAYMENTS FROM WAITERS</span>
                   <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
-                    {recoverAllShifts
-                      ? 'All Shifts'
-                      : selectedShift === 'Night'
+                    {recoveryFilterMode === 'All'
+                      ? '📋 All Shifts'
+                      : recoveryFilterMode === 'Night'
                         ? '🌙 Night Shift Pending'
                         : '☀️ Day Shift Pending'}
                   </span>
                 </h2>
                 <p className="text-[11px] text-slate-500 font-bold">
-                  {recoverAllShifts
-                    ? 'Showing unpaid waiter balances across both shifts (Adds directly to cash drawer)'
-                    : `Showing ${selectedShift} Shift unpaid waiter balances (Adds directly to cash drawer)`}
+                  Tap any shift box below (Day, Night, or All) to quickly inspect & collect unpaid waiter balances
                 </p>
               </div>
             </div>
             
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-[11px] font-black">
-                <button
-                  type="button"
-                  onClick={() => setRecoverAllShifts(false)}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${
-                    !recoverAllShifts ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600'
-                  }`}
-                >
-                  {selectedShift === 'Night' ? '🌙 Night Only' : '☀️ Day Only'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRecoverAllShifts(true)}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${
-                    recoverAllShifts ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600'
-                  }`}
-                >
-                  All Shifts{otherShiftPendingCount > 0 ? ` (+${otherShiftPendingCount})` : ''}
-                </button>
-              </div>
               <button
                 type="button"
                 onClick={() => setShowPendingLedgerModal(true)}
@@ -2089,28 +2142,91 @@ export default function ShiftReconciliation({
             </div>
           </div>
 
-          {/* List of Pending Debt Tickets with Steppers */}
-          <div className="space-y-3">
+          {/* 3 QUICK SHIFT SUMMARY BOXES (DAY / NIGHT / ALL) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => setRecoveryFilterMode('Day')}
+              className={`p-3.5 rounded-2xl border-2 text-left transition-all flex items-center justify-between gap-2 ${
+                recoveryFilterMode === 'Day'
+                  ? 'bg-emerald-50 border-emerald-600 shadow-sm'
+                  : 'bg-slate-50 border-slate-200 hover:border-emerald-300'
+              }`}
+            >
+              <div>
+                <span className="text-[11px] font-black text-slate-500 block">☀️ Day Shift Pending</span>
+                <span className="text-base font-black text-slate-900">{recoveryShiftStats.dayAmount.toLocaleString()} ETB</span>
+              </div>
+              <span className={`px-2.5 py-1 rounded-xl text-xs font-black ${
+                recoveryFilterMode === 'Day' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-700 border border-slate-200'
+              }`}>
+                {recoveryShiftStats.dayCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setRecoveryFilterMode('Night')}
+              className={`p-3.5 rounded-2xl border-2 text-left transition-all flex items-center justify-between gap-2 ${
+                recoveryFilterMode === 'Night'
+                  ? 'bg-emerald-50 border-emerald-600 shadow-sm'
+                  : 'bg-slate-50 border-slate-200 hover:border-emerald-300'
+              }`}
+            >
+              <div>
+                <span className="text-[11px] font-black text-slate-500 block">🌙 Night Shift Pending</span>
+                <span className="text-base font-black text-slate-900">{recoveryShiftStats.nightAmount.toLocaleString()} ETB</span>
+              </div>
+              <span className={`px-2.5 py-1 rounded-xl text-xs font-black ${
+                recoveryFilterMode === 'Night' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-700 border border-slate-200'
+              }`}>
+                {recoveryShiftStats.nightCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setRecoveryFilterMode('All')}
+              className={`p-3.5 rounded-2xl border-2 text-left transition-all flex items-center justify-between gap-2 ${
+                recoveryFilterMode === 'All'
+                  ? 'bg-emerald-50 border-emerald-600 shadow-sm'
+                  : 'bg-slate-50 border-slate-200 hover:border-emerald-300'
+              }`}
+            >
+              <div>
+                <span className="text-[11px] font-black text-slate-500 block">📋 All Shifts Pending</span>
+                <span className="text-base font-black text-slate-900">{recoveryShiftStats.allAmount.toLocaleString()} ETB</span>
+              </div>
+              <span className={`px-2.5 py-1 rounded-xl text-xs font-black ${
+                recoveryFilterMode === 'All' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-700 border border-slate-200'
+              }`}>
+                {recoveryShiftStats.allCount}
+              </span>
+            </button>
+          </div>
+
+          {/* Pending Payment Boxes Grid */}
+          <div>
             {activeDebtsForShift.length === 0 ? (
               <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-2">
                 <p className="text-xs text-slate-700 font-bold">
-                  {recoverAllShifts
+                  {recoveryFilterMode === 'All'
                     ? '✓ No pending debts across shifts'
-                    : `✓ No pending debts for ${selectedShift} Shift`}
+                    : `✓ No pending debts for ${recoveryFilterMode} Shift`}
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  {!recoverAllShifts && otherShiftPendingCount > 0
-                    ? `${otherShiftPendingCount} pending debit(s) exist in the other shift.`
+                  {recoveryFilterMode !== 'All' && otherShiftPendingCount > 0
+                    ? `${otherShiftPendingCount} pending debit(s) exist in the other shift — click All Shifts box above to view.`
                     : 'New debts can be logged in Section 3 above or inside the Waiter Debts Ledger page.'}
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-2">
-                  {!recoverAllShifts && otherShiftPendingCount > 0 && (
+                  {recoveryFilterMode !== 'All' && recoveryShiftStats.allCount > 0 && (
                     <button
                       type="button"
-                      onClick={() => setRecoverAllShifts(true)}
+                      onClick={() => setRecoveryFilterMode('All')}
                       className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-slate-800 border border-slate-200 rounded-xl text-xs font-black inline-flex items-center gap-1.5 transition-all shadow-xs"
                     >
-                      <span>Show Other Shift ({otherShiftPendingCount})</span>
+                      <span>Show All Shifts ({recoveryShiftStats.allCount})</span>
                     </button>
                   )}
                   <button
@@ -2124,7 +2240,8 @@ export default function ShiftReconciliation({
                 </div>
               </div>
             ) : (
-              activeDebtsForShift.map(debt => {
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {activeDebtsForShift.map(debt => {
                 const sel = recoverySelections[debt.id];
                 const isSelected = sel?.selected || false;
                 const unitsToRecover = sel?.unitsToRecover || debt.remainingUnits;
@@ -2134,46 +2251,54 @@ export default function ShiftReconciliation({
                 return (
                   <div
                     key={debt.id}
-                    className={`p-3.5 rounded-2xl border transition-all flex flex-wrap items-center justify-between gap-3 ${
+                    className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
                       isSelected 
                         ? 'bg-emerald-50/90 border-2 border-emerald-500 text-slate-900 shadow-sm' 
-                        : 'bg-slate-50 border border-slate-200 text-slate-600 hover:border-emerald-200'
+                        : 'bg-slate-50 border border-slate-200 text-slate-600 hover:border-emerald-300'
                     }`}
                   >
-                    {/* Checkbox & Waiter Info */}
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleDebtSelection(debt.id)}
-                        className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 bg-white border-slate-300 cursor-pointer accent-emerald-600"
-                      />
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-black text-xs text-slate-900">
-                            Waiter: {debt.waiterName}
+                    {/* Box Header: Checkbox + Waiter + Shift */}
+                    <div className="flex items-start justify-between gap-2">
+                      <label className="flex items-start gap-2.5 cursor-pointer flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleDebtSelection(debt.id)}
+                          className="w-4 h-4 mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 bg-white border-slate-300 cursor-pointer accent-emerald-600 shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <span className="font-black text-xs text-slate-900 block truncate">
+                            {debt.waiterName}
                           </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-emerald-800 border border-slate-200 shadow-2xs">
-                            {isConsolidated ? '📑 Consolidated Balance' : debt.itemType === 'food' ? '🍱 Food' : '🥤 Juice'}
-                          </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                            {debt.shift === 'Night' ? '🌙 Night' : '☀️ Day'}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-1 mt-1">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-emerald-800 border border-slate-200">
+                              {isConsolidated ? '📑 Consolidated' : debt.itemType === 'food' ? '🍱 Food' : '🥤 Juice'}
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                              {debt.shift === 'Night' ? '🌙 Night' : '☀️ Day'}
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-[11px] text-slate-500 font-medium">
-                          {isConsolidated
-                            ? `Total Unpaid: ${Number(debt.remainingAmount).toLocaleString()} ETB • ${debt.dishName}`
-                            : `${debt.remainingUnits} ${debt.itemType === 'food' ? 'boxes' : 'cups'} • ${debt.remainingAmount} ETB • ${debt.dishName}`}
-                        </p>
+                      </label>
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-black text-emerald-800 block">
+                          {Number(debt.remainingAmount).toLocaleString()} ETB
+                        </span>
+                        {!isConsolidated && (
+                          <span className="text-[10px] font-bold text-slate-500">
+                            {debt.remainingUnits} {debt.itemType === 'food' ? 'boxes' : 'cups'}
+                          </span>
+                        )}
                       </div>
                     </div>
 
+                    <p className="text-[11px] text-slate-600 font-medium line-clamp-2 border-t border-slate-200/70 pt-2">
+                      {debt.dishName}{debt.date ? ` • ${debt.date}` : ''}
+                    </p>
+
                     {/* Stepper: Recover Units or ETB Amount */}
                     {isSelected && (
-                      <div className="flex flex-wrap items-center gap-2.5">
-                        <span className="text-[11px] text-slate-600 font-bold">
-                          {isConsolidated ? 'Recover ETB:' : 'Recover Units:'}
-                        </span>
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-emerald-200">
                         <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-xl border border-slate-200 shadow-2xs">
                           <button
                             type="button"
@@ -2190,10 +2315,10 @@ export default function ShiftReconciliation({
                               max={debt.remainingUnits}
                               value={unitsToRecover}
                               onChange={(e) => setExactDebtRecoverUnits(debt.id, e.target.value)}
-                              className="w-20 text-center text-xs font-black text-emerald-900 bg-transparent outline-none"
+                              className="w-16 text-center text-xs font-black text-emerald-900 bg-transparent outline-none"
                             />
                           ) : (
-                            <span className="px-2 text-xs font-black text-emerald-900">
+                            <span className="px-1.5 text-xs font-black text-emerald-900">
                               {unitsToRecover} / {debt.remainingUnits}
                             </span>
                           )}
@@ -2206,23 +2331,26 @@ export default function ShiftReconciliation({
                             <Plus className="w-2.5 h-2.5" />
                           </button>
                         </div>
-                        {isConsolidated && unitsToRecover < debt.remainingUnits && (
-                          <button
-                            type="button"
-                            onClick={() => setExactDebtRecoverUnits(debt.id, debt.remainingUnits)}
-                            className="px-2 py-1 rounded-lg bg-emerald-100 text-emerald-900 text-[10px] font-black"
-                          >
-                            Full
-                          </button>
-                        )}
-                        <span className="font-black text-xs text-emerald-900 min-w-16 text-right">
-                          + {recoveredAmt.toLocaleString()} ETB
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {isConsolidated && unitsToRecover < debt.remainingUnits && (
+                            <button
+                              type="button"
+                              onClick={() => setExactDebtRecoverUnits(debt.id, debt.remainingUnits)}
+                              className="px-2 py-1 rounded-lg bg-emerald-100 text-emerald-900 text-[10px] font-black"
+                            >
+                              Full
+                            </button>
+                          )}
+                          <span className="font-black text-xs text-emerald-900">
+                            +{recoveredAmt.toLocaleString()} ETB
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>
                 );
-              })
+              })}
+              </div>
             )}
           </div>
 

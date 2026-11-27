@@ -2995,15 +2995,14 @@ export default function App() {
                     {/* STEP 1: SERVICE TYPE */}
                     {checkoutModalStep === 1 && (
                       <div className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                           <button
                             type="button"
                             onClick={() => {
                               setOrderType('Takeaway');
-                              if (selectedShiftType === 'BEU') setSelectedShiftType('Day');
                             }}
                             className={`p-4 rounded-2xl border-2 text-left transition-all flex flex-col gap-2 ${
-                              selectedShiftType !== 'BEU' && orderType === 'Takeaway'
+                              orderType === 'Takeaway'
                                 ? 'border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/20'
                                 : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-emerald-400'
                             }`}
@@ -3021,10 +3020,13 @@ export default function App() {
                             type="button"
                             onClick={() => {
                               setOrderType('Home');
-                              if (selectedShiftType === 'BEU') setSelectedShiftType('Day');
+                              if (selectedShiftType === 'BEU') {
+                                setSelectedShiftType('Day');
+                                if (/beu|ቢዩ/i.test(selectedWaiter)) setSelectedWaiter('ሀብታሙ (Habtamu)');
+                              }
                             }}
                             className={`p-4 rounded-2xl border-2 text-left transition-all flex flex-col gap-2 ${
-                              selectedShiftType !== 'BEU' && orderType === 'Home'
+                              orderType === 'Home'
                                 ? 'border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/20'
                                 : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-emerald-400'
                             }`}
@@ -3034,30 +3036,75 @@ export default function App() {
                             </div>
                             <div>
                               <p className="font-black text-sm text-slate-900 dark:text-white">{t.homeDineIn}</p>
-                              <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">300 ETB • 0 Box</p>
+                              <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">{t.dineInHome}</p>
                             </div>
+                          </button>
+                        </div>
+
+                        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-bold">
+                          <span className="text-slate-500 dark:text-slate-400">{t.boxesOut}: {orderType === 'Home' ? 0 : totalBoxesInOrder}</span>
+                          <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{formatEtb(totalSubtotal)} ETB</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* STEP 2: SHIFT (DAY / NIGHT / BEU) */}
+                    {checkoutModalStep === 2 && (
+                      <div className="space-y-3.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedShiftType('Day');
+                              if (/beu|ቢዩ/i.test(selectedWaiter)) setSelectedWaiter('ሀብታሙ (Habtamu)');
+                            }}
+                            className={`p-5 rounded-2xl border-2 text-center transition-all flex flex-col items-center gap-2.5 ${
+                              selectedShiftType === 'Day'
+                                ? 'border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/20'
+                                : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-emerald-400'
+                            }`}
+                          >
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                              <Sun className="w-6 h-6" />
+                            </div>
+                            <span className="font-black text-sm text-slate-900 dark:text-white">{t.dayShift}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedShiftType('Night');
+                              if (/beu|ቢዩ/i.test(selectedWaiter)) setSelectedWaiter('ወንዴ (Wende)');
+                            }}
+                            className={`p-5 rounded-2xl border-2 text-center transition-all flex flex-col items-center gap-2.5 ${
+                              selectedShiftType === 'Night'
+                                ? 'border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/20'
+                                : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-emerald-400'
+                            }`}
+                          >
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                              <Moon className="w-6 h-6" />
+                            </div>
+                            <span className="font-black text-sm text-slate-900 dark:text-white">{t.nightShift}</span>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => {
                               setSelectedShiftType('BEU');
-                              setSelectedWaiter('የቢዩ አሽከርካሪ (BEU Driver)');
                               setOrderType('Takeaway');
+                              setSelectedWaiter('የቢዩ አሽከርካሪ (BEU Driver)');
                             }}
-                            className={`p-4 rounded-2xl border-2 text-left transition-all flex flex-col gap-2 ${
+                            className={`p-5 rounded-2xl border-2 text-center transition-all flex flex-col items-center gap-2.5 ${
                               selectedShiftType === 'BEU'
                                 ? 'border-teal-600 bg-teal-500/10 ring-2 ring-teal-500/20'
                                 : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-teal-400'
                             }`}
                           >
-                            <div className="w-10 h-10 rounded-xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center">
-                              <Truck className="w-5 h-5" />
+                            <div className="w-12 h-12 rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                              <Truck className="w-6 h-6" />
                             </div>
-                            <div>
-                              <p className="font-black text-sm text-slate-900 dark:text-white">{t.beuDelivery}</p>
-                              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">BEU Driver</p>
-                            </div>
+                            <span className="font-black text-sm text-slate-900 dark:text-white">{t.beuDelivery}</span>
                           </button>
                         </div>
 
@@ -3070,46 +3117,6 @@ export default function App() {
                             className="w-full bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-teal-500"
                           />
                         )}
-
-                        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-bold">
-                          <span className="text-slate-500 dark:text-slate-400">{t.boxesOut}: {orderType === 'Home' ? 0 : totalBoxesInOrder}</span>
-                          <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{formatEtb(totalSubtotal)} ETB</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* STEP 2: SHIFT */}
-                    {checkoutModalStep === 2 && (
-                      <div className="grid grid-cols-2 gap-3.5">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedShiftType('Day')}
-                          className={`p-5 rounded-2xl border-2 text-center transition-all flex flex-col items-center gap-2.5 ${
-                            selectedShiftType === 'Day'
-                              ? 'border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/20'
-                              : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-emerald-400'
-                          }`}
-                        >
-                          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                            <Sun className="w-6 h-6" />
-                          </div>
-                          <span className="font-black text-sm text-slate-900 dark:text-white">{t.dayShift}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setSelectedShiftType('Night')}
-                          className={`p-5 rounded-2xl border-2 text-center transition-all flex flex-col items-center gap-2.5 ${
-                            selectedShiftType === 'Night'
-                              ? 'border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/20'
-                              : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-emerald-400'
-                          }`}
-                        >
-                          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                            <Moon className="w-6 h-6" />
-                          </div>
-                          <span className="font-black text-sm text-slate-900 dark:text-white">{t.nightShift}</span>
-                        </button>
                       </div>
                     )}
 
@@ -3166,7 +3173,7 @@ export default function App() {
 
                         <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-xs font-bold">
                           <span className="text-slate-700 dark:text-slate-200">
-                            {orderType === 'Home' ? t.homeDineIn : t.takeaway} • {selectedShiftType === 'Night' ? t.nightShift : t.dayShift}
+                            {orderType === 'Home' ? t.homeDineIn : t.takeaway} • {selectedShiftType === 'BEU' ? t.beuDelivery : (selectedShiftType === 'Night' ? t.nightShift : t.dayShift)}
                           </span>
                           <span className="text-base font-black text-emerald-700 dark:text-emerald-300">{formatEtb(totalSubtotal)} ETB</span>
                         </div>
@@ -3196,25 +3203,14 @@ export default function App() {
                     )}
 
                     {checkoutModalStep === 1 && (
-                      selectedShiftType === 'BEU' ? (
-                        <button
-                          type="button"
-                          onClick={handleFinalSubmit}
-                          className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>{t.submitOrder}</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setCheckoutModalStep(2)}
-                          className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md"
-                        >
-                          <span>{t.next}</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      )
+                      <button
+                        type="button"
+                        onClick={() => setCheckoutModalStep(2)}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md"
+                      >
+                        <span>{t.next}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
                     )}
 
                     {checkoutModalStep === 2 && (
@@ -5071,6 +5067,7 @@ export default function App() {
                               setClearConfirmError('Incorrect Owner Password.');
                               return;
                             }
+                            setApplyingRemoteSync(true);
                             clearAllBusinessData({ includeSettings: clearIncludeSettings });
                             await dbService.clearAllCloudData({ includeSettings: clearIncludeSettings });
                             window.location.reload();

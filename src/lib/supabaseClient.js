@@ -91,6 +91,8 @@ export const dbService = {
 
   async clearAllCloudData({ includeSettings = false } = {}) {
     if (!isSupabaseConfigured || !supabase) return null;
+    appStateTimers.forEach(timer => clearTimeout(timer));
+    appStateTimers.clear();
     try {
       await Promise.all([
         supabase.from('orders').delete().neq('id', ''),
