@@ -18,6 +18,7 @@ import {
   Sparkles,
   AlertCircle
 } from 'lucide-react';
+import { dbService } from '../lib/supabaseClient';
 
 // Ethiopian calendar converter helper
 const toEthiopianDate = (isoStr) => {
@@ -98,7 +99,19 @@ export default function ScheduleCalendarRemindMe({
 
   useEffect(() => {
     localStorage.setItem('maraki_schedule_reminders', JSON.stringify(customReminders));
+    dbService.saveAppState('maraki_schedule_reminders', customReminders);
   }, [customReminders]);
+
+  useEffect(() => {
+    const handleRemoteSync = () => {
+      try {
+        const saved = localStorage.getItem('maraki_schedule_reminders');
+        if (saved) setCustomReminders(JSON.parse(saved));
+      } catch (e) {}
+    };
+    window.addEventListener('maraki-supabase-synced', handleRemoteSync);
+    return () => window.removeEventListener('maraki-supabase-synced', handleRemoteSync);
+  }, []);
 
   // Handle Add New Event / Reminder
   const handleAddReminder = (e) => {

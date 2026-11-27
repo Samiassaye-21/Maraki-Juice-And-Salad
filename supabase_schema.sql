@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS public.menu_items (
     category TEXT,
     menu_type TEXT NOT NULL DEFAULT 'Food' CHECK (menu_type IN ('Juice', 'Food')),
     price NUMERIC NOT NULL CHECK (price >= 0),
+    home_price NUMERIC,
+    original_price NUMERIC,
     container_type TEXT NOT NULL DEFAULT 'box' CHECK (container_type IN ('cup', 'box')),
     is_available BOOLEAN DEFAULT true,
     emoji TEXT,
@@ -21,6 +23,9 @@ CREATE TABLE IF NOT EXISTS public.menu_items (
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE public.menu_items ADD COLUMN IF NOT EXISTS home_price NUMERIC;
+ALTER TABLE public.menu_items ADD COLUMN IF NOT EXISTS original_price NUMERIC;
 
 -- 3. Orders Table
 CREATE TABLE IF NOT EXISTS public.orders (
@@ -37,8 +42,11 @@ CREATE TABLE IF NOT EXISTS public.orders (
     cups_used INTEGER DEFAULT 0 CHECK (cups_used >= 0),
     boxes_used INTEGER DEFAULT 0 CHECK (boxes_used >= 0),
     items JSONB NOT NULL DEFAULT '[]'::jsonb,
+    status TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS status TEXT;
 
 -- 4. Adari (አዳሪ) Customer Credit Ledger
 CREATE TABLE IF NOT EXISTS public.adari_ledger (
@@ -86,12 +94,20 @@ CREATE TABLE IF NOT EXISTS public.packaging_audits (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 7. Row Level Security (RLS) - Public read & insert for fast POS operations
+-- 7. App State Key-Value Sync Table (Settings, Plans, Settlements, Inventory, Reminders)
+CREATE TABLE IF NOT EXISTS public.app_state (
+    key TEXT PRIMARY KEY,
+    value JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 8. Row Level Security (RLS) - Public read & write for fast POS operations
 ALTER TABLE public.menu_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.adari_ledger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.packaging_audits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.app_state ENABLE ROW LEVEL SECURITY;
 
 -- Allow read & write access for authenticated & anonymous shop clients
 CREATE POLICY "Public read menu items" ON public.menu_items FOR SELECT USING (true);
@@ -99,15 +115,20 @@ CREATE POLICY "Public insert/update menu items" ON public.menu_items FOR ALL USI
 
 CREATE POLICY "Public read orders" ON public.orders FOR SELECT USING (true);
 CREATE POLICY "Public insert orders" ON public.orders FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public update orders" ON public.orders FOR UPDATE USING (true);
+CREATE POLICY "Public delete orders" ON public.orders FOR DELETE USING (true);
 
 CREATE POLICY "Public read adari" ON public.adari_ledger FOR SELECT USING (true);
 CREATE POLICY "Public insert/update adari" ON public.adari_ledger FOR ALL USING (true);
 
 CREATE POLICY "Public read expenses" ON public.expenses FOR SELECT USING (true);
-CREATE POLICY "Public insert expenses" ON public.expenses FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public insert/update/delete expenses" ON public.expenses FOR ALL USING (true);
 
 CREATE POLICY "Public read packaging audits" ON public.packaging_audits FOR SELECT USING (true);
-CREATE POLICY "Public insert packaging audits" ON public.packaging_audits FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public insert/update/delete packaging audits" ON public.packaging_audits FOR ALL USING (true);
+
+CREATE POLICY "Public read app_state" ON public.app_state FOR SELECT USING (true);
+CREATE POLICY "Public write app_state" ON public.app_state FOR ALL USING (true);
 
 -- 8. Seed Official 16 Takeaway Food Menu Items
 INSERT INTO public.menu_items (id, name, english_name, category, menu_type, price, container_type, is_available, emoji, image_url, description)

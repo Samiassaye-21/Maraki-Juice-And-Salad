@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   ClipboardCheck, 
   Sun, 
@@ -30,7 +30,8 @@ import {
   History,
   RotateCcw,
   BellRing,
-  Sparkles as WandSparkles
+  Sparkles as WandSparkles,
+  LogOut
 } from 'lucide-react';
 import { toEthiopianDateString, toEthiopianShortDate } from './BusinessManagement';
 import WaiterPendingLedgerModal from './WaiterPendingLedgerModal';
@@ -43,6 +44,7 @@ import {
   saveShiftDefaultWaiters
 } from '../utils/reconciliationHelpers';
 import { formatEtb } from '../utils/beuHelpers';
+import { dbService } from '../lib/supabaseClient';
 
 // Standard Maraki price per juice cup
 export const DEFAULT_JUICE_PRICE = 170;
@@ -154,6 +156,7 @@ export default function ShiftReconciliation({
   });
   useEffect(() => {
     localStorage.setItem('maraki_shift_settlements', JSON.stringify(settlementsHistory));
+    dbService.saveAppState('maraki_shift_settlements', settlementsHistory);
   }, [settlementsHistory]);
 
   // 4. Stored Waiter Pending Debts
@@ -194,14 +197,18 @@ export default function ShiftReconciliation({
       }
     ];
   });
+  const prevPendingDebtsRef = useRef(pendingDebts);
   useEffect(() => {
     localStorage.setItem('maraki_waiter_pending_debts', JSON.stringify(pendingDebts));
+    dbService.saveAppState('maraki_waiter_pending_debts', pendingDebts);
+    dbService.syncAdariList(pendingDebts, prevPendingDebtsRef.current);
+    prevPendingDebtsRef.current = pendingDebts;
   }, [pendingDebts]);
 
   // Modal state for full Pending Debts Ledger Page
   const [showPendingLedgerModal, setShowPendingLedgerModal] = useState(false);
 
-  // Sync pending debts if updated elsewhere or in other windows
+  // Sync pending debts & settlements if updated elsewhere or via Supabase
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'maraki_waiter_pending_debts' && e.newValue) {
@@ -212,8 +219,26 @@ export default function ShiftReconciliation({
         }
       }
     };
+    const handleRemoteSync = () => {
+      try {
+        const s = localStorage.getItem('maraki_shift_settlements');
+        if (s) setSettlementsHistory(JSON.parse(s));
+        const d = localStorage.getItem('maraki_waiter_pending_debts');
+        if (d) {
+          const parsed = JSON.parse(d);
+          prevPendingDebtsRef.current = parsed;
+          setPendingDebts(parsed);
+        }
+      } catch (err) {
+        console.error('Remote sync error:', err);
+      }
+    };
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('maraki-supabase-synced', handleRemoteSync);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('maraki-supabase-synced', handleRemoteSync);
+    };
   }, []);
 
   // ==============================================================
@@ -627,6 +652,7 @@ export default function ShiftReconciliation({
   useEffect(() => {
     if (!isShiftClosed) {
       localStorage.setItem('maraki_shift_manual_transfers', JSON.stringify(bankTransfers));
+      dbService.saveAppState('maraki_shift_manual_transfers', bankTransfers);
     }
   }, [bankTransfers, isShiftClosed]);
 
@@ -792,6 +818,9 @@ export default function ShiftReconciliation({
     // Save BOTH carry-over Cups Left AND Boxes Left for the next shift (Day->Night or Night->Next Day)
     localStorage.setItem(`maraki_cups_carry_${selectedDate}_${selectedShift}`, (Number(cupsLeft) || 0).toString());
     localStorage.setItem(`maraki_boxes_carry_${selectedDate}_${selectedShift}`, (Number(boxesLeft) || 0).toString());
+    dbService.saveAppState(`maraki_cups_carry_${selectedDate}_${selectedShift}`, Number(cupsLeft) || 0);
+    dbService.saveAppState(`maraki_boxes_carry_${selectedDate}_${selectedShift}`, Number(boxesLeft) || 0);
+    dbService.upsertPackagingAudit(newRecord);
 
     // Update Settlements History & re-lock if unlocked
     setSettlementsHistory(prev => {
@@ -809,6 +838,7 @@ export default function ShiftReconciliation({
 
     // Clear active manual transfers draft now that it's archived inside newRecord
     localStorage.removeItem('maraki_shift_manual_transfers');
+    dbService.deleteAppState('maraki_shift_manual_transfers');
 
     // Update Pending Debts
     // 1. Add new pending debt if entered (Itemized by dish & juice)
@@ -927,47 +957,47 @@ export default function ShiftReconciliation({
   };
 
   return (
-    <div className={embeddedMode ? 'bg-[#FDFBF7] text-slate-800 pb-24 rounded-3xl border border-emerald-100 shadow-sm overflow-hidden font-sans antialiased' : 'min-h-screen bg-[#FDFBF7] text-slate-800 pb-28 selection:bg-emerald-600 selection:text-white font-sans antialiased'}>
+    <div className={embeddedMode ? 'bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 pb-24 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden font-sans antialiased' : 'min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 pb-28 selection:bg-emerald-600 selection:text-white font-sans antialiased'}>
       
       {/* ============================================================== */}
-      {/* 1. TOP HEADER & SHIFT / DATE NAVIGATION (EMERALD POS THEME)     */}
+      {/* 1. TOP HEADER & SHIFT / DATE NAVIGATION                        */}
       {/* ============================================================== */}
-      <header className={`bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white ${embeddedMode ? 'rounded-t-3xl' : 'sticky top-0 z-40'} shadow-lg shadow-emerald-800/10`}>
+      <header className={`bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 ${embeddedMode ? 'rounded-t-3xl' : 'sticky top-0 z-40'} shadow-sm`}>
         <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           
           {/* Brand & Manual Module Indicator */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-xl shadow-inner">
-              📋
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20">
+              <ClipboardCheck className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-black text-base sm:text-lg tracking-tight text-white drop-shadow-sm">
+                <h1 className="font-black text-base sm:text-lg tracking-tight">
                   DAILY INCOME SHEET
                 </h1>
-                <span className="text-[10px] font-black uppercase tracking-wider bg-white text-emerald-800 px-2 py-0.5 rounded-full shadow-sm">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 px-2 py-0.5 rounded-full">
                   የፈረቃ ገቢ ማጠቃለያ
                 </span>
               </div>
-              <p className="text-[11px] text-emerald-100 font-bold">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">
                 Anti-Skimming Settlement Engine & Drawer Cash Lock
               </p>
             </div>
           </div>
 
-          {/* Quick Station Switches, History & Waiter Debts Ledger */}
+          {/* Quick Station Actions, History & Waiter Debts Ledger */}
           <div className="flex items-center gap-2">
             
             {/* Waiter Pending Debts Ledger Button */}
             <button
               type="button"
               onClick={() => setShowPendingLedgerModal(true)}
-              className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1.5 border border-white/25 transition-all shadow-sm active:scale-95"
+              className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-black flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 transition-all shadow-xs active:scale-95"
               title="Waiter Pending Debts Ledger"
             >
-              <Clock className="w-3.5 h-3.5 text-emerald-200" />
+              <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span className="hidden sm:inline">Waiter Debts</span>
-              <span className="text-[10px] bg-emerald-900/60 px-1.5 py-0.2 rounded-full text-emerald-200 border border-white/20">
+              <span className="text-[10px] bg-emerald-600 px-1.5 py-0.2 rounded-full text-white">
                 {activeDebtsForShift.length}
               </span>
             </button>
@@ -975,55 +1005,25 @@ export default function ShiftReconciliation({
             <button
               type="button"
               onClick={() => setShowHistoryModal(true)}
-              className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/25 transition-all shadow-sm"
+              className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-black flex items-center gap-1 border border-slate-200 dark:border-slate-700 transition-all shadow-xs"
               title="Shift Settlements History"
             >
-              <History className="w-3.5 h-3.5 text-emerald-200" />
+              <History className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span className="hidden sm:inline">Shift History</span>
-              <span className="text-[10px] bg-emerald-900/60 px-1.5 py-0.2 rounded-full text-emerald-200 border border-white/20">
+              <span className="text-[10px] bg-emerald-600 px-1.5 py-0.2 rounded-full text-white">
                 {settlementsHistory.length}
               </span>
             </button>
 
-            {onSwitchToChef && (
-              <button
-                type="button"
-                onClick={onSwitchToChef}
-                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/25 transition-all shadow-sm"
-              >
-                <span>👩‍🍳 Chef POS</span>
-              </button>
-            )}
-
-            {onSwitchToOwner && (
-              <button
-                type="button"
-                onClick={onSwitchToOwner}
-                className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-white/25 transition-all shadow-sm"
-              >
-                <span>👑 Owner Center</span>
-              </button>
-            )}
-
-            {onLockReconciliation && !embeddedMode && (
-              <button
-                type="button"
-                onClick={onLockReconciliation}
-                className="px-2.5 py-1.5 bg-rose-500/20 hover:bg-rose-500/35 text-white rounded-xl text-xs font-black flex items-center gap-1 border border-rose-300/30 transition-all shadow-sm"
-                title="Lock Shift Reconciliation"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Lock</span>
-              </button>
-            )}
-
-            {onBackToPortal && (
+            {onBackToPortal && !embeddedMode && (
               <button
                 type="button"
                 onClick={onBackToPortal}
-                className="px-2.5 py-1.5 bg-black/20 hover:bg-black/30 text-emerald-100 rounded-xl text-xs font-black flex items-center gap-1 border border-white/15 transition-all shadow-sm"
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-all"
+                title="Logout"
               >
-                <span>← Portal</span>
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Logout</span>
               </button>
             )}
           </div>
@@ -1133,16 +1133,16 @@ export default function ShiftReconciliation({
       {/* Closed Shift Lock Banner */}
       {isShiftClosed && currentSavedSettlement && (
         <div className="max-w-6xl mx-auto px-4 mt-3">
-          <div className="bg-slate-900 text-white px-4 py-3.5 rounded-2xl border border-emerald-500/30 shadow-md flex flex-wrap items-center justify-between gap-3">
+          <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-3.5 rounded-2xl border border-emerald-200 dark:border-emerald-500/30 shadow-sm flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
+              <span className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
                 <Lock className="w-4 h-4" />
               </span>
               <div>
                 <p className="text-xs sm:text-sm font-black">
-                  🔒 {selectedShift} Shift ({selectedDate}) Is Closed & Saved
+                  {selectedShift} Shift ({selectedDate}) Is Closed & Saved
                 </p>
-                <p className="text-[11px] text-slate-300 font-bold">
+                <p className="text-[11px] text-slate-500 dark:text-slate-300 font-bold">
                   Drawer Cash: {currentSavedSettlement.physicalCashInDrawer?.toLocaleString()} ETB • Carry-over saved for next shift
                 </p>
               </div>
@@ -1151,7 +1151,7 @@ export default function ShiftReconciliation({
               <button
                 type="button"
                 onClick={() => { setIsPostSaveSlip(false); setActivePrintTicket(currentSavedSettlement); }}
-                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-black"
+                className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-800 dark:text-white text-xs font-black"
               >
                 View / Share Slip
               </button>
@@ -1162,7 +1162,7 @@ export default function ShiftReconciliation({
                   setSelectedDate(next.date);
                   setSelectedShift(next.shift);
                 }}
-                className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black"
+                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black"
               >
                 Next Open Shift →
               </button>
